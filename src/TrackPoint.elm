@@ -1,7 +1,5 @@
 module TrackPoint exposing (..)
 
-import Point3d
-
 type GPXCoords
     = GPXCoords
 
