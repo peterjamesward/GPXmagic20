@@ -43,3 +43,9 @@ trackPointFromGPX lon lat ele =
     , costMetric = 0.0
     , index = 0
     }
+
+prepareTrackPoints : Track -> Track
+prepareTrackPoints raw =
+    -- This is where we "enrich" the track points so they
+    -- have an index, a "bearing" and a "cost metric".
+    raw

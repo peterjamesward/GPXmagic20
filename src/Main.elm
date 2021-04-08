@@ -12,8 +12,9 @@ import Rendering exposing (Rendering)
 import Scene3d exposing (..)
 import Task
 import Time
-import TrackPoint exposing (Track)
+import TrackPoint exposing (Track, prepareTrackPoints)
 import Url exposing (Url)
+import ViewPureStyles exposing (prettyButtonStyles)
 
 
 type Msg
@@ -74,7 +75,7 @@ update msg model =
         GpxLoaded content ->
             ( { model
                 | trackName = Just "TEST"
-                , track = parseTrackPoints content
+                , track = content |> parseTrackPoints |> prepareTrackPoints
               }
             , Cmd.none
             )
@@ -96,7 +97,7 @@ view model =
                 []
                 [ row [ spaceEvenly, spacing 10, padding 10 ]
                     [ button
-                        []
+                        prettyButtonStyles
                         { onPress = Just GpxRequested
                         , label = text "Load GPX from your computer"
                         }
