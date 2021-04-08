@@ -2,16 +2,9 @@ module TrackPoint exposing (..)
 
 import Direction2d exposing (Direction2d)
 import Length
+import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 
-
-
---type GPXCoords
---    = GPXCoords
-
-
-type LocalCoords
-    = LocalCoords
 
 
 type alias TrackPoint =
@@ -26,34 +19,27 @@ type alias TrackPoint =
     }
 
 
-
-{-
-   -- Spans may be premature optimisation ...
-   type alias AtomicSpan =
-       { commences : TrackPoint
-       , concludes : TrackPoint
-       , segment : LineSegment3d Length.Meters LocalCoords
-       , effectiveDirection : Direction2d LocalCoords
-       , distanceAtStart : Float
-       , distanceAtEnd : Float
-       }
+type alias Track =
+    List TrackPoint
 
 
-   type alias CompoundSpan =
-       { commences : TrackPoint
-       , concludes : TrackPoint
-       , segment : LineSegment3d Length.Meters LocalCoords
-       , effectiveDirection : Direction2d LocalCoords
-       , distanceAtStart : Float
-       , distanceAtEnd : Float
-       , contains : List Span
-       , box : BoundingBox3d Length.Meters LocalCoords
-       }
+metresPerDegree =
+    78846.81
 
 
-   type
-       Span
-       -- Unsure about this.
-       = AtomicSpan
-       | CompoundSpan
--}
+trackPointFromGPX : Float -> Float -> Float -> TrackPoint
+trackPointFromGPX lon lat ele =
+    let
+        location =
+            Point3d.fromTuple
+                Length.meters
+                ( metresPerDegree * lon * cos (degrees lat)
+                , metresPerDegree * lat
+                , ele
+                )
+    in
+    { localCoords = location
+    , effectiveDirection = Direction2d.degrees 0
+    , costMetric = 0.0
+    , index = 0
+    }

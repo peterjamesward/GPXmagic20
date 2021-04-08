@@ -7,10 +7,12 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
+import GpxParser exposing (parseTrackPoints)
+import Rendering exposing (Rendering)
 import Scene3d exposing (..)
 import Task
 import Time
-import TrackPoint exposing (LocalCoords, TrackPoint)
+import TrackPoint exposing (Track)
 import Url exposing (Url)
 
 
@@ -35,8 +37,8 @@ type alias Model =
     , trackName : Maybe String
     , time : Time.Posix
     , zone : Time.Zone
-    , trackPoints : List TrackPoint
-    , staticVisualEntities : List (Entity LocalCoords)
+    , track : Track
+    , staticVisualEntities : Rendering
     , currentNode : Int
     }
 
@@ -46,7 +48,7 @@ init mflags =
     ( { filename = Nothing
       , time = Time.millisToPosix 0
       , zone = Time.utc
-      , trackPoints = []
+      , track = []
       , trackName = Nothing
       , staticVisualEntities = []
       , currentNode = 0
@@ -70,17 +72,12 @@ update msg model =
             )
 
         GpxLoaded content ->
-            ( parseGPXintoModel model content
+            ( { model
+                | trackName = Just "TEST"
+                , track = parseTrackPoints content
+              }
             , Cmd.none
             )
-
-
-parseGPXintoModel : Model -> String -> Model
-parseGPXintoModel model content =
-    { model
-        | trackName = Just "TEST"
-        , trackPoints = []
-    }
 
 
 view : Model -> Browser.Document Msg
