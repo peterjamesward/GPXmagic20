@@ -28,22 +28,21 @@ type
     | ImageDrag Mouse.Event
     | ImageRelease Mouse.Event
     | ImageNoOpMsg
-
-
-type ModelUpdatingMsg
-    = ImageClick Mouse.Event
+    | ImageClick Mouse.Event
     | ImageDoubleClick Mouse.Event
+
+
+
+--| ImageDoubleClick Mouse.Event
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
 withMouseCapture wrap =
-    [ htmlAttribute <| Mouse.onDown (\event -> wrap (ImageGrab event))
-    , htmlAttribute <| Mouse.onMove (\event -> wrap (ImageDrag event))
-    , htmlAttribute <| Mouse.onUp (\event -> wrap (ImageRelease event))
-
-    -- These two are model updating messages, not just view changes.
-    --, htmlAttribute <| Mouse.onClick (\event -> wrap (ImageClick event))
-    --, htmlAttribute <| Mouse.onDoubleClick (\event -> wrap (ImageDoubleClick event))
+    [ htmlAttribute <| Mouse.onDown (ImageGrab >> wrap)
+    , htmlAttribute <| Mouse.onMove (ImageDrag >> wrap)
+    , htmlAttribute <| Mouse.onUp (ImageRelease >> wrap)
+    , htmlAttribute <| Mouse.onClick (ImageClick >> wrap)
+    , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick >> wrap)
     , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel event.deltaY))
     , htmlAttribute <| style "touch-action" "none"
     , onContextMenu (wrap ImageNoOpMsg)
@@ -136,8 +135,9 @@ viewWebGLContext context scene wrapper =
                 }
 
 
-update : ImageMsg -> ViewingContext -> ViewingContext
+update : ImageMsg -> ViewingContext -> ( ViewingContext, Bool )
 update msg view =
+    -- Second return value indicates whether selection needs to change.
     case msg of
         ImageGrab event ->
             -- Mouse behaviour depends which view is in use...
@@ -146,7 +146,7 @@ update msg view =
                 alternate =
                     event.keys.ctrl || event.button == SecondButton
             in
-            { view | orbiting = Just event.offsetPos }
+            ( { view | orbiting = Just event.offsetPos }, False )
 
         ImageDrag event ->
             let
@@ -166,20 +166,28 @@ update msg view =
                                 inDegrees view.elevation
                                     + (dy - startY)
                     in
-                    { view
+                    ( { view
                         | azimuth = newAzimuth
                         , elevation = newElevation
                         , orbiting = Just ( dx, dy )
-                    }
+                      }
+                    , False
+                    )
 
                 _ ->
-                    view
+                    ( view, False )
 
         ImageRelease _ ->
-            { view | orbiting = Nothing }
+            ( { view | orbiting = Nothing }, False )
 
         ImageMouseWheel _ ->
-            view
+            ( view, False )
+
+        ImageClick event ->
+            ( view, True )
+
+        ImageDoubleClick event ->
+            ( view, True )
 
         ImageNoOpMsg ->
-            view
+            ( view, False )

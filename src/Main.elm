@@ -103,8 +103,12 @@ update msg model =
             )
 
         ImageMessage innerMsg ->
+            let
+                ( newContext, currentPointChanged ) =
+                    ScenePainter.update innerMsg model.viewingContext
+            in
             ( { model
-                | viewingContext = ScenePainter.update innerMsg model.viewingContext
+                | viewingContext = newContext
               }
             , Cmd.none
             )
