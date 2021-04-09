@@ -5,6 +5,7 @@ import Axis3d
 import Color
 import Length
 import LineSegment3d
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Plane3d
 import Quantity exposing (Quantity)
@@ -34,11 +35,15 @@ defaultRenderingContext =
 render : RenderingContext -> List TrackPoint -> Scene
 render context track =
     -- Let's just try a clean room implementation here, with surface only.
+    let
+        reducedTrack =
+            simpleSelectiveDetail context track
+    in
     List.concat <|
         List.map2
             paintSurfaceBetween
-            track
-            (List.drop 1 track)
+            reducedTrack
+            (List.drop 1 reducedTrack)
 
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
@@ -69,3 +74,53 @@ paintSurfaceBetween pt1 pt2 =
         (LineSegment3d.startPoint rightKerb)
     ]
 
+
+simpleSelectiveDetail : RenderingContext -> List TrackPoint -> List TrackPoint
+simpleSelectiveDetail context track =
+    -- Try reducing detail beyond region 1km either side of focus.
+    let
+        isCentral tp =
+            (tp.distanceFromStart
+                |> Quantity.greaterThan
+                    (Quantity.minus (Length.kilometers 1.0) context.trackDistanceInFocus)
+            )
+                && (tp.distanceFromStart
+                        |> Quantity.lessThan
+                            (Quantity.plus (Length.kilometers 1.0) context.trackDistanceInFocus)
+                   )
+
+        precedingTrack =
+            List.Extra.takeWhile (not << isCentral) track
+
+        tailSection =
+            List.Extra.takeWhileRight (not << isCentral) track
+
+        detailSection =
+            track
+                |> List.Extra.dropWhile (not << isCentral)
+                |> List.Extra.takeWhile isCentral
+
+        sampledPreceding =
+            precedingTrack |> takeAlternate |> takeAlternate
+
+        sampledTail =
+            tailSection |> takeAlternate |> takeAlternate
+    in
+    sampledPreceding ++ detailSection ++ sampledTail
+
+
+takeAlternate : List a -> List a
+takeAlternate source =
+    let
+        helper aa accum =
+            case aa of
+                a :: b :: c ->
+                    helper c (a :: accum)
+
+                [ a ] ->
+                    helper [] (a :: accum)
+
+                [] ->
+                    List.reverse accum
+    in
+    helper source []

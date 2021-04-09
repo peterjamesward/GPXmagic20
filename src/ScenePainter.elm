@@ -14,7 +14,6 @@ import Length exposing (Length, meters)
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point3d exposing (Point3d)
-import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
 import TrackPoint exposing (TrackPoint)
@@ -127,7 +126,7 @@ viewWebGLContext context scene wrapper =
         html <|
             Scene3d.sunny
                 { camera = camera
-                , dimensions = ( Pixels.pixels 800, Pixels.pixels 600 )
+                , dimensions = ( Pixels.pixels 1000, Pixels.pixels 700 )
                 , background = backgroundColor Color.lightBlue
                 , clipDepth = Length.meters 1
                 , entities = scene
