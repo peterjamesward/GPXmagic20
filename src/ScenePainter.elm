@@ -1,6 +1,7 @@
 module ScenePainter exposing (..)
 
 import Angle exposing (Angle, inDegrees)
+import Axis3d exposing (Axis3d)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (negativeZ, positiveZ)
@@ -10,19 +11,27 @@ import Html.Events as HE
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import Html.Events.Extra.Wheel as Wheel
 import Json.Decode as D
-import Length exposing (Length, meters)
+import Length exposing (Length, Meters, meters)
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
+import Point2d
 import Point3d exposing (Point3d)
+import Rectangle2d
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
 import TrackPoint exposing (TrackPoint)
 import Viewpoint3d exposing (Viewpoint3d)
 
 
-type
-    ImageMsg
-    -- Messages that change only the WebGL context, not the model
+view3dHeight =
+    700
+
+
+view3dWidth =
+    1000
+
+
+type ImageMsg
     = ImageMouseWheel Float
     | ImageGrab Mouse.Event
     | ImageDrag Mouse.Event
@@ -32,8 +41,10 @@ type
     | ImageDoubleClick Mouse.Event
 
 
-
---| ImageDoubleClick Mouse.Event
+type PostUpdateAction
+    = ImageOnly
+    | PointerMove TrackPoint
+    | FocusMove TrackPoint
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
@@ -71,17 +82,52 @@ type alias ViewingContext =
     , orbiting : Maybe ( Float, Float )
     , zoomLevel : Float
     , focalPoint : Point3d Length.Meters LocalCoords
+    , clickedPoint : Maybe TrackPoint
+    , sceneSearcher : Axis3d Meters LocalCoords -> Maybe TrackPoint
+    , viewpoint : Viewpoint3d Meters LocalCoords
+    , camera : Camera3d Meters LocalCoords
     }
 
 
 defaultViewingContext : ViewingContext
 defaultViewingContext =
-    { azimuth = Angle.degrees -90.0
-    , elevation = Angle.degrees 40.0
-    , distance = Length.meters 100.0
+    let
+        azimuth =
+            Angle.degrees -90.0
+
+        elevation =
+            Angle.degrees 40.0
+
+        distance =
+            Length.meters 100.0
+
+        focalPoint =
+            Point3d.origin
+
+        viewpoint =
+            Viewpoint3d.orbitZ
+                { focalPoint = focalPoint
+                , azimuth = azimuth
+                , elevation = elevation
+                , distance = distance
+                }
+
+        camera =
+            Camera3d.perspective
+                { viewpoint = viewpoint
+                , verticalFieldOfView = Angle.degrees 30
+                }
+    in
+    { azimuth = azimuth
+    , elevation = elevation
+    , distance = distance
     , orbiting = Nothing
     , zoomLevel = 12.0
-    , focalPoint = Point3d.origin
+    , focalPoint = focalPoint
+    , clickedPoint = Nothing
+    , sceneSearcher = always Nothing
+    , viewpoint = viewpoint
+    , camera = camera
     }
 
 
@@ -95,7 +141,9 @@ initialiseView track =
                 |> Maybe.map .xyz
                 |> Maybe.withDefault Point3d.origin
     in
-    { defaultViewingContext | focalPoint = firstPointOnTrack }
+    { defaultViewingContext
+        | focalPoint = firstPointOnTrack
+    }
 
 
 viewWebGLContext :
@@ -104,28 +152,13 @@ viewWebGLContext :
     -> (ImageMsg -> msg)
     -> Element msg
 viewWebGLContext context scene wrapper =
-    let
-        viewpoint =
-            Viewpoint3d.orbitZ
-                { focalPoint = context.focalPoint
-                , azimuth = context.azimuth
-                , elevation = context.elevation
-                , distance = context.distance
-                }
-
-        camera =
-            Camera3d.perspective
-                { viewpoint = viewpoint
-                , verticalFieldOfView = Angle.degrees 30
-                }
-    in
     el
         (withMouseCapture wrapper)
     <|
         html <|
             Scene3d.sunny
-                { camera = camera
-                , dimensions = ( Pixels.pixels 1000, Pixels.pixels 700 )
+                { camera = context.camera
+                , dimensions = ( Pixels.pixels view3dWidth, Pixels.pixels view3dHeight )
                 , background = backgroundColor Color.lightBlue
                 , clipDepth = Length.meters 1
                 , entities = scene
@@ -135,7 +168,7 @@ viewWebGLContext context scene wrapper =
                 }
 
 
-update : ImageMsg -> ViewingContext -> ( ViewingContext, Bool )
+update : ImageMsg -> ViewingContext -> ( ViewingContext, PostUpdateAction )
 update msg view =
     -- Second return value indicates whether selection needs to change.
     case msg of
@@ -146,7 +179,9 @@ update msg view =
                 alternate =
                     event.keys.ctrl || event.button == SecondButton
             in
-            ( { view | orbiting = Just event.offsetPos }, False )
+            ( { view | orbiting = Just event.offsetPos }
+            , ImageOnly
+            )
 
         ImageDrag event ->
             let
@@ -165,29 +200,84 @@ update msg view =
                             Angle.degrees <|
                                 inDegrees view.elevation
                                     + (dy - startY)
+
+                        viewpoint =
+                            Viewpoint3d.orbitZ
+                                { focalPoint = view.focalPoint
+                                , azimuth = view.azimuth
+                                , elevation = view.elevation
+                                , distance = view.distance
+                                }
+
+                        camera =
+                            Camera3d.perspective
+                                { viewpoint = viewpoint
+                                , verticalFieldOfView = Angle.degrees 30
+                                }
                     in
                     ( { view
                         | azimuth = newAzimuth
                         , elevation = newElevation
                         , orbiting = Just ( dx, dy )
+                        , viewpoint = viewpoint
+                        , camera = camera
                       }
-                    , False
+                    , ImageOnly
                     )
 
                 _ ->
-                    ( view, False )
+                    ( view, ImageOnly )
 
         ImageRelease _ ->
-            ( { view | orbiting = Nothing }, False )
+            ( { view | orbiting = Nothing }, ImageOnly )
 
         ImageMouseWheel _ ->
-            ( view, False )
+            ( view, ImageOnly )
 
         ImageClick event ->
-            ( view, True )
+            case detectHit view event of
+                Just tp ->
+                    ( { view | focalPoint = tp.xyz }
+                    , PointerMove tp
+                    )
+
+                Nothing ->
+                    ( view, ImageOnly )
 
         ImageDoubleClick event ->
-            ( view, True )
+            case detectHit view event of
+                Just tp ->
+                    ( { view | focalPoint = tp.xyz }
+                    , FocusMove tp
+                    )
+
+                Nothing ->
+                    ( view, ImageOnly )
 
         ImageNoOpMsg ->
-            ( view, False )
+            ( view, ImageOnly )
+
+
+detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint
+detectHit context event =
+    -- Same but in our local coord, not map coords.
+    -- Need assistance from elm-3d-scene.
+    let
+        ( x, y ) =
+            event.offsetPos
+
+        screenPoint =
+            Point2d.pixels x y
+
+        screenRectangle =
+            Rectangle2d.with
+                { x1 = Pixels.pixels 0
+                , y1 = Pixels.pixels view3dHeight
+                , x2 = Pixels.pixels view3dWidth
+                , y2 = Pixels.pixels 0
+                }
+
+        ray =
+            Camera3d.ray context.camera screenRectangle screenPoint
+    in
+    context.sceneSearcher ray

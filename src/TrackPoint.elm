@@ -2,10 +2,11 @@ module TrackPoint exposing (..)
 
 import Angle
 import Area
+import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
-import Length
+import Length exposing (Meters)
 import LocalCoords exposing (LocalCoords)
-import Point3d exposing (Point3d)
+import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import Triangle3d
@@ -150,3 +151,21 @@ meanBearing direction1 direction2 =
             turnAngle |> Angle.inRadians |> (*) 0.5 |> Angle.radians
     in
     Direction2d.rotateBy halfAngle direction1
+
+
+trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
+trackPointNearestRay track ray =
+    let
+        distances =
+            List.map
+                (\tp ->
+                    ( tp
+                    , Length.inMeters <| distanceFromAxis ray tp.xyz
+                    )
+                )
+                track
+
+        inDistanceOrder =
+            List.sortBy Tuple.second distances
+    in
+    inDistanceOrder |> List.head |> Maybe.map Tuple.first

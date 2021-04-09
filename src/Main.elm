@@ -9,10 +9,10 @@ import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
-import ScenePainter exposing (ImageMsg, ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
+import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
 import Time
-import TrackPoint exposing (Track, prepareTrackPoints)
+import TrackPoint exposing (Track, prepareTrackPoints, trackPointNearestRay)
 import Url exposing (Url)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
@@ -97,19 +97,25 @@ update msg model =
                 | trackName = Just "TEST"
                 , track = track
                 , staticScene = scene
-                , viewingContext = viewingContext
+                , viewingContext = { viewingContext | sceneSearcher = trackPointNearestRay track }
               }
             , Cmd.none
             )
 
         ImageMessage innerMsg ->
             let
-                ( newContext, currentPointChanged ) =
+                ( newContext, postUpdateAction ) =
                     ScenePainter.update innerMsg model.viewingContext
             in
-            ( { model
-                | viewingContext = newContext
-              }
+            ( case postUpdateAction of
+                ImageOnly ->
+                    { model | viewingContext = newContext }
+
+                PointerMove tp ->
+                    { model | viewingContext = newContext }
+
+                FocusMove tp ->
+                    { model | viewingContext = newContext }
             , Cmd.none
             )
 
