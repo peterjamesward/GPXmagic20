@@ -7,6 +7,14 @@ import Element.Border as Border
 import Element.Font as Font
 
 
+defaultRowLayout =
+    [ spaceEvenly, spacing 10, padding 10 ]
+
+
+defaultColumnLayout =
+    [ spaceEvenly, spacing 10, padding 10 ]
+
+
 prettyButtonStyles =
     [ padding 10
     , Border.width 2
@@ -28,7 +36,8 @@ prettyButtonStyles =
 commonShortHorizontalSliderStyles =
     [ height <| px 20
     , width <| px 150
-    , centerY, centerX
+    , centerY
+    , centerX
     , behindContent <|
         -- Slider track
         el

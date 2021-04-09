@@ -2,19 +2,22 @@ module Main exposing (main)
 
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import Camera3d exposing (Camera3d)
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
-import Rendering exposing (Rendering)
-import Scene3d exposing (..)
+import Length
+import LocalCoords exposing (LocalCoords)
+import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext, setUpCamera)
+import ScenePainter exposing (defaultCamera, defaultViewingContext, viewWebGLContext)
 import Task
 import Time
 import TrackPoint exposing (Track, prepareTrackPoints)
 import Url exposing (Url)
-import ViewPureStyles exposing (prettyButtonStyles)
+import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
 
 type Msg
@@ -39,8 +42,10 @@ type alias Model =
     , time : Time.Posix
     , zone : Time.Zone
     , track : Track
-    , staticVisualEntities : Rendering
+    , staticScene : Scene
     , currentNode : Int
+    , renderingContext : RenderingContext
+    , camera : Camera3d Length.Meters LocalCoords
     }
 
 
@@ -51,8 +56,10 @@ init mflags =
       , zone = Time.utc
       , track = []
       , trackName = Nothing
-      , staticVisualEntities = []
+      , staticScene = []
       , currentNode = 0
+      , renderingContext = defaultRenderingContext
+      , camera = defaultCamera
       }
     , Cmd.batch
         []
@@ -73,9 +80,21 @@ update msg model =
             )
 
         GpxLoaded content ->
+            let
+                track =
+                    content |> parseTrackPoints |> prepareTrackPoints
+
+                scene =
+                    SceneBuilder.render model.renderingContext track
+
+                camera =
+                    setUpCamera track
+            in
             ( { model
                 | trackName = Just "TEST"
-                , track = content |> parseTrackPoints |> prepareTrackPoints
+                , track = track
+                , staticScene = scene
+                , camera = camera
               }
             , Cmd.none
             )
@@ -94,13 +113,16 @@ view model =
             ]
           <|
             column
-                []
-                [ row [ spaceEvenly, spacing 10, padding 10 ]
+                defaultColumnLayout
+                [ row defaultRowLayout
                     [ button
                         prettyButtonStyles
                         { onPress = Just GpxRequested
                         , label = text "Load GPX from your computer"
                         }
+                    ]
+                , row defaultRowLayout
+                    [ viewWebGLContext model.camera model.staticScene
                     ]
                 ]
         ]
