@@ -2,21 +2,16 @@ module SceneBuilder exposing (..)
 
 import Angle
 import Axis3d
-import Camera3d exposing (Camera3d)
 import Color
-import Direction3d
-import FlatColors.BritishPalette
 import Length
 import LineSegment3d
 import LocalCoords exposing (LocalCoords)
 import Plane3d
-import Point3d
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
 import TrackPoint exposing (TrackPoint, trackPointBearing)
 import Vector3d
-import Viewpoint3d
 
 
 type alias Scene =
@@ -74,26 +69,3 @@ paintSurfaceBetween pt1 pt2 =
         (LineSegment3d.startPoint rightKerb)
     ]
 
-
-setUpCamera : List TrackPoint -> Camera3d Length.Meters LocalCoords
-setUpCamera track =
-    let
-        firstPointOnTrack =
-            track
-                |> List.head
-                |> Maybe.map .xyz
-                |> Maybe.withDefault Point3d.origin
-
-        eyeOffset = Vector3d.meters 100.0 100.0 10.0
-
-        viewPoint =
-            Viewpoint3d.lookAt
-                { eyePoint = Point3d.translateBy eyeOffset firstPointOnTrack
-                , focalPoint = firstPointOnTrack
-                , upDirection = Direction3d.positiveZ
-                }
-    in
-    Camera3d.perspective
-        { viewpoint = viewPoint
-        , verticalFieldOfView = Angle.degrees 30.0
-        }

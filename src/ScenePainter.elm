@@ -1,72 +1,128 @@
 module ScenePainter exposing (..)
 
-import Angle exposing (Angle)
+import Angle exposing (Angle, inDegrees)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (negativeZ, positiveZ)
-import Element exposing (Element, el, html, none)
-import Length
+import Element exposing (Attribute, Element, el, fill, html, htmlAttribute, none, pointer, width)
+import Html.Attributes exposing (style)
+import Html.Events as HE
+import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
+import Html.Events.Extra.Wheel as Wheel
+import Json.Decode as D
+import Length exposing (Length, meters)
 import LocalCoords exposing (LocalCoords)
-import Pixels
+import Pixels exposing (Pixels)
 import Point3d exposing (Point3d)
+import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
-import Viewpoint3d
+import TrackPoint exposing (TrackPoint)
+import Viewpoint3d exposing (Viewpoint3d)
 
 
-withMouseCapture =
-    []
+type
+    ImageMsg
+    -- Messages that change only the WebGL context, not the model
+    = ImageMouseWheel Float
+    | ImageGrab Mouse.Event
+    | ImageDrag Mouse.Event
+    | ImageRelease Mouse.Event
+    | ImageNoOpMsg
 
 
+type ModelUpdatingMsg
+    = ImageClick Mouse.Event
+    | ImageDoubleClick Mouse.Event
 
---[ htmlAttribute <| Mouse.onDown (\event -> ImageGrab event)
---, htmlAttribute <| Mouse.onMove (\event -> ImageDrag event)
---, htmlAttribute <| Mouse.onUp (\event -> ImageRelease event)
---, htmlAttribute <| Mouse.onClick (\event -> MouseClick event)
---, htmlAttribute <| Mouse.onDoubleClick (\event -> MouseDoubleClick event)
---, htmlAttribute <| Wheel.onWheel (\event -> MouseWheel event.deltaY)
---, htmlAttribute <| style "touch-action" "none"
---, onContextMenu NoOpMsg
---, width fill
---, pointer
---]
+
+withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
+withMouseCapture wrap =
+    [ htmlAttribute <| Mouse.onDown (\event -> wrap (ImageGrab event))
+    , htmlAttribute <| Mouse.onMove (\event -> wrap (ImageDrag event))
+    , htmlAttribute <| Mouse.onUp (\event -> wrap (ImageRelease event))
+
+    -- These two are model updating messages, not just view changes.
+    --, htmlAttribute <| Mouse.onClick (\event -> wrap (ImageClick event))
+    --, htmlAttribute <| Mouse.onDoubleClick (\event -> wrap (ImageDoubleClick event))
+    , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel event.deltaY))
+    , htmlAttribute <| style "touch-action" "none"
+    , onContextMenu (wrap ImageNoOpMsg)
+    , width fill
+    , pointer
+    ]
+
+
+onContextMenu : a -> Element.Attribute a
+onContextMenu msg =
+    HE.custom "contextmenu"
+        (D.succeed
+            { message = msg
+            , stopPropagation = True
+            , preventDefault = True
+            }
+        )
+        |> htmlAttribute
 
 
 type alias ViewingContext =
     -- The information we need to paint a scene on the screen.
     { azimuth : Angle -- Orbiting angle of the camera around the focal point
     , elevation : Angle -- Angle of the camera up from the XY plane
+    , distance : Length
+    , orbiting : Maybe ( Float, Float )
     , zoomLevel : Float
-    , camera : Camera3d.Camera3d Length.Meters LocalCoords
-    , viewPoint : Point3d Length.Meters LocalCoords
+    , focalPoint : Point3d Length.Meters LocalCoords
     }
 
 
-defaultCamera =
-    Camera3d.perspective
-        { viewpoint =
-            Viewpoint3d.lookAt
-                { eyePoint = Point3d.meters 500 200 30
-                , focalPoint = Point3d.origin
-                , upDirection = Direction3d.positiveZ
-                }
-        , verticalFieldOfView = Angle.degrees 60
-        }
-
-
+defaultViewingContext : ViewingContext
 defaultViewingContext =
     { azimuth = Angle.degrees -90.0
     , elevation = Angle.degrees 40.0
+    , distance = Length.meters 100.0
+    , orbiting = Nothing
     , zoomLevel = 12.0
-    , camera = defaultCamera
-    , viewPoint = Point3d.origin
+    , focalPoint = Point3d.origin
     }
 
 
-viewWebGLContext : Camera3d Length.Meters LocalCoords -> Scene -> Element msg
-viewWebGLContext camera scene =
+initialiseView : List TrackPoint -> ViewingContext
+initialiseView track =
+    -- This is just a simple default so we can see something!
+    let
+        firstPointOnTrack =
+            track
+                |> List.head
+                |> Maybe.map .xyz
+                |> Maybe.withDefault Point3d.origin
+    in
+    { defaultViewingContext | focalPoint = firstPointOnTrack }
+
+
+viewWebGLContext :
+    ViewingContext
+    -> Scene
+    -> (ImageMsg -> msg)
+    -> Element msg
+viewWebGLContext context scene wrapper =
+    let
+        viewpoint =
+            Viewpoint3d.orbitZ
+                { focalPoint = context.focalPoint
+                , azimuth = context.azimuth
+                , elevation = context.elevation
+                , distance = context.distance
+                }
+
+        camera =
+            Camera3d.perspective
+                { viewpoint = viewpoint
+                , verticalFieldOfView = Angle.degrees 30
+                }
+    in
     el
-        withMouseCapture
+        (withMouseCapture wrapper)
     <|
         html <|
             Scene3d.sunny
@@ -79,3 +135,52 @@ viewWebGLContext camera scene =
                 , sunlightDirection = negativeZ
                 , shadows = False
                 }
+
+
+update : ImageMsg -> ViewingContext -> ViewingContext
+update msg view =
+    case msg of
+        ImageGrab event ->
+            -- Mouse behaviour depends which view is in use...
+            -- Right-click or ctrl-click to mean rotate; otherwise pan.
+            let
+                alternate =
+                    event.keys.ctrl || event.button == SecondButton
+            in
+            { view | orbiting = Just event.offsetPos }
+
+        ImageDrag event ->
+            let
+                ( dx, dy ) =
+                    event.offsetPos
+            in
+            case view.orbiting of
+                Just ( startX, startY ) ->
+                    let
+                        newAzimuth =
+                            Angle.degrees <|
+                                inDegrees view.azimuth
+                                    - (dx - startX)
+
+                        newElevation =
+                            Angle.degrees <|
+                                inDegrees view.elevation
+                                    + (dy - startY)
+                    in
+                    { view
+                        | azimuth = newAzimuth
+                        , elevation = newElevation
+                        , orbiting = Just ( dx, dy )
+                    }
+
+                _ ->
+                    view
+
+        ImageRelease _ ->
+            { view | orbiting = Nothing }
+
+        ImageMouseWheel _ ->
+            view
+
+        ImageNoOpMsg ->
+            view

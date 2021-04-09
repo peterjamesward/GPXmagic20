@@ -2,17 +2,14 @@ module Main exposing (main)
 
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
-import Camera3d exposing (Camera3d)
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
-import Length
-import LocalCoords exposing (LocalCoords)
-import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext, setUpCamera)
-import ScenePainter exposing (defaultCamera, defaultViewingContext, viewWebGLContext)
+import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
+import ScenePainter exposing (ImageMsg, ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
 import Time
 import TrackPoint exposing (Track, prepareTrackPoints)
@@ -24,6 +21,12 @@ type Msg
     = GpxRequested
     | GpxSelected File
     | GpxLoaded String
+    | ImageMessage ImageMsg
+
+
+imageMessageWrapper : ImageMsg -> Msg
+imageMessageWrapper m =
+    ImageMessage m
 
 
 main : Program Int Model Msg
@@ -45,7 +48,7 @@ type alias Model =
     , staticScene : Scene
     , currentNode : Int
     , renderingContext : RenderingContext
-    , camera : Camera3d Length.Meters LocalCoords
+    , viewingContext : ViewingContext
     }
 
 
@@ -59,7 +62,7 @@ init mflags =
       , staticScene = []
       , currentNode = 0
       , renderingContext = defaultRenderingContext
-      , camera = defaultCamera
+      , viewingContext = defaultViewingContext
       }
     , Cmd.batch
         []
@@ -87,14 +90,21 @@ update msg model =
                 scene =
                     SceneBuilder.render model.renderingContext track
 
-                camera =
-                    setUpCamera track
+                viewingContext =
+                    initialiseView track
             in
             ( { model
                 | trackName = Just "TEST"
                 , track = track
                 , staticScene = scene
-                , camera = camera
+                , viewingContext = viewingContext
+              }
+            , Cmd.none
+            )
+
+        ImageMessage innerMsg ->
+            ( { model
+                | viewingContext = ScenePainter.update innerMsg model.viewingContext
               }
             , Cmd.none
             )
@@ -122,7 +132,7 @@ view model =
                         }
                     ]
                 , row defaultRowLayout
-                    [ viewWebGLContext model.camera model.staticScene
+                    [ viewWebGLContext model.viewingContext model.staticScene imageMessageWrapper
                     ]
                 ]
         ]

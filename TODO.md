@@ -1,4 +1,4 @@
-#PLAN
+# PLAN
 
 1. Basic structures and operations. Keep it simple.
 2. Populate and test. (Parse GPX.)
@@ -12,7 +12,7 @@
 9. Map integration.
 9. OAuth integration.
 
-#TODOs
+# TODOs
 
 TODO: Consider allowing for more than one open GPX track.
 
