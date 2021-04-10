@@ -41,7 +41,11 @@ type ImageMsg
     | ImageDoubleClick Mouse.Event
 
 
-type PostUpdateAction
+type
+    PostUpdateAction
+    -- This experimental pattern for returning information back to
+    -- main about what needs to follow, since we can't know about the
+    -- program at large, only our small part.
     = ImageOnly
     | PointerMove TrackPoint
     | NoContext
@@ -101,7 +105,6 @@ defaultViewingContext =
 
         focalPoint =
             Point3d.origin
-
     in
     { azimuth = azimuth
     , elevation = elevation
@@ -114,8 +117,10 @@ defaultViewingContext =
     }
 
 
-initialiseView : List TrackPoint
-    -> (Axis3d Meters LocalCoords -> Maybe TrackPoint) -> ViewingContext
+initialiseView :
+    List TrackPoint
+    -> (Axis3d Meters LocalCoords -> Maybe TrackPoint)
+    -> ViewingContext
 initialiseView track searcher =
     -- This is just a simple default so we can see something!
     let

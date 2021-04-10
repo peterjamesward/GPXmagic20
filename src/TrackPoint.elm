@@ -14,11 +14,9 @@ import Triangle3d
 
 
 type alias TrackPoint =
+    -- See if we can manage with just the one system.
+    -- Only use lat, lon for I/O!
     { xyz : Point3d Length.Meters LocalCoords
-
-    -- Is dual coordinate system a source of problems?
-    -- Shall we try with just the one?
-    --, gpxCoords : Point3d Length.Meters GPXCoords
     , effectiveDirection : Maybe (Direction2d LocalCoords)
     , costMetric : Float
     , index : Int
