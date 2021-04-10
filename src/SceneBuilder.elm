@@ -11,7 +11,7 @@ import Plane3d
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
-import TrackPoint exposing (TrackPoint, trackPointBearing)
+import TrackPoint exposing (Track, TrackPoint, trackPointBearing)
 import Vector3d
 
 
@@ -32,7 +32,7 @@ defaultRenderingContext =
     }
 
 
-render : RenderingContext -> List TrackPoint -> Scene
+render : RenderingContext -> Track -> Scene
 render context track =
     -- Let's just try a clean room implementation here, with surface only.
     let
@@ -75,28 +75,31 @@ paintSurfaceBetween pt1 pt2 =
     ]
 
 
-simpleSelectiveDetail : RenderingContext -> List TrackPoint -> List TrackPoint
+simpleSelectiveDetail : RenderingContext -> Track -> List TrackPoint
 simpleSelectiveDetail context track =
     -- Try reducing detail beyond region 1km either side of focus.
     let
+        centreOfDetail =
+            track.currentNode.distanceFromStart
+
         isCentral tp =
             (tp.distanceFromStart
                 |> Quantity.greaterThan
-                    (Quantity.minus (Length.kilometers 1.0) context.trackDistanceInFocus)
+                    (Quantity.minus (Length.kilometers 1.0) centreOfDetail)
             )
                 && (tp.distanceFromStart
                         |> Quantity.lessThan
-                            (Quantity.plus (Length.kilometers 1.0) context.trackDistanceInFocus)
+                            (Quantity.plus (Length.kilometers 1.0) centreOfDetail)
                    )
 
         precedingTrack =
-            List.Extra.takeWhile (not << isCentral) track
+            List.Extra.takeWhile (not << isCentral) track.track
 
         tailSection =
-            List.Extra.takeWhileRight (not << isCentral) track
+            List.Extra.takeWhileRight (not << isCentral) track.track
 
         detailSection =
-            track
+            track.track
                 |> List.Extra.dropWhile (not << isCentral)
                 |> List.Extra.takeWhile isCentral
 

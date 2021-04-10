@@ -12,7 +12,7 @@ import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
 import Time
-import TrackPoint exposing (Track, prepareTrackPoints, trackPointNearestRay)
+import TrackPoint exposing (Track, TrackPoint, prepareTrackPoints, trackPointNearestRay)
 import Url exposing (Url)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
@@ -41,14 +41,12 @@ main =
 
 type alias Model =
     { filename : Maybe String
-    , trackName : Maybe String
     , time : Time.Posix
     , zone : Time.Zone
-    , track : Track
     , staticScene : Scene
-    , currentNode : Int
-    , renderingContext : RenderingContext
-    , viewingContext : ViewingContext
+    , renderingContext : Maybe RenderingContext
+    , viewingContext : Maybe ViewingContext
+    , track : Maybe Track
     }
 
 
@@ -57,12 +55,10 @@ init mflags =
     ( { filename = Nothing
       , time = Time.millisToPosix 0
       , zone = Time.utc
-      , track = []
-      , trackName = Nothing
+      , track = Nothing
       , staticScene = []
-      , currentNode = 0
-      , renderingContext = defaultRenderingContext
-      , viewingContext = defaultViewingContext
+      , renderingContext = Nothing
+      , viewingContext = Nothing
       }
     , Cmd.batch
         []
@@ -85,19 +81,29 @@ update msg model =
         GpxLoaded content ->
             let
                 track =
-                    content |> parseTrackPoints |> prepareTrackPoints
+                    content |> parseTrackPoints
 
                 scene =
-                    SceneBuilder.render model.renderingContext track
+                    case track of
+                        Just isTrack ->
+                            SceneBuilder.render defaultRenderingContext isTrack
+
+                        Nothing ->
+                            []
 
                 viewingContext =
-                    initialiseView track
+                    case track of
+                        Just isTrack ->
+                            Just <| initialiseView isTrack.track (trackPointNearestRay isTrack.track)
+
+                        Nothing ->
+                            Nothing
             in
             ( { model
-                | trackName = Just "TEST"
-                , track = track
+                | track = track
                 , staticScene = scene
-                , viewingContext = { viewingContext | sceneSearcher = trackPointNearestRay track }
+                , viewingContext = viewingContext
+                , renderingContext = Just defaultRenderingContext
               }
             , Cmd.none
             )
@@ -105,17 +111,39 @@ update msg model =
         ImageMessage innerMsg ->
             let
                 ( newContext, postUpdateAction ) =
-                    ScenePainter.update innerMsg model.viewingContext
+                    case model.viewingContext of
+                        Just context ->
+                            ScenePainter.update innerMsg context
+
+                        Nothing ->
+                            ( defaultViewingContext, NoContext )
             in
-            ( case postUpdateAction of
-                ImageOnly ->
-                    { model | viewingContext = newContext }
+            ( case ( model.track, postUpdateAction ) of
+                ( _, ImageOnly ) ->
+                    { model | viewingContext = Just newContext }
 
-                PointerMove tp ->
-                    { model | viewingContext = newContext }
+                ( Just isTrack, PointerMove tp ) ->
+                    let
+                        updatedTrack =
+                            { isTrack | currentNode = tp }
 
-                FocusMove tp ->
-                    { model | viewingContext = newContext }
+                        updatedScene =
+                            -- Focus moved, so detailed area changes.
+                            case model.renderingContext of
+                                Just context ->
+                                    SceneBuilder.render context updatedTrack
+
+                                Nothing ->
+                                    []
+                    in
+                    { model
+                        | viewingContext = Just newContext
+                        , track = Just updatedTrack
+                        , staticScene = updatedScene
+                    }
+
+                _ ->
+                    model
             , Cmd.none
             )
 
@@ -142,7 +170,12 @@ view model =
                         }
                     ]
                 , row defaultRowLayout
-                    [ viewWebGLContext model.viewingContext model.staticScene imageMessageWrapper
+                    [ case model.viewingContext of
+                        Just context ->
+                            viewWebGLContext context model.staticScene imageMessageWrapper
+
+                        Nothing ->
+                            none
                     ]
                 ]
         ]

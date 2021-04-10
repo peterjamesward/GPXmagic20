@@ -5,6 +5,7 @@ import Area
 import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
 import Length exposing (Meters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
@@ -26,7 +27,10 @@ type alias TrackPoint =
 
 
 type alias Track =
-    List TrackPoint
+    { track : List TrackPoint
+    , trackName : Maybe String
+    , currentNode : TrackPoint
+    }
 
 
 metresPerDegree =
@@ -53,7 +57,7 @@ trackPointFromGPX lon lat ele =
     }
 
 
-prepareTrackPoints : Track -> Track
+prepareTrackPoints : List TrackPoint -> List TrackPoint
 prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
@@ -160,12 +164,10 @@ trackPointNearestRay track ray =
             List.map
                 (\tp ->
                     ( tp
-                    , Length.inMeters <| distanceFromAxis ray tp.xyz
+                    , tp.xyz
                     )
                 )
                 track
-
-        inDistanceOrder =
-            List.sortBy Tuple.second distances
     in
-    inDistanceOrder |> List.head |> Maybe.map Tuple.first
+    track
+        |> List.Extra.minimumBy (Length.inMeters << distanceFromAxis ray << .xyz)

@@ -1,12 +1,10 @@
 # PLAN
 
-1. Basic structures and operations. Keep it simple.
-2. Populate and test. (Parse GPX.)
-3. All trackpoint derivations in one pass.
-3. Simple rendering.
-
->>> 4. Rendering with variable detail. (Just try using modulo.)
-
+1. Basic structures and operations. Keep it simple. OK
+2. Populate and test. (Parse GPX.) OK
+3. All trackpoint derivations in one pass. OK
+3. Simple rendering. OK
+4. Rendering with variable detail. OK
 5. Multiple views. (Dynamically sized WebGL holes?)
 6. Graph by default. (Simple out and back falls out.)
 7. Message wrappers for edit messages.

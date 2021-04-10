@@ -1,7 +1,7 @@
 module GpxParser exposing (..)
 
 import Regex
-import TrackPoint exposing (TrackPoint, trackPointFromGPX)
+import TrackPoint exposing (Track, TrackPoint, prepareTrackPoints, trackPointFromGPX)
 
 
 asRegex t =
@@ -9,7 +9,21 @@ asRegex t =
     Maybe.withDefault Regex.never <| Regex.fromString t
 
 
-parseTrackPoints : String -> List TrackPoint
+parseTrackName xml =
+    case Regex.find (asRegex "<name>(.*)<\\/name>") xml of
+        [] ->
+            Nothing
+
+        x :: _ ->
+            case x.submatches of
+                [] ->
+                    Nothing
+
+                n :: _ ->
+                    n
+
+
+parseTrackPoints : String -> Maybe Track
 parseTrackPoints xml =
     let
         trkpts =
@@ -43,7 +57,19 @@ parseTrackPoints xml =
 
                 _ ->
                     Nothing
+
+        trackPoints =
+            trkpts
+                |> List.map trackPoint
+                |> List.filterMap identity
     in
-    trkpts
-        |> List.map trackPoint
-        |> List.filterMap identity
+    case trackPoints of
+        [] ->
+            Nothing
+
+        n1 :: _ ->
+            Just
+                { trackName = parseTrackName xml
+                , track = prepareTrackPoints trackPoints
+                , currentNode = n1
+                }

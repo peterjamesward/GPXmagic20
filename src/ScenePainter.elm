@@ -19,7 +19,7 @@ import Point3d exposing (Point3d)
 import Rectangle2d
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (Track, TrackPoint)
 import Viewpoint3d exposing (Viewpoint3d)
 
 
@@ -44,7 +44,7 @@ type ImageMsg
 type PostUpdateAction
     = ImageOnly
     | PointerMove TrackPoint
-    | FocusMove TrackPoint
+    | NoContext
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
@@ -84,8 +84,6 @@ type alias ViewingContext =
     , focalPoint : Point3d Length.Meters LocalCoords
     , clickedPoint : Maybe TrackPoint
     , sceneSearcher : Axis3d Meters LocalCoords -> Maybe TrackPoint
-    , viewpoint : Viewpoint3d Meters LocalCoords
-    , camera : Camera3d Meters LocalCoords
     }
 
 
@@ -104,19 +102,6 @@ defaultViewingContext =
         focalPoint =
             Point3d.origin
 
-        viewpoint =
-            Viewpoint3d.orbitZ
-                { focalPoint = focalPoint
-                , azimuth = azimuth
-                , elevation = elevation
-                , distance = distance
-                }
-
-        camera =
-            Camera3d.perspective
-                { viewpoint = viewpoint
-                , verticalFieldOfView = Angle.degrees 30
-                }
     in
     { azimuth = azimuth
     , elevation = elevation
@@ -126,13 +111,12 @@ defaultViewingContext =
     , focalPoint = focalPoint
     , clickedPoint = Nothing
     , sceneSearcher = always Nothing
-    , viewpoint = viewpoint
-    , camera = camera
     }
 
 
-initialiseView : List TrackPoint -> ViewingContext
-initialiseView track =
+initialiseView : List TrackPoint
+    -> (Axis3d Meters LocalCoords -> Maybe TrackPoint) -> ViewingContext
+initialiseView track searcher =
     -- This is just a simple default so we can see something!
     let
         firstPointOnTrack =
@@ -143,6 +127,7 @@ initialiseView track =
     in
     { defaultViewingContext
         | focalPoint = firstPointOnTrack
+        , sceneSearcher = searcher
     }
 
 
@@ -157,7 +142,7 @@ viewWebGLContext context scene wrapper =
     <|
         html <|
             Scene3d.sunny
-                { camera = context.camera
+                { camera = deriveViewPointAndCamera context
                 , dimensions = ( Pixels.pixels view3dWidth, Pixels.pixels view3dHeight )
                 , background = backgroundColor Color.lightBlue
                 , clipDepth = Length.meters 1
@@ -166,6 +151,23 @@ viewWebGLContext context scene wrapper =
                 , sunlightDirection = negativeZ
                 , shadows = False
                 }
+
+
+deriveViewPointAndCamera : ViewingContext -> Camera3d Meters LocalCoords
+deriveViewPointAndCamera view =
+    let
+        viewpoint =
+            Viewpoint3d.orbitZ
+                { focalPoint = view.focalPoint
+                , azimuth = view.azimuth
+                , elevation = view.elevation
+                , distance = view.distance
+                }
+    in
+    Camera3d.perspective
+        { viewpoint = viewpoint
+        , verticalFieldOfView = Angle.degrees 30
+        }
 
 
 update : ImageMsg -> ViewingContext -> ( ViewingContext, PostUpdateAction )
@@ -200,27 +202,11 @@ update msg view =
                             Angle.degrees <|
                                 inDegrees view.elevation
                                     + (dy - startY)
-
-                        viewpoint =
-                            Viewpoint3d.orbitZ
-                                { focalPoint = view.focalPoint
-                                , azimuth = view.azimuth
-                                , elevation = view.elevation
-                                , distance = view.distance
-                                }
-
-                        camera =
-                            Camera3d.perspective
-                                { viewpoint = viewpoint
-                                , verticalFieldOfView = Angle.degrees 30
-                                }
                     in
                     ( { view
                         | azimuth = newAzimuth
                         , elevation = newElevation
                         , orbiting = Just ( dx, dy )
-                        , viewpoint = viewpoint
-                        , camera = camera
                       }
                     , ImageOnly
                     )
@@ -237,7 +223,7 @@ update msg view =
         ImageClick event ->
             case detectHit view event of
                 Just tp ->
-                    ( { view | focalPoint = tp.xyz }
+                    ( view
                     , PointerMove tp
                     )
 
@@ -248,7 +234,7 @@ update msg view =
             case detectHit view event of
                 Just tp ->
                     ( { view | focalPoint = tp.xyz }
-                    , FocusMove tp
+                    , PointerMove tp
                     )
 
                 Nothing ->
@@ -277,7 +263,10 @@ detectHit context event =
                 , y2 = Pixels.pixels 0
                 }
 
+        camera =
+            deriveViewPointAndCamera context
+
         ray =
-            Camera3d.ray context.camera screenRectangle screenPoint
+            Camera3d.ray camera screenRectangle screenPoint
     in
     context.sceneSearcher ray
