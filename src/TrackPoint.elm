@@ -4,9 +4,11 @@ import Angle
 import Area
 import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
+import Direction3d exposing (Direction3d)
 import Length exposing (Meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Plane3d
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import SketchPlane3d
@@ -17,7 +19,7 @@ type alias TrackPoint =
     -- See if we can manage with just the one system.
     -- Only use lat, lon for I/O!
     { xyz : Point3d Length.Meters LocalCoords
-    , effectiveDirection : Maybe (Direction2d LocalCoords)
+    , effectiveDirection : Maybe (Direction3d LocalCoords)
     , costMetric : Float
     , index : Int
     , distanceFromStart : Quantity Float Length.Meters
@@ -130,29 +132,29 @@ prepareTrackPoints trackPoints =
             []
 
 
-trackPointBearing : TrackPoint -> TrackPoint -> Maybe (Direction2d LocalCoords)
+trackPointBearing : TrackPoint -> TrackPoint -> Maybe (Direction3d LocalCoords)
 trackPointBearing from to =
     let
         fromXY =
-            Point3d.projectInto SketchPlane3d.xy from.xyz
+            Point3d.projectOnto Plane3d.xy from.xyz
 
         toXY =
-            Point3d.projectInto SketchPlane3d.xy to.xyz
+            Point3d.projectOnto Plane3d.xy to.xyz
     in
-    Direction2d.from fromXY toXY
+    Direction3d.from fromXY toXY
 
 
-meanBearing : Direction2d LocalCoords -> Direction2d LocalCoords -> Direction2d LocalCoords
+meanBearing : Direction3d LocalCoords -> Direction3d LocalCoords -> Direction3d LocalCoords
 meanBearing direction1 direction2 =
     -- I think we find the angle of turn, and halve it.
     let
         turnAngle =
-            Direction2d.angleFrom direction1 direction2
+            Direction3d.angleFrom direction1 direction2
 
         halfAngle =
             turnAngle |> Angle.inRadians |> (*) 0.5 |> Angle.radians
     in
-    Direction2d.rotateBy halfAngle direction1
+    Direction3d.rotateAround Axis3d.z halfAngle direction1
 
 
 trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint

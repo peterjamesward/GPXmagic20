@@ -8,6 +8,7 @@ import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
+import Graph exposing (Graph, viewGraphControls)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
@@ -22,11 +23,17 @@ type Msg
     | GpxSelected File
     | GpxLoaded String
     | ImageMessage ImageMsg
+    | GraphMessage Graph.Msg
 
 
 imageMessageWrapper : ImageMsg -> Msg
 imageMessageWrapper m =
     ImageMessage m
+
+
+graphMessageWrapper : Graph.Msg -> Msg
+graphMessageWrapper m =
+    GraphMessage m
 
 
 main : Program Int Model Msg
@@ -47,6 +54,7 @@ type alias Model =
     , renderingContext : Maybe RenderingContext
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
+    , graph : Graph
     }
 
 
@@ -59,6 +67,7 @@ init mflags =
       , staticScene = []
       , renderingContext = Nothing
       , viewingContext = Nothing
+      , graph = Graph.emptyGraph
       }
     , Cmd.batch
         []
@@ -147,6 +156,9 @@ update msg model =
             , Cmd.none
             )
 
+        GraphMessage innerMsg ->
+            ( model, Cmd.none )
+
 
 view : Model -> Browser.Document Msg
 view model =
@@ -169,14 +181,15 @@ view model =
                         , label = text "Load GPX from your computer"
                         }
                     ]
-                , row defaultRowLayout
-                    [ case model.viewingContext of
+                , row defaultRowLayout <|
+                    case model.viewingContext of
                         Just context ->
-                            viewWebGLContext context model.staticScene imageMessageWrapper
+                            [ viewWebGLContext context model.staticScene imageMessageWrapper
+                            , viewGraphControls model.graph graphMessageWrapper
+                            ]
 
                         Nothing ->
-                            none
-                    ]
+                            [ none ]
                 ]
         ]
     }
