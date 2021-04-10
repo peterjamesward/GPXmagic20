@@ -157,7 +157,17 @@ update msg model =
             )
 
         GraphMessage innerMsg ->
-            ( model, Cmd.none )
+            case model.track of
+                Just isTrack ->
+                    let
+                        (newGraph, _) =
+                            Graph.update innerMsg isTrack.track model.graph
+                    in
+                    ( { model | graph = newGraph }
+                    , Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
 
 view : Model -> Browser.Document Msg
