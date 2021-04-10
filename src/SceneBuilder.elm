@@ -3,13 +3,17 @@ module SceneBuilder exposing (..)
 import Angle
 import Axis3d
 import Color
-import Length
+import Cone3d
+import Direction3d exposing (negativeZ)
+import Graph exposing (Graph)
+import Length exposing (meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Plane3d
+import Point3d
 import Quantity exposing (Quantity)
-import Scene3d exposing (Entity)
+import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material
 import TrackPoint exposing (Track, TrackPoint, trackPointBearing)
 import Vector3d
@@ -32,18 +36,22 @@ defaultRenderingContext =
     }
 
 
-render : RenderingContext -> Track -> Scene
-render context track =
+render : RenderingContext -> Track -> Graph -> Scene
+render context track graph =
     -- Let's just try a clean room implementation here, with surface only.
     let
         reducedTrack =
-            simpleSelectiveDetail context track
+            track.track
+
+        --simpleSelectiveDetail context track
     in
-    List.concat <|
-        List.map2
-            paintSurfaceBetween
-            reducedTrack
-            (List.drop 1 reducedTrack)
+    showGraphNodes graph
+        ++ (List.concat <|
+                List.map2
+                    paintSurfaceBetween
+                    reducedTrack
+                    (List.drop 1 reducedTrack)
+           )
 
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
@@ -127,3 +135,22 @@ takeAlternate source =
                     List.reverse accum
     in
     helper source []
+
+
+showGraphNodes : Graph -> List (Entity LocalCoords)
+showGraphNodes graph =
+    let
+        shiftUp =
+            -- Just 1mm above the road surface
+            Vector3d.fromMeters { x = 0, y = 0, z = 0.001 }
+
+        makeNode node =
+            cone (Material.color Color.lightRed) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy shiftUp node)
+                    negativeZ
+                    { radius = meters 5.0
+                    , length = meters 5.0
+                    }
+    in
+    graph |> Graph.nodePointList |> List.map makeNode

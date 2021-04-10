@@ -5,7 +5,10 @@
 3. All trackpoint derivations in one pass. OK
 3. Simple rendering. OK
 4. Rendering with variable detail. OK
+
 > 5. Graph by default. (Simple out and back falls out.)
+> Graph should probly live in Track.
+
 6. Multiple views. (Dynamically sized WebGL holes?)
 7. Message wrappers for edit messages.
 8. New controls layout.

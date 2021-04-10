@@ -95,7 +95,10 @@ update msg model =
                 scene =
                     case track of
                         Just isTrack ->
-                            SceneBuilder.render defaultRenderingContext isTrack
+                            SceneBuilder.render
+                                defaultRenderingContext
+                                isTrack
+                                model.graph
 
                         Nothing ->
                             []
@@ -140,7 +143,7 @@ update msg model =
                             -- Focus moved, so detailed area changes.
                             case model.renderingContext of
                                 Just context ->
-                                    SceneBuilder.render context updatedTrack
+                                    SceneBuilder.render context updatedTrack model.graph
 
                                 Nothing ->
                                     []
