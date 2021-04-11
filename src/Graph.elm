@@ -42,6 +42,7 @@ type alias Graph =
     , route : List Traversal
     , centreLineOffset : Length
     , trackPointToCanonical : Dict XY PointType
+    , nodePairsInRoute : List ( Int, Int )
     }
 
 
@@ -58,6 +59,7 @@ emptyGraph =
     , route = []
     , centreLineOffset = Length.meters 0.0
     , trackPointToCanonical = Dict.empty
+    , nodePairsInRoute = []
     }
 
 
@@ -173,6 +175,19 @@ deriveTrackPointGraph trackPoints =
         rawEdges =
             findDistinctEdges rawNodes trackPoints
 
+        nodePairs : List ( Int, Int )
+        nodePairs =
+            rawEdges
+                |> List.map
+                    (\raw ->
+                        let
+                            ( fst, lst ) =
+                                ( List.head raw, List.last raw )
+                        in
+                        Maybe.map2 (\n1 n2 -> ( n1.index, n2.index )) fst lst
+                    )
+                |> List.filterMap identity
+
         canonicalEdges =
             findCanonicalEdges rawEdges
 
@@ -237,7 +252,10 @@ deriveTrackPointGraph trackPoints =
                 | nodes = rawNodes
                 , edges = canonicalEdges
                 , route = canonicalRoute
+                , nodePairsInRoute = nodePairs
             }
+
+        _ = Debug.log "Node pairs" nodePairs
     in
     case annoyingTrackPoints of
         [] ->
