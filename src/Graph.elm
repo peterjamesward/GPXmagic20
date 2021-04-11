@@ -32,9 +32,17 @@ type alias XY =
     ( Float, Float )
 
 
+type alias EdgeKey =
+    ( XY, XY, XY )
+
+
+
+-- ( start, end, via )
+
+
 type alias Graph =
     { nodes : Dict XY TrackPoint
-    , edges : Dict ( XY, XY, XY ) (List TrackPoint)
+    , edges : Dict EdgeKey (List TrackPoint)
     , route : List Traversal
     , centreLineOffset : Length
     , trackPointToCanonical : Dict XY PointType
@@ -45,7 +53,7 @@ type
     PointType
     -- We shall use this to build an index back from Trackpoint land to Graph land.
     = NodePoint XY -- Canonical index of node
-    | EdgePoint ( XY, XY, XY ) -- Canonical index of edge, canonical index of node
+    | EdgePoint EdgeKey -- Canonical index of edge, canonical index of node
 
 
 emptyGraph =
@@ -65,7 +73,7 @@ type Msg
 
 
 type alias Traversal =
-    { edge : ( XY, XY, XY ) -- Canonical index of edge
+    { edge : EdgeKey -- Canonical index of edge
     , direction : Direction
     }
 
@@ -123,7 +131,6 @@ viewGraphControls graph wrapper =
                 { onPress = Just (wrapper ApplyOffset)
                 , label = E.text "Apply offset"
                 }
-
     in
     E.row []
         [ E.column [ spacing 10, padding 10, centerX ]
@@ -177,34 +184,34 @@ deriveTrackPointGraph trackPoints =
         canonicalRoute =
             useCanonicalEdges rawEdges canonicalEdges
                 |> List.map
-                    (\( ( startXY, endXY, wayXY ), direction ) ->
-                        { edge = ( startXY, endXY, wayXY )
+                    (\( edgeKey, direction ) ->
+                        { edge = edgeKey
                         , direction = direction
                         }
                     )
 
-        isPointColinear : XY -> XY -> XY -> Bool
-        isPointColinear start end tp =
+        isPointColinear : EdgeKey -> Bool
+        isPointColinear ( start, end, via ) =
             -- Our working definition is if the two triangle legs
             -- are no more than 2m longer than the straight line.
             let
                 ( a, c, b ) =
                     ( Point2d.fromTuple meters start
                     , Point2d.fromTuple meters end
-                    , Point2d.fromTuple meters tp
+                    , Point2d.fromTuple meters via
                     )
 
-                ( ac, cb, ab ) =
+                ( ac, bc, ab ) =
                     ( Point2d.distanceFrom a c
-                    , Point2d.distanceFrom c b
+                    , Point2d.distanceFrom b c
                     , Point2d.distanceFrom a b
                     )
             in
-            Quantity.plus ac cb
+            Quantity.plus ab bc
                 |> Quantity.lessThan
-                    (Quantity.plus ab (Length.meters 2.0))
+                    (Quantity.plus ac (Length.meters 2.0))
 
-        singlePointLinearEdges : Dict ( XY, XY, XY ) (List TrackPoint)
+        singlePointLinearEdges : Dict EdgeKey (List TrackPoint)
         singlePointLinearEdges =
             -- Edges with one waypoint sometimes result from manually placed track points
             -- during the route planning. Removing these can result in avoiding the formation
@@ -212,17 +219,17 @@ deriveTrackPointGraph trackPoints =
             -- We spot that if there is only one point, it must be the waypoint.
             canonicalEdges
                 |> Dict.filter
-                    (\( startXY, wayXY, endXY ) edge ->
+                    (\edgeKey edge ->
                         List.length edge
                             == 1
-                            && isPointColinear startXY endXY wayXY
+                            && isPointColinear edgeKey
                     )
 
         annoyingTrackPoints : List XY
         annoyingTrackPoints =
             singlePointLinearEdges
                 |> Dict.keys
-                |> List.map (\( _, _, way ) -> way)
+                |> List.map (\( start, end, via ) -> via)
 
         removeAnnoyingPoints =
             List.filterNot
@@ -414,24 +421,19 @@ findDistinctEdges nodes trackPoints =
             -> List (List TrackPoint) -- Accumulator for fold.
             -> List TrackPoint -- The list being folded.
             -> List (List TrackPoint) -- The result list, in the natural order.
-        routeSplitter startNode edges tps =
+        routeSplitter previousNode edges tps =
             -- Not quite what we want as the node to appear on both edges; here it's on the departing edge.
-            let
-                split =
-                    -- Split before next node.
-                    List.splitWhen atNode tps
-            in
-            case split of
-                Just ( before, after0 :: after ) ->
+            case List.splitWhen atNode tps of
+                Just ( foundEdge, foundNextNode :: nextEdge ) ->
                     -- We borrow the first node of the next edge here for our edge, and pass it forwards.
                     routeSplitter
-                        after0
-                        ((startNode :: before ++ [ after0 ]) :: edges)
-                        after
+                        foundNextNode
+                        ((previousNode :: foundEdge ++ [ foundNextNode ]) :: edges)
+                        nextEdge
 
                 Just ( before, _ ) ->
                     -- Last edge, so just prepend the carried forward node.
-                    (startNode :: before) :: edges
+                    (previousNode :: before) :: edges
 
                 Nothing ->
                     -- Reverse list so it's in the natural order.
@@ -452,7 +454,7 @@ findDistinctEdges nodes trackPoints =
 
 findCanonicalEdges :
     List (List TrackPoint)
-    -> Dict ( XY, XY, XY ) (List TrackPoint)
+    -> Dict EdgeKey (List TrackPoint)
 findCanonicalEdges originalEdges =
     -- Note we are keying on three coordinates, so we disambiguate edges between node pairs.
     -- I am now thinking of making two entries, one for each direction.
@@ -460,24 +462,26 @@ findCanonicalEdges originalEdges =
     let
         addCanonical :
             List TrackPoint
-            -> Dict ( XY, XY, XY ) (List TrackPoint)
-            -> Dict ( XY, XY, XY ) (List TrackPoint)
+            -> Dict EdgeKey (List TrackPoint)
+            -> Dict EdgeKey (List TrackPoint)
         addCanonical edge dict =
             let
+                edgeLength = List.length edge
+
                 startNode =
                     List.head edge
 
                 secondNode =
-                    List.head <| List.drop 1 edge
-
-                backwardsEdge =
-                    List.reverse edge
+                    List.getAt 1 edge
 
                 finishNode =
-                    List.head backwardsEdge
+                    List.last edge
 
                 penultimateNode =
-                    List.head <| List.drop 1 backwardsEdge
+                    List.getAt (edgeLength - 2) edge
+
+                edgePoints =
+                    edge |> List.take (edgeLength - 1) |> List.drop 1
             in
             case [ startNode, secondNode, penultimateNode, finishNode ] of
                 [ Just start, Just second, Just penultimate, Just finish ] ->
@@ -496,16 +500,16 @@ findCanonicalEdges originalEdges =
                     in
                     if
                         -- We may have encountered in either direction.
-                        Dict.member ( comp1, comp2, compN ) dict
-                            || Dict.member ( compN, compM, comp1 ) dict
+                        Dict.member ( comp1, compN, comp2 ) dict
+                            || Dict.member ( compN, comp1, compM ) dict
                     then
                         -- Previously encountered.
                         dict
 
                     else
                         -- First encounter for this edge, so this is canonical.
-                        Dict.insert ( comp1, comp2, compN )
-                            edge
+                        Dict.insert ( comp1, compN, comp2 )
+                            edgePoints
                             dict
 
                 _ ->
@@ -516,11 +520,11 @@ findCanonicalEdges originalEdges =
 
 useCanonicalEdges :
     List (List TrackPoint)
-    -> Dict ( XY, XY, XY ) (List TrackPoint)
-    -> List ( ( XY, XY, XY ), Direction )
+    -> Dict EdgeKey (List TrackPoint)
+    -> List ( EdgeKey, Direction )
 useCanonicalEdges edges canonicalEdges =
     let
-        replaceEdge : List TrackPoint -> Maybe ( ( XY, XY, XY ), Direction )
+        replaceEdge : List TrackPoint -> Maybe ( EdgeKey, Direction )
         replaceEdge edge =
             let
                 startNode =
@@ -553,18 +557,23 @@ useCanonicalEdges edges canonicalEdges =
                         compN =
                             trackPointComparable finish
 
+                        ( forwardKey, reverseKey ) =
+                            ( ( comp1, compN, comp2 )
+                            , ( compN, comp1, compM )
+                            )
+
                         forwardEntryFound =
-                            Dict.get ( comp1, comp2, compN ) canonicalEdges
+                            Dict.get forwardKey canonicalEdges
 
                         reverseEntryFound =
-                            Dict.get ( compN, compM, comp1 ) canonicalEdges
+                            Dict.get reverseKey canonicalEdges
                     in
                     case ( forwardEntryFound, reverseEntryFound ) of
                         ( Just _, Nothing ) ->
-                            Just ( ( comp1, comp2, compN ), Forwards )
+                            Just ( ( comp1, compN, comp2 ), Forwards )
 
                         ( Nothing, Just _ ) ->
-                            Just ( ( compN, compM, comp1 ), Backwards )
+                            Just ( ( compN, comp1, compM ), Backwards )
 
                         _ ->
                             Nothing
@@ -611,4 +620,3 @@ nodePointList graph =
                 |> List.map .xyz
     in
     whereTheNodesAre
-
