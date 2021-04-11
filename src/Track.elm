@@ -8,5 +8,6 @@ type alias Track =
     { track : List TrackPoint
     , trackName : Maybe String
     , currentNode : TrackPoint
+    , markedNode : Maybe TrackPoint
     , graph : Graph
     }

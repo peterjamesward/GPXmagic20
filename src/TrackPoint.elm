@@ -26,7 +26,6 @@ type alias TrackPoint =
     }
 
 
-
 metresPerDegree =
     -- a degree of longitude at the equator ...
     78846.81
@@ -56,13 +55,48 @@ prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
+        processedPoints =
+            case trackPoints of
+                firstPoint :: secondPoint :: morePoints ->
+                    helper
+                        [ { firstPoint
+                            | index = 0
+                            , costMetric = 10 ^ 10 -- i.e. do not remove me!
+                            , effectiveDirection = trackPointBearing firstPoint secondPoint
+                          }
+                        ]
+                        1
+                        Quantity.zero
+                        trackPoints
+
+                _ ->
+                    []
+
         helper reversed nextIdx lastDistance points =
             -- Note the interesting point here is the second one. The first is context.
             case points of
-                [ penultimate, last ] ->
+                [ previous, penultimate, last ] ->
                     -- We can wrap things up now
                     let
-                        span =
+                        penultimateSpan =
+                            Point3d.distanceFrom previous.xyz penultimate.xyz
+
+                        penultimatePoint =
+                            { penultimate
+                                | index = nextIdx
+                                , effectiveDirection =
+                                    Maybe.map2 meanBearing
+                                        (trackPointBearing previous penultimate)
+                                        (trackPointBearing penultimate last)
+                                , costMetric =
+                                    Area.inSquareMeters <|
+                                        Triangle3d.area <|
+                                            Triangle3d.fromVertices
+                                                ( previous.xyz, penultimate.xyz, last.xyz )
+                                , distanceFromStart = Quantity.plus lastDistance penultimateSpan
+                            }
+
+                        lastSpan =
                             Point3d.distanceFrom penultimate.xyz last.xyz
 
                         lastPoint =
@@ -70,12 +104,12 @@ prepareTrackPoints trackPoints =
                                 | index = nextIdx + 1
                                 , costMetric = 10 ^ 10
                                 , effectiveDirection = trackPointBearing penultimate last
-                                , distanceFromStart = Quantity.plus lastDistance span
+                                , distanceFromStart = Quantity.plus lastDistance lastSpan
                             }
                     in
                     helper
-                        (lastPoint :: reversed)
-                        (nextIdx + 1)
+                        (lastPoint :: penultimatePoint :: reversed)
+                        (nextIdx + 2)
                         lastPoint.distanceFromStart
                         [ lastPoint ]
 
@@ -109,21 +143,7 @@ prepareTrackPoints trackPoints =
                     -- No more work, just flip the accumulation list.
                     List.reverse reversed
     in
-    case trackPoints of
-        firstPoint :: secondPoint :: morePoints ->
-            helper
-                [ { firstPoint
-                    | index = 0
-                    , costMetric = 10 ^ 10 -- i.e. do not remove me!
-                    , effectiveDirection = trackPointBearing firstPoint secondPoint
-                  }
-                ]
-                1
-                Quantity.zero
-                trackPoints
-
-        _ ->
-            []
+    processedPoints
 
 
 trackPointBearing : TrackPoint -> TrackPoint -> Maybe (Direction3d LocalCoords)

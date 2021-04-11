@@ -10,7 +10,7 @@ import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, viewGraphControls)
-import Maybe.Extra as Maybe
+import MarkerControls exposing (markerButton)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
@@ -28,11 +28,17 @@ type Msg
     | ImageMessage ImageMsg
     | GraphMessage Graph.Msg
     | AccordionMessage (AccordionEntry Msg)
+    | MarkerMessage MarkerControls.MarkerControlsMsg
 
 
 imageMessageWrapper : ImageMsg -> Msg
 imageMessageWrapper m =
     ImageMessage m
+
+
+markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
+markerMessageWrapper m =
+    MarkerMessage m
 
 
 graphMessageWrapper : Graph.Msg -> Msg
@@ -55,6 +61,7 @@ type alias Model =
     , time : Time.Posix
     , zone : Time.Zone
     , staticScene : Scene
+    , visibleMarkers : Scene
     , renderingContext : Maybe RenderingContext
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
@@ -69,6 +76,7 @@ init mflags =
       , zone = Time.utc
       , track = Nothing
       , staticScene = []
+      , visibleMarkers = []
       , renderingContext = Nothing
       , viewingContext = Nothing
       , toolsAccordion = []
@@ -98,10 +106,13 @@ update msg model =
 
                 scene =
                     Maybe.map2
-                        SceneBuilder.render
+                        SceneBuilder.renderTrack
                         (Just defaultRenderingContext)
                         track
                         |> Maybe.withDefault []
+
+                markers =
+                    Maybe.map SceneBuilder.renderMarkers track |> Maybe.withDefault []
 
                 viewingContext =
                     case track of
@@ -110,10 +121,12 @@ update msg model =
 
                         Nothing ->
                             Nothing
+
             in
             ( { model
                 | track = track
                 , staticScene = scene
+                , visibleMarkers = markers
                 , viewingContext = viewingContext
                 , renderingContext = Just defaultRenderingContext
                 , toolsAccordion = toolsAccordion model
@@ -141,16 +154,22 @@ update msg model =
                             { isTrack | currentNode = tp }
 
                         updatedScene =
+                            -- Moving markers may affect detail level.
+                            -- TODO: rebuild only if needed.
                             Maybe.map2
-                                SceneBuilder.render
+                                SceneBuilder.renderTrack
                                 model.renderingContext
                                 (Just updatedTrack)
                                 |> Maybe.withDefault []
+
+                        updatedMarkers =
+                            SceneBuilder.renderMarkers updatedTrack
                     in
                     { model
                         | viewingContext = Just newContext
                         , track = Just updatedTrack
                         , staticScene = updatedScene
+                        , visibleMarkers = updatedMarkers
                     }
 
                 _ ->
@@ -173,7 +192,7 @@ update msg model =
 
                         updatedScene =
                             Maybe.map2
-                                SceneBuilder.render
+                                SceneBuilder.renderTrack
                                 model.renderingContext
                                 (Just newTrack)
                                 |> Maybe.withDefault []
@@ -195,6 +214,22 @@ update msg model =
             , Cmd.none
             )
 
+        MarkerMessage markerMsg ->
+            case model.track of
+                Just isTrack ->
+                    let
+                        newTrack =
+                            MarkerControls.update markerMsg isTrack
+                    in
+                    ( { model
+                        | track = Just newTrack
+                        , visibleMarkers = SceneBuilder.renderMarkers newTrack
+                      }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
 
 view : Model -> Browser.Document Msg
@@ -221,10 +256,16 @@ view model =
                 , row defaultRowLayout <|
                     case ( model.viewingContext, model.track ) of
                         ( Just context, Just isTrack ) ->
-                            [ viewWebGLContext context model.staticScene imageMessageWrapper
+                            [ viewWebGLContext
+                                context
+                                (model.staticScene ++ model.visibleMarkers)
+                                imageMessageWrapper
+                            , column defaultColumnLayout
+                                [ markerButton isTrack markerMessageWrapper
                                 , accordionView
                                     (updatedAccordion model model.toolsAccordion toolsAccordion)
                                     AccordionMessage
+                                ]
                             ]
 
                         _ ->
@@ -232,6 +273,7 @@ view model =
                 ]
         ]
     }
+
 
 updatedAccordion model currentAccordion referenceAccordion =
     -- We have to reapply the accordion update functions with the current model,
@@ -268,10 +310,10 @@ toolsAccordion model =
       --  , state = Contracted
       --  , content = viewGradientFixerPane model
       --  }
-      --, { label = "Nudge "
-      --  , state = Contracted
-      --  , content = viewNudgeTools model
-      --  }
+      --{ label = "Nudge "
+      --, state = Contracted
+      --, content = viewNudgeTools model
+      --}
       --, { label = "Straighten"
       --  , state = Contracted
       --  , content = viewStraightenTools model

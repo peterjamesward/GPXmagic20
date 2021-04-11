@@ -37,8 +37,8 @@ defaultRenderingContext =
     }
 
 
-render : RenderingContext -> Track -> Scene
-render context track =
+renderTrack : RenderingContext -> Track -> Scene
+renderTrack context track =
     -- Let's just try a clean room implementation here, with surface only.
     let
         reducedTrack =
@@ -53,6 +53,39 @@ render context track =
                     reducedTrack
                     (List.drop 1 reducedTrack)
            )
+
+
+renderMarkers : Track -> Scene
+renderMarkers track =
+    let
+        currentPositionDisc point =
+            [ cone (Material.color Color.lightOrange) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 10.1)
+                        point.xyz
+                    )
+                    negativeZ
+                    { radius = meters <| 3.0
+                    , length = meters <| 10.0
+                    }
+            ]
+
+        markedNode point =
+            [ cone (Material.color Color.purple) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 10.1)
+                        point.xyz
+                    )
+                    negativeZ
+                    { radius = meters <| 3.5
+                    , length = meters <| 8.0
+                    }
+            ]
+    in
+    currentPositionDisc track.currentNode
+        ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
 
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)

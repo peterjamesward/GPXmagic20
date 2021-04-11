@@ -3,7 +3,7 @@ module GpxParser exposing (..)
 import Graph
 import Regex
 import Track exposing (Track)
-import TrackPoint exposing ( TrackPoint, prepareTrackPoints, trackPointFromGPX)
+import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromGPX)
 
 
 asRegex t =
@@ -74,5 +74,6 @@ parseTrackPoints xml =
                 { trackName = parseTrackName xml
                 , track = prepareTrackPoints trackPoints
                 , currentNode = n1
+                , markedNode = Nothing
                 , graph = Graph.emptyGraph
                 }
