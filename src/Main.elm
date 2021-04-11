@@ -11,6 +11,7 @@ import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, viewGraphControls)
 import MarkerControls exposing (markerButton)
+import Nudge exposing (NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
@@ -29,6 +30,8 @@ type Msg
     | GraphMessage Graph.Msg
     | AccordionMessage (AccordionEntry Msg)
     | MarkerMessage MarkerControls.MarkerControlsMsg
+    | NudgeMessage Nudge.NudgeMsg
+    | Tick Time.Posix
 
 
 imageMessageWrapper : ImageMsg -> Msg
@@ -44,6 +47,11 @@ markerMessageWrapper m =
 graphMessageWrapper : Graph.Msg -> Msg
 graphMessageWrapper m =
     GraphMessage m
+
+
+nudgeMessageWrapper : Nudge.NudgeMsg -> Msg
+nudgeMessageWrapper m =
+    NudgeMessage m
 
 
 main : Program Int Model Msg
@@ -66,6 +74,7 @@ type alias Model =
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
     , toolsAccordion : List (AccordionEntry Msg)
+    , nudgeSettings : NudgeSettings
     }
 
 
@@ -80,6 +89,7 @@ init mflags =
       , renderingContext = Nothing
       , viewingContext = Nothing
       , toolsAccordion = []
+      , nudgeSettings = defaultNudgeSettings
       }
     , Cmd.batch
         []
@@ -89,6 +99,11 @@ init mflags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Tick newTime ->
+            ( { model | time = newTime }
+            , Cmd.none
+            )
+
         GpxRequested ->
             ( model
             , Select.file [ "text/gpx" ] GpxSelected
@@ -121,7 +136,6 @@ update msg model =
 
                         Nothing ->
                             Nothing
-
             in
             ( { model
                 | track = track
@@ -139,7 +153,7 @@ update msg model =
                 ( newContext, postUpdateAction ) =
                     case model.viewingContext of
                         Just context ->
-                            ScenePainter.update innerMsg context
+                            ScenePainter.update innerMsg context model.time
 
                         Nothing ->
                             ( defaultViewingContext, NoContext )
@@ -231,6 +245,35 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        NudgeMessage nudgeMsg ->
+            case model.track of
+                Just isTrack ->
+                    let
+                        ( newSetttings, newTrack ) =
+                            Nudge.update nudgeMsg model.nudgeSettings isTrack
+
+                        updatedScene =
+                            if newTrack /= isTrack then
+                                Maybe.map2
+                                    SceneBuilder.renderTrack
+                                    model.renderingContext
+                                    (Just newTrack)
+                                    |> Maybe.withDefault []
+
+                            else
+                                model.staticScene
+                    in
+                    ( { model
+                        | track = Just newTrack
+                        , nudgeSettings = newSetttings
+                        , staticScene = updatedScene
+                      }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
 
 view : Model -> Browser.Document Msg
 view model =
@@ -290,7 +333,8 @@ updatedAccordion model currentAccordion referenceAccordion =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        []
+        [ Time.every 50 Tick
+        ]
 
 
 toolsAccordion model =
@@ -310,31 +354,32 @@ toolsAccordion model =
       --  , state = Contracted
       --  , content = viewGradientFixerPane model
       --  }
-      --{ label = "Nudge "
-      --, state = Contracted
-      --, content = viewNudgeTools model
-      --}
-      --, { label = "Straighten"
-      --  , state = Contracted
-      --  , content = viewStraightenTools model
-      --  }
-      --, { label = "Trackpoints"
-      --  , state = Contracted
-      --  , content = viewTrackPointTools model
-      --  }
-      --, { label = "Fly-through"
-      --  , state = Contracted
-      --  , content = flythroughControls model
-      --  }
-      --, { label = "Strava"
-      --  , state = Contracted
-      --  , content = viewStravaDataAccessTab model
-      --  }
-      --, { label = "Filters"
-      --  , state = Contracted
-      --  , content = viewFilterControls model
-      --  }
-      { label = "The Lab"
+      { label = "Nudge "
+      , state = Contracted
+      , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
+      }
+
+    --, { label = "Straighten"
+    --  , state = Contracted
+    --  , content = viewStraightenTools model
+    --  }
+    --, { label = "Trackpoints"
+    --  , state = Contracted
+    --  , content = viewTrackPointTools model
+    --  }
+    --, { label = "Fly-through"
+    --  , state = Contracted
+    --  , content = flythroughControls model
+    --  }
+    --, { label = "Strava"
+    --  , state = Contracted
+    --  , content = viewStravaDataAccessTab model
+    --  }
+    --, { label = "Filters"
+    --  , state = Contracted
+    --  , content = viewFilterControls model
+    --  }
+    , { label = "The Lab"
       , state = Contracted
       , content =
             case ( model.viewingContext, model.track ) of

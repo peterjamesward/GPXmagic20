@@ -12,7 +12,7 @@ defaultRowLayout =
 
 
 defaultColumnLayout =
-    [ spaceEvenly, spacing 10, padding 10 ]
+    [ spacing 10, padding 10, alignTop ]
 
 
 prettyButtonStyles =

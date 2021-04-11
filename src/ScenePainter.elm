@@ -19,6 +19,7 @@ import Point3d exposing (Point3d)
 import Rectangle2d
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
+import Time
 import TrackPoint exposing (TrackPoint)
 import Viewpoint3d exposing (Viewpoint3d)
 
@@ -88,6 +89,7 @@ type alias ViewingContext =
     , focalPoint : Point3d Length.Meters LocalCoords
     , clickedPoint : Maybe TrackPoint
     , sceneSearcher : Axis3d Meters LocalCoords -> Maybe TrackPoint
+    , mouseDownTime : Time.Posix
     }
 
 
@@ -114,6 +116,7 @@ defaultViewingContext =
     , focalPoint = focalPoint
     , clickedPoint = Nothing
     , sceneSearcher = always Nothing
+    , mouseDownTime = Time.millisToPosix 0
     }
 
 
@@ -175,8 +178,8 @@ deriveViewPointAndCamera view =
         }
 
 
-update : ImageMsg -> ViewingContext -> ( ViewingContext, PostUpdateAction )
-update msg view =
+update : ImageMsg -> ViewingContext -> Time.Posix -> ( ViewingContext, PostUpdateAction )
+update msg view now =
     -- Second return value indicates whether selection needs to change.
     case msg of
         ImageGrab event ->
@@ -186,7 +189,10 @@ update msg view =
                 alternate =
                     event.keys.ctrl || event.button == SecondButton
             in
-            ( { view | orbiting = Just event.offsetPos }
+            ( { view
+                | orbiting = Just event.offsetPos
+                , mouseDownTime = now
+              }
             , ImageOnly
             )
 
@@ -226,14 +232,16 @@ update msg view =
             ( view, ImageOnly )
 
         ImageClick event ->
-            case detectHit view event of
-                Just tp ->
-                    ( view
-                    , PointerMove tp
-                    )
+            if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
+                case detectHit view event of
+                    Just tp ->
+                        ( view, PointerMove tp )
 
-                Nothing ->
-                    ( view, ImageOnly )
+                    Nothing ->
+                        ( view, ImageOnly )
+
+            else
+                ( view, ImageOnly )
 
         ImageDoubleClick event ->
             case detectHit view event of
