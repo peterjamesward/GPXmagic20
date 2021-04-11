@@ -157,11 +157,14 @@ update msg model =
             case model.track of
                 Just isTrack ->
                     let
-                        ( newGraph, _ ) =
+                        ( newGraph, postUpdateAction ) =
                             Graph.update innerMsg isTrack.track isTrack.graph
 
                         newTrack =
-                            { isTrack | graph = newGraph }
+                            { isTrack
+                                | graph = newGraph
+                                , track = Graph.walkTheRoute newGraph
+                            }
 
                         updatedScene =
                             Maybe.map2

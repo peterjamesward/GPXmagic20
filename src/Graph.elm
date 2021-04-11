@@ -36,10 +36,6 @@ type alias EdgeKey =
     ( XY, XY, XY )
 
 
-
--- ( start, end, via )
-
-
 type alias Graph =
     { nodes : Dict XY TrackPoint
     , edges : Dict EdgeKey (List TrackPoint)
@@ -257,7 +253,7 @@ walkTheRouteInternal graph =
     let
         addToTrail { edge, direction } accumulator =
             let
-                ( startXY, wayXY, endXY ) =
+                ( startXY, endXY, viaXY ) =
                     edge
 
                 edgePoints =
@@ -466,7 +462,8 @@ findCanonicalEdges originalEdges =
             -> Dict EdgeKey (List TrackPoint)
         addCanonical edge dict =
             let
-                edgeLength = List.length edge
+                edgeLength =
+                    List.length edge
 
                 startNode =
                     List.head edge
@@ -591,7 +588,9 @@ walkTheRoute graph =
             walkTheRouteInternal graph
     in
     walkedRoute
-        |> List.map (Tuple.first >> applyCentreLineOffset graph.centreLineOffset)
+        |> List.map Tuple.first
+        |> prepareTrackPoints
+        |> List.map (applyCentreLineOffset graph.centreLineOffset)
 
 
 applyCentreLineOffset : Length -> TrackPoint -> TrackPoint
