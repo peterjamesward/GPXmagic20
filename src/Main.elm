@@ -9,11 +9,13 @@ import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, viewGraphControls)
+import Maybe.Extra as Maybe
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
 import Time
-import TrackPoint exposing (Track, TrackPoint, prepareTrackPoints, trackPointNearestRay)
+import Track exposing (Track)
+import TrackPoint exposing (TrackPoint, trackPointNearestRay)
 import Url exposing (Url)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
@@ -54,7 +56,6 @@ type alias Model =
     , renderingContext : Maybe RenderingContext
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
-    , graph : Graph
     }
 
 
@@ -67,7 +68,6 @@ init mflags =
       , staticScene = []
       , renderingContext = Nothing
       , viewingContext = Nothing
-      , graph = Graph.emptyGraph
       }
     , Cmd.batch
         []
@@ -93,15 +93,11 @@ update msg model =
                     content |> parseTrackPoints
 
                 scene =
-                    case track of
-                        Just isTrack ->
-                            SceneBuilder.render
-                                defaultRenderingContext
-                                isTrack
-                                model.graph
-
-                        Nothing ->
-                            []
+                    Maybe.map2
+                        SceneBuilder.render
+                        (Just defaultRenderingContext)
+                        track
+                        |> Maybe.withDefault []
 
                 viewingContext =
                     case track of
@@ -140,13 +136,11 @@ update msg model =
                             { isTrack | currentNode = tp }
 
                         updatedScene =
-                            -- Focus moved, so detailed area changes.
-                            case model.renderingContext of
-                                Just context ->
-                                    SceneBuilder.render context updatedTrack model.graph
-
-                                Nothing ->
-                                    []
+                            Maybe.map2
+                                SceneBuilder.render
+                                model.renderingContext
+                                (Just updatedTrack)
+                                |> Maybe.withDefault []
                     in
                     { model
                         | viewingContext = Just newContext
@@ -163,11 +157,25 @@ update msg model =
             case model.track of
                 Just isTrack ->
                     let
-                        (newGraph, _) =
-                            Graph.update innerMsg isTrack.track model.graph
+                        ( newGraph, _ ) =
+                            Graph.update innerMsg isTrack.track isTrack.graph
+
+                        newTrack =
+                            { isTrack | graph = newGraph }
+
+                        updatedScene =
+                            Maybe.map2
+                                SceneBuilder.render
+                                model.renderingContext
+                                (Just newTrack)
+                                |> Maybe.withDefault []
                     in
-                    ( { model | graph = newGraph }
-                    , Cmd.none )
+                    ( { model
+                        | track = Just newTrack
+                        , staticScene = updatedScene
+                      }
+                    , Cmd.none
+                    )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -195,13 +203,13 @@ view model =
                         }
                     ]
                 , row defaultRowLayout <|
-                    case model.viewingContext of
-                        Just context ->
+                    case ( model.viewingContext, model.track ) of
+                        ( Just context, Just isTrack ) ->
                             [ viewWebGLContext context model.staticScene imageMessageWrapper
-                            , viewGraphControls model.graph graphMessageWrapper
+                            , viewGraphControls isTrack.graph graphMessageWrapper
                             ]
 
-                        Nothing ->
+                        _ ->
                             [ none ]
                 ]
         ]

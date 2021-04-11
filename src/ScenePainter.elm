@@ -19,7 +19,7 @@ import Point3d exposing (Point3d)
 import Rectangle2d
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
-import TrackPoint exposing (Track, TrackPoint)
+import TrackPoint exposing (TrackPoint)
 import Viewpoint3d exposing (Viewpoint3d)
 
 

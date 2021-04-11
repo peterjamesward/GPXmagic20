@@ -26,12 +26,6 @@ type alias TrackPoint =
     }
 
 
-type alias Track =
-    { track : List TrackPoint
-    , trackName : Maybe String
-    , currentNode : TrackPoint
-    }
-
 
 metresPerDegree =
     -- a degree of longitude at the equator ...

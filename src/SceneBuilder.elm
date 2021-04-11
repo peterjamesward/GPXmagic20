@@ -15,7 +15,8 @@ import Point3d
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material
-import TrackPoint exposing (Track, TrackPoint, trackPointBearing)
+import Track exposing (Track)
+import TrackPoint exposing (TrackPoint)
 import Vector3d
 
 
@@ -36,8 +37,8 @@ defaultRenderingContext =
     }
 
 
-render : RenderingContext -> Track -> Graph -> Scene
-render context track graph =
+render : RenderingContext -> Track -> Scene
+render context track =
     -- Let's just try a clean room implementation here, with surface only.
     let
         reducedTrack =
@@ -45,7 +46,7 @@ render context track graph =
 
         --simpleSelectiveDetail context track
     in
-    showGraphNodes graph
+    showGraphNodes track.graph
         ++ (List.concat <|
                 List.map2
                     paintSurfaceBetween
