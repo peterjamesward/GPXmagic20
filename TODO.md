@@ -5,9 +5,12 @@
 3. All trackpoint derivations in one pass. OK
 3. Simple rendering. OK
 4. Rendering with variable detail. OK
+5. Graph.
 
-> 5. Graph by default. (Simple out and back falls out.)
-> Graph should probly live in Track.
+6. Editing with graph
+> Try basic edits:
+> Index preserving (e.g. Nudge)
+> Position preserving (e.g. Delete, Insert)
 
 6. Multiple views. (Dynamically sized WebGL holes?)
 7. Message wrappers for edit messages.

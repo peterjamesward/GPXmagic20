@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, accordionView)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Element exposing (..)
@@ -26,6 +27,7 @@ type Msg
     | GpxLoaded String
     | ImageMessage ImageMsg
     | GraphMessage Graph.Msg
+    | AccordionMessage (AccordionEntry Msg)
 
 
 imageMessageWrapper : ImageMsg -> Msg
@@ -56,6 +58,7 @@ type alias Model =
     , renderingContext : Maybe RenderingContext
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
+    , toolsAccordion : List (AccordionEntry Msg)
     }
 
 
@@ -68,6 +71,7 @@ init mflags =
       , staticScene = []
       , renderingContext = Nothing
       , viewingContext = Nothing
+      , toolsAccordion = []
       }
     , Cmd.batch
         []
@@ -112,6 +116,7 @@ update msg model =
                 , staticScene = scene
                 , viewingContext = viewingContext
                 , renderingContext = Just defaultRenderingContext
+                , toolsAccordion = toolsAccordion model
               }
             , Cmd.none
             )
@@ -183,6 +188,14 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        AccordionMessage entry ->
+            ( { model
+                | toolsAccordion = accordionToggle model.toolsAccordion entry
+              }
+            , Cmd.none
+            )
+
+
 
 view : Model -> Browser.Document Msg
 view model =
@@ -209,7 +222,9 @@ view model =
                     case ( model.viewingContext, model.track ) of
                         ( Just context, Just isTrack ) ->
                             [ viewWebGLContext context model.staticScene imageMessageWrapper
-                            , viewGraphControls isTrack.graph graphMessageWrapper
+                                , accordionView
+                                    (updatedAccordion model model.toolsAccordion toolsAccordion)
+                                    AccordionMessage
                             ]
 
                         _ ->
@@ -218,8 +233,73 @@ view model =
         ]
     }
 
+updatedAccordion model currentAccordion referenceAccordion =
+    -- We have to reapply the accordion update functions with the current model,
+    let
+        blendAccordionStatus currentAccordionState refreshedContent =
+            { currentAccordionState | content = refreshedContent.content }
+    in
+    List.map2
+        blendAccordionStatus
+        currentAccordion
+        (referenceAccordion model)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         []
+
+
+toolsAccordion model =
+    [ --  { label = "Tip jar"
+      --  , state = Contracted
+      --  , content = tipJar
+      --  }
+      --, { label = "Loop maker"
+      --  , state = Contracted
+      --  , content = viewLoopTools model
+      --  }
+      --, { label = "Smooth bend"
+      --  , state = Contracted
+      --  , content = viewBendFixerPane model
+      --  }
+      --, { label = "Smooth gradient"
+      --  , state = Contracted
+      --  , content = viewGradientFixerPane model
+      --  }
+      --, { label = "Nudge "
+      --  , state = Contracted
+      --  , content = viewNudgeTools model
+      --  }
+      --, { label = "Straighten"
+      --  , state = Contracted
+      --  , content = viewStraightenTools model
+      --  }
+      --, { label = "Trackpoints"
+      --  , state = Contracted
+      --  , content = viewTrackPointTools model
+      --  }
+      --, { label = "Fly-through"
+      --  , state = Contracted
+      --  , content = flythroughControls model
+      --  }
+      --, { label = "Strava"
+      --  , state = Contracted
+      --  , content = viewStravaDataAccessTab model
+      --  }
+      --, { label = "Filters"
+      --  , state = Contracted
+      --  , content = viewFilterControls model
+      --  }
+      { label = "The Lab"
+      , state = Contracted
+      , content =
+            case ( model.viewingContext, model.track ) of
+                ( Just context, Just isTrack ) ->
+                    viewGraphControls isTrack.graph graphMessageWrapper
+
+                _ ->
+                    none
+      }
+    ]
