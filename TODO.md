@@ -10,6 +10,7 @@
 6. Editing with graph
 > Try basic edits:
 > PLAN FOR UNDO/REDO.
+> NUDGE ON GRAPH
 > NUDGE PREVIEW.
 > Index preserving (e.g. Nudge)
 > Position preserving (e.g. Delete, Insert)

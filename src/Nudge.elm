@@ -21,6 +21,7 @@ import ViewPureStyles exposing (..)
 type NudgeMsg
     = SetHorizontalNudgeFactor Length
     | SetVerticalNudgeFactor Length
+    | ZeroNudgeFactors
     | NudgeNode NudgeSettings
 
 
@@ -111,6 +112,7 @@ viewNudgeTools settings msgWrapper =
             , column defaultColumnLayout
                 [ horizontalNudgeSlider settings.horizontal msgWrapper
                 , nudgeButton settings msgWrapper
+                , zeroButton msgWrapper
                 ]
             ]
         ]
@@ -164,6 +166,15 @@ nudgeButton settings wrap =
         }
 
 
+zeroButton : (NudgeMsg -> msg) -> Element msg
+zeroButton wrap =
+    button
+        prettyButtonStyles
+        { onPress = Just <| wrap ZeroNudgeFactors
+        , label = text "Zero sliders"
+        }
+
+
 update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track )
 update msg settings track =
     case msg of
@@ -172,6 +183,9 @@ update msg settings track =
 
         SetVerticalNudgeFactor length ->
             ( { settings | vertical = length }, track )
+
+        ZeroNudgeFactors ->
+            ( defaultNudgeSettings, track )
 
         NudgeNode _ ->
             ( settings, nudgeNodes track settings )
