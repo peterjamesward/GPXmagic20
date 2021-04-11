@@ -80,11 +80,13 @@ type alias Route =
     { route : List Traversal }
 
 
-viewGraphControls : Graph -> (Msg -> msg) -> Element msg
+viewGraphControls : Maybe Graph -> (Msg -> msg) -> Element msg
 viewGraphControls graph wrapper =
     let
         offset =
-            inMeters graph.centreLineOffset
+            Maybe.map .centreLineOffset graph
+            |> Maybe.withDefault Quantity.zero
+            |> Length.inMeters
 
         analyseButton =
             I.button prettyButtonStyles
@@ -143,24 +145,29 @@ viewGraphControls graph wrapper =
 update :
     Msg
     -> List TrackPoint
-    -> Graph
-    -> ( Graph, Maybe String )
+    -> Maybe Graph
+    -> ( Maybe Graph, Maybe String )
 update msg trackPoints graph =
     case msg of
         GraphAnalyse ->
-            ( deriveTrackPointGraph trackPoints
+            ( Just <| deriveTrackPointGraph trackPoints
             , Just "Canonicalised edges"
             )
 
         CentreLineOffset offset ->
-            ( { graph | centreLineOffset = meters offset }, Nothing )
+            case graph of
+                Just isGraph ->
+                    ( Just { isGraph | centreLineOffset = meters offset }, Nothing )
+
+                Nothing ->
+                    ( Nothing, Nothing )
 
         ApplyOffset ->
             -- The route is pre-computed; it's the Undo message that puts it into effect.
             ( graph, Just "Apply offset" )
 
         ConvertFromGraph ->
-            ( emptyGraph, Just "I'm done with the Graph" )
+            ( Nothing, Just "I'm done with the Graph" )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph

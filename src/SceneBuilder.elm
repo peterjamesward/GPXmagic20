@@ -46,7 +46,7 @@ renderTrack context track =
 
         --simpleSelectiveDetail context track
     in
-    showGraphNodes track.graph
+    (Maybe.map showGraphNodes track.graph |> Maybe.withDefault [])
         ++ (List.concat <|
                 List.map2
                     paintSurfaceBetween

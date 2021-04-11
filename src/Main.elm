@@ -198,10 +198,14 @@ update msg model =
                         ( newGraph, postUpdateAction ) =
                             Graph.update innerMsg isTrack.track isTrack.graph
 
+                        newTrackPoints =
+                            Maybe.map Graph.walkTheRoute newGraph
+                                |> Maybe.withDefault []
+
                         newTrack =
                             { isTrack
                                 | graph = newGraph
-                                , track = Graph.walkTheRoute newGraph
+                                , track = newTrackPoints
                             }
 
                         updatedScene =

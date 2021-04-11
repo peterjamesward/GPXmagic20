@@ -75,5 +75,5 @@ parseTrackPoints xml =
                 , track = prepareTrackPoints trackPoints
                 , currentNode = n1
                 , markedNode = Nothing
-                , graph = Graph.emptyGraph
+                , graph = Nothing
                 }

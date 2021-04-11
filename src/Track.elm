@@ -9,5 +9,5 @@ type alias Track =
     , trackName : Maybe String
     , currentNode : TrackPoint
     , markedNode : Maybe TrackPoint
-    , graph : Graph
+    , graph : Maybe Graph
     }
