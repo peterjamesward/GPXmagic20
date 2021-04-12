@@ -59,7 +59,7 @@ nudgeNodes track settings =
             Maybe.map (applyIndexPreservingEditsToGraph ( from, to ) nudgedTrackPoints) track.graph
 
         newRoute =
-            case track.graph of
+            case newGraph of
                 Just isGraph ->
                     Graph.walkTheRoute isGraph
 
