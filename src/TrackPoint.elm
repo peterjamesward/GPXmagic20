@@ -1,6 +1,6 @@
 module TrackPoint exposing (..)
 
-import Angle
+import Angle exposing (Angle)
 import Area
 import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
@@ -19,10 +19,14 @@ type alias TrackPoint =
     -- See if we can manage with just the one system.
     -- Only use lat, lon for I/O!
     { xyz : Point3d Length.Meters LocalCoords
-    , effectiveDirection : Maybe (Direction3d LocalCoords)
     , costMetric : Float
     , index : Int
     , distanceFromStart : Quantity Float Length.Meters
+    , beforeDirection : Maybe (Direction3d LocalCoords)
+    , afterDirection : Maybe (Direction3d LocalCoords)
+    , effectiveDirection : Maybe (Direction3d LocalCoords)
+    , directionChange : Maybe Angle
+    , gradientChange : Maybe Angle
     }
 
 
@@ -43,10 +47,14 @@ trackPointFromGPX lon lat ele =
                 )
     in
     { xyz = location
-    , effectiveDirection = Nothing
     , costMetric = 0.0
     , index = 0
     , distanceFromStart = Quantity.zero
+    , beforeDirection = Nothing
+    , afterDirection = Nothing
+    , effectiveDirection = Nothing
+    , directionChange = Nothing
+    , gradientChange = Nothing
     }
 
 
@@ -62,7 +70,7 @@ prepareTrackPoints trackPoints =
                         [ { firstPoint
                             | index = 0
                             , costMetric = 10 ^ 10 -- i.e. do not remove me!
-                            , effectiveDirection = trackPointBearing firstPoint secondPoint
+                            , afterDirection = trackPointBearing firstPoint secondPoint
                           }
                         ]
                         1
@@ -78,16 +86,20 @@ prepareTrackPoints trackPoints =
                 [ previous, penultimate, last ] ->
                     -- We can wrap things up now
                     let
+                        beforeDirection = (trackPointBearing previous penultimate)
+                        afterDirection = (trackPointBearing penultimate last)
                         penultimateSpan =
                             Point3d.distanceFrom previous.xyz penultimate.xyz
 
                         penultimatePoint =
                             { penultimate
                                 | index = nextIdx
+                                , beforeDirection = beforeDirection
+                                , afterDirection = afterDirection
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
-                                        (trackPointBearing previous penultimate)
-                                        (trackPointBearing penultimate last)
+                                        beforeDirection afterDirection
+
                                 , costMetric =
                                     Area.inSquareMeters <|
                                         Triangle3d.area <|
@@ -103,7 +115,7 @@ prepareTrackPoints trackPoints =
                             { last
                                 | index = nextIdx + 1
                                 , costMetric = 10 ^ 10
-                                , effectiveDirection = trackPointBearing penultimate last
+                                , beforeDirection = beforeDirection
                                 , distanceFromStart = Quantity.plus lastDistance lastSpan
                             }
                     in
@@ -115,16 +127,20 @@ prepareTrackPoints trackPoints =
 
                 previous :: point :: next :: rest ->
                     let
+                        beforeDirection = (trackPointBearing previous point)
+                        afterDirection = (trackPointBearing point next)
                         span =
                             Point3d.distanceFrom previous.xyz point.xyz
 
                         updatedPoint =
                             { point
                                 | index = nextIdx
+                                , beforeDirection = beforeDirection
+                                , afterDirection = afterDirection
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
-                                        (trackPointBearing previous point)
-                                        (trackPointBearing point next)
+                                        beforeDirection
+                                        afterDirection
                                 , costMetric =
                                     Area.inSquareMeters <|
                                         Triangle3d.area <|

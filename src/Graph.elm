@@ -70,6 +70,10 @@ type Msg
     | ConvertFromGraph
 
 
+type GraphActionImpact
+    = GraphChanged String
+    | GraphNoAction
+
 type alias Traversal =
     { edge : EdgeKey -- Canonical index of edge
     , direction : Direction
@@ -146,28 +150,28 @@ update :
     Msg
     -> List TrackPoint
     -> Maybe Graph
-    -> ( Maybe Graph, Maybe String )
+    -> ( Maybe Graph, GraphActionImpact )
 update msg trackPoints graph =
     case msg of
         GraphAnalyse ->
             ( Just <| deriveTrackPointGraph trackPoints
-            , Just "Canonicalised edges"
+            , GraphChanged "Canonicalised edges"
             )
 
         CentreLineOffset offset ->
             case graph of
                 Just isGraph ->
-                    ( Just { isGraph | centreLineOffset = meters offset }, Nothing )
+                    ( Just { isGraph | centreLineOffset = meters offset }, GraphNoAction )
 
                 Nothing ->
-                    ( Nothing, Nothing )
+                    ( Nothing, GraphNoAction )
 
         ApplyOffset ->
             -- The route is pre-computed; it's the Undo message that puts it into effect.
-            ( graph, Just "Apply offset" )
+            ( graph, GraphChanged "Apply offset" )
 
         ConvertFromGraph ->
-            ( Nothing, Just "I'm done with the Graph" )
+            ( Nothing, GraphChanged "Graph removed" )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph

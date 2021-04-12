@@ -8,13 +8,11 @@ import Element.Input as Input exposing (button)
 import Graph exposing (applyIndexPreservingEditsToGraph)
 import Length exposing (Length)
 import List.Extra
-import Point2d
 import Point3d
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal2)
-import Vector2d
 import Vector3d
 import ViewPureStyles exposing (..)
 
@@ -24,6 +22,11 @@ type NudgeMsg
     | SetVerticalNudgeFactor Length
     | ZeroNudgeFactors
     | NudgeNode NudgeSettings
+
+
+type NudgeEffects
+    = NudgeControlsOnly
+    | NudgeTrackChanged String
 
 
 type alias NudgeSettings =
@@ -36,6 +39,24 @@ defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero
     }
+
+
+makeUndoMessage : Track -> String
+makeUndoMessage track =
+    let
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
+            )
+    in
+    if to > from then
+        "Nudge " ++ String.fromInt from ++ " to " ++ String.fromInt to
+
+    else
+        "Nudge node " ++ String.fromInt from
 
 
 nudgeNodes : Track -> NudgeSettings -> Track
@@ -89,13 +110,6 @@ nudgeNodeRange : List TrackPoint -> Int -> Int -> NudgeSettings -> List TrackPoi
 nudgeNodeRange trackPoints node1 nodeN settings =
     -- Apply the nudge factor permanently.
     let
-        undoMessage =
-            if nodeN > node1 then
-                "Nudge " ++ String.fromInt node1 ++ " to " ++ String.fromInt nodeN
-
-            else
-                "Nudge node " ++ String.fromInt node1
-
         ( beforeLastPoint, afterLastPoint ) =
             List.Extra.splitAt (nodeN + 1) trackPoints
 
@@ -206,17 +220,21 @@ zeroButton wrap =
         }
 
 
-update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track )
+update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track, NudgeEffects )
 update msg settings track =
     case msg of
         SetHorizontalNudgeFactor length ->
-            ( { settings | horizontal = length }, track )
+            ( { settings | horizontal = length }, track, NudgeControlsOnly )
 
         SetVerticalNudgeFactor length ->
-            ( { settings | vertical = length }, track )
+            ( { settings | vertical = length }, track, NudgeControlsOnly )
 
         ZeroNudgeFactors ->
-            ( defaultNudgeSettings, track )
+            ( defaultNudgeSettings, track, NudgeControlsOnly )
 
         NudgeNode _ ->
-            ( settings, nudgeNodes track settings )
+            let
+                undoMessage =
+                    makeUndoMessage track
+            in
+            ( settings, nudgeNodes track settings, NudgeTrackChanged undoMessage )

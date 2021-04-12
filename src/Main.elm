@@ -3,15 +3,15 @@ module Main exposing (main)
 import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, accordionView)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
-import Element exposing (..)
+import Element as E exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
-import Graph exposing (Graph, viewGraphControls)
+import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import MarkerControls exposing (markerButton)
-import Nudge exposing (NudgeSettings, defaultNudgeSettings, viewNudgeTools)
+import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
@@ -31,6 +31,8 @@ type Msg
     | MarkerMessage MarkerControls.MarkerControlsMsg
     | NudgeMessage Nudge.NudgeMsg
     | Tick Time.Posix
+    | Undo
+    | Redo
 
 
 imageMessageWrapper : ImageMsg -> Msg
@@ -74,6 +76,9 @@ type alias Model =
     , track : Maybe Track
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
+    , undoStack : List UndoEntry
+    , redoStack : List UndoEntry
+    , changeCounter : Int
     }
 
 
@@ -89,6 +94,9 @@ init mflags =
       , viewingContext = Nothing
       , toolsAccordion = []
       , nudgeSettings = defaultNudgeSettings
+      , undoStack = []
+      , redoStack = []
+      , changeCounter = 0
       }
     , Cmd.batch
         []
@@ -100,6 +108,16 @@ update msg model =
     case msg of
         Tick newTime ->
             ( { model | time = newTime }
+            , Cmd.none
+            )
+
+        Undo ->
+            ( model |> undo |> trackIsRestored
+            , Cmd.none
+            )
+
+        Redo ->
+            ( model |> redo |> trackIsRestored
             , Cmd.none
             )
 
@@ -194,7 +212,7 @@ update msg model =
             case model.track of
                 Just isTrack ->
                     let
-                        ( newGraph, postUpdateAction ) =
+                        ( newGraph, action ) =
                             Graph.update innerMsg isTrack.track isTrack.graph
 
                         newTrackPoints =
@@ -206,18 +224,13 @@ update msg model =
                                 | graph = newGraph
                                 , track = newTrackPoints
                             }
-
-                        updatedScene =
-                            Maybe.map2
-                                SceneBuilder.renderTrack
-                                model.renderingContext
-                                (Just newTrack)
-                                |> Maybe.withDefault []
                     in
-                    ( { model
-                        | track = Just newTrack
-                        , staticScene = updatedScene
-                      }
+                    ( case action of
+                        GraphChanged undoMsg ->
+                            model |> trackHasChanged undoMsg newTrack
+
+                        _ ->
+                            model
                     , Cmd.none
                     )
 
@@ -252,27 +265,19 @@ update msg model =
             case model.track of
                 Just isTrack ->
                     let
-                        ( newSetttings, newTrack ) =
+                        ( newSetttings, newTrack, action ) =
                             Nudge.update nudgeMsg model.nudgeSettings isTrack
-
-                        updatedScene =
-                            if newTrack /= isTrack then
-                                Maybe.map2
-                                    SceneBuilder.renderTrack
-                                    model.renderingContext
-                                    (Just newTrack)
-                                    |> Maybe.withDefault []
-
-                            else
-                                model.staticScene
                     in
                     ( { model
-                        | track = Just newTrack
-                        , nudgeSettings = newSetttings
-                        , staticScene = updatedScene
-                        , visibleMarkers = SceneBuilder.renderMarkers newTrack
-                        , viewingContext = refreshSceneSearcher model.viewingContext newTrack
+                        | nudgeSettings = newSetttings
                       }
+                        |> (case action of
+                                NudgeTrackChanged undoMsg ->
+                                    trackHasChanged undoMsg newTrack
+
+                                _ ->
+                                    identity
+                           )
                     , Cmd.none
                     )
 
@@ -280,14 +285,49 @@ update msg model =
                     ( model, Cmd.none )
 
 
-refreshSceneSearcher : Maybe ViewingContext -> Track -> Maybe ViewingContext
-refreshSceneSearcher context track =
-    case context of
-        Just isContext ->
-            Just { isContext | sceneSearcher = trackPointNearestRay track }
+trackHasChanged : String -> Track -> Model -> Model
+trackHasChanged undoMsg newTrack oldModel =
+    let
+        updatedScene =
+            Maybe.map2
+                SceneBuilder.renderTrack
+                pushedModel.renderingContext
+                (Just newTrack)
+                |> Maybe.withDefault []
 
-        Nothing ->
-            Nothing
+        pushedModel =
+            addToUndoStack undoMsg (Just newTrack) oldModel
+    in
+    { pushedModel
+        | staticScene = updatedScene
+        , visibleMarkers = SceneBuilder.renderMarkers newTrack
+        , viewingContext =
+            Maybe.map2 refreshSceneSearcher
+                pushedModel.viewingContext
+                (Just newTrack)
+    }
+
+
+trackIsRestored : Model -> Model
+trackIsRestored model =
+    let
+        updatedScene =
+            Maybe.map2
+                SceneBuilder.renderTrack
+                model.renderingContext
+                model.track
+                |> Maybe.withDefault []
+    in
+    { model
+        | staticScene = updatedScene
+        , visibleMarkers = Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
+        , viewingContext = Maybe.map2 refreshSceneSearcher model.viewingContext model.track
+    }
+
+
+refreshSceneSearcher : ViewingContext -> Track -> ViewingContext
+refreshSceneSearcher context track =
+    { context | sceneSearcher = trackPointNearestRay track }
 
 
 view : Model -> Browser.Document Msg
@@ -320,6 +360,7 @@ view model =
                                 imageMessageWrapper
                             , column defaultColumnLayout
                                 [ markerButton isTrack markerMessageWrapper
+                                , undoRedoButtons model
                                 , accordionView
                                     (updatedAccordion model model.toolsAccordion toolsAccordion)
                                     AccordionMessage
@@ -405,3 +446,109 @@ toolsAccordion model =
                     none
       }
     ]
+
+
+
+-- Reluctantly putting this here.
+
+
+type alias UndoEntry =
+    { label : String
+    , track : Maybe Track
+    }
+
+
+addToUndoStack :
+    String
+    -> Maybe Track
+    -> Model
+    -> Model
+addToUndoStack label track model =
+    { model
+        | track = track
+        , undoStack =
+            { label = label
+            , track = model.track
+            }
+                :: List.take 19 model.undoStack
+        , redoStack = []
+        , changeCounter = model.changeCounter + 1
+    }
+
+
+undo : Model -> Model
+undo model =
+    case model.undoStack of
+        action :: undos ->
+            { model
+                | track = action.track
+                , undoStack = undos
+                , redoStack =
+                    { action
+                        | track = model.track
+                    }
+                        :: model.redoStack
+                , changeCounter = model.changeCounter - 1
+            }
+
+        _ ->
+            model
+
+
+redo : Model -> Model
+redo model =
+    case model.redoStack of
+        action :: redos ->
+            { model
+                | track = action.track
+                , redoStack = redos
+                , undoStack =
+                    { action
+                        | track = model.track
+                    }
+                        :: model.undoStack
+                , changeCounter = model.changeCounter + 1
+            }
+
+        _ ->
+            model
+
+
+undoRedoButtons model =
+    row
+        defaultRowLayout
+        [ button
+            prettyButtonStyles
+            { onPress =
+                case model.undoStack of
+                    [] ->
+                        Nothing
+
+                    _ ->
+                        Just Undo
+            , label =
+                case model.undoStack of
+                    u :: _ ->
+                        E.text <| "Undo " ++ u.label
+
+                    _ ->
+                        E.text "Nothing to undo"
+            }
+        , button
+            prettyButtonStyles
+            { onPress =
+                case model.redoStack of
+                    [] ->
+                        Nothing
+
+                    _ ->
+                        Just Redo
+            , label =
+                case model.redoStack of
+                    u :: _ ->
+                        E.text <| "Redo " ++ u.label
+
+                    _ ->
+                        E.text "Nothing to redo"
+            }
+        ]
