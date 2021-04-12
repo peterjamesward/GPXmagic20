@@ -7,14 +7,11 @@
 4. Rendering with variable detail. OK
 5. Graph.
 
-6. Editing with graph
-> Try basic edits:
-> NUDGE PREVIEW.
-> Index preserving (e.g. Nudge)
+> 6. Editing with graph
 > Position preserving (e.g. Delete, Insert)
 
 6. Multiple views. (Dynamically sized WebGL holes?) {Yes, just a list of them.}
-7. Message wrappers for edit messages.
+7. Bring all the edit stuff over.
 8. New controls layout. (Perhaps: single point | range | whole track)
 9. Map integration.
 9. OAuth integration.
