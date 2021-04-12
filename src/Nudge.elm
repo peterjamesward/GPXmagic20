@@ -65,10 +65,23 @@ nudgeNodes track settings =
 
                 Nothing ->
                     nudgedTrackPoints
+
+        newCurrent =
+            List.Extra.getAt track.currentNode.index nudgedTrackPoints
+
+        newMarker =
+            case track.markedNode of
+                Just isMarked ->
+                    List.Extra.getAt isMarked.index nudgedTrackPoints
+
+                Nothing ->
+                    Nothing
     in
     { track
         | track = newRoute
         , graph = newGraph
+        , currentNode = newCurrent |> Maybe.withDefault track.currentNode
+        , markedNode = newMarker
     }
 
 

@@ -171,17 +171,3 @@ meanBearing direction1 direction2 =
     Direction3d.rotateAround Axis3d.z halfAngle direction1
 
 
-trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
-trackPointNearestRay track ray =
-    let
-        distances =
-            List.map
-                (\tp ->
-                    ( tp
-                    , tp.xyz
-                    )
-                )
-                track
-    in
-    track
-        |> List.Extra.minimumBy (Length.inMeters << distanceFromAxis ray << .xyz)

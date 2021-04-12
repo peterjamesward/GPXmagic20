@@ -15,6 +15,7 @@ Maybe ditto for gradients, while we're at it.
 6. Editing with graph
 > Try basic edits:
 > PLAN FOR UNDO/REDO.
+> GENERAL STRATEGY OF RETURNING LEVEL OF INVALIDATION TO DRIVE REPAINTS &c
 > NUDGE ON GRAPH
 > NUDGE PREVIEW.
 > Index preserving (e.g. Nudge)

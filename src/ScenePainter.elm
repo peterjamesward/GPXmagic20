@@ -259,8 +259,6 @@ update msg view now =
 
 detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint
 detectHit context event =
-    -- Same but in our local coord, not map coords.
-    -- Need assistance from elm-3d-scene.
     let
         ( x, y ) =
             event.offsetPos

@@ -16,8 +16,7 @@ import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
 import Time
-import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, trackPointNearestRay)
+import Track exposing (Track, trackPointNearestRay)
 import Url exposing (Url)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
@@ -132,7 +131,7 @@ update msg model =
                 viewingContext =
                     case track of
                         Just isTrack ->
-                            Just <| initialiseView isTrack.track (trackPointNearestRay isTrack.track)
+                            Just <| initialiseView isTrack.track (trackPointNearestRay isTrack)
 
                         Nothing ->
                             Nothing
@@ -271,12 +270,24 @@ update msg model =
                         | track = Just newTrack
                         , nudgeSettings = newSetttings
                         , staticScene = updatedScene
+                        , visibleMarkers = SceneBuilder.renderMarkers newTrack
+                        , viewingContext = refreshSceneSearcher model.viewingContext newTrack
                       }
                     , Cmd.none
                     )
 
                 Nothing ->
                     ( model, Cmd.none )
+
+
+refreshSceneSearcher : Maybe ViewingContext -> Track -> Maybe ViewingContext
+refreshSceneSearcher context track =
+    case context of
+        Just isContext ->
+            Just { isContext | sceneSearcher = trackPointNearestRay track }
+
+        Nothing ->
+            Nothing
 
 
 view : Model -> Browser.Document Msg
