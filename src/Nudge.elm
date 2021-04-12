@@ -5,6 +5,7 @@ import Axis3d
 import Direction3d
 import Element exposing (Element, centerX, column, el, px, row, text, width)
 import Element.Input as Input exposing (button)
+import Graph exposing (applyIndexPreservingEditsToGraph)
 import Length exposing (Length)
 import List.Extra
 import Point2d
@@ -50,8 +51,25 @@ nudgeNodes track settings =
             ( min track.currentNode.index markerPosition.index
             , max track.currentNode.index markerPosition.index
             )
+
+        nudgedTrackPoints =
+            nudgeNodeRange track.track from to settings
+
+        newGraph =
+            Maybe.map (applyIndexPreservingEditsToGraph ( from, to ) nudgedTrackPoints) track.graph
+
+        newRoute =
+            case track.graph of
+                Just isGraph ->
+                    Graph.walkTheRoute isGraph
+
+                Nothing ->
+                    nudgedTrackPoints
     in
-    { track | track = nudgeNodeRange track.track from to settings }
+    { track
+        | track = newRoute
+        , graph = newGraph
+    }
 
 
 nudgeNodeRange : List TrackPoint -> Int -> Int -> NudgeSettings -> List TrackPoint

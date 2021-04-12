@@ -85,8 +85,8 @@ viewGraphControls graph wrapper =
     let
         offset =
             Maybe.map .centreLineOffset graph
-            |> Maybe.withDefault Quantity.zero
-            |> Length.inMeters
+                |> Maybe.withDefault Quantity.zero
+                |> Length.inMeters
 
         analyseButton =
             I.button prettyButtonStyles
@@ -261,8 +261,6 @@ deriveTrackPointGraph trackPoints =
                 , route = canonicalRoute
                 , nodePairsInRoute = nodePairs
             }
-
-        _ = Debug.log "Node pairs" nodePairs
     in
     case annoyingTrackPoints of
         [] ->
@@ -478,66 +476,86 @@ findCanonicalEdges :
     -> Dict EdgeKey (List TrackPoint)
 findCanonicalEdges originalEdges =
     -- Note we are keying on three coordinates, so we disambiguate edges between node pairs.
-    -- I am now thinking of making two entries, one for each direction.
-    -- Marginally larger dict, much easier lookup.
-    let
-        addCanonical :
-            List TrackPoint
-            -> Dict EdgeKey (List TrackPoint)
-            -> Dict EdgeKey (List TrackPoint)
-        addCanonical edge dict =
-            let
-                edgeLength =
-                    List.length edge
-
-                startNode =
-                    List.head edge
-
-                secondNode =
-                    List.getAt 1 edge
-
-                finishNode =
-                    List.last edge
-
-                penultimateNode =
-                    List.getAt (edgeLength - 2) edge
-
-                edgePoints =
-                    edge |> List.take (edgeLength - 1) |> List.drop 1
-            in
-            case [ startNode, secondNode, penultimateNode, finishNode ] of
-                [ Just start, Just second, Just penultimate, Just finish ] ->
-                    let
-                        comp1 =
-                            trackPointComparable start
-
-                        comp2 =
-                            trackPointComparable second
-
-                        compM =
-                            trackPointComparable penultimate
-
-                        compN =
-                            trackPointComparable finish
-                    in
-                    if
-                        -- We may have encountered in either direction.
-                        Dict.member ( comp1, compN, comp2 ) dict
-                            || Dict.member ( compN, comp1, compM ) dict
-                    then
-                        -- Previously encountered.
-                        dict
-
-                    else
-                        -- First encounter for this edge, so this is canonical.
-                        Dict.insert ( comp1, compN, comp2 )
-                            edgePoints
-                            dict
-
-                _ ->
-                    dict
-    in
     List.foldl addCanonical Dict.empty originalEdges
+
+
+addCanonical :
+    List TrackPoint
+    -> Dict EdgeKey (List TrackPoint)
+    -> Dict EdgeKey (List TrackPoint)
+addCanonical edge dict =
+    let
+        edgeLength =
+            List.length edge
+
+        ( startNode, secondNode ) =
+            ( List.head edge
+            , List.getAt 1 edge
+            )
+
+        ( finishNode, penultimateNode ) =
+            ( List.last edge
+            , List.getAt (edgeLength - 2) edge
+            )
+
+        forwardVia =
+            case secondNode of
+                Just _ ->
+                    secondNode
+
+                Nothing ->
+                    finishNode
+
+        reverseVia =
+            case penultimateNode of
+                Just _ ->
+                    penultimateNode
+
+                Nothing ->
+                    startNode
+
+        edgePoints =
+            edge |> List.take (edgeLength - 1) |> List.drop 1
+    in
+    case [ startNode, forwardVia, reverseVia, finishNode ] of
+        [ Just isStart, Just isForwardVia, Just isReverseVia, Just isFinish ] ->
+            let
+                ( comp1, comp2 ) =
+                    ( trackPointComparable isStart
+                    , trackPointComparable isForwardVia
+                    )
+
+                ( compM, compN ) =
+                    ( trackPointComparable isReverseVia
+                    , trackPointComparable isFinish
+                    )
+
+                ( forwardKey, reverseKey ) =
+                    ( ( comp1, compN, comp2 )
+                    , ( compN, comp1, compM )
+                    )
+
+                forwardEntryFound =
+                    Dict.member forwardKey dict
+
+                reverseEntryFound =
+                    Dict.member reverseKey dict
+
+                --_ = Debug.log "Found" (forwardEntryFound, reverseEntryFound)
+            in
+            if
+                -- We may have encountered in either direction.
+                forwardEntryFound || reverseEntryFound
+            then
+                -- Previously encountered.
+                dict
+
+            else
+                -- First encounter for this edge, so this is canonical.
+                Dict.insert forwardKey edgePoints dict
+
+        _ ->
+            dict
 
 
 useCanonicalEdges :
@@ -549,35 +567,47 @@ useCanonicalEdges edges canonicalEdges =
         replaceEdge : List TrackPoint -> Maybe ( EdgeKey, Direction )
         replaceEdge edge =
             let
-                startNode =
-                    List.head edge
+                edgeLength =
+                    List.length edge
 
-                secondNode =
-                    List.head <| List.drop 1 edge
+                ( startNode, secondNode ) =
+                    ( List.head edge
+                    , List.getAt 1 edge
+                    )
 
-                backwardsEdge =
-                    List.reverse edge
+                ( finishNode, penultimateNode ) =
+                    ( List.last edge
+                    , List.getAt (edgeLength - 2) edge
+                    )
 
-                finishNode =
-                    List.head backwardsEdge
+                forwardVia =
+                    case secondNode of
+                        Just _ ->
+                            secondNode
 
-                penultimateNode =
-                    List.head <| List.drop 1 backwardsEdge
+                        Nothing ->
+                            finishNode
+
+                reverseVia =
+                    case penultimateNode of
+                        Just _ ->
+                            penultimateNode
+
+                        Nothing ->
+                            startNode
             in
-            case [ startNode, secondNode, penultimateNode, finishNode ] of
-                [ Just start, Just second, Just penultimate, Just finish ] ->
+            case [ startNode, forwardVia, reverseVia, finishNode ] of
+                [ Just isStart, Just isForwardVia, Just isReverseVia, Just isFinish ] ->
                     let
-                        comp1 =
-                            trackPointComparable start
+                        ( comp1, comp2 ) =
+                            ( trackPointComparable isStart
+                            , trackPointComparable isForwardVia
+                            )
 
-                        comp2 =
-                            trackPointComparable second
-
-                        compM =
-                            trackPointComparable penultimate
-
-                        compN =
-                            trackPointComparable finish
+                        ( compM, compN ) =
+                            ( trackPointComparable isReverseVia
+                            , trackPointComparable isFinish
+                            )
 
                         ( forwardKey, reverseKey ) =
                             ( ( comp1, compN, comp2 )
@@ -591,16 +621,24 @@ useCanonicalEdges edges canonicalEdges =
                             Dict.get reverseKey canonicalEdges
                     in
                     case ( forwardEntryFound, reverseEntryFound ) of
-                        ( Just _, Nothing ) ->
+                        ( Just _, _ ) ->
                             Just ( ( comp1, compN, comp2 ), Forwards )
 
                         ( Nothing, Just _ ) ->
                             Just ( ( compN, comp1, compM ), Backwards )
 
                         _ ->
+                            --let
+                            --    _ =
+                            --        Debug.log "Not found in Dict" ( isStart.index, isFinish.index )
+                            --in
                             Nothing
 
                 _ ->
+                    --let
+                    --    _ =
+                    --        Debug.log "Where is Edge" edge
+                    --in
                     Nothing
     in
     List.map replaceEdge edges |> List.filterMap identity
@@ -644,3 +682,64 @@ nodePointList graph =
                 |> List.map .xyz
     in
     whereTheNodesAre
+
+
+applyIndexPreservingEditsToGraph : ( Int, Int ) -> List TrackPoint -> Graph -> Graph
+applyIndexPreservingEditsToGraph ( editStart, editEnd ) newTrackPoints graph =
+    -- Using our knowledge of the route (Edges and Directions) and node pairs
+    -- we can apply posution-only changes to our canonical nodes and edges.
+    let
+        routeInfoPairs =
+            List.zip graph.nodePairsInRoute graph.route
+
+        edgesOverlappingRange =
+            routeInfoPairs
+                |> List.filter
+                    (\( ( edgeStart, edgeEnd ), { edge, direction } ) ->
+                        edgeStart <= editEnd && edgeEnd >= editStart
+                    )
+
+        ( updatedNodes, updatedEdges ) =
+            edgesOverlappingRange
+                |> List.foldl
+                    applyPositionsFromNewEdge
+                    ( graph.nodes, graph.edges )
+
+        applyPositionsFromNewEdge ( ( edgeStart, edgeEnd ), { edge, direction } ) ( nodes, edges ) =
+            let
+                ( fromXY, toXY, viaXY ) =
+                    edge
+
+                trackpointsOnEdgeIncludingNodes =
+                    newTrackPoints |> List.take edgeEnd |> List.drop edgeStart
+
+                trackpointsOnEdge =
+                    trackpointsOnEdgeIncludingNodes
+                        |> List.take (List.length trackpointsOnEdgeIncludingNodes - 1)
+                        |> List.drop 1
+
+                ( startNodeTrackPoint, endNodeTrackPoint ) =
+                    ( List.head trackpointsOnEdgeIncludingNodes
+                    , List.last trackpointsOnEdgeIncludingNodes
+                    )
+
+                orientedEdge =
+                    case direction of
+                        Forwards ->
+                            trackpointsOnEdge
+
+                        Backwards ->
+                            List.reverse trackpointsOnEdge
+            in
+            ( case ( startNodeTrackPoint, endNodeTrackPoint ) of
+                ( Just isStart, Just isEnd ) ->
+                    nodes
+                        |> Dict.insert fromXY isStart
+                        |> Dict.insert toXY isEnd
+
+                _ ->
+                    nodes
+            , edges |> Dict.insert edge orientedEdge
+            )
+    in
+    { graph | nodes = updatedNodes, edges = updatedEdges }
