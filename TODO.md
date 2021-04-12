@@ -7,16 +7,8 @@
 4. Rendering with variable detail. OK
 5. Graph.
 
-ACTION TODAY
-Save (up to) two bearings on each point, not the average.
-Easier then to find egregious bends.
-Maybe ditto for gradients, while we're at it.
-
 6. Editing with graph
 > Try basic edits:
-> PLAN FOR UNDO/REDO.
-> GENERAL STRATEGY OF RETURNING LEVEL OF INVALIDATION TO DRIVE REPAINTS &c
-> NUDGE ON GRAPH
 > NUDGE PREVIEW.
 > Index preserving (e.g. Nudge)
 > Position preserving (e.g. Delete, Insert)

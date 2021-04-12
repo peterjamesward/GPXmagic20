@@ -25,7 +25,7 @@ type NudgeMsg
 
 
 type NudgeEffects
-    = NudgeControlsOnly
+    = NudgePreview (List TrackPoint)
     | NudgeTrackChanged String
 
 
@@ -149,6 +149,53 @@ nudgeTrackPoint trackpoint settings =
     { trackpoint | xyz = newXYZ }
 
 
+simulateNudgeNodes : Track -> NudgeSettings -> List TrackPoint
+simulateNudgeNodes track settings =
+    -- Change the locations of the track points within the closed interval between
+    -- markers, or just the current node if no purple cone.
+    -- For a Graph, this must update canonical nodes and edges.
+    let
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
+            )
+
+        ( beforeLastPoint, afterLastPoint ) =
+            List.Extra.splitAt (to + 1) track.track
+
+        ( beforeFirstPoint, targetTPs ) =
+            List.Extra.splitAt from beforeLastPoint
+
+        nudgedPoints =
+            List.map
+                (\tp -> nudgeTrackPoint tp settings)
+                targetTPs
+
+        ( prevNode, postNode ) =
+            ( List.Extra.getAt (from - 1) track.track
+            , List.Extra.getAt (to + 1) track.track
+            )
+
+        nudgedListForVisuals =
+            case ( prevNode, postNode ) of
+                ( Just prev, Just post ) ->
+                    [ prev ] ++ nudgedPoints ++ [ post ]
+
+                ( Just prev, Nothing ) ->
+                    [ prev ] ++ nudgedPoints
+
+                ( Nothing, Just post ) ->
+                    nudgedPoints ++ [ post ]
+
+                ( Nothing, Nothing ) ->
+                    nudgedPoints
+    in
+    nudgedListForVisuals
+
+
 viewNudgeTools : NudgeSettings -> (NudgeMsg -> msg) -> Element msg
 viewNudgeTools settings msgWrapper =
     column defaultColumnLayout
@@ -222,15 +269,17 @@ zeroButton wrap =
 
 update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track, NudgeEffects )
 update msg settings track =
+    let simulated = simulateNudgeNodes track settings
+    in
     case msg of
         SetHorizontalNudgeFactor length ->
-            ( { settings | horizontal = length }, track, NudgeControlsOnly )
+            ( { settings | horizontal = length }, track, NudgePreview simulated)
 
         SetVerticalNudgeFactor length ->
-            ( { settings | vertical = length }, track, NudgeControlsOnly )
+            ( { settings | vertical = length }, track, NudgePreview simulated)
 
         ZeroNudgeFactors ->
-            ( defaultNudgeSettings, track, NudgeControlsOnly )
+            ( defaultNudgeSettings, track, NudgePreview [])
 
         NudgeNode _ ->
             let

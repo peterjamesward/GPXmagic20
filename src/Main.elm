@@ -71,6 +71,7 @@ type alias Model =
     , zone : Time.Zone
     , staticScene : Scene
     , visibleMarkers : Scene
+    , nudgePreview : Scene
     , renderingContext : Maybe RenderingContext
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
@@ -90,6 +91,7 @@ init mflags =
       , track = Nothing
       , staticScene = []
       , visibleMarkers = []
+      , nudgePreview = []
       , renderingContext = Nothing
       , viewingContext = Nothing
       , toolsAccordion = []
@@ -254,6 +256,7 @@ update msg model =
                     ( { model
                         | track = Just newTrack
                         , visibleMarkers = SceneBuilder.renderMarkers newTrack
+                        , nudgePreview = []
                       }
                     , Cmd.none
                     )
@@ -268,16 +271,17 @@ update msg model =
                         ( newSetttings, newTrack, action ) =
                             Nudge.update nudgeMsg model.nudgeSettings isTrack
                     in
-                    ( { model
-                        | nudgeSettings = newSetttings
-                      }
-                        |> (case action of
-                                NudgeTrackChanged undoMsg ->
-                                    trackHasChanged undoMsg newTrack
+                    ( case action of
+                        NudgeTrackChanged undoMsg ->
+                            { model | nudgePreview = [] }
+                                |> trackHasChanged undoMsg newTrack
 
-                                _ ->
-                                    identity
-                           )
+                        NudgePreview points ->
+                            { model
+                                | nudgePreview =
+                                    SceneBuilder.previewNudge points
+                                , nudgeSettings = newSetttings
+                            }
                     , Cmd.none
                     )
 
@@ -356,7 +360,10 @@ view model =
                         ( Just context, Just isTrack ) ->
                             [ viewWebGLContext
                                 context
-                                (model.staticScene ++ model.visibleMarkers)
+                                (model.staticScene
+                                    ++ model.visibleMarkers
+                                    ++ model.nudgePreview
+                                )
                                 imageMessageWrapper
                             , column defaultColumnLayout
                                 [ markerButton isTrack markerMessageWrapper

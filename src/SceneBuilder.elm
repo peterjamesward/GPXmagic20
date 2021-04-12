@@ -6,7 +6,7 @@ import Color
 import Cone3d
 import Direction3d exposing (negativeZ)
 import Graph exposing (Graph)
-import Length exposing (meters)
+import Length exposing (Length, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -14,7 +14,7 @@ import Plane3d
 import Point3d
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, cone)
-import Scene3d.Material as Material
+import Scene3d.Material as Material exposing (Material)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Vector3d
@@ -90,6 +90,10 @@ renderMarkers track =
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
 paintSurfaceBetween pt1 pt2 =
+    paintSomethingBetween (Length.meters 3.0) (Material.matte Color.grey) pt1 pt2
+
+
+paintSomethingBetween width material pt1 pt2 =
     let
         roadAsSegment =
             LineSegment3d.from pt1.xyz pt2.xyz
@@ -97,7 +101,7 @@ paintSurfaceBetween pt1 pt2 =
         halfWidth =
             Vector3d.from pt1.xyz pt2.xyz
                 |> Vector3d.projectOnto Plane3d.xy
-                |> Vector3d.scaleTo (Length.meters 3.0)
+                |> Vector3d.scaleTo width
 
         ( leftKerbVector, rightKerbVector ) =
             ( Vector3d.rotateAround Axis3d.z (Angle.degrees 90) halfWidth
@@ -109,7 +113,7 @@ paintSurfaceBetween pt1 pt2 =
             , LineSegment3d.translateBy rightKerbVector roadAsSegment
             )
     in
-    [ Scene3d.quad (Material.matte Color.grey)
+    [ Scene3d.quad material
         (LineSegment3d.startPoint leftKerb)
         (LineSegment3d.endPoint leftKerb)
         (LineSegment3d.endPoint rightKerb)
@@ -188,3 +192,16 @@ showGraphNodes graph =
                     }
     in
     graph |> Graph.nodePointList |> List.map makeNode
+
+
+previewNudge : List TrackPoint -> List (Entity LocalCoords)
+previewNudge points =
+    let
+        nudgeElement tp1 tp2 =
+            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightOrange) tp1 tp2
+    in
+    List.concat <|
+        List.map2
+            nudgeElement
+            points
+            (List.drop 1 points)
