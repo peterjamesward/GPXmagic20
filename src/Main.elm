@@ -72,6 +72,7 @@ type alias Model =
     , staticScene : Scene
     , visibleMarkers : Scene
     , nudgePreview : Scene
+    , completeScene : Scene
     , renderingContext : Maybe RenderingContext
     , viewingContext : Maybe ViewingContext
     , track : Maybe Track
@@ -92,6 +93,7 @@ init mflags =
       , staticScene = []
       , visibleMarkers = []
       , nudgePreview = []
+      , completeScene = []
       , renderingContext = Nothing
       , viewingContext = Nothing
       , toolsAccordion = []
@@ -161,6 +163,7 @@ update msg model =
                 , staticScene = scene
                 , visibleMarkers = markers
                 , viewingContext = viewingContext
+                , completeScene = markers ++ scene
                 , renderingContext = Just defaultRenderingContext
                 , toolsAccordion = toolsAccordion model
               }
@@ -202,6 +205,7 @@ update msg model =
                         | viewingContext = Just newContext
                         , track = Just updatedTrack
                         , staticScene = updatedScene
+                        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                         , visibleMarkers = updatedMarkers
                     }
 
@@ -252,10 +256,12 @@ update msg model =
                     let
                         newTrack =
                             MarkerControls.update markerMsg isTrack
+                        updatedMarkers = SceneBuilder.renderMarkers newTrack
                     in
                     ( { model
                         | track = Just newTrack
-                        , visibleMarkers = SceneBuilder.renderMarkers newTrack
+                        , visibleMarkers = updatedMarkers
+                        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                         , nudgePreview = []
                       }
                     , Cmd.none
@@ -277,9 +283,12 @@ update msg model =
                                 |> trackHasChanged undoMsg newTrack
 
                         NudgePreview points ->
+                            let
+                                newPreview = SceneBuilder.previewNudge points
+                            in
                             { model
-                                | nudgePreview =
-                                    SceneBuilder.previewNudge points
+                                | nudgePreview =newPreview
+                                , completeScene = newPreview ++ model.visibleMarkers ++ model.staticScene
                                 , nudgeSettings = newSetttings
                             }
                     , Cmd.none
@@ -305,6 +314,7 @@ trackHasChanged undoMsg newTrack oldModel =
     { pushedModel
         | staticScene = updatedScene
         , visibleMarkers = SceneBuilder.renderMarkers newTrack
+        , completeScene = oldModel.visibleMarkers ++ oldModel.nudgePreview ++ updatedScene
         , viewingContext =
             Maybe.map2 refreshSceneSearcher
                 pushedModel.viewingContext
@@ -325,6 +335,7 @@ trackIsRestored model =
     { model
         | staticScene = updatedScene
         , visibleMarkers = Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
+        , completeScene = model.visibleMarkers ++ model.nudgePreview ++ model.staticScene
         , viewingContext = Maybe.map2 refreshSceneSearcher model.viewingContext model.track
     }
 
@@ -360,10 +371,7 @@ view model =
                         ( Just context, Just isTrack ) ->
                             [ viewWebGLContext
                                 context
-                                (model.staticScene
-                                    ++ model.visibleMarkers
-                                    ++ model.nudgePreview
-                                )
+                                model.completeScene
                                 imageMessageWrapper
                             , column defaultColumnLayout
                                 [ markerButton isTrack markerMessageWrapper
@@ -442,7 +450,7 @@ toolsAccordion model =
     --  , state = Contracted
     --  , content = viewFilterControls model
     --  }
-    , { label = "The Lab"
+    , { label = "The Labyrinth"
       , state = Contracted
       , content =
             case ( model.viewingContext, model.track ) of

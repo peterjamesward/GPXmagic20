@@ -14,6 +14,7 @@ type AccordionState
     = Expanded
     | Contracted
     | Disabled
+    --| Pinned
 
 
 type alias AccordionEntry msg =

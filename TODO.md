@@ -5,29 +5,37 @@
 3. All trackpoint derivations in one pass. OK
 3. Simple rendering. OK
 4. Rendering with variable detail. OK
-5. Graph.
+5. Graph. OK (incomplete)
 
 > 6. Editing with graph
+> Indexing preserving. OK.
 > Position preserving (e.g. Delete, Insert)
 
-6. Multiple views. (Dynamically sized WebGL holes?) {Yes, just a list of them.}
-7. Bring all the edit stuff over.
+6. Multiple views. (Dynamically sized WebGL holes?) 
+   {Yes, just a list of them. Need to work out how to handle Profile, Map, Plan.}
+
 8. New controls layout. (Perhaps: single point | range | whole track)
-9. Map integration.
-9. OAuth integration.
+   Option to pin Accordion tab open; user decides how many, and which, to have open.
+   Popup explanatory text.
+7. Bring all the edit stuff over.
+9. Map integration. (leaves the nasty JS stuff to the end!)
+9. OAuth integration. (could we not use a popup to avoid losing state?)
 
-# TODOs
+# TODOs, being enhancements ...
 
-Consider allowing for more than one open GPX track. 
-For super advanced graph stitching.
+DSL for navigating the graph ("tulips" for directions?)
 
 New bend smoother - four point external centroid (convex only, not 'S').
 
-New bend smoother - replaces each point with circular arc, but with two variants:
+(Another) New bend smoother - replaces each point with circular arc, but with two variants:
 a: Arc2d (like current) - "constant slope" strategy
 b: Arc3d - "preserve gradients" strategy
 This will be good for autosmooth - insert enough points to bring transitions below user thresholds.
 (It will be better that GPXsmoother).
 
-Option to pin Accordion tab open; user decides how many, and which, to have open.
+Bend & Gradient problems to show distance not index.
+
+Consider allowing for more than one open GPX track.
+For super advanced graph stitching.
+
 
