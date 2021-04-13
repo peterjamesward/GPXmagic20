@@ -72,6 +72,7 @@ type Msg
 
 type GraphActionImpact
     = GraphChanged String
+    | GraphSettingsChanged
     | GraphNoAction
 
 type alias Traversal =
@@ -161,7 +162,8 @@ update msg trackPoints graph =
         CentreLineOffset offset ->
             case graph of
                 Just isGraph ->
-                    ( Just { isGraph | centreLineOffset = meters offset }, GraphNoAction )
+                    ( Just { isGraph | centreLineOffset = meters offset }
+                    , GraphSettingsChanged )
 
                 Nothing ->
                     ( Nothing, GraphNoAction )

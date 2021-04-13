@@ -235,6 +235,9 @@ update msg model =
                         GraphChanged undoMsg ->
                             model |> trackHasChanged undoMsg newTrack
 
+                        GraphSettingsChanged ->
+                            { model | track = Just newTrack }
+
                         _ ->
                             model
                     , Cmd.none
