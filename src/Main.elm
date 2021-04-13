@@ -116,12 +116,12 @@ update msg model =
             )
 
         Undo ->
-            ( model |> undo |> trackIsRestored
+            ( model |> undo |> repaintTrack
             , Cmd.none
             )
 
         Redo ->
-            ( model |> redo |> trackIsRestored
+            ( model |> redo |> repaintTrack
             , Cmd.none
             )
 
@@ -259,7 +259,9 @@ update msg model =
                     let
                         newTrack =
                             MarkerControls.update markerMsg isTrack
-                        updatedMarkers = SceneBuilder.renderMarkers newTrack
+
+                        updatedMarkers =
+                            SceneBuilder.renderMarkers newTrack
                     in
                     ( { model
                         | track = Just newTrack
@@ -287,10 +289,11 @@ update msg model =
 
                         NudgePreview points ->
                             let
-                                newPreview = SceneBuilder.previewNudge points
+                                newPreview =
+                                    SceneBuilder.previewNudge points
                             in
                             { model
-                                | nudgePreview =newPreview
+                                | nudgePreview = newPreview
                                 , completeScene = newPreview ++ model.visibleMarkers ++ model.staticScene
                                 , nudgeSettings = newSetttings
                             }
@@ -303,30 +306,14 @@ update msg model =
 
 trackHasChanged : String -> Track -> Model -> Model
 trackHasChanged undoMsg newTrack oldModel =
-    let
-        updatedScene =
-            Maybe.map2
-                SceneBuilder.renderTrack
-                pushedModel.renderingContext
-                (Just newTrack)
-                |> Maybe.withDefault []
-
-        pushedModel =
-            addToUndoStack undoMsg (Just newTrack) oldModel
-    in
-    { pushedModel
-        | staticScene = updatedScene
-        , visibleMarkers = SceneBuilder.renderMarkers newTrack
-        , completeScene = oldModel.visibleMarkers ++ oldModel.nudgePreview ++ updatedScene
-        , viewingContext =
-            Maybe.map2 refreshSceneSearcher
-                pushedModel.viewingContext
-                (Just newTrack)
-    }
+    oldModel
+        |> addToUndoStack undoMsg
+        |> (\m -> { m | track = Just newTrack })
+        |> repaintTrack
 
 
-trackIsRestored : Model -> Model
-trackIsRestored model =
+repaintTrack : Model -> Model
+repaintTrack model =
     let
         updatedScene =
             Maybe.map2
@@ -334,11 +321,14 @@ trackIsRestored model =
                 model.renderingContext
                 model.track
                 |> Maybe.withDefault []
+
+        updatedMarkers =
+            Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
     in
     { model
         | staticScene = updatedScene
-        , visibleMarkers = Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
-        , completeScene = model.visibleMarkers ++ model.nudgePreview ++ model.staticScene
+        , visibleMarkers = updatedMarkers
+        , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
         , viewingContext = Maybe.map2 refreshSceneSearcher model.viewingContext model.track
     }
 
@@ -478,13 +468,11 @@ type alias UndoEntry =
 
 addToUndoStack :
     String
-    -> Maybe Track
     -> Model
     -> Model
-addToUndoStack label track model =
+addToUndoStack label model =
     { model
-        | track = track
-        , undoStack =
+        | undoStack =
             { label = label
             , track = model.track
             }

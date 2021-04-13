@@ -7,6 +7,9 @@
 4. Rendering with variable detail. OK
 5. Graph. OK (incomplete)
 
+BUG: Undo|Redo not repainting.
+IDEA: Dict for additional (all) Scene component lists. (Good idea.)
+
 > 6. Editing with graph
 > Indexing preserving. OK.
 > Position preserving (e.g. Delete, Insert)
@@ -22,6 +25,8 @@
 9. OAuth integration. (could we not use a popup to avoid losing state?)
 
 # TODOs, being enhancements ...
+
+Simple: Auto remove sharp "folds" in loaded track.
 
 DSL for navigating the graph ("tulips" for directions?)
 
