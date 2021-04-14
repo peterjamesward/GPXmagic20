@@ -16,11 +16,12 @@ import Html.Events as HE
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import Html.Events.Extra.Wheel as Wheel
 import Json.Decode as D
-import Length exposing (Length, Meters, meters)
+import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point2d
 import Point3d exposing (Point3d)
+import Quantity exposing (Quantity)
 import Rectangle2d
 import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
@@ -118,12 +119,12 @@ type alias ViewingContext =
     -- The information we need to paint a scene on the screen.
     { azimuth : Angle -- Orbiting angle of the camera around the focal point
     , elevation : Angle -- Angle of the camera up from the XY plane
-    , distance : Length
+    , distance : Quantity Float Length.Meters
     , orbiting : Maybe ( Float, Float )
     , zoomLevel : Float
     , focalPoint : Point3d Length.Meters LocalCoords
     , clickedPoint : Maybe TrackPoint
-    , sceneSearcher : Axis3d Meters LocalCoords -> Maybe TrackPoint
+    , sceneSearcher : Axis3d Length.Meters LocalCoords -> Maybe TrackPoint
     , mouseDownTime : Time.Posix
     }
 
@@ -144,7 +145,7 @@ defaultViewingContext =
 
 initialiseView :
     List TrackPoint
-    -> (Axis3d Meters LocalCoords -> Maybe TrackPoint)
+    -> (Axis3d Length.Meters LocalCoords -> Maybe TrackPoint)
     -> ViewingContext
 initialiseView track searcher =
     -- This is just a simple default so we can see something!
@@ -186,7 +187,7 @@ viewWebGLContext context scene wrapper =
         ]
 
 
-deriveViewPointAndCamera : ViewingContext -> Camera3d Meters LocalCoords
+deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
 deriveViewPointAndCamera view =
     let
         viewpoint =
