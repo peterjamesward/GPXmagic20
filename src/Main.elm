@@ -3,6 +3,7 @@ module Main exposing (main)
 import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, accordionView)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import DeletePoints exposing (Action(..), viewDeleteTools)
 import Element as E exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
@@ -33,6 +34,7 @@ type Msg
     | Tick Time.Posix
     | Undo
     | Redo
+    | DeleteMessage DeletePoints.Msg
 
 
 imageMessageWrapper : ImageMsg -> Msg
@@ -53,6 +55,11 @@ graphMessageWrapper m =
 nudgeMessageWrapper : Nudge.NudgeMsg -> Msg
 nudgeMessageWrapper m =
     NudgeMessage m
+
+
+deleteMessageWrapper : DeletePoints.Msg -> Msg
+deleteMessageWrapper m =
+    DeleteMessage m
 
 
 main : Program Int Model Msg
@@ -303,13 +310,36 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        DeleteMessage deleteMsg ->
+            case model.track of
+                Just isTrack ->
+                    let
+                        ( newTrack, action ) =
+                            DeletePoints.update deleteMsg isTrack
+                    in
+                    ( case action of
+                        DeleteTrackChanged undoMsg ->
+                            model |> trackHasChanged undoMsg newTrack
+
+                        _ ->
+                            model
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
 
 trackHasChanged : String -> Track -> Model -> Model
 trackHasChanged undoMsg newTrack oldModel =
-    oldModel
-        |> addToUndoStack undoMsg
-        |> (\m -> { m | track = Just newTrack })
-        |> repaintTrack
+    let
+        pushUndoStack =
+            oldModel |> addToUndoStack undoMsg
+
+        withNewTrack =
+            { pushUndoStack | track = Just newTrack }
+    in
+    repaintTrack withNewTrack
 
 
 repaintTrack : Model -> Model
@@ -427,10 +457,11 @@ toolsAccordion model =
     --  , state = Contracted
     --  , content = viewStraightenTools model
     --  }
-    --, { label = "Trackpoints"
-    --  , state = Contracted
-    --  , content = viewTrackPointTools model
-    --  }
+    , { label = "Delete"
+      , state = Contracted
+      , content = viewDeleteTools model.track deleteMessageWrapper
+      }
+
     --, { label = "Fly-through"
     --  , state = Contracted
     --  , content = flythroughControls model

@@ -75,6 +75,7 @@ type GraphActionImpact
     | GraphSettingsChanged
     | GraphNoAction
 
+
 type alias Traversal =
     { edge : EdgeKey -- Canonical index of edge
     , direction : Direction
@@ -163,7 +164,8 @@ update msg trackPoints graph =
             case graph of
                 Just isGraph ->
                     ( Just { isGraph | centreLineOffset = meters offset }
-                    , GraphSettingsChanged )
+                    , GraphSettingsChanged
+                    )
 
                 Nothing ->
                     ( Nothing, GraphNoAction )
@@ -749,3 +751,64 @@ applyIndexPreservingEditsToGraph ( editStart, editEnd ) newTrackPoints graph =
             )
     in
     { graph | nodes = updatedNodes, edges = updatedEdges }
+
+
+applyNodePreservingEditsToGraph : ( Int, Int ) -> List TrackPoint -> Graph -> Graph
+applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
+    let
+        routeInfoPairs =
+            List.zip graph.nodePairsInRoute graph.route
+
+        edgeContainingingRange =
+            -- Our rules state there must be only one edge for this type of edit.
+            routeInfoPairs
+                |> List.find
+                    (\( ( edgeStart, edgeEnd ), _ ) ->
+                        editStart
+                            >= edgeStart
+                            && editStart
+                            <= edgeEnd
+                            && editEnd
+                            >= edgeStart
+                            && editEnd
+                            <= edgeEnd
+                    )
+    in
+    case edgeContainingingRange of
+        Just ( ( edgeStart, edgeEnd ), { edge, direction } ) ->
+            -- We now have to find the extent of the new edge by finding the next Node.
+            -- We know only where the edit ends; there could be more point beyond it.
+            let
+                ( regionBeforeEditEnd, regionAfterEditEnd ) =
+                    List.splitAt editEnd newPoints
+
+                ( startXY, endXY, _ ) =
+                    edge
+
+                isNotNode  point =
+                    trackPointComparable point /= startXY
+                    && trackPointComparable point /= endXY
+
+                leadingPartOfNewEdge =
+                    regionBeforeEditEnd |> List.takeWhileRight isNotNode
+
+                trailingPartOfNewEdge =
+                    regionAfterEditEnd |> List.takeWhile isNotNode
+
+                resultingNewEdgePoints =
+                    leadingPartOfNewEdge ++ trailingPartOfNewEdge
+
+                orientedEdge =
+                    if direction == Forwards then
+                        resultingNewEdgePoints
+
+                    else
+                        List.reverse resultingNewEdgePoints
+
+                newEdgeDict =
+                    graph.edges |> Dict.insert edge orientedEdge
+            in
+            { graph | edges = newEdgeDict }
+
+        Nothing ->
+            graph

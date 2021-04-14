@@ -34,6 +34,7 @@
             "ianmackenzie/elm-units-interval": "2.1.0",
             "mdgriffith/elm-ui": "1.1.8",
             "mpizenberg/elm-pointer-events": "4.0.2",
+            "simonh1000/elm-colorpicker": "2.0.2",
             "smucode/elm-flat-colors": "1.0.0"
         },
         "indirect": {

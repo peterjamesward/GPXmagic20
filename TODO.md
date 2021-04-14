@@ -7,8 +7,8 @@
 4. Rendering with variable detail. OK
 5. Graph. OK (incomplete)
 
-BUG: Undo|Redo not repainting.
-IDEA: Dict for additional (all) Scene component lists. (Good idea.)
+> IDEA: Dict for additional (all) Scene component lists. (Good idea.) fold it down the accordion.
+> (colour picker for each tab with preview)
 
 > 6. Editing with graph
 > Indexing preserving. OK.
@@ -17,7 +17,7 @@ IDEA: Dict for additional (all) Scene component lists. (Good idea.)
 6. Multiple views. (Dynamically sized WebGL holes?) 
    {Yes, just a list of them. Need to work out how to handle Profile, Map, Plan.}
 
-8. New controls layout. (Perhaps: single point | range | whole track)
+8. New controls layout? No - folk will complain.
    Option to pin Accordion tab open; user decides how many, and which, to have open.
    Popup explanatory text.
 7. Bring all the edit stuff over.
@@ -26,11 +26,15 @@ IDEA: Dict for additional (all) Scene component lists. (Good idea.)
 
 # TODOs, being enhancements ...
 
+? Zoom + | - overlay on view instead of scroll bar (as per Map).
+
 Simple: Auto remove sharp "folds" in loaded track.
 
 DSL for navigating the graph ("tulips" for directions?)
 
-New bend smoother - four point external centroid (convex only, not 'S').
+Working offline.
+
+New bend smoother filter - four point external centroid (convex only, not 'S').
 
 (Another) New bend smoother - replaces each point with circular arc, but with two variants:
 a: Arc2d (like current) - "constant slope" strategy
@@ -40,7 +44,9 @@ This will be good for autosmooth - insert enough points to bring transitions bel
 
 Bend & Gradient problems to show distance not index.
 
+Option to limit gradients (range or whole track), retaining elevation of marked points.
+
 Consider allowing for more than one open GPX track.
-For super advanced graph stitching.
+(For super advanced graph stitching.)
 
 
