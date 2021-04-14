@@ -21,6 +21,7 @@ import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import Utils exposing (useIcon)
 
 
 view3dHeight =
@@ -72,10 +73,6 @@ withMouseCapture  wrap =
 
 
 zoomButtons wrap  =
-    let
-        useIcon =
-            html << FeatherIcons.toHtml [] << FeatherIcons.withSize 30
-    in
     column
         [ alignTop
         , moveDown 30

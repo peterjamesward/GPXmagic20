@@ -1,6 +1,8 @@
 module Utils exposing (..)
 
 import Color
+import Element exposing (html)
+import FeatherIcons
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
@@ -151,3 +153,7 @@ httpErrorString error =
 
         Http.Timeout ->
             "Request timeout"
+
+
+useIcon =
+    html << FeatherIcons.toHtml [] << FeatherIcons.withSize 30

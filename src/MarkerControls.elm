@@ -10,7 +10,7 @@ import FeatherIcons
 import Length
 import List.Extra
 import Track exposing (Track)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal2, useIcon)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
 
@@ -23,14 +23,6 @@ type MarkerControlsMsg
 markerButton : Track -> (MarkerControlsMsg -> msg) -> Element msg
 markerButton model messageWrapper =
     let
-        forward =
-            FeatherIcons.skipForward
-                |> FeatherIcons.toHtml []
-
-        back =
-            FeatherIcons.skipBack
-                |> FeatherIcons.toHtml []
-
         makeButton label =
             button
                 prettyButtonStyles
@@ -46,13 +38,13 @@ markerButton model messageWrapper =
                     [ button
                         prettyButtonStyles
                         { onPress = Just <| messageWrapper MarkerBackOne
-                        , label = html back
+                        , label = useIcon FeatherIcons.skipBack
                         }
                     , makeButton "Clear marker"
                     , button
                         prettyButtonStyles
                         { onPress = Just <| messageWrapper MarkerForwardOne
-                        , label = html forward
+                        , label = useIcon FeatherIcons.skipForward
                         }
                     ]
                 , el [ centerX, centerY ] <|
