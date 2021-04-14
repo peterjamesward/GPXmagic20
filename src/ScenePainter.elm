@@ -4,8 +4,13 @@ import Angle exposing (Angle, inDegrees)
 import Axis3d exposing (Axis3d)
 import Camera3d exposing (Camera3d)
 import Color
+import ColourPalette exposing (white)
 import Direction3d exposing (negativeZ, positiveZ)
-import Element exposing (Attribute, Element, el, fill, html, htmlAttribute, none, pointer, width)
+import Element exposing (..)
+import Element.Background as Background
+import Element.Font as Font
+import Element.Input exposing (button)
+import FeatherIcons
 import Html.Attributes exposing (style)
 import Html.Events as HE
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
@@ -21,6 +26,7 @@ import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
 import Time
 import TrackPoint exposing (TrackPoint)
+import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout)
 import Viewpoint3d exposing (Viewpoint3d)
 
 
@@ -40,6 +46,8 @@ type ImageMsg
     | ImageNoOpMsg
     | ImageClick Mouse.Event
     | ImageDoubleClick Mouse.Event
+    | ImageZoomIn
+    | ImageZoomOut
 
 
 type
@@ -65,6 +73,33 @@ withMouseCapture wrap =
     , width fill
     , pointer
     ]
+
+
+zoomButtons wrap =
+    let
+        useIcon =
+            html << FeatherIcons.toHtml [] << FeatherIcons.withSize 30
+    in
+    column
+        [ alignTop
+        , moveDown 30
+        , moveLeft 80
+        , Background.color white
+        , Font.size 40
+        , padding 10
+        , spacing 20
+        ]
+        [ button
+            []
+            { onPress = Just <| wrap ImageZoomIn
+            , label = useIcon FeatherIcons.zoomIn
+            }
+        , button
+            []
+            { onPress = Just <| wrap ImageZoomOut
+            , label = useIcon FeatherIcons.zoomOut
+            }
+        ]
 
 
 onContextMenu : a -> Element.Attribute a
@@ -95,25 +130,12 @@ type alias ViewingContext =
 
 defaultViewingContext : ViewingContext
 defaultViewingContext =
-    let
-        azimuth =
-            Angle.degrees -90.0
-
-        elevation =
-            Angle.degrees 40.0
-
-        distance =
-            Length.meters 100.0
-
-        focalPoint =
-            Point3d.origin
-    in
-    { azimuth = azimuth
-    , elevation = elevation
-    , distance = distance
+    { azimuth = Angle.degrees -90.0
+    , elevation = Angle.degrees 40.0
+    , distance = Length.meters 100.0
     , orbiting = Nothing
     , zoomLevel = 12.0
-    , focalPoint = focalPoint
+    , focalPoint = Point3d.origin
     , clickedPoint = Nothing
     , sceneSearcher = always Nothing
     , mouseDownTime = Time.millisToPosix 0
@@ -145,20 +167,23 @@ viewWebGLContext :
     -> (ImageMsg -> msg)
     -> Element msg
 viewWebGLContext context scene wrapper =
-    el
-        (withMouseCapture wrapper)
-    <|
-        html <|
-            Scene3d.sunny
-                { camera = deriveViewPointAndCamera context
-                , dimensions = ( Pixels.pixels view3dWidth, Pixels.pixels view3dHeight )
-                , background = backgroundColor Color.lightBlue
-                , clipDepth = Length.meters 1
-                , entities = scene
-                , upDirection = positiveZ
-                , sunlightDirection = negativeZ
-                , shadows = False
-                }
+    row defaultRowLayout
+        [ el
+            (withMouseCapture wrapper)
+          <|
+            html <|
+                Scene3d.sunny
+                    { camera = deriveViewPointAndCamera context
+                    , dimensions = ( Pixels.pixels view3dWidth, Pixels.pixels view3dHeight )
+                    , background = backgroundColor Color.lightBlue
+                    , clipDepth = Length.meters 1
+                    , entities = scene
+                    , upDirection = positiveZ
+                    , sunlightDirection = negativeZ
+                    , shadows = False
+                    }
+        , zoomButtons wrapper
+        ]
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Meters LocalCoords
@@ -255,6 +280,12 @@ update msg view now =
 
         ImageNoOpMsg ->
             ( view, ImageOnly )
+
+        ImageZoomIn ->
+            ( { view | zoomLevel = view.zoomLevel + 0.5 }, ImageOnly )
+
+        ImageZoomOut ->
+            ( { view | zoomLevel = view.zoomLevel - 0.5 }, ImageOnly )
 
 
 detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint

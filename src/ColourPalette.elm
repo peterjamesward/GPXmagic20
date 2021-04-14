@@ -44,6 +44,8 @@ expandedTabShadow =
 expandedTabBackground =
     nephritis
 
+pinnedTabBackground =
+    sunFlower
 
 accordionContentBackground =
     clouds

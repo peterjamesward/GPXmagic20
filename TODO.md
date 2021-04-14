@@ -6,19 +6,18 @@
 3. Simple rendering. OK
 4. Rendering with variable detail. OK
 5. Graph. OK (incomplete)
+6. Editing with graph
+Indexing preserving. OK.
+Position preserving. OK. 
 
-> IDEA: Dict for additional (all) Scene component lists. (Good idea.) fold it down the accordion.
-> (colour picker for each tab with preview)
-
-> 6. Editing with graph
-> Indexing preserving. OK.
-> Position preserving (e.g. Delete, Insert)
-
-6. Multiple views. (Dynamically sized WebGL holes?) 
-   {Yes, just a list of them. Need to work out how to handle Profile, Map, Plan.}
+> 7. Multiple viewports and views.
+> Profile
+> Plan
+> First person
 
 8. New controls layout? No - folk will complain.
    Option to pin Accordion tab open; user decides how many, and which, to have open.
+   -- Not as easy as I thought, as accordion designed to have ONE tab open.
    Popup explanatory text.
 7. Bring all the edit stuff over.
 9. Map integration. (leaves the nasty JS stuff to the end!)
