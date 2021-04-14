@@ -3,6 +3,7 @@ module View3dDispatcher exposing (..)
 import Element exposing (Element, none, text)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, ViewingContext, ViewingMode(..))
+import ScenePainterPlan
 import ScenePainterThird
 
 
@@ -13,6 +14,9 @@ viewScene context scene wrapper =
             case context.viewingMode of
                 ThirdPerson ->
                     ScenePainterThird.viewScene
+
+                Plan ->
+                    ScenePainterPlan.viewScene
 
                 _ ->
                     fallbackScenePainter

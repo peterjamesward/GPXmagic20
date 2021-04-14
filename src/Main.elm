@@ -16,6 +16,7 @@ import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), ViewingContext, ViewingContextId)
+import ScenePainterPlan
 import ScenePainterThird exposing (initialiseView)
 import View3dDispatcher exposing (viewScene)
 import Task
@@ -170,7 +171,7 @@ update msg model =
                                         (trackPointNearestRay isTrack)
                                     )
                                 |> Dict.insert 2
-                                    (ScenePainterThird.initialiseView
+                                    (ScenePainterPlan.initialiseView
                                         isTrack.track
                                         (trackPointNearestRay isTrack)
                                     )

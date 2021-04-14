@@ -32,21 +32,22 @@ view3dHeight =
 view3dWidth =
     1000
 
-type alias ViewingContextId = Int
+
+type alias ViewingContextId =
+    Int
 
 
 type ImageMsg
-    = ImageMouseWheel  Float
-    | ImageGrab  Mouse.Event
-    | ImageDrag  Mouse.Event
-    | ImageRelease  Mouse.Event
+    = ImageMouseWheel Float
+    | ImageGrab Mouse.Event
+    | ImageDrag Mouse.Event
+    | ImageRelease Mouse.Event
     | ImageNoOpMsg
-    | ImageClick  Mouse.Event
-    | ImageDoubleClick  Mouse.Event
+    | ImageClick Mouse.Event
+    | ImageDoubleClick Mouse.Event
     | ImageZoomIn
     | ImageZoomOut
     | ImageReset
-
 
 
 type
@@ -60,21 +61,21 @@ type
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
-withMouseCapture  wrap =
-    [ htmlAttribute <| Mouse.onDown (ImageGrab  >> wrap)
-    , htmlAttribute <| Mouse.onMove (ImageDrag  >> wrap)
-    , htmlAttribute <| Mouse.onUp (ImageRelease  >> wrap)
-    , htmlAttribute <| Mouse.onClick (ImageClick  >> wrap)
-    , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick  >> wrap)
-    , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel  event.deltaY))
+withMouseCapture wrap =
+    [ htmlAttribute <| Mouse.onDown (ImageGrab >> wrap)
+    , htmlAttribute <| Mouse.onMove (ImageDrag >> wrap)
+    , htmlAttribute <| Mouse.onUp (ImageRelease >> wrap)
+    , htmlAttribute <| Mouse.onClick (ImageClick >> wrap)
+    , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick >> wrap)
+    , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel event.deltaY))
     , htmlAttribute <| style "touch-action" "none"
-    , onContextMenu (wrap <| ImageNoOpMsg )
+    , onContextMenu (wrap <| ImageNoOpMsg)
     , width fill
     , pointer
     ]
 
 
-zoomButtons wrap  =
+zoomButtons wrap =
     column
         [ alignTop
         , moveDown 30
@@ -121,6 +122,7 @@ type ViewingMode
     | Plan
     | Map
 
+
 type alias ViewingContext =
     -- The information we need to paint a scene on the screen.
     { azimuth : Angle -- Orbiting angle of the camera around the focal point
@@ -137,7 +139,7 @@ type alias ViewingContext =
     }
 
 
-zoomLevelFromBoundingBox : List TrackPoint -> (Float, Point3d Length.Meters LocalCoords)
+zoomLevelFromBoundingBox : List TrackPoint -> ( Float, Point3d Length.Meters LocalCoords )
 zoomLevelFromBoundingBox points =
     let
         box =
@@ -147,9 +149,11 @@ zoomLevelFromBoundingBox points =
         ( width, height, _ ) =
             BoundingBox3d.dimensions box
 
-        _ = Debug.log "size"  ( width, height )
+        _ =
+            Debug.log "size" ( width, height )
 
-        (_, medianLatitude, _ ) = pointInEarthCoordinates <| BoundingBox3d.centerPoint box
+        ( _, medianLatitude, _ ) =
+            pointInEarthCoordinates <| BoundingBox3d.centerPoint box
 
         horizontalMetresPerPixel =
             inMeters width / view3dWidth
@@ -163,5 +167,4 @@ zoomLevelFromBoundingBox points =
         zoom =
             logBase 2 (cos (degrees medianLatitude) * metresPerPixelAtEquatorZoomZero / desiredMetresPerPixel)
     in
-    (clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box)
-
+    ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )
