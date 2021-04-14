@@ -14,7 +14,8 @@ import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
-import ScenePainter exposing (ImageMsg, PostUpdateAction(..), ViewingContext, defaultViewingContext, initialiseView, viewWebGLContext)
+import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), ViewingContext)
+import ScenePainterThird exposing (defaultViewingContext, initialiseView, viewWebGLContext)
 import Task
 import Time
 import Track exposing (Track, trackPointNearestRay)
@@ -182,7 +183,7 @@ update msg model =
                 ( newContext, postUpdateAction ) =
                     case model.viewingContext of
                         Just context ->
-                            ScenePainter.update innerMsg context model.time
+                            ScenePainterThird.update innerMsg context model.time
 
                         Nothing ->
                             ( defaultViewingContext, NoContext )

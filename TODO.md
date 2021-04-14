@@ -1,5 +1,7 @@
 # PLAN
 
+!! Beware bounding box on tracks near the international date line !!
+
 1. Basic structures and operations. Keep it simple. OK
 2. Populate and test. (Parse GPX.) OK
 3. All trackpoint derivations in one pass. OK

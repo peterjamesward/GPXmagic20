@@ -5,6 +5,7 @@ import Area
 import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
 import Direction3d exposing (Direction3d)
+import EarthConstants exposing (metresPerDegree)
 import Length exposing (Meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -30,11 +31,6 @@ type alias TrackPoint =
     }
 
 
-metresPerDegree =
-    -- a degree of longitude at the equator ...
-    78846.81
-
-
 trackPointFromGPX : Float -> Float -> Float -> TrackPoint
 trackPointFromGPX lon lat ele =
     let
@@ -56,6 +52,21 @@ trackPointFromGPX lon lat ele =
     , directionChange = Nothing
     , gradientChange = Nothing
     }
+
+
+pointInEarthCoordinates : Point3d Length.Meters LocalCoords -> ( Float, Float, Float )
+pointInEarthCoordinates point =
+    let
+        ( x, y, elevation ) =
+            Point3d.toTuple Length.inMeters point
+
+        latitude =
+            y / metresPerDegree
+
+        longitude =
+            x / metresPerDegree / cos (degrees latitude)
+    in
+    ( longitude, latitude, elevation )
 
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint
@@ -86,8 +97,12 @@ prepareTrackPoints trackPoints =
                 [ previous, penultimate, last ] ->
                     -- We can wrap things up now
                     let
-                        beforeDirection = (trackPointBearing previous penultimate)
-                        afterDirection = (trackPointBearing penultimate last)
+                        beforeDirection =
+                            trackPointBearing previous penultimate
+
+                        afterDirection =
+                            trackPointBearing penultimate last
+
                         penultimateSpan =
                             Point3d.distanceFrom previous.xyz penultimate.xyz
 
@@ -98,8 +113,8 @@ prepareTrackPoints trackPoints =
                                 , afterDirection = afterDirection
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
-                                        beforeDirection afterDirection
-
+                                        beforeDirection
+                                        afterDirection
                                 , costMetric =
                                     Area.inSquareMeters <|
                                         Triangle3d.area <|
@@ -127,8 +142,12 @@ prepareTrackPoints trackPoints =
 
                 previous :: point :: next :: rest ->
                     let
-                        beforeDirection = (trackPointBearing previous point)
-                        afterDirection = (trackPointBearing point next)
+                        beforeDirection =
+                            trackPointBearing previous point
+
+                        afterDirection =
+                            trackPointBearing point next
+
                         span =
                             Point3d.distanceFrom previous.xyz point.xyz
 
@@ -185,5 +204,3 @@ meanBearing direction1 direction2 =
             turnAngle |> Angle.inRadians |> (*) 0.5 |> Angle.radians
     in
     Direction3d.rotateAround Axis3d.z halfAngle direction1
-
-
