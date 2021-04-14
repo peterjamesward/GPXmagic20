@@ -4,6 +4,7 @@ import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, 
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import DeletePoints exposing (Action(..), viewDeleteTools)
+import Dict exposing (Dict)
 import Element as E exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
@@ -14,8 +15,8 @@ import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), ViewingContext)
-import ScenePainterThird exposing (defaultViewingContext, initialiseView, viewWebGLContext)
+import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), ViewingContext, ViewingContextId)
+import ScenePainterThird exposing (initialiseView, viewWebGLContext)
 import Task
 import Time
 import Track exposing (Track, trackPointNearestRay)
@@ -27,7 +28,7 @@ type Msg
     = GpxRequested
     | GpxSelected File
     | GpxLoaded String
-    | ImageMessage ImageMsg
+    | ImageMessage ViewingContextId ImageMsg
     | GraphMessage Graph.Msg
     | AccordionMessage (AccordionEntry Msg)
     | MarkerMessage MarkerControls.MarkerControlsMsg
@@ -38,9 +39,9 @@ type Msg
     | DeleteMessage DeletePoints.Msg
 
 
-imageMessageWrapper : ImageMsg -> Msg
-imageMessageWrapper m =
-    ImageMessage m
+imageMessageWrapper : Int -> ImageMsg -> Msg
+imageMessageWrapper contextId m =
+    ImageMessage contextId m
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -82,7 +83,7 @@ type alias Model =
     , nudgePreview : Scene
     , completeScene : Scene
     , renderingContext : Maybe RenderingContext
-    , viewingContext : Maybe ViewingContext
+    , viewingContexts : Dict Int ViewingContext
     , track : Maybe Track
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
@@ -103,7 +104,7 @@ init mflags =
       , nudgePreview = []
       , completeScene = []
       , renderingContext = Nothing
-      , viewingContext = Nothing
+      , viewingContexts = Dict.empty
       , toolsAccordion = []
       , nudgeSettings = defaultNudgeSettings
       , undoStack = []
@@ -158,19 +159,23 @@ update msg model =
                 markers =
                     Maybe.map SceneBuilder.renderMarkers track |> Maybe.withDefault []
 
-                viewingContext =
+                newViewContexts =
                     case track of
                         Just isTrack ->
-                            Just <| initialiseView isTrack.track (trackPointNearestRay isTrack)
+                            model.viewingContexts
+                                |> Dict.insert 1
+                                    (initialiseView isTrack.track (trackPointNearestRay isTrack))
+                                |> Dict.insert 2
+                                    (initialiseView isTrack.track (trackPointNearestRay isTrack))
 
                         Nothing ->
-                            Nothing
+                            model.viewingContexts
             in
             ( { model
                 | track = track
                 , staticScene = scene
                 , visibleMarkers = markers
-                , viewingContext = viewingContext
+                , viewingContexts = newViewContexts
                 , completeScene = markers ++ scene
                 , renderingContext = Just defaultRenderingContext
                 , toolsAccordion = toolsAccordion model
@@ -178,49 +183,56 @@ update msg model =
             , Cmd.none
             )
 
-        ImageMessage innerMsg ->
-            let
-                ( newContext, postUpdateAction ) =
-                    case model.viewingContext of
-                        Just context ->
-                            ScenePainterThird.update innerMsg context model.time
+        ImageMessage contextId innerMsg ->
+            case ( model.track, Dict.get contextId model.viewingContexts ) of
+                ( _, Nothing ) ->
+                    ( model, Cmd.none )
 
-                        Nothing ->
-                            ( defaultViewingContext, NoContext )
-            in
-            ( case ( model.track, postUpdateAction ) of
-                ( _, ImageOnly ) ->
-                    { model | viewingContext = Just newContext }
+                ( Nothing, Just _ ) ->
+                    ( model, Cmd.none )
 
-                ( Just isTrack, PointerMove tp ) ->
+                ( Just isTrack, Just context ) ->
                     let
-                        updatedTrack =
-                            { isTrack | currentNode = tp }
-
-                        updatedScene =
-                            -- Moving markers may affect detail level.
-                            -- TODO: rebuild only if needed.
-                            Maybe.map2
-                                SceneBuilder.renderTrack
-                                model.renderingContext
-                                (Just updatedTrack)
-                                |> Maybe.withDefault []
-
-                        updatedMarkers =
-                            SceneBuilder.renderMarkers updatedTrack
+                        ( newContext, postUpdateAction ) =
+                            ScenePainterThird.update innerMsg context model.time
                     in
-                    { model
-                        | viewingContext = Just newContext
-                        , track = Just updatedTrack
-                        , staticScene = updatedScene
-                        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-                        , visibleMarkers = updatedMarkers
-                    }
+                    ( case postUpdateAction of
+                        ImageOnly ->
+                            { model
+                                | viewingContexts =
+                                    Dict.insert contextId newContext model.viewingContexts
+                            }
 
-                _ ->
-                    model
-            , Cmd.none
-            )
+                        PointerMove tp ->
+                            let
+                                updatedTrack =
+                                    { isTrack | currentNode = tp }
+
+                                updatedScene =
+                                    -- Moving markers may affect detail level.
+                                    -- TODO: rebuild only if needed.
+                                    Maybe.map2
+                                        SceneBuilder.renderTrack
+                                        model.renderingContext
+                                        (Just updatedTrack)
+                                        |> Maybe.withDefault []
+
+                                updatedMarkers =
+                                    SceneBuilder.renderMarkers updatedTrack
+                            in
+                            { model
+                                | viewingContexts =
+                                    Dict.insert contextId newContext model.viewingContexts
+                                , track = Just updatedTrack
+                                , staticScene = updatedScene
+                                , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
+                                , visibleMarkers = updatedMarkers
+                            }
+
+                        _ ->
+                            model
+                    , Cmd.none
+                    )
 
         GraphMessage innerMsg ->
             case model.track of
@@ -356,16 +368,24 @@ repaintTrack model =
         updatedMarkers =
             Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
     in
-    { model
-        | staticScene = updatedScene
-        , visibleMarkers = updatedMarkers
-        , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
-        , viewingContext = Maybe.map2 refreshSceneSearcher model.viewingContext model.track
-    }
+    case model.track of
+        Just isTrack ->
+            { model
+                | staticScene = updatedScene
+                , visibleMarkers = updatedMarkers
+                , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
+                , viewingContexts =
+                    model.viewingContexts
+                        |> Dict.map
+                            (\_ v -> refreshSceneSearcher isTrack v)
+            }
+
+        Nothing ->
+            model
 
 
-refreshSceneSearcher : ViewingContext -> Track -> ViewingContext
-refreshSceneSearcher context track =
+refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
+refreshSceneSearcher track context =
     { context | sceneSearcher = trackPointNearestRay track }
 
 
@@ -391,12 +411,9 @@ view model =
                         }
                     ]
                 , row defaultRowLayout <|
-                    case ( model.viewingContext, model.track ) of
+                    case ( Dict.get 1 model.viewingContexts, model.track ) of
                         ( Just context, Just isTrack ) ->
-                            [ viewWebGLContext
-                                context
-                                model.completeScene
-                                imageMessageWrapper
+                            [ viewAllViews model.viewingContexts model.completeScene
                             , column defaultColumnLayout
                                 [ markerButton isTrack markerMessageWrapper
                                 , undoRedoButtons model
@@ -411,6 +428,17 @@ view model =
                 ]
         ]
     }
+
+
+viewAllViews : Dict Int ViewingContext -> Scene -> Element Msg
+viewAllViews dict scene =
+    column defaultColumnLayout <|
+        Dict.values <|
+            Dict.map
+                (\k v ->
+                    viewWebGLContext v scene (imageMessageWrapper k)
+                )
+                dict
 
 
 updatedAccordion model currentAccordion referenceAccordion =
@@ -478,12 +506,11 @@ toolsAccordion model =
     , { label = "The Labyrinth"
       , state = Contracted
       , content =
-            case ( model.viewingContext, model.track ) of
-                ( Just context, Just isTrack ) ->
-                    viewGraphControls isTrack.graph graphMessageWrapper
-
-                _ ->
-                    none
+            model.track
+                |> Maybe.map .graph
+                |> Maybe.andThen
+                    (Just << viewGraphControls graphMessageWrapper)
+                |> Maybe.withDefault none
       }
     ]
 

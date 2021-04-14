@@ -86,13 +86,14 @@ type alias Route =
     { route : List Traversal }
 
 
-viewGraphControls : Maybe Graph -> (Msg -> msg) -> Element msg
-viewGraphControls graph wrapper =
+viewGraphControls : (Msg -> msg) -> Maybe Graph -> Element msg
+viewGraphControls wrapper graph =
     let
         offset =
-            Maybe.map .centreLineOffset graph
-                |> Maybe.withDefault Quantity.zero
-                |> Length.inMeters
+            Maybe.map
+                (.centreLineOffset >> Length.inMeters)
+                graph
+                |> Maybe.withDefault 0.0
 
         analyseButton =
             I.button prettyButtonStyles
@@ -785,9 +786,11 @@ applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
                 ( startXY, endXY, _ ) =
                     edge
 
-                isNotNode  point =
-                    trackPointComparable point /= startXY
-                    && trackPointComparable point /= endXY
+                isNotNode point =
+                    trackPointComparable point
+                        /= startXY
+                        && trackPointComparable point
+                        /= endXY
 
                 leadingPartOfNewEdge =
                     regionBeforeEditEnd |> List.takeWhileRight isNotNode

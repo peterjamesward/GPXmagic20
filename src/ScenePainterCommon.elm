@@ -30,15 +30,17 @@ view3dHeight =
 view3dWidth =
     1000
 
+type alias ViewingContextId = Int
+
 
 type ImageMsg
-    = ImageMouseWheel Float
-    | ImageGrab Mouse.Event
-    | ImageDrag Mouse.Event
-    | ImageRelease Mouse.Event
+    = ImageMouseWheel  Float
+    | ImageGrab  Mouse.Event
+    | ImageDrag  Mouse.Event
+    | ImageRelease  Mouse.Event
     | ImageNoOpMsg
-    | ImageClick Mouse.Event
-    | ImageDoubleClick Mouse.Event
+    | ImageClick  Mouse.Event
+    | ImageDoubleClick  Mouse.Event
     | ImageZoomIn
     | ImageZoomOut
     | ImageReset
@@ -51,25 +53,25 @@ type
     -- program at large, only our small part.
     = ImageOnly
     | PointerMove TrackPoint
-    | NoContext
+    | ImageNoOp
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
-withMouseCapture wrap =
-    [ htmlAttribute <| Mouse.onDown (ImageGrab >> wrap)
-    , htmlAttribute <| Mouse.onMove (ImageDrag >> wrap)
-    , htmlAttribute <| Mouse.onUp (ImageRelease >> wrap)
-    , htmlAttribute <| Mouse.onClick (ImageClick >> wrap)
-    , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick >> wrap)
-    , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel event.deltaY))
+withMouseCapture  wrap =
+    [ htmlAttribute <| Mouse.onDown (ImageGrab  >> wrap)
+    , htmlAttribute <| Mouse.onMove (ImageDrag  >> wrap)
+    , htmlAttribute <| Mouse.onUp (ImageRelease  >> wrap)
+    , htmlAttribute <| Mouse.onClick (ImageClick  >> wrap)
+    , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick  >> wrap)
+    , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel  event.deltaY))
     , htmlAttribute <| style "touch-action" "none"
-    , onContextMenu (wrap ImageNoOpMsg)
+    , onContextMenu (wrap <| ImageNoOpMsg )
     , width fill
     , pointer
     ]
 
 
-zoomButtons wrap =
+zoomButtons wrap  =
     let
         useIcon =
             html << FeatherIcons.toHtml [] << FeatherIcons.withSize 30
@@ -96,7 +98,7 @@ zoomButtons wrap =
         , button
             []
             { onPress = Just <| wrap ImageReset
-            , label = useIcon FeatherIcons.globe
+            , label = useIcon FeatherIcons.maximize
             }
         ]
 

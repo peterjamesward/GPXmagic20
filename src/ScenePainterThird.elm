@@ -208,7 +208,11 @@ update msg view now =
             )
 
         ImageReset ->
-            ( { view | zoomLevel = view.defaultZoomLevel }
+            ( { view
+                | azimuth = Angle.degrees -90.0
+                , elevation = Angle.degrees 30.0
+                , zoomLevel = view.defaultZoomLevel
+              }
             , ImageOnly
             )
 
