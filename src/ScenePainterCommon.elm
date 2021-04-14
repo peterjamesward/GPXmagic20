@@ -19,6 +19,7 @@ import Length exposing (inMeters)
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
+import SceneBuilder exposing (Scene)
 import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (useIcon)
@@ -45,6 +46,7 @@ type ImageMsg
     | ImageZoomIn
     | ImageZoomOut
     | ImageReset
+
 
 
 type
@@ -112,6 +114,13 @@ onContextMenu msg =
         |> htmlAttribute
 
 
+type ViewingMode
+    = ThirdPerson
+    | FirstPerson
+    | Profile
+    | Plan
+    | Map
+
 type alias ViewingContext =
     -- The information we need to paint a scene on the screen.
     { azimuth : Angle -- Orbiting angle of the camera around the focal point
@@ -124,6 +133,7 @@ type alias ViewingContext =
     , clickedPoint : Maybe TrackPoint
     , sceneSearcher : Axis3d Length.Meters LocalCoords -> Maybe TrackPoint
     , mouseDownTime : Time.Posix
+    , viewingMode : ViewingMode
     }
 
 
@@ -154,3 +164,4 @@ zoomLevelFromBoundingBox points =
             logBase 2 (cos (degrees medianLatitude) * metresPerPixelAtEquatorZoomZero / desiredMetresPerPixel)
     in
     (clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box)
+

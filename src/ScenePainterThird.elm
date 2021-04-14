@@ -38,6 +38,7 @@ defaultViewingContext =
     , clickedPoint = Nothing
     , sceneSearcher = always Nothing
     , mouseDownTime = Time.millisToPosix 0
+    , viewingMode = ThirdPerson
     }
 
 
@@ -65,12 +66,12 @@ initialiseView track searcher =
     }
 
 
-viewWebGLContext :
+viewScene :
     ViewingContext
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewWebGLContext context scene wrapper =
+viewScene context scene wrapper =
     row defaultRowLayout
         [ el
             (withMouseCapture wrapper)

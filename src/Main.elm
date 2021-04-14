@@ -16,7 +16,8 @@ import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), ViewingContext, ViewingContextId)
-import ScenePainterThird exposing (initialiseView, viewWebGLContext)
+import ScenePainterThird exposing (initialiseView)
+import View3dDispatcher exposing (viewScene)
 import Task
 import Time
 import Track exposing (Track, trackPointNearestRay)
@@ -164,9 +165,15 @@ update msg model =
                         Just isTrack ->
                             model.viewingContexts
                                 |> Dict.insert 1
-                                    (initialiseView isTrack.track (trackPointNearestRay isTrack))
+                                    (ScenePainterThird.initialiseView
+                                        isTrack.track
+                                        (trackPointNearestRay isTrack)
+                                    )
                                 |> Dict.insert 2
-                                    (initialiseView isTrack.track (trackPointNearestRay isTrack))
+                                    (ScenePainterThird.initialiseView
+                                        isTrack.track
+                                        (trackPointNearestRay isTrack)
+                                    )
 
                         Nothing ->
                             model.viewingContexts
@@ -435,8 +442,8 @@ viewAllViews dict scene =
     column defaultColumnLayout <|
         Dict.values <|
             Dict.map
-                (\k v ->
-                    viewWebGLContext v scene (imageMessageWrapper k)
+                (\k context ->
+                    View3dDispatcher.viewScene context scene (imageMessageWrapper k)
                 )
                 dict
 
