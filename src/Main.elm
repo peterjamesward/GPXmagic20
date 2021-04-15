@@ -30,7 +30,7 @@ type Msg
     = GpxRequested
     | GpxSelected File
     | GpxLoaded String
-    | ImageMessage ViewingContext ImageMsg
+    | ImageMessage ViewingContextId ImageMsg
     | GraphMessage Graph.Msg
     | AccordionMessage (AccordionEntry Msg)
     | MarkerMessage MarkerControls.MarkerControlsMsg
@@ -41,9 +41,9 @@ type Msg
     | DeleteMessage DeletePoints.Msg
 
 
-imageMessageWrapper : ViewingContext -> ImageMsg -> Msg
-imageMessageWrapper context m =
-    ImageMessage context m
+imageMessageWrapper : ViewingContextId -> ImageMsg -> Msg
+imageMessageWrapper id m =
+    ImageMessage id m
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -151,8 +151,8 @@ update msg model =
             , Cmd.none
             )
 
-        ImageMessage context innerMsg ->
-            ( Maybe.map (processImageMessage context innerMsg model) model.track
+        ImageMessage contextId innerMsg ->
+            ( Maybe.map (processImageMessage contextId innerMsg model) model.track
                 |> Maybe.withDefault model
             , Cmd.none
             )
@@ -241,46 +241,55 @@ processGpxLoaded content model =
     }
 
 
-processImageMessage : ViewingContext -> ImageMsg -> Model -> Track -> Model
-processImageMessage context innerMsg model track =
+processImageMessage : ViewingContextId -> ImageMsg -> Model -> Track -> Model
+processImageMessage contextId innerMsg model track =
     let
-        ( newContext, postUpdateAction ) =
-            View3dDispatcher.update innerMsg context model.time
-
-        updatedContextDict =
-            updateViewingContext newContext model.viewingContexts
+        currentContext =
+            Dict.get contextId model.viewingContexts
     in
-    case postUpdateAction of
-        ImageOnly ->
-            { model | viewingContexts = updatedContextDict }
+    case currentContext of
+        Nothing ->
+            model
 
-        PointerMove tp ->
+        Just context ->
             let
-                updatedTrack =
-                    { track | currentNode = tp }
+                ( newContext, postUpdateAction ) =
+                    View3dDispatcher.update innerMsg context model.time
 
-                updatedScene =
-                    -- Moving markers may affect detail level.
-                    -- TODO: rebuild only if needed.
-                    Maybe.map2
-                        SceneBuilder.renderTrack
-                        model.renderingContext
-                        (Just updatedTrack)
-                        |> Maybe.withDefault []
-
-                updatedMarkers =
-                    SceneBuilder.renderMarkers updatedTrack
+                updatedContextDict =
+                    updateViewingContext newContext model.viewingContexts
             in
-            { model
-                | viewingContexts = updatedContextDict
-                , track = Just updatedTrack
-                , staticScene = updatedScene
-                , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-                , visibleMarkers = updatedMarkers
-            }
+            case postUpdateAction of
+                ImageOnly ->
+                    { model | viewingContexts = updatedContextDict }
 
-        ImageNoOp ->
-            { model | viewingContexts = updatedContextDict }
+                PointerMove tp ->
+                    let
+                        updatedTrack =
+                            { track | currentNode = tp }
+
+                        updatedScene =
+                            -- Moving markers may affect detail level.
+                            -- TODO: rebuild only if needed.
+                            Maybe.map2
+                                SceneBuilder.renderTrack
+                                model.renderingContext
+                                (Just updatedTrack)
+                                |> Maybe.withDefault []
+
+                        updatedMarkers =
+                            SceneBuilder.renderMarkers updatedTrack
+                    in
+                    { model
+                        | viewingContexts = updatedContextDict
+                        , track = Just updatedTrack
+                        , staticScene = updatedScene
+                        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
+                        , visibleMarkers = updatedMarkers
+                    }
+
+                ImageNoOp ->
+                    { model | viewingContexts = updatedContextDict }
 
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model
@@ -439,11 +448,11 @@ view model =
 
 viewAllViews : ViewingContextDict -> Scene -> Element Msg
 viewAllViews dict scene =
-    column defaultColumnLayout <|
+    wrappedRow defaultColumnLayout <|
         Dict.values <|
             Dict.map
-                (\_ context ->
-                    View3dDispatcher.viewScene scene (imageMessageWrapper context) context
+                (\key context ->
+                    View3dDispatcher.viewScene scene (imageMessageWrapper key) context
                 )
                 dict
 

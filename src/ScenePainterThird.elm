@@ -203,7 +203,7 @@ update msg view now =
                     ( { view | orbiting = Nothing }, ImageOnly )
 
         ImageNoOpMsg ->
-            ( view, ImageOnly )
+            ( { view | orbiting = Nothing }, ImageOnly )
 
         ImageZoomIn ->
             ( { view
