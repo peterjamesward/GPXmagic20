@@ -23,6 +23,7 @@ import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 import ViewingContext exposing (ViewingContext)
+import ViewingMode exposing (ViewingMode(..))
 
 
 type Msg
@@ -219,7 +220,11 @@ processGpxLoaded content model =
         newViewPanes =
             case track of
                 Just isTrack ->
-                    [ defaultViewPane ]
+                    [ defaultViewPane
+                    , { defaultViewPane | paneId = 1, activeContext = ViewPlan }
+                    , { defaultViewPane | paneId = 2 }
+                    , { defaultViewPane | paneId = 3 }
+                     ]
                         |> List.map
                             (ViewPane.resetAllViews isTrack.track (trackPointNearestRay isTrack))
 
