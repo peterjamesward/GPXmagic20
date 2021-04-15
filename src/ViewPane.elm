@@ -1,12 +1,14 @@
 module ViewPane exposing (..)
 
 import Axis3d exposing (Axis3d)
+import Color
 import ColourPalette exposing (radioButtonDefault, radioButtonSelected, radioButtonText)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
+import Element.Input as Input exposing (button)
+import FeatherIcons
 import Length
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -16,6 +18,7 @@ import ScenePainterPlan
 import ScenePainterThird
 import Time
 import TrackPoint exposing (TrackPoint)
+import Utils exposing (useIcon)
 import ViewPureStyles exposing (defaultColumnLayout)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
@@ -51,7 +54,10 @@ updateViewPanes : Maybe ViewPane -> List ViewPane -> List ViewPane
 updateViewPanes pane panes =
     case pane of
         Just isPane ->
-            List.Extra.updateAt isPane.paneId (always isPane) panes
+            if isPane.paneId < List.length panes then
+                List.Extra.updateAt isPane.paneId (always isPane) panes
+            else
+                panes ++ [ { isPane | paneId = List.length panes } ]
 
         Nothing ->
             panes
@@ -107,6 +113,8 @@ getActiveContext pane =
 type ViewPaneMessage
     = ChooseViewMode Int ViewingMode
     | ImageMessage Int ScenePainterCommon.ImageMsg
+    | AddPane
+    | RemovePane Int
 
 
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
@@ -151,8 +159,11 @@ radioButton label state =
 
 view : Scene -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
 view scene wrapper pane =
-    column defaultColumnLayout
-        [ viewModeChoices pane wrapper
+    column []
+        [ row [ width fill ]
+            [ el [ alignLeft ] <| viewModeChoices pane wrapper
+            , viewAddAndRemove pane wrapper
+            ]
         , viewScene
             scene
             (imageMessageWrapper pane.paneId >> wrapper)
@@ -175,6 +186,26 @@ viewScene scene wrapper context =
 
 fallbackScenePainter _ _ _ =
     text "Any day now!"
+
+
+viewAddAndRemove : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
+viewAddAndRemove pane wrap =
+    row
+        [ spacing 10
+        , alignRight
+        , moveLeft 50
+        ]
+        [ button
+            []
+            { onPress = Just <| wrap AddPane
+            , label = useIcon FeatherIcons.copy
+            }
+        , button
+            []
+            { onPress = Just <| wrap (RemovePane pane.paneId)
+            , label = useIcon FeatherIcons.xSquare
+            }
+        ]
 
 
 update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, PostUpdateAction )
@@ -219,3 +250,9 @@ update msg panes now =
 
                 Nothing ->
                     ( Nothing, ImageNoOp )
+
+        AddPane ->
+            ( Just { defaultViewPane | paneId = List.length panes }, ImageNoOp )
+
+        RemovePane id ->
+            ( Nothing, ImageNoOp )

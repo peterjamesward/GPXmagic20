@@ -21,11 +21,11 @@ import Utils exposing (useIcon)
 
 
 view3dHeight =
-    700
+    600
 
 
 view3dWidth =
-    1000
+    800
 
 
 
@@ -71,8 +71,8 @@ withMouseCapture wrap =
 zoomButtons wrap =
     column
         [ alignTop
-        , moveDown 30
-        , moveLeft 80
+        , moveDown 5
+        , moveLeft 50
         , Background.color white
         , Font.size 40
         , padding 10

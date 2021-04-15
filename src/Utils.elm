@@ -156,4 +156,4 @@ httpErrorString error =
 
 
 useIcon =
-    html << FeatherIcons.toHtml [] << FeatherIcons.withSize 30
+    html << FeatherIcons.toHtml [] << FeatherIcons.withSize 24

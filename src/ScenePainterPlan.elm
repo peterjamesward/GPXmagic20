@@ -53,7 +53,7 @@ viewScene :
     -> (ImageMsg -> msg)
     -> Element msg
 viewScene context scene wrapper =
-    row defaultRowLayout
+    row []
         [ el
             (withMouseCapture wrapper)
           <|
