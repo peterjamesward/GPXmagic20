@@ -14,8 +14,9 @@ Position preserving. OK.
 
 > 7. Multiple viewports and views.
 > Profile
-> Plan
-> First person
+> Plan OK
+> First person OK
+> Make wrappedRow work for panes.
 
 8. New controls layout? No - folk will complain.
    Option to pin Accordion tab open; user decides how many, and which, to have open.

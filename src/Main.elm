@@ -409,7 +409,7 @@ view model =
             ]
           <|
             column
-                defaultColumnLayout
+                [ width fill ]
                 [ row defaultRowLayout
                     [ button
                         prettyButtonStyles
@@ -442,7 +442,7 @@ view model =
 
 viewAllViews : List ViewPane -> Scene -> (ViewPaneMessage -> Msg) -> Element Msg
 viewAllViews panes scene wrapper =
-    wrappedRow defaultColumnLayout <|
+    wrappedRow [width fill ] <|
         List.map
             (ViewPane.view scene wrapper)
             panes
