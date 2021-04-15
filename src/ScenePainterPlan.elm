@@ -38,7 +38,8 @@ defaultViewingContext =
     , clickedPoint = Nothing
     , sceneSearcher = always Nothing
     , mouseDownTime = Time.millisToPosix 0
-    , viewingMode = ThirdPerson
+    , viewingMode = Plan
+    , contextId = (0,4)
     }
 
 

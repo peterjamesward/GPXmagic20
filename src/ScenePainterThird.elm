@@ -39,6 +39,7 @@ defaultViewingContext =
     , sceneSearcher = always Nothing
     , mouseDownTime = Time.millisToPosix 0
     , viewingMode = ThirdPerson
+    , contextId = ( 0, 0 )
     }
 
 
@@ -162,6 +163,9 @@ update msg view now =
                     ( view, ImageOnly )
 
         ImageRelease _ ->
+            let
+                _ = Debug.log "Release" True
+            in
             ( { view | orbiting = Nothing }, ImageOnly )
 
         ImageMouseWheel deltaY ->
@@ -177,10 +181,10 @@ update msg view now =
             if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
                 case detectHit view event of
                     Just tp ->
-                        ( view, PointerMove tp )
+                        ( { view | orbiting = Nothing }, PointerMove tp )
 
                     Nothing ->
-                        ( view, ImageOnly )
+                        ( { view | orbiting = Nothing }, ImageOnly )
 
             else
                 ( view, ImageOnly )
@@ -188,23 +192,32 @@ update msg view now =
         ImageDoubleClick event ->
             case detectHit view event of
                 Just tp ->
-                    ( { view | focalPoint = tp.xyz }
+                    ( { view
+                        | focalPoint = tp.xyz
+                        , orbiting = Nothing
+                      }
                     , PointerMove tp
                     )
 
                 Nothing ->
-                    ( view, ImageOnly )
+                    ( { view | orbiting = Nothing }, ImageOnly )
 
         ImageNoOpMsg ->
             ( view, ImageOnly )
 
         ImageZoomIn ->
-            ( { view | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel + 0.5 }
+            ( { view
+                | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel + 0.5
+                , orbiting = Nothing
+              }
             , ImageOnly
             )
 
         ImageZoomOut ->
-            ( { view | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel - 0.5 }
+            ( { view
+                | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel - 0.5
+                , orbiting = Nothing
+              }
             , ImageOnly
             )
 
@@ -213,6 +226,7 @@ update msg view now =
                 | azimuth = Angle.degrees -90.0
                 , elevation = Angle.degrees 30.0
                 , zoomLevel = view.defaultZoomLevel
+                , orbiting = Nothing
               }
             , ImageOnly
             )
