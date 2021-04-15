@@ -1,7 +1,6 @@
 module ViewPane exposing (..)
 
 import Axis3d exposing (Axis3d)
-import Color
 import ColourPalette exposing (radioButtonDefault, radioButtonSelected, radioButtonText)
 import Element exposing (..)
 import Element.Background as Background
@@ -19,7 +18,6 @@ import ScenePainterThird
 import Time
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
-import ViewPureStyles exposing (defaultColumnLayout)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -56,6 +54,7 @@ updateViewPanes pane panes =
         Just isPane ->
             if isPane.paneId < List.length panes then
                 List.Extra.updateAt isPane.paneId (always isPane) panes
+
             else
                 panes ++ [ { isPane | paneId = List.length panes } ]
 
@@ -159,16 +158,20 @@ radioButton label state =
 
 view : Scene -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
 view scene wrapper pane =
-    column []
-        [ row [ width fill ]
-            [ el [ alignLeft ] <| viewModeChoices pane wrapper
-            , viewAddAndRemove pane wrapper
+    if pane.visible then
+        column []
+            [ row [ width fill ]
+                [ el [ alignLeft ] <| viewModeChoices pane wrapper
+                , viewAddAndRemove pane wrapper
+                ]
+            , viewScene
+                scene
+                (imageMessageWrapper pane.paneId >> wrapper)
+                (getActiveContext pane)
             ]
-        , viewScene
-            scene
-            (imageMessageWrapper pane.paneId >> wrapper)
-            (getActiveContext pane)
-        ]
+
+    else
+        none
 
 
 viewScene : Scene -> (ImageMsg -> msg) -> ViewingContext -> Element msg
@@ -200,11 +203,15 @@ viewAddAndRemove pane wrap =
             { onPress = Just <| wrap AddPane
             , label = useIcon FeatherIcons.copy
             }
-        , button
-            []
-            { onPress = Just <| wrap (RemovePane pane.paneId)
-            , label = useIcon FeatherIcons.xSquare
-            }
+        , if pane.paneId > 0 then
+            button
+                []
+                { onPress = Just <| wrap (RemovePane pane.paneId)
+                , label = useIcon FeatherIcons.xSquare
+                }
+
+          else
+            none
         ]
 
 
@@ -252,7 +259,26 @@ update msg panes now =
                     ( Nothing, ImageNoOp )
 
         AddPane ->
-            ( Just { defaultViewPane | paneId = List.length panes }, ImageNoOp )
+            -- Make visible first non-visible pane
+            let
+                firstHiddenPane =
+                    List.Extra.find (not << .visible) panes
+
+                paneMadeVisible =
+                    Maybe.map (\pane -> { pane | visible = True }) firstHiddenPane
+            in
+            ( paneMadeVisible, ImageNoOp )
 
         RemovePane id ->
-            ( Nothing, ImageNoOp )
+            let
+                currentPane =
+                    if id > 0 then
+                        List.Extra.getAt id panes
+
+                    else
+                        Nothing
+
+                paneHidden =
+                    Maybe.map (\pane -> { pane | visible = False }) currentPane
+            in
+            ( paneHidden, ImageNoOp )

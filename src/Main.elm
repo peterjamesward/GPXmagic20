@@ -221,9 +221,9 @@ processGpxLoaded content model =
             case track of
                 Just isTrack ->
                     [ defaultViewPane
-                    , { defaultViewPane | paneId = 1, activeContext = ViewPlan }
-                    , { defaultViewPane | paneId = 2 }
-                    , { defaultViewPane | paneId = 3 }
+                    , { defaultViewPane | paneId = 1 }
+                    , { defaultViewPane | paneId = 2, visible = False}
+                    , { defaultViewPane | paneId = 3, visible = False }
                      ]
                         |> List.map
                             (ViewPane.resetAllViews isTrack.track (trackPointNearestRay isTrack))
