@@ -15,22 +15,20 @@ import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), ViewingContext, ViewingContextDict, ViewingContextId, updateViewingContext)
-import ScenePainterPlan
-import ScenePainterThird exposing (initialiseView)
+import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
 import Task
 import Time
 import Track exposing (Track, trackPointNearestRay)
 import Url exposing (Url)
-import View3dDispatcher exposing (viewScene)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
+import ViewingContext exposing (ViewingContext)
 
 
 type Msg
     = GpxRequested
     | GpxSelected File
     | GpxLoaded String
-    | ImageMessage ViewingContextId ImageMsg
     | GraphMessage Graph.Msg
     | AccordionMessage (AccordionEntry Msg)
     | MarkerMessage MarkerControls.MarkerControlsMsg
@@ -39,11 +37,7 @@ type Msg
     | Undo
     | Redo
     | DeleteMessage DeletePoints.Msg
-
-
-imageMessageWrapper : ViewingContextId -> ImageMsg -> Msg
-imageMessageWrapper id m =
-    ImageMessage id m
+    | ViewPaneMessage ViewPane.ViewPaneMessage
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -66,6 +60,11 @@ deleteMessageWrapper m =
     DeleteMessage m
 
 
+viewPaneMessageWrapper : ViewPane.ViewPaneMessage -> Msg
+viewPaneMessageWrapper m =
+    ViewPaneMessage m
+
+
 main : Program Int Model Msg
 main =
     Browser.document
@@ -85,7 +84,7 @@ type alias Model =
     , nudgePreview : Scene
     , completeScene : Scene
     , renderingContext : Maybe RenderingContext
-    , viewingContexts : ViewingContextDict
+    , viewPanes : List ViewPane
     , track : Maybe Track
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
@@ -106,7 +105,7 @@ init mflags =
       , nudgePreview = []
       , completeScene = []
       , renderingContext = Nothing
-      , viewingContexts = Dict.empty
+      , viewPanes = []
       , toolsAccordion = []
       , nudgeSettings = defaultNudgeSettings
       , undoStack = []
@@ -151,8 +150,8 @@ update msg model =
             , Cmd.none
             )
 
-        ImageMessage contextId innerMsg ->
-            ( Maybe.map (processImageMessage contextId innerMsg model) model.track
+        ViewPaneMessage innerMsg ->
+            ( Maybe.map (processViewPaneMessage innerMsg model) model.track
                 |> Maybe.withDefault model
             , Cmd.none
             )
@@ -217,79 +216,69 @@ processGpxLoaded content model =
         markers =
             Maybe.map SceneBuilder.renderMarkers track |> Maybe.withDefault []
 
-        newViewContexts =
+        newViewPanes =
             case track of
                 Just isTrack ->
-                    updateViewingContext
-                        (ScenePainterThird.initialiseView
-                            isTrack.track
-                            (trackPointNearestRay isTrack)
-                        )
-                        model.viewingContexts
+                    [ defaultViewPane ]
+                        |> List.map
+                            (ViewPane.resetAllViews isTrack.track (trackPointNearestRay isTrack))
 
                 Nothing ->
-                    model.viewingContexts
+                    []
     in
     { model
         | track = track
         , staticScene = scene
         , visibleMarkers = markers
-        , viewingContexts = newViewContexts
+        , viewPanes = newViewPanes
         , completeScene = markers ++ scene
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
     }
 
 
-processImageMessage : ViewingContextId -> ImageMsg -> Model -> Track -> Model
-processImageMessage contextId innerMsg model track =
+processViewPaneMessage : ViewPaneMessage -> Model -> Track -> Model
+processViewPaneMessage innerMsg model track =
     let
-        currentContext =
-            Dict.get contextId model.viewingContexts
+        ( newPane, postUpdateAction ) =
+            ViewPane.update innerMsg model.viewPanes model.time
+
+        updatedViewPanes =
+            ViewPane.updateViewPanes newPane model.viewPanes
+
+        updatedModel =
+            { model | viewPanes = updatedViewPanes }
     in
-    case currentContext of
-        Nothing ->
-            model
+    case postUpdateAction of
+        ImageOnly ->
+            updatedModel
 
-        Just context ->
+        PointerMove tp ->
             let
-                ( newContext, postUpdateAction ) =
-                    View3dDispatcher.update innerMsg context model.time
+                updatedTrack =
+                    { track | currentNode = tp }
 
-                updatedContextDict =
-                    updateViewingContext newContext model.viewingContexts
+                updatedScene =
+                    -- Moving markers may affect detail level.
+                    -- TODO: rebuild only if needed.
+                    Maybe.map2
+                        SceneBuilder.renderTrack
+                        model.renderingContext
+                        (Just updatedTrack)
+                        |> Maybe.withDefault []
+
+                updatedMarkers =
+                    SceneBuilder.renderMarkers updatedTrack
             in
-            case postUpdateAction of
-                ImageOnly ->
-                    { model | viewingContexts = updatedContextDict }
+            { updatedModel
+                | track = Just updatedTrack
+                , staticScene = updatedScene
+                , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
+                , visibleMarkers = updatedMarkers
+            }
 
-                PointerMove tp ->
-                    let
-                        updatedTrack =
-                            { track | currentNode = tp }
-
-                        updatedScene =
-                            -- Moving markers may affect detail level.
-                            -- TODO: rebuild only if needed.
-                            Maybe.map2
-                                SceneBuilder.renderTrack
-                                model.renderingContext
-                                (Just updatedTrack)
-                                |> Maybe.withDefault []
-
-                        updatedMarkers =
-                            SceneBuilder.renderMarkers updatedTrack
-                    in
-                    { model
-                        | viewingContexts = updatedContextDict
-                        , track = Just updatedTrack
-                        , staticScene = updatedScene
-                        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-                        , visibleMarkers = updatedMarkers
-                    }
-
-                ImageNoOp ->
-                    { model | viewingContexts = updatedContextDict }
+        ImageNoOp ->
+            updatedModel
 
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model
@@ -390,10 +379,7 @@ repaintTrack model =
                 | staticScene = updatedScene
                 , visibleMarkers = updatedMarkers
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
-                , viewingContexts =
-                    model.viewingContexts
-                        |> Dict.map
-                            (\_ v -> refreshSceneSearcher isTrack v)
+                , viewPanes = ViewPane.mapOverPanes (refreshSceneSearcher isTrack) model.viewPanes
             }
 
         Nothing ->
@@ -429,7 +415,10 @@ view model =
                 , row defaultRowLayout <|
                     case model.track of
                         Just isTrack ->
-                            [ viewAllViews model.viewingContexts model.completeScene
+                            [ viewAllViews
+                                model.viewPanes
+                                model.completeScene
+                                viewPaneMessageWrapper
                             , column defaultColumnLayout
                                 [ markerButton isTrack markerMessageWrapper
                                 , undoRedoButtons model
@@ -446,15 +435,12 @@ view model =
     }
 
 
-viewAllViews : ViewingContextDict -> Scene -> Element Msg
-viewAllViews dict scene =
+viewAllViews : List ViewPane -> Scene -> (ViewPaneMessage -> Msg) -> Element Msg
+viewAllViews panes scene wrapper =
     wrappedRow defaultColumnLayout <|
-        Dict.values <|
-            Dict.map
-                (\key context ->
-                    View3dDispatcher.viewScene scene (imageMessageWrapper key) context
-                )
-                dict
+        List.map
+            (ViewPane.view scene wrapper)
+            panes
 
 
 updatedAccordion model currentAccordion referenceAccordion =

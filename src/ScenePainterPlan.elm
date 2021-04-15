@@ -23,24 +23,9 @@ import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
 import ViewPureStyles exposing (defaultRowLayout)
+import ViewingContext exposing (ViewingContext, defaultViewingContext)
+import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)
-
-
-defaultViewingContext : ViewingContext
-defaultViewingContext =
-    { azimuth = Angle.degrees -90.0
-    , elevation = Angle.degrees 90.0
-    , distance = Length.meters 100.0
-    , orbiting = Nothing
-    , zoomLevel = 12.0
-    , defaultZoomLevel = 12.0
-    , focalPoint = Point3d.origin
-    , clickedPoint = Nothing
-    , sceneSearcher = always Nothing
-    , mouseDownTime = Time.millisToPosix 0
-    , viewingMode = Plan
-    , contextId = (0,4)
-    }
 
 
 initialiseView :
@@ -58,7 +43,7 @@ initialiseView track searcher =
         , sceneSearcher = searcher
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
-        , viewingMode = Plan
+        , viewingMode = ViewPlan
     }
 
 

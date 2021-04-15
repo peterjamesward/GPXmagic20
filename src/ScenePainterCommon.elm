@@ -1,10 +1,7 @@
 module ScenePainterCommon exposing (..)
 
-import Angle exposing (Angle)
-import Axis3d exposing (Axis3d)
 import BoundingBox3d
 import ColourPalette exposing (white)
-import Dict exposing (Dict)
 import EarthConstants exposing (metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Element.Background as Background
@@ -19,8 +16,6 @@ import Json.Decode as D
 import Length exposing (inMeters)
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
-import Quantity exposing (Quantity)
-import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (useIcon)
 
@@ -32,35 +27,6 @@ view3dHeight =
 view3dWidth =
     1000
 
-
-type alias ViewingContextId =
-    -- Window number, View number (because no typeclasses in Elm).
-    ( Int, Int )
-
-
-type ViewingMode
-    = ThirdPerson
-    | FirstPerson
-    | Profile
-    | Plan
-    | Map
-
-
-type alias ViewingContext =
-    -- The information we need to paint a scene on the screen.
-    { azimuth : Angle -- Orbiting angle of the camera around the focal point
-    , elevation : Angle -- Angle of the camera up from the XY plane
-    , distance : Quantity Float Length.Meters
-    , orbiting : Maybe ( Float, Float )
-    , zoomLevel : Float
-    , defaultZoomLevel : Float
-    , focalPoint : Point3d Length.Meters LocalCoords
-    , clickedPoint : Maybe TrackPoint
-    , sceneSearcher : Axis3d Length.Meters LocalCoords -> Maybe TrackPoint
-    , mouseDownTime : Time.Posix
-    , viewingMode : ViewingMode
-    , contextId : ViewingContextId
-    }
 
 
 type ImageMsg
@@ -85,19 +51,6 @@ type
     | PointerMove TrackPoint
     | ImageNoOp
 
-
-type alias ViewingContextDict =
-    Dict ViewingContextId ViewingContext
-
-
-emptyViewingContextDict : ViewingContextDict
-emptyViewingContextDict =
-    Dict.empty
-
-
-updateViewingContext : ViewingContext -> ViewingContextDict -> ViewingContextDict
-updateViewingContext context dict =
-    Dict.insert context.contextId context dict
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)

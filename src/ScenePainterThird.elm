@@ -23,24 +23,9 @@ import ScenePainterCommon exposing (..)
 import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import ViewPureStyles exposing (defaultRowLayout)
+import ViewingContext exposing (ViewingContext, newViewingContext)
+import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)
-
-
-defaultViewingContext : ViewingContext
-defaultViewingContext =
-    { azimuth = Angle.degrees -90.0
-    , elevation = Angle.degrees 30.0
-    , distance = Length.meters 100.0
-    , orbiting = Nothing
-    , zoomLevel = 12.0
-    , defaultZoomLevel = 12.0
-    , focalPoint = Point3d.origin
-    , clickedPoint = Nothing
-    , sceneSearcher = always Nothing
-    , mouseDownTime = Time.millisToPosix 0
-    , viewingMode = ThirdPerson
-    , contextId = ( 0, 0 )
-    }
 
 
 initialiseView :
@@ -58,8 +43,11 @@ initialiseView track searcher =
 
         ( zoom, centralPoint ) =
             zoomLevelFromBoundingBox track
+
+        viewContext =
+            newViewingContext ViewThirdPerson
     in
-    { defaultViewingContext
+    { viewContext
         | focalPoint = centralPoint
         , sceneSearcher = searcher
         , zoomLevel = zoom
@@ -164,7 +152,8 @@ update msg view now =
 
         ImageRelease _ ->
             let
-                _ = Debug.log "Release" True
+                _ =
+                    Debug.log "Release" True
             in
             ( { view | orbiting = Nothing }, ImageOnly )
 
