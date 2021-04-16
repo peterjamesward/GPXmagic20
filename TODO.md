@@ -5,31 +5,29 @@
 1. Basic structures and operations. Keep it simple. OK
 2. Populate and test. (Parse GPX.) OK
 3. All trackpoint derivations in one pass. OK
-3. Simple rendering. OK
-4. Rendering with variable detail. OK
-5. Graph. OK (incomplete)
-6. Editing with graph
+4. Simple rendering. OK
+5. Rendering with variable detail. OK
+6. Graph. OK (incomplete)
+7. Editing with graph
 Indexing preserving. OK.
 Position preserving. OK. 
-
-> 7. Multiple viewports and views.
-> Profile
-> Plan OK
-> First person OK
-
 8. New controls layout? No - folk will complain.
    Option to pin Accordion tab open; user decides how many, and which, to have open.
    -- Not as easy as I thought, as accordion designed to have ONE tab open.
-   Popup explanatory text.
-7. Bring all the edit stuff over.
-9. Map integration. (leaves the nasty JS stuff to the end!)
-9. OAuth integration. (could we not use a popup to avoid losing state?)
+? Zoom + | - overlay on view instead of scroll bar (as per Map).
+Simple: Auto remove sharp "folds" in loaded track.
+   
+> 9. Multiple viewports and views.
+> Profile
+
+10. Bring all the edit stuff over.
+11. Map integration. (leaves the nasty JS stuff to the end!)
+12. OAuth integration. (could we not use a popup to avoid losing state?)
 
 # TODOs, being enhancements ...
 
-? Zoom + | - overlay on view instead of scroll bar (as per Map).
+Popup explanatory text.
 
-Simple: Auto remove sharp "folds" in loaded track.
 
 DSL for navigating the graph ("tulips" for directions?)
 

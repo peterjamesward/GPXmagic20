@@ -91,17 +91,40 @@ prepareTrackPoints trackPoints =
                 _ ->
                     []
 
+        egregiousDirectionChangesRemoved =
+            -- Recurse (once) if there are any suspicious backward hops in the track.
+            if List.Extra.find egregiousDirectionChange processedPoints /= Nothing then
+                processedPoints
+                    |> List.filter (not << egregiousDirectionChange)
+                    |> prepareTrackPoints
+
+            else
+                processedPoints
+
+        egregiousDirectionChange : TrackPoint -> Bool
+        egregiousDirectionChange point =
+            case point.directionChange of
+                Just change ->
+                    abs (Angle.inRadians change) > pi * 0.9
+
+                Nothing ->
+                    False
+
         helper reversed nextIdx lastDistance points =
             -- Note the interesting point here is the second one. The first is context.
             case points of
                 [ previous, penultimate, last ] ->
-                    -- We can wrap things up now
+                    -- We can wrap things up now'
+                    -- TODO: this special end case needs refactor.
                     let
                         beforeDirection =
                             trackPointBearing previous penultimate
 
                         afterDirection =
                             trackPointBearing penultimate last
+
+                        directionChange =
+                            changeInBearing beforeDirection afterDirection
 
                         penultimateSpan =
                             Point3d.distanceFrom previous.xyz penultimate.xyz
@@ -111,6 +134,7 @@ prepareTrackPoints trackPoints =
                                 | index = nextIdx
                                 , beforeDirection = beforeDirection
                                 , afterDirection = afterDirection
+                                , directionChange = directionChange
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
                                         beforeDirection
@@ -148,6 +172,9 @@ prepareTrackPoints trackPoints =
                         afterDirection =
                             trackPointBearing point next
 
+                        directionChange =
+                            changeInBearing beforeDirection afterDirection
+
                         span =
                             Point3d.distanceFrom previous.xyz point.xyz
 
@@ -156,6 +183,7 @@ prepareTrackPoints trackPoints =
                                 | index = nextIdx
                                 , beforeDirection = beforeDirection
                                 , afterDirection = afterDirection
+                                , directionChange = directionChange
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
                                         beforeDirection
@@ -178,7 +206,7 @@ prepareTrackPoints trackPoints =
                     -- No more work, just flip the accumulation list.
                     List.reverse reversed
     in
-    processedPoints
+    egregiousDirectionChangesRemoved
 
 
 trackPointBearing : TrackPoint -> TrackPoint -> Maybe (Direction3d LocalCoords)
@@ -191,6 +219,11 @@ trackPointBearing from to =
             Point3d.projectOnto Plane3d.xy to.xyz
     in
     Direction3d.from fromXY toXY
+
+
+changeInBearing : Maybe (Direction3d LocalCoords) -> Maybe (Direction3d LocalCoords) -> Maybe Angle
+changeInBearing before after =
+    Maybe.map2 Direction3d.angleFrom before after
 
 
 meanBearing : Direction3d LocalCoords -> Direction3d LocalCoords -> Direction3d LocalCoords
