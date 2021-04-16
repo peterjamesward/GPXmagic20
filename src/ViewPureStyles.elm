@@ -8,11 +8,11 @@ import Element.Font as Font
 
 
 defaultRowLayout =
-    [ spaceEvenly, spacing 10, padding 10 ]
+    [ ]
 
 
 defaultColumnLayout =
-    [ spacing 10, padding 10, alignTop ]
+    [ spacing 5, padding 5, alignTop, width fill ]
 
 
 prettyButtonStyles =

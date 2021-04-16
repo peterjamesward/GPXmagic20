@@ -12,6 +12,7 @@ import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
+import List.Extra
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
@@ -222,9 +223,9 @@ processGpxLoaded content model =
                 Just isTrack ->
                     [ defaultViewPane
                     , { defaultViewPane | paneId = 1 }
-                    , { defaultViewPane | paneId = 2, visible = False}
+                    , { defaultViewPane | paneId = 2, visible = False }
                     , { defaultViewPane | paneId = 3, visible = False }
-                     ]
+                    ]
                         |> List.map
                             (ViewPane.resetAllViews isTrack.track (trackPointNearestRay isTrack))
 
@@ -417,20 +418,22 @@ view model =
                         , label = text "Load GPX from your computer"
                         }
                     ]
-                , row defaultRowLayout <|
+                , row (width fill :: defaultRowLayout) <|
                     case model.track of
                         Just isTrack ->
-                            [ viewAllViews
-                                model.viewPanes
-                                model.completeScene
-                                viewPaneMessageWrapper
-                            , column defaultColumnLayout
-                                [ markerButton isTrack markerMessageWrapper
-                                , undoRedoButtons model
-                                , accordionView
-                                    (updatedAccordion model model.toolsAccordion toolsAccordion)
-                                    AccordionMessage
-                                ]
+                            [ el [ width (dependsOnVisibleViews model.viewPanes) ] <|
+                                viewAllViews
+                                    model.viewPanes
+                                    model.completeScene
+                                    viewPaneMessageWrapper
+                            , el [ alignTop, width <| fillPortion 300 ] <|
+                                column defaultColumnLayout
+                                    [ markerButton isTrack markerMessageWrapper
+                                    , undoRedoButtons model
+                                    , accordionView
+                                        (updatedAccordion model model.toolsAccordion toolsAccordion)
+                                        AccordionMessage
+                                    ]
                             ]
 
                         _ ->
@@ -440,9 +443,18 @@ view model =
     }
 
 
+dependsOnVisibleViews : List ViewPane -> E.Length
+dependsOnVisibleViews panes =
+    if List.Extra.count .visible panes > 1 then
+        fillPortion 1600
+
+    else
+        fillPortion 800
+
+
 viewAllViews : List ViewPane -> Scene -> (ViewPaneMessage -> Msg) -> Element Msg
 viewAllViews panes scene wrapper =
-    wrappedRow [width fill ] <|
+    wrappedRow [] <|
         List.map
             (ViewPane.view scene wrapper)
             panes
