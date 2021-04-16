@@ -19,6 +19,7 @@ Simple: Auto remove sharp "folds" in loaded track.
    
 > 9. Multiple viewports and views.
 > Profile
+> Need a track position scroller!
 
 10. Bring all the edit stuff over.
 11. Map integration. (leaves the nasty JS stuff to the end!)
@@ -27,7 +28,6 @@ Simple: Auto remove sharp "folds" in loaded track.
 # TODOs, being enhancements ...
 
 Popup explanatory text.
-
 
 DSL for navigating the graph ("tulips" for directions?)
 

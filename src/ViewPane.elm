@@ -14,6 +14,7 @@ import LocalCoords exposing (LocalCoords)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
 import ScenePainterPlan
+import ScenePainterProfile
 import ScenePainterThird
 import Time
 import TrackPoint exposing (TrackPoint)
@@ -86,7 +87,7 @@ resetAllViews track searcher pane =
         | thirdPersonContext = ScenePainterThird.initialiseView track searcher
         , firstPersonContext = ScenePainterThird.initialiseView track searcher
         , planContext = ScenePainterPlan.initialiseView track searcher
-        , profileContext = ScenePainterPlan.initialiseView track searcher
+        , profileContext = ScenePainterProfile.initialiseView track searcher
     }
 
 
@@ -132,6 +133,7 @@ viewModeChoices pane wrapper =
         , options =
             [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
             , Input.optionWith ViewPlan <| radioButton "Plan"
+            , Input.optionWith ViewProfile <| radioButton "Profile"
             ]
         }
 
@@ -156,8 +158,8 @@ radioButton label state =
             text label
 
 
-view : Scene -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
-view scene wrapper pane =
+view : (Scene, Scene) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
+view (scene, profile) wrapper pane =
     if pane.visible then
         column [ paddingEach {top = 5, bottom = 5, left = 0, right = 0} ]
             [ row [ width fill ]
@@ -165,7 +167,7 @@ view scene wrapper pane =
                 , viewAddAndRemove pane wrapper
                 ]
             , viewScene
-                scene
+                (scene, profile)
                 (imageMessageWrapper pane.paneId >> wrapper)
                 (getActiveContext pane)
             ]
@@ -174,14 +176,17 @@ view scene wrapper pane =
         none
 
 
-viewScene : Scene -> (ImageMsg -> msg) -> ViewingContext -> Element msg
-viewScene scene wrapper context =
+viewScene : (Scene, Scene) -> (ImageMsg -> msg) -> ViewingContext -> Element msg
+viewScene (scene, profile) wrapper context =
     case context.viewingMode of
         ViewThirdPerson ->
             ScenePainterThird.viewScene context scene wrapper
 
         ViewPlan ->
             ScenePainterPlan.viewScene context scene wrapper
+
+        ViewProfile ->
+            ScenePainterProfile.viewScene context profile wrapper
 
         _ ->
             fallbackScenePainter context scene wrapper
@@ -251,6 +256,13 @@ update msg panes now =
                                     ScenePainterPlan.update imageMsg pane.planContext now
                             in
                             ( Just { pane | planContext = newContext }, action )
+
+                        ViewProfile ->
+                            let
+                                ( newContext, action ) =
+                                    ScenePainterPlan.update imageMsg pane.profileContext now
+                            in
+                            ( Just { pane | profileContext = newContext }, action )
 
                         _ ->
                             ( Just pane, ImageNoOp )

@@ -16,6 +16,7 @@ import List.Extra
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
+import SceneBuilderProfile
 import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
 import Task
 import Time
@@ -85,6 +86,8 @@ type alias Model =
     , visibleMarkers : Scene
     , nudgePreview : Scene
     , completeScene : Scene
+    , profileScene : Scene
+    , profileMarkers : Scene
     , renderingContext : Maybe RenderingContext
     , viewPanes : List ViewPane
     , track : Maybe Track
@@ -103,6 +106,8 @@ init mflags =
       , zone = Time.utc
       , track = Nothing
       , staticScene = []
+      , profileScene = []
+      , profileMarkers = []
       , visibleMarkers = []
       , nudgePreview = []
       , completeScene = []
@@ -215,6 +220,13 @@ processGpxLoaded content model =
                 track
                 |> Maybe.withDefault []
 
+        profile =
+            Maybe.map2
+                SceneBuilderProfile.renderTrack
+                (Just defaultRenderingContext)
+                track
+                |> Maybe.withDefault []
+
         markers =
             Maybe.map SceneBuilder.renderMarkers track |> Maybe.withDefault []
 
@@ -235,6 +247,7 @@ processGpxLoaded content model =
     { model
         | track = track
         , staticScene = scene
+        , profileScene = profile
         , visibleMarkers = markers
         , viewPanes = newViewPanes
         , completeScene = markers ++ scene
@@ -422,9 +435,9 @@ view model =
                     case model.track of
                         Just isTrack ->
                             [ el [ alignTop, width (dependsOnVisibleViews model.viewPanes) ] <|
-                                viewAllViews
+                                viewAllPanes
                                     model.viewPanes
-                                    model.completeScene
+                                    (model.completeScene, model.profileScene)
                                     viewPaneMessageWrapper
                             , el [ alignTop, width <| fillPortion 300 ] <|
                                 column defaultColumnLayout
@@ -452,11 +465,11 @@ dependsOnVisibleViews panes =
         fillPortion 800
 
 
-viewAllViews : List ViewPane -> Scene -> (ViewPaneMessage -> Msg) -> Element Msg
-viewAllViews panes scene wrapper =
+viewAllPanes : List ViewPane -> (Scene, Scene) -> (ViewPaneMessage -> Msg) -> Element Msg
+viewAllPanes panes (scene, profile) wrapper =
     wrappedRow [] <|
         List.map
-            (ViewPane.view scene wrapper)
+            (ViewPane.view (scene, profile) wrapper)
             panes
 
 
