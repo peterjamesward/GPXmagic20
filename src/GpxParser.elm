@@ -3,7 +3,7 @@ module GpxParser exposing (..)
 import Graph
 import Regex
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromGPX)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints, trackPointFromGPX)
 
 
 asRegex t =
@@ -64,6 +64,8 @@ parseTrackPoints xml =
             trkpts
                 |> List.map trackPoint
                 |> List.filterMap identity
+                |> applyGhanianTransform
+                |> prepareTrackPoints
     in
     case trackPoints of
         [] ->
@@ -72,7 +74,7 @@ parseTrackPoints xml =
         n1 :: _ ->
             Just
                 { trackName = parseTrackName xml
-                , track = prepareTrackPoints trackPoints
+                , track = trackPoints
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing

@@ -21,7 +21,7 @@ import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), view3dWidth)
 import Task
 import Time
 import Track exposing (Track)
-import TrackPoint exposing (trackPointNearestRay)
+import TrackPoint exposing (applyGhanianTransform, prepareTrackPoints, trackPointNearestRay)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
@@ -212,7 +212,8 @@ processGpxLoaded : String -> Model -> Model
 processGpxLoaded content model =
     let
         track =
-            content |> parseTrackPoints
+            content
+                |> parseTrackPoints
 
         scene =
             Maybe.map2

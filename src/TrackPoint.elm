@@ -14,6 +14,7 @@ import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import Triangle3d
+import Vector3d
 
 
 type alias TrackPoint =
@@ -69,6 +70,25 @@ pointInEarthCoordinates point =
             x / metresPerDegree / cos (degrees latitude)
     in
     ( longitude, latitude, elevation )
+
+
+applyGhanianTransform : List TrackPoint -> List TrackPoint
+applyGhanianTransform points =
+    case List.head points of
+        Nothing ->
+            []
+
+        Just base ->
+            let
+                toOrigin =
+                    base.xyz
+                        |> Point3d.projectOnto Plane3d.xy
+                        |> Vector3d.from Point3d.origin
+                        |> Vector3d.reverse
+            in
+            List.map
+                (\p -> { p | xyz = Point3d.translateBy toOrigin p.xyz })
+                points
 
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint
@@ -131,7 +151,8 @@ prepareTrackPoints trackPoints =
                         penultimateSpan =
                             Point3d.distanceFrom previous.xyz penultimate.xyz
 
-                        distanceFromStart = Quantity.plus lastDistance penultimateSpan
+                        distanceFromStart =
+                            Quantity.plus lastDistance penultimateSpan
 
                         penultimatePoint =
                             { penultimate
@@ -183,7 +204,8 @@ prepareTrackPoints trackPoints =
                         span =
                             Point3d.distanceFrom previous.xyz point.xyz
 
-                        distanceFromStart = Quantity.plus lastDistance span
+                        distanceFromStart =
+                            Quantity.plus lastDistance span
 
                         updatedPoint =
                             { point
@@ -249,10 +271,10 @@ meanBearing direction1 direction2 =
 
 adjustProfileXZ : Point3d Meters LocalCoords -> Quantity Float Meters -> Point3d Meters LocalCoords
 adjustProfileXZ point distanceFromStart =
-            Point3d.xyz
-                distanceFromStart
-                Quantity.zero
-                (Point3d.zCoordinate point)
+    Point3d.xyz
+        distanceFromStart
+        Quantity.zero
+        (Point3d.zCoordinate point)
 
 
 trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint

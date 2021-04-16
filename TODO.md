@@ -16,7 +16,9 @@ Simple: Auto remove sharp "folds" in loaded track.
 
 > 9. Multiple viewports and views.
 
-> Profile >>WIP<< -- multiple markers have appeared since adding Profile !! 
+# PROBLEM
+Turns out that elm-3d-geo prefers coordinates near the origin.
+Have patched in the Ghanian transform but need to retain base point for converting back!
 
 > Need a track position scroller!
 > Make pane size variable in the model (? Layout tab in accordion ?)
