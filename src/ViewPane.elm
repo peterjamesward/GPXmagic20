@@ -159,7 +159,7 @@ radioButton label state =
 view : Scene -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
 view scene wrapper pane =
     if pane.visible then
-        column []
+        column [ paddingEach {top = 5, bottom = 5, left = 0, right = 0} ]
             [ row [ width fill ]
                 [ el [ alignLeft ] <| viewModeChoices pane wrapper
                 , viewAddAndRemove pane wrapper

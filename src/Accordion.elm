@@ -78,7 +78,7 @@ accordionToggle entries entry =
                 }
 
             else
-                { e | state = Contracted }
+                e -- { e | state = Contracted }
 
         isEntry e =
             e.label == entry.label
