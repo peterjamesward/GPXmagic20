@@ -14,7 +14,6 @@ type AccordionState
     = Expanded
     | Contracted
     | Disabled
-    --| Pinned
 
 
 type alias AccordionEntry msg =
@@ -35,8 +34,8 @@ accordionTabStyles state =
     [ padding 10
     , spacing 2
     , width fill
-    , Border.widthEach { left = 2, right = 2, top = 2, bottom = 0 }
-    , Border.roundEach { topLeft = 10, bottomLeft = 0, topRight = 10, bottomRight = 0 }
+    , Border.widthEach { left = 2, right = 0, top = 2, bottom = 2 }
+    , Border.roundEach { topLeft = 10, bottomLeft = 10, topRight = 0, bottomRight = 0 }
     , Border.color <|
         if state == Expanded then
             expandedTabBorder
@@ -78,8 +77,9 @@ accordionToggle entries entry =
                 }
 
             else
-                e -- { e | state = Contracted }
+                e
 
+        -- { e | state = Contracted }
         isEntry e =
             e.label == entry.label
     in
@@ -97,27 +97,26 @@ accordionView :
     -> Element msg
 accordionView entries message =
     let
-        entryButton : AccordionEntry msg -> Element msg
-        entryButton entry =
-            button (accordionTabStyles entry.state)
-                { onPress = Just (message entry)
-                , label = text entry.label
-                }
-    in
-    column accordionMenuStyles
-        [ wrappedRow accordionMenuStyles (List.map entryButton entries)
-        , case accordionActiveItem entries of
-            Just entry ->
-                el
-                    [ Background.color accordionContentBackground
-                    , width fill
-                    , centerX
-                    ]
-                    entry.content
+        viewEntry : AccordionEntry msg -> Element msg
+        viewEntry entry =
+            column [ width fill ]
+                [ button (accordionTabStyles entry.state)
+                    { onPress = Just (message entry)
+                    , label = text entry.label
+                    }
+                , if entry.state == Expanded then
+                    el
+                        [ Background.color accordionContentBackground
+                        , width fill
+                        , centerX
+                        ]
+                        entry.content
 
-            Nothing ->
-                none
-        ]
+                  else
+                    none
+                ]
+    in
+    column accordionMenuStyles (List.map viewEntry entries)
 
 
 accordionActiveItem : List (AccordionEntry msg) -> Maybe (AccordionEntry msg)

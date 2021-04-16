@@ -421,7 +421,7 @@ view model =
                 , row (width fill :: defaultRowLayout) <|
                     case model.track of
                         Just isTrack ->
-                            [ el [ width (dependsOnVisibleViews model.viewPanes) ] <|
+                            [ el [ alignTop, width (dependsOnVisibleViews model.viewPanes) ] <|
                                 viewAllViews
                                     model.viewPanes
                                     model.completeScene
