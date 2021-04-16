@@ -21,11 +21,11 @@ import Utils exposing (useIcon)
 
 
 view3dHeight =
-    450
+    580
 
 
 view3dWidth =
-    750
+    860
 
 
 

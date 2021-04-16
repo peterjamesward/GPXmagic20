@@ -17,7 +17,7 @@ import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import SceneBuilderProfile
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
+import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), view3dWidth)
 import Task
 import Time
 import Track exposing (Track)
@@ -235,9 +235,10 @@ processGpxLoaded content model =
             case track of
                 Just isTrack ->
                     [ defaultViewPane
-                    , { defaultViewPane | paneId = 1 }
-                    , { defaultViewPane | paneId = 2, visible = False }
-                    , { defaultViewPane | paneId = 3, visible = False }
+
+                    --, { defaultViewPane | paneId = 1 }
+                    --, { defaultViewPane | paneId = 2, visible = False }
+                    --, { defaultViewPane | paneId = 3, visible = False }
                     ]
                         |> List.map
                             (ViewPane.resetAllViews isTrack.track)
@@ -438,9 +439,9 @@ view model =
                             [ el [ alignTop, width (dependsOnVisibleViews model.viewPanes) ] <|
                                 viewAllPanes
                                     model.viewPanes
-                                    (model.completeScene, model.profileScene)
+                                    ( model.completeScene, model.profileScene )
                                     viewPaneMessageWrapper
-                            , el [ alignTop, width <| fillPortion 300 ] <|
+                            , el [ alignTop, width <| fillPortion 400 ] <|
                                 column defaultColumnLayout
                                     [ markerButton isTrack markerMessageWrapper
                                     , undoRedoButtons model
@@ -460,17 +461,17 @@ view model =
 dependsOnVisibleViews : List ViewPane -> E.Length
 dependsOnVisibleViews panes =
     if List.Extra.count .visible panes > 1 then
-        fillPortion 1600
+        fillPortion <| 2 * view3dWidth
 
     else
-        fillPortion 800
+        fillPortion view3dWidth
 
 
-viewAllPanes : List ViewPane -> (Scene, Scene) -> (ViewPaneMessage -> Msg) -> Element Msg
-viewAllPanes panes (scene, profile) wrapper =
+viewAllPanes : List ViewPane -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
+viewAllPanes panes ( scene, profile ) wrapper =
     wrappedRow [] <|
         List.map
-            (ViewPane.view (scene, profile) wrapper)
+            (ViewPane.view ( scene, profile ) wrapper)
             panes
 
 

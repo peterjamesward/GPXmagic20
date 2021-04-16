@@ -45,15 +45,17 @@ renderTrack context track =
             track.track
 
         --simpleSelectiveDetail context track
-    in
-    (Maybe.map showGraphNodes track.graph |> Maybe.withDefault [])
-        ++ (List.concat <|
-                List.map2
-                    paintSurfaceBetween
-                    reducedTrack
-                    (List.drop 1 reducedTrack)
-           )
 
+        scene =
+            (Maybe.map showGraphNodes track.graph |> Maybe.withDefault [])
+                ++ (List.concat <|
+                        List.map2
+                            paintSurfaceBetween
+                            reducedTrack
+                            (List.drop 1 reducedTrack)
+                   )
+    in
+    scene
 
 renderMarkers : Track -> Scene
 renderMarkers track =

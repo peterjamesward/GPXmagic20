@@ -1,7 +1,4 @@
-# PLAN
-
-!! Beware bounding box on tracks near the international date line !!
-
+# DONE
 1. Basic structures and operations. Keep it simple. OK
 2. Populate and test. (Parse GPX.) OK
 3. All trackpoint derivations in one pass. OK
@@ -12,26 +9,31 @@
 Indexing preserving. OK.
 Position preserving. OK. 
 8. New controls layout? No - folk will complain.
-   Option to pin Accordion tab open; user decides how many, and which, to have open.
-   -- Not as easy as I thought, as accordion designed to have ONE tab open.
 ? Zoom + | - overlay on view instead of scroll bar (as per Map).
 Simple: Auto remove sharp "folds" in loaded track.
-   
+
+# TODO 
+
 > 9. Multiple viewports and views.
-> Profile >>WIP<<
+
+> Profile >>WIP<< -- multiple markers have appeared since adding Profile !! 
+
 > Need a track position scroller!
+> Make pane size variable in the model (? Layout tab in accordion ?)
 
 10. Bring all the edit stuff over.
 11. Map integration. (leaves the nasty JS stuff to the end!)
 12. OAuth integration. (could we not use a popup to avoid losing state?)
 
-# TODOs, being enhancements ...
+# BACKLOG, being enhancements ...
 
 Popup explanatory text.
 
 DSL for navigating the graph ("tulips" for directions?)
 
 Working offline.
+
+!! Beware bounding box on tracks crossing the international date line !!
 
 New bend smoother filter - four point external centroid (convex only, not 'S').
 

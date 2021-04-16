@@ -166,7 +166,7 @@ view (scene, profile) wrapper pane =
                 , viewAddAndRemove pane wrapper
                 ]
             , viewScene
-                (scene, profile)
+                (scene, [] ) -- profile)
                 (imageMessageWrapper pane.paneId >> wrapper)
                 (getActiveContext pane)
             ]

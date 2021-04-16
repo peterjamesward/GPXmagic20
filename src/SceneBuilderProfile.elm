@@ -17,7 +17,7 @@ import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
 import SketchPlane3d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, convertToProfileCoordinates)
+import TrackPoint exposing (TrackPoint)
 import Utils exposing (gradientColourPastel)
 import Vector3d
 
@@ -44,7 +44,7 @@ renderTrack context track =
     -- Let's just try a clean room implementation here, with surface only.
     let
         reducedTrack =
-            List.map convertToProfileCoordinates track.track
+            track.track
 
         --simpleSelectiveDetail context track
     in
@@ -59,15 +59,15 @@ paintCurtainBetween : TrackPoint -> TrackPoint -> Entity LocalCoords
 paintCurtainBetween pt1 pt2 =
     let
         gradient =
-            Direction3d.from pt1.xyz pt2.xyz
+            Direction3d.from pt1.profileXZ pt2.profileXZ
                 |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
                 |> Maybe.withDefault Quantity.zero
     in
     Scene3d.quad (Material.color <| gradientColourPastel gradient)
-        pt1.xyz
-        pt2.xyz
-        (Point3d.projectOnto Plane3d.xy pt2.xyz)
-        (Point3d.projectOnto Plane3d.xy pt1.xyz)
+        pt1.profileXZ
+        pt2.profileXZ
+        (Point3d.projectOnto Plane3d.xy pt2.profileXZ)
+        (Point3d.projectOnto Plane3d.xy pt1.profileXZ)
 
 
 renderMarkers : Track -> Scene

@@ -2,12 +2,10 @@ module ScenePainterProfile exposing (..)
 
 -- This is our PROFILE view screen painter.
 
-import Angle exposing (Angle, inDegrees)
-import Axis3d exposing (Axis3d)
-import BoundingBox3d
+import Angle exposing (Angle)
 import Camera3d exposing (Camera3d)
 import Color
-import Direction3d exposing (negativeZ, positiveY, positiveZ)
+import Direction3d exposing (positiveZ)
 import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
@@ -18,13 +16,12 @@ import Pixels exposing (Pixels)
 import Point2d
 import Point3d exposing (Point3d)
 import Rectangle2d
-import Scene3d exposing (Entity, backgroundColor)
+import Scene3d exposing (Entity)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
-import TrackPoint exposing (TrackPoint, convertToProfileCoordinates, pointInEarthCoordinates, trackPointNearestRay)
+import TrackPoint exposing (TrackPoint, trackPointNearestRay)
 import Vector3d
-import ViewPureStyles exposing (defaultRowLayout)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)
@@ -37,7 +34,7 @@ initialiseView track =
     -- This is just a simple default so we can see something!
     let
         profileTrack =
-            List.map convertToProfileCoordinates track
+            track
 
         ( zoom, centralPoint ) =
             profileZoomLevelFromBoundingBox profileTrack
@@ -184,7 +181,7 @@ update msg view now =
         ImageDoubleClick event ->
             case detectHit view event of
                 Just tp ->
-                    ( { view | focalPoint = convertToProfileCoordinates tp |> .xyz }
+                    ( { view | focalPoint = tp.profileXZ }
                     , PointerMove tp
                     )
 

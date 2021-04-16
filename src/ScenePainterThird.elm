@@ -150,10 +150,6 @@ update msg view now =
                     ( view, ImageOnly )
 
         ImageRelease _ ->
-            let
-                _ =
-                    Debug.log "Release" True
-            in
             ( { view | orbiting = Nothing }, ImageOnly )
 
         ImageMouseWheel deltaY ->

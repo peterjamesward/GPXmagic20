@@ -6,7 +6,7 @@ import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
 import Direction3d exposing (Direction3d)
 import EarthConstants exposing (metresPerDegree)
-import Length exposing (Meters)
+import Length exposing (Meters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Plane3d
@@ -20,9 +20,10 @@ type alias TrackPoint =
     -- See if we can manage with just the one system.
     -- Only use lat, lon for I/O!
     { xyz : Point3d Length.Meters LocalCoords
+    , profileXZ : Point3d Length.Meters LocalCoords
     , costMetric : Float
     , index : Int
-    , distanceFromStart : Quantity Float Length.Meters
+    , distanceFromStart : Quantity Float Meters
     , beforeDirection : Maybe (Direction3d LocalCoords)
     , afterDirection : Maybe (Direction3d LocalCoords)
     , effectiveDirection : Maybe (Direction3d LocalCoords)
@@ -43,9 +44,10 @@ trackPointFromGPX lon lat ele =
                 )
     in
     { xyz = location
+    , profileXZ = location -- Fix when we traverse the track.
     , costMetric = 0.0
     , index = 0
-    , distanceFromStart = Quantity.zero
+    , distanceFromStart = meters 0.0
     , beforeDirection = Nothing
     , afterDirection = Nothing
     , effectiveDirection = Nothing
@@ -129,6 +131,8 @@ prepareTrackPoints trackPoints =
                         penultimateSpan =
                             Point3d.distanceFrom previous.xyz penultimate.xyz
 
+                        distanceFromStart = Quantity.plus lastDistance penultimateSpan
+
                         penultimatePoint =
                             { penultimate
                                 | index = nextIdx
@@ -144,7 +148,8 @@ prepareTrackPoints trackPoints =
                                         Triangle3d.area <|
                                             Triangle3d.fromVertices
                                                 ( previous.xyz, penultimate.xyz, last.xyz )
-                                , distanceFromStart = Quantity.plus lastDistance penultimateSpan
+                                , distanceFromStart = distanceFromStart
+                                , profileXZ = adjustProfileXZ penultimate.xyz distanceFromStart
                             }
 
                         lastSpan =
@@ -178,6 +183,8 @@ prepareTrackPoints trackPoints =
                         span =
                             Point3d.distanceFrom previous.xyz point.xyz
 
+                        distanceFromStart = Quantity.plus lastDistance span
+
                         updatedPoint =
                             { point
                                 | index = nextIdx
@@ -193,7 +200,8 @@ prepareTrackPoints trackPoints =
                                         Triangle3d.area <|
                                             Triangle3d.fromVertices
                                                 ( previous.xyz, point.xyz, next.xyz )
-                                , distanceFromStart = Quantity.plus lastDistance span
+                                , distanceFromStart = distanceFromStart
+                                , profileXZ = adjustProfileXZ point.xyz distanceFromStart
                             }
                     in
                     helper
@@ -239,15 +247,12 @@ meanBearing direction1 direction2 =
     Direction3d.rotateAround Axis3d.z halfAngle direction1
 
 
-convertToProfileCoordinates : TrackPoint -> TrackPoint
-convertToProfileCoordinates point =
-    { point
-        | xyz =
+adjustProfileXZ : Point3d Meters LocalCoords -> Quantity Float Meters -> Point3d Meters LocalCoords
+adjustProfileXZ point distanceFromStart =
             Point3d.xyz
-                point.distanceFromStart
-                (Point3d.yCoordinate point.xyz)
-                (Point3d.zCoordinate point.xyz)
-    }
+                distanceFromStart
+                Quantity.zero
+                (Point3d.zCoordinate point)
 
 
 trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
