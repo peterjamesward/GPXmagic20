@@ -17,8 +17,3 @@ type alias Track =
     , graph : Maybe Graph
     }
 
-
-trackPointNearestRay : Track -> Axis3d Meters LocalCoords -> Maybe TrackPoint
-trackPointNearestRay track ray =
-    track.track
-        |> List.Extra.minimumBy (Length.inMeters << distanceFromAxis ray << .xyz)

@@ -79,15 +79,14 @@ mapOverPanes contextUpdate panes =
 
 resetAllViews :
     List TrackPoint
-    -> (Axis3d Length.Meters LocalCoords -> Maybe TrackPoint)
     -> ViewPane
     -> ViewPane
-resetAllViews track searcher pane =
+resetAllViews track pane =
     { pane
-        | thirdPersonContext = ScenePainterThird.initialiseView track searcher
-        , firstPersonContext = ScenePainterThird.initialiseView track searcher
-        , planContext = ScenePainterPlan.initialiseView track searcher
-        , profileContext = ScenePainterProfile.initialiseView track searcher
+        | thirdPersonContext = ScenePainterThird.initialiseView track
+        , firstPersonContext = ScenePainterThird.initialiseView track
+        , planContext = ScenePainterPlan.initialiseView track
+        , profileContext = ScenePainterProfile.initialiseView track
     }
 
 

@@ -15,8 +15,10 @@ import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
+import SketchPlane3d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, convertToProfileCoordinates)
+import Utils exposing (gradientColourPastel)
 import Vector3d
 
 
@@ -47,22 +49,25 @@ renderTrack context track =
         --simpleSelectiveDetail context track
     in
     --(Maybe.map showGraphNodes track.graph |> Maybe.withDefault []) ++
-    List.concat <|
-        List.map2
-            paintSurfaceBetween
-            reducedTrack
-            (List.drop 1 reducedTrack)
+    List.map2
+        paintCurtainBetween
+        reducedTrack
+        (List.drop 1 reducedTrack)
 
 
-convertToProfileCoordinates : TrackPoint -> TrackPoint
-convertToProfileCoordinates point =
-    { point
-        | xyz =
-            Point3d.xyz
-                point.distanceFromStart
-                (Point3d.yCoordinate point.xyz)
-                Quantity.zero
-    }
+paintCurtainBetween : TrackPoint -> TrackPoint -> Entity LocalCoords
+paintCurtainBetween pt1 pt2 =
+    let
+        gradient =
+            Direction3d.from pt1.xyz pt2.xyz
+                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
+                |> Maybe.withDefault Quantity.zero
+    in
+    Scene3d.quad (Material.color <| gradientColourPastel gradient)
+        pt1.xyz
+        pt2.xyz
+        (Point3d.projectOnto Plane3d.xy pt2.xyz)
+        (Point3d.projectOnto Plane3d.xy pt1.xyz)
 
 
 renderMarkers : Track -> Scene

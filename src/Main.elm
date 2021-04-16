@@ -20,7 +20,8 @@ import SceneBuilderProfile
 import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
 import Task
 import Time
-import Track exposing (Track, trackPointNearestRay)
+import Track exposing (Track)
+import TrackPoint exposing (trackPointNearestRay)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
@@ -239,7 +240,7 @@ processGpxLoaded content model =
                     , { defaultViewPane | paneId = 3, visible = False }
                     ]
                         |> List.map
-                            (ViewPane.resetAllViews isTrack.track (trackPointNearestRay isTrack))
+                            (ViewPane.resetAllViews isTrack.track)
 
                 Nothing ->
                     []
@@ -407,7 +408,7 @@ repaintTrack model =
 
 refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
 refreshSceneSearcher track context =
-    { context | sceneSearcher = trackPointNearestRay track }
+    { context | sceneSearcher = trackPointNearestRay track.track }
 
 
 view : Model -> Browser.Document Msg

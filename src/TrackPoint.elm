@@ -237,3 +237,20 @@ meanBearing direction1 direction2 =
             turnAngle |> Angle.inRadians |> (*) 0.5 |> Angle.radians
     in
     Direction3d.rotateAround Axis3d.z halfAngle direction1
+
+
+convertToProfileCoordinates : TrackPoint -> TrackPoint
+convertToProfileCoordinates point =
+    { point
+        | xyz =
+            Point3d.xyz
+                point.distanceFromStart
+                (Point3d.yCoordinate point.xyz)
+                (Point3d.zCoordinate point.xyz)
+    }
+
+
+trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
+trackPointNearestRay track ray =
+    track
+        |> List.Extra.minimumBy (Length.inMeters << distanceFromAxis ray << .xyz)

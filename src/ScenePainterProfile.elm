@@ -4,13 +4,15 @@ module ScenePainterProfile exposing (..)
 
 import Angle exposing (Angle, inDegrees)
 import Axis3d exposing (Axis3d)
+import BoundingBox3d
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (negativeZ, positiveY, positiveZ)
-import EarthConstants exposing (metresPerPixel)
+import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import Length
+import Length exposing (inMeters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point2d
@@ -20,7 +22,7 @@ import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
-import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackPoint exposing (TrackPoint, convertToProfileCoordinates, pointInEarthCoordinates, trackPointNearestRay)
 import Vector3d
 import ViewPureStyles exposing (defaultRowLayout)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
@@ -30,21 +32,55 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 initialiseView :
     List TrackPoint
-    -> (Axis3d Length.Meters LocalCoords -> Maybe TrackPoint)
     -> ViewingContext
-initialiseView track searcher =
+initialiseView track =
     -- This is just a simple default so we can see something!
     let
+        profileTrack =
+            List.map convertToProfileCoordinates track
+
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox track
+            profileZoomLevelFromBoundingBox profileTrack
     in
     { defaultViewingContext
         | focalPoint = centralPoint
-        , sceneSearcher = searcher
+        , sceneSearcher = trackPointNearestRay profileTrack
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewProfile
     }
+
+
+profileZoomLevelFromBoundingBox : List TrackPoint -> ( Float, Point3d Length.Meters LocalCoords )
+profileZoomLevelFromBoundingBox points =
+    let
+        lastPoint =
+            points
+                |> List.Extra.last
+                |> Maybe.map .xyz
+                |> Maybe.withDefault Point3d.origin
+
+        firstPoint =
+            points
+                |> List.head
+                |> Maybe.map .xyz
+                |> Maybe.withDefault Point3d.origin
+
+        midPoint =
+            Point3d.midpoint firstPoint lastPoint
+
+        width =
+            lastPoint
+                |> Point3d.xCoordinate
+                |> Length.inMeters
+
+        horizontalMetresPerPixel =
+            width / view3dWidth
+
+        zoom =
+            logBase 2 (metresPerPixelAtEquatorZoomZero / horizontalMetresPerPixel)
+    in
+    ( clamp 0.0 22.0 zoom, midPoint )
 
 
 viewScene :
@@ -72,32 +108,28 @@ viewScene context scene wrapper =
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
 deriveViewPointAndCamera view =
     let
-        ( _, latitude, _ ) =
-            pointInEarthCoordinates view.focalPoint
-
         viewpoint =
             Viewpoint3d.lookAt
-                { focalPoint = Point3d.origin
+                { focalPoint = view.focalPoint
                 , eyePoint = eyePoint
-                , upDirection = positiveY
+                , upDirection = positiveZ
                 }
 
         eyePoint =
             Point3d.translateBy
-                (Vector3d.meters 0.0 0.0 1000.0)
-                Point3d.origin
+                (Vector3d.meters 0.0 -1000.0 0.0)
+                view.focalPoint
 
         camera =
             Camera3d.orthographic
                 { viewpoint = viewpoint
                 , viewportHeight =
                     -- factor here is empirical.
-                    Length.meters <|
-                        2.0
-                            * metresPerPixel view.zoomLevel latitude
+                    Length.meters <| 500.0 * metresPerPixel view.zoomLevel 0.0
                 }
     in
     camera
+
 
 update : ImageMsg -> ViewingContext -> Time.Posix -> ( ViewingContext, PostUpdateAction )
 update msg view now =
@@ -152,7 +184,7 @@ update msg view now =
         ImageDoubleClick event ->
             case detectHit view event of
                 Just tp ->
-                    ( { view | focalPoint = tp.xyz }
+                    ( { view | focalPoint = convertToProfileCoordinates tp |> .xyz }
                     , PointerMove tp
                     )
 

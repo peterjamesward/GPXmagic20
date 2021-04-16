@@ -18,7 +18,7 @@ Position preserving. OK.
 Simple: Auto remove sharp "folds" in loaded track.
    
 > 9. Multiple viewports and views.
-> Profile
+> Profile >>WIP<<
 > Need a track position scroller!
 
 10. Bring all the edit stuff over.

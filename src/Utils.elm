@@ -1,6 +1,7 @@
 module Utils exposing (..)
 
-import Color
+import Angle exposing (Angle, inRadians)
+import Color exposing (Color)
 import Element exposing (html)
 import FeatherIcons
 import FormatNumber exposing (format)
@@ -46,8 +47,12 @@ gradientColourVivid slope =
     Color.hsl hue 1.0 0.4
 
 
-gradientColourPastel slope =
+gradientColourPastel : Angle -> Color
+gradientColourPastel angle =
     let
+        slope =
+            tan (inRadians angle) * 100.0
+
         x =
             (clamp -15.0 15.0 slope + 15.0) / 30.0
 

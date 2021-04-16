@@ -118,9 +118,6 @@ zoomLevelFromBoundingBox points =
         ( width, height, _ ) =
             BoundingBox3d.dimensions box
 
-        _ =
-            Debug.log "size" ( width, height )
-
         ( _, medianLatitude, _ ) =
             pointInEarthCoordinates <| BoundingBox3d.centerPoint box
 

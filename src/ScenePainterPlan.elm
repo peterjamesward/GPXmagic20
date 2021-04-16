@@ -20,7 +20,7 @@ import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
-import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackPoint exposing (TrackPoint, pointInEarthCoordinates, trackPointNearestRay)
 import Vector3d
 import ViewPureStyles exposing (defaultRowLayout)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
@@ -30,9 +30,8 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 initialiseView :
     List TrackPoint
-    -> (Axis3d Length.Meters LocalCoords -> Maybe TrackPoint)
     -> ViewingContext
-initialiseView track searcher =
+initialiseView track  =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
@@ -40,7 +39,7 @@ initialiseView track searcher =
     in
     { defaultViewingContext
         | focalPoint = centralPoint
-        , sceneSearcher = searcher
+        , sceneSearcher = trackPointNearestRay track
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewPlan
