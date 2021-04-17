@@ -19,6 +19,7 @@ Simple: Auto remove sharp "folds" in loaded track.
 # PROBLEM
 Turns out that elm-3d-geo prefers coordinates near the origin.
 Have patched in the Ghanian transform but need to retain base point for converting back!
+Need similar quick fix for Date Line worry.
 
 > Need a track position scroller!
 > Make pane size variable in the model (? Layout tab in accordion ?)

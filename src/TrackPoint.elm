@@ -14,7 +14,7 @@ import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import Triangle3d
-import Vector3d
+import Vector3d exposing (Vector3d)
 
 
 type alias TrackPoint =
@@ -72,11 +72,11 @@ pointInEarthCoordinates point =
     ( longitude, latitude, elevation )
 
 
-applyGhanianTransform : List TrackPoint -> List TrackPoint
+applyGhanianTransform : List TrackPoint -> ( List TrackPoint, Vector3d Meters LocalCoords )
 applyGhanianTransform points =
     case List.head points of
         Nothing ->
-            []
+            ( [], Vector3d.zero )
 
         Just base ->
             let
@@ -86,9 +86,11 @@ applyGhanianTransform points =
                         |> Vector3d.from Point3d.origin
                         |> Vector3d.reverse
             in
-            List.map
+            ( List.map
                 (\p -> { p | xyz = Point3d.translateBy toOrigin p.xyz })
                 points
+            , toOrigin
+            )
 
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint

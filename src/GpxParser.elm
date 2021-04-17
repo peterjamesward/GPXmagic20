@@ -64,8 +64,10 @@ parseTrackPoints xml =
             trkpts
                 |> List.map trackPoint
                 |> List.filterMap identity
-                |> applyGhanianTransform
-                |> prepareTrackPoints
+
+        (centredPoints, transform) =
+                -- Move to near (0,0) to maintain precision in geometry -> clip space
+                applyGhanianTransform trackPoints
     in
     case trackPoints of
         [] ->
@@ -74,8 +76,9 @@ parseTrackPoints xml =
         n1 :: _ ->
             Just
                 { trackName = parseTrackName xml
-                , track = trackPoints
+                , track = prepareTrackPoints centredPoints
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
+                , transform = transform
                 }
