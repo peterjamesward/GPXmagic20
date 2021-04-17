@@ -106,6 +106,7 @@ prepareTrackPoints trackPoints =
                             | index = 0
                             , costMetric = 10 ^ 10 -- i.e. do not remove me!
                             , afterDirection = trackPointBearing firstPoint secondPoint
+                            , profileXZ = adjustProfileXZ firstPoint.xyz (meters 0.0)
                           }
                         ]
                         1
@@ -116,7 +117,8 @@ prepareTrackPoints trackPoints =
                     []
 
         egregiousDirectionChangesRemoved =
-            -- Recurse (once) if there are any suspicious backward hops in the track.
+            -- Recurse (should only be needed once)
+            -- if there are any suspicious backward hops in the track.
             if List.Extra.find egregiousDirectionChange processedPoints /= Nothing then
                 processedPoints
                     |> List.filter (not << egregiousDirectionChange)
@@ -184,6 +186,10 @@ prepareTrackPoints trackPoints =
                                 , costMetric = 10 ^ 10
                                 , beforeDirection = beforeDirection
                                 , distanceFromStart = Quantity.plus lastDistance lastSpan
+                                , profileXZ =
+                                    adjustProfileXZ
+                                        last.xyz
+                                        (Quantity.plus distanceFromStart lastSpan)
                             }
                     in
                     helper
@@ -260,7 +266,8 @@ changeInBearing before after =
 
 meanBearing : Direction3d LocalCoords -> Direction3d LocalCoords -> Direction3d LocalCoords
 meanBearing direction1 direction2 =
-    -- I think we find the angle of turn, and halve it.
+    -- I think we find the angle of turn, and halve it, rather than average the values.
+    -- This is robust for angles > pi/2.
     let
         turnAngle =
             Direction3d.angleFrom direction1 direction2
@@ -273,13 +280,9 @@ meanBearing direction1 direction2 =
 
 adjustProfileXZ : Point3d Meters LocalCoords -> Quantity Float Meters -> Point3d Meters LocalCoords
 adjustProfileXZ point distanceFromStart =
+    -- For the profile view, we essentially project onto the XZ plane.
     Point3d.xyz
         distanceFromStart
         Quantity.zero
         (Point3d.zCoordinate point)
 
-
-trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
-trackPointNearestRay track ray =
-    track
-        |> List.Extra.minimumBy (Length.inMeters << distanceFromAxis ray << .xyz)

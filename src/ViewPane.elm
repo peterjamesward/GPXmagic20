@@ -12,11 +12,12 @@ import Length
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import SceneBuilder exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
+import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), trackPointNearestRay)
 import ScenePainterPlan
 import ScenePainterProfile
 import ScenePainterThird
 import Time
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
 import ViewingContext exposing (ViewingContext, newViewingContext)
@@ -90,6 +91,27 @@ resetAllViews track pane =
     }
 
 
+refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
+refreshSceneSearcher track context =
+    -- We refresh this if the track changes; the closure makes
+    -- the latest version of Track available for searching.
+    case context.viewingMode of
+        ViewThirdPerson ->
+            { context | sceneSearcher = trackPointNearestRay track.track }
+
+        ViewFirstPerson ->
+            { context | sceneSearcher = trackPointNearestRay track.track }
+
+        ViewProfile ->
+            { context | sceneSearcher = ScenePainterProfile.profilePointNearestRay track.track }
+
+        ViewPlan ->
+            { context | sceneSearcher = trackPointNearestRay track.track }
+
+        ViewMap ->
+            context
+
+
 getActiveContext : ViewPane -> ViewingContext
 getActiveContext pane =
     case pane.activeContext of
@@ -157,16 +179,16 @@ radioButton label state =
             text label
 
 
-view : (Scene, Scene) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
-view (scene, profile) wrapper pane =
+view : ( Scene, Scene ) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
+view ( scene, profile ) wrapper pane =
     if pane.visible then
-        column [ paddingEach {top = 5, bottom = 5, left = 0, right = 0} ]
+        column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
             [ row [ width fill ]
                 [ el [ alignLeft ] <| viewModeChoices pane wrapper
                 , viewAddAndRemove pane wrapper
                 ]
             , viewScene
-                (scene, [] ) -- profile)
+                ( scene, profile )
                 (imageMessageWrapper pane.paneId >> wrapper)
                 (getActiveContext pane)
             ]
@@ -175,8 +197,8 @@ view (scene, profile) wrapper pane =
         none
 
 
-viewScene : (Scene, Scene) -> (ImageMsg -> msg) -> ViewingContext -> Element msg
-viewScene (scene, profile) wrapper context =
+viewScene : ( Scene, Scene ) -> (ImageMsg -> msg) -> ViewingContext -> Element msg
+viewScene ( scene, profile ) wrapper context =
     case context.viewingMode of
         ViewThirdPerson ->
             ScenePainterThird.viewScene context scene wrapper
@@ -259,7 +281,7 @@ update msg panes now =
                         ViewProfile ->
                             let
                                 ( newContext, action ) =
-                                    ScenePainterPlan.update imageMsg pane.profileContext now
+                                    ScenePainterProfile.update imageMsg pane.profileContext now
                             in
                             ( Just { pane | profileContext = newContext }, action )
 

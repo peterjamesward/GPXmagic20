@@ -21,7 +21,7 @@ import Scene3d exposing (Entity, backgroundColor)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
-import TrackPoint exposing (TrackPoint, pointInEarthCoordinates, trackPointNearestRay)
+import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import ViewPureStyles exposing (defaultRowLayout)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))

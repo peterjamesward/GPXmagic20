@@ -1,5 +1,6 @@
 module ScenePainterCommon exposing (..)
 
+import Axis3d exposing (Axis3d)
 import BoundingBox3d
 import ColourPalette exposing (white)
 import EarthConstants exposing (metresPerPixelAtEquatorZoomZero)
@@ -13,9 +14,10 @@ import Html.Events as HE
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
 import Json.Decode as D
-import Length exposing (inMeters)
+import Length exposing (Meters, inMeters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
-import Point3d exposing (Point3d)
+import Point3d exposing (Point3d, distanceFromAxis)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (useIcon)
 
@@ -26,7 +28,6 @@ view3dHeight =
 
 view3dWidth =
     860
-
 
 
 type ImageMsg
@@ -50,7 +51,6 @@ type
     = ImageOnly
     | PointerMove TrackPoint
     | ImageNoOp
-
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
@@ -135,3 +135,9 @@ zoomLevelFromBoundingBox points =
     in
     ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )
 
+
+trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
+trackPointNearestRay track ray =
+    track
+        |> List.Extra.minimumBy
+            (Length.inMeters << distanceFromAxis ray << .xyz)

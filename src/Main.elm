@@ -4,7 +4,6 @@ import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, 
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import DeletePoints exposing (Action(..), viewDeleteTools)
-import Dict exposing (Dict)
 import Element as E exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
@@ -21,12 +20,10 @@ import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), view3dWidth)
 import Task
 import Time
 import Track exposing (Track)
-import TrackPoint exposing (applyGhanianTransform, prepareTrackPoints, trackPointNearestRay)
 import Url exposing (Url)
-import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane, refreshSceneSearcher)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 import ViewingContext exposing (ViewingContext)
-import ViewingMode exposing (ViewingMode(..))
 
 
 type Msg
@@ -407,10 +404,6 @@ repaintTrack model =
         Nothing ->
             model
 
-
-refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
-refreshSceneSearcher track context =
-    { context | sceneSearcher = trackPointNearestRay track.track }
 
 
 view : Model -> Browser.Document Msg

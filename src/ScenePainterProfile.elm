@@ -2,25 +2,25 @@ module ScenePainterProfile exposing (..)
 
 -- This is our PROFILE view screen painter.
 
-import Angle exposing (Angle)
+import Axis3d exposing (Axis3d)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (positiveZ)
 import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import Length exposing (inMeters)
+import Length exposing (Meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point2d
-import Point3d exposing (Point3d)
+import Point3d exposing (Point3d, distanceFromAxis)
 import Rectangle2d
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
-import TrackPoint exposing (TrackPoint, trackPointNearestRay)
+import TrackPoint exposing (TrackPoint)
 import Vector3d
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
@@ -41,7 +41,7 @@ initialiseView track =
     in
     { defaultViewingContext
         | focalPoint = centralPoint
-        , sceneSearcher = trackPointNearestRay profileTrack
+        , sceneSearcher = profilePointNearestRay track
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewProfile
@@ -54,13 +54,13 @@ profileZoomLevelFromBoundingBox points =
         lastPoint =
             points
                 |> List.Extra.last
-                |> Maybe.map .xyz
+                |> Maybe.map .profileXZ
                 |> Maybe.withDefault Point3d.origin
 
         firstPoint =
             points
                 |> List.head
-                |> Maybe.map .xyz
+                |> Maybe.map .profileXZ
                 |> Maybe.withDefault Point3d.origin
 
         midPoint =
@@ -203,9 +203,7 @@ update msg view now =
 
         ImageReset ->
             ( { view
-                | azimuth = Angle.degrees -90.0
-                , elevation = Angle.degrees 90.0
-                , zoomLevel = view.defaultZoomLevel
+                | zoomLevel = view.defaultZoomLevel
               }
             , ImageOnly
             )
@@ -235,3 +233,11 @@ detectHit context event =
             Camera3d.ray camera screenRectangle screenPoint
     in
     context.sceneSearcher ray
+
+
+profilePointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
+profilePointNearestRay track ray =
+    -- Probably an easier way than this sledgehammer. But.
+    track
+        |> List.Extra.minimumBy
+            (Length.inMeters << distanceFromAxis ray << .profileXZ)

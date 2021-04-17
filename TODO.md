@@ -11,18 +11,16 @@ Position preserving. OK.
 8. New controls layout? No - folk will complain.
 ? Zoom + | - overlay on view instead of scroll bar (as per Map).
 Simple: Auto remove sharp "folds" in loaded track.
-
-# TODO 
-
-> 9. Multiple viewports and views.
-
-# PROBLEM
+9. Multiple viewports and views.
 Turns out that elm-3d-geo prefers coordinates near the origin.
 Have patched in the Ghanian transform but need to retain base point for converting back!
-Need similar quick fix for Date Line worry.
 
+# TODO
+
+> Need quick fix for Date Line worry.
 > Need a track position scroller!
-> Make pane size variable in the model (? Layout tab in accordion ?)
+> Make pane size variable in the model (? Layout tab in accordion; pass in contexts ?)
+> Popup explanatory text.
 
 10. Bring all the edit stuff over.
 11. Map integration. (leaves the nasty JS stuff to the end!)

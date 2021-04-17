@@ -78,7 +78,7 @@ renderMarkers track =
                 Cone3d.startingAt
                     (Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 10.1)
-                        point.xyz
+                        point.profileXZ
                     )
                     negativeZ
                     { radius = meters <| 3.0
@@ -91,7 +91,7 @@ renderMarkers track =
                 Cone3d.startingAt
                     (Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 10.1)
-                        point.xyz
+                        point.profileXZ
                     )
                     negativeZ
                     { radius = meters <| 3.5
@@ -111,10 +111,10 @@ paintSurfaceBetween pt1 pt2 =
 paintSomethingBetween width material pt1 pt2 =
     let
         roadAsSegment =
-            LineSegment3d.from pt1.xyz pt2.xyz
+            LineSegment3d.from pt1.profileXZ pt2.profileXZ
 
         halfWidth =
-            Vector3d.from pt1.xyz pt2.xyz
+            Vector3d.from pt1.profileXZ pt2.profileXZ
                 |> Vector3d.projectOnto Plane3d.xy
                 |> Vector3d.scaleTo width
 
