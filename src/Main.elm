@@ -16,12 +16,12 @@ import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import SceneBuilderProfile
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), view3dWidth)
+import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
 import Task
 import Time
 import Track exposing (Track)
 import Url exposing (Url)
-import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane, refreshSceneSearcher)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 import ViewingContext exposing (ViewingContext)
 
@@ -233,10 +233,9 @@ processGpxLoaded content model =
             case track of
                 Just isTrack ->
                     [ defaultViewPane
-
-                    --, { defaultViewPane | paneId = 1 }
-                    --, { defaultViewPane | paneId = 2, visible = False }
-                    --, { defaultViewPane | paneId = 3, visible = False }
+                    , { defaultViewPane | paneId = 1, visible = False }
+                    , { defaultViewPane | paneId = 2, visible = False }
+                    , { defaultViewPane | paneId = 3, visible = False }
                     ]
                         |> List.map
                             (ViewPane.resetAllViews isTrack.track)
@@ -298,6 +297,16 @@ processViewPaneMessage innerMsg model track =
 
         ImageNoOp ->
             updatedModel
+
+        PaneEnlarge ->
+            { updatedModel
+                | viewPanes = ViewPane.mapOverPanes enlargePane updatedModel.viewPanes
+            }
+
+        PaneDiminish ->
+            { updatedModel
+                | viewPanes = ViewPane.mapOverPanes diminishPane updatedModel.viewPanes
+            }
 
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model
@@ -405,7 +414,6 @@ repaintTrack model =
             model
 
 
-
 view : Model -> Browser.Document Msg
 view model =
     { title = "GPXmagic 2.0"
@@ -430,12 +438,12 @@ view model =
                 , row (width fill :: defaultRowLayout) <|
                     case model.track of
                         Just isTrack ->
-                            [ el [ alignTop, width (dependsOnVisibleViews model.viewPanes) ] <|
+                            [ el [ width fill,  alignTop ] <|
                                 viewAllPanes
                                     model.viewPanes
                                     ( model.completeScene, model.profileScene )
                                     viewPaneMessageWrapper
-                            , el [ alignTop, width <| fillPortion 400 ] <|
+                            , el [ alignTop ] <|
                                 column defaultColumnLayout
                                     [ markerButton isTrack markerMessageWrapper
                                     , undoRedoButtons model
@@ -452,18 +460,9 @@ view model =
     }
 
 
-dependsOnVisibleViews : List ViewPane -> E.Length
-dependsOnVisibleViews panes =
-    if List.Extra.count .visible panes > 1 then
-        fillPortion <| 2 * view3dWidth
-
-    else
-        fillPortion view3dWidth
-
-
 viewAllPanes : List ViewPane -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
 viewAllPanes panes ( scene, profile ) wrapper =
-    wrappedRow [] <|
+    wrappedRow [width fill ] <|
         List.map
             (ViewPane.view ( scene, profile ) wrapper)
             panes

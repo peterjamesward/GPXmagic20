@@ -1,6 +1,5 @@
 module ViewPane exposing (..)
 
-import Axis3d exposing (Axis3d)
 import ColourPalette exposing (radioButtonDefault, radioButtonSelected, radioButtonText)
 import Element exposing (..)
 import Element.Background as Background
@@ -8,9 +7,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
-import Length
 import List.Extra
-import LocalCoords exposing (LocalCoords)
+import Pixels exposing (Pixels, pixels)
+import Quantity exposing (Quantity)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), trackPointNearestRay)
 import ScenePainterPlan
@@ -32,6 +31,7 @@ type alias ViewPane =
     , firstPersonContext : ViewingContext
     , planContext : ViewingContext
     , profileContext : ViewingContext
+    , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
     }
 
 
@@ -43,6 +43,7 @@ defaultViewPane =
     , firstPersonContext = newViewingContext ViewFirstPerson
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
+    , viewPixels = ( pixels 800, pixels 600 )
     }
 
 
@@ -78,16 +79,44 @@ mapOverPanes contextUpdate panes =
             )
 
 
+enlargePane : ViewingContext -> ViewingContext
+enlargePane context =
+    let
+        ( width, height ) =
+            context.size
+    in
+    { context
+        | size =
+            ( width |> Quantity.plus (pixels 80)
+            , height |> Quantity.plus (pixels 60)
+            )
+    }
+
+
+diminishPane : ViewingContext -> ViewingContext
+diminishPane context =
+    let
+        ( width, height ) =
+            context.size
+    in
+    { context
+        | size =
+            ( width |> Quantity.minus (pixels 80)
+            , height |> Quantity.minus (pixels 60)
+            )
+    }
+
+
 resetAllViews :
     List TrackPoint
     -> ViewPane
     -> ViewPane
 resetAllViews track pane =
     { pane
-        | thirdPersonContext = ScenePainterThird.initialiseView track
-        , firstPersonContext = ScenePainterThird.initialiseView track
-        , planContext = ScenePainterPlan.initialiseView track
-        , profileContext = ScenePainterProfile.initialiseView track
+        | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
+        , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
+        , planContext = ScenePainterPlan.initialiseView pane.viewPixels track
+        , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track
     }
 
 
@@ -136,6 +165,8 @@ type ViewPaneMessage
     | ImageMessage Int ScenePainterCommon.ImageMsg
     | AddPane
     | RemovePane Int
+    | EnlargePanes
+    | DiminishPanes
 
 
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
@@ -224,7 +255,25 @@ viewAddAndRemove pane wrap =
         , alignRight
         , moveLeft 50
         ]
-        [ button
+        [ if pane.paneId == 0 then
+            button
+                []
+                { onPress = Just <| wrap EnlargePanes
+                , label = useIcon FeatherIcons.maximize2
+                }
+
+          else
+            none
+        , if pane.paneId == 0 then
+            button
+                []
+                { onPress = Just <| wrap DiminishPanes
+                , label = useIcon FeatherIcons.minimize2
+                }
+
+          else
+            none
+        , button
             []
             { onPress = Just <| wrap AddPane
             , label = useIcon FeatherIcons.copy
@@ -315,3 +364,13 @@ update msg panes now =
                     Maybe.map (\pane -> { pane | visible = False }) currentPane
             in
             ( paneHidden, ImageNoOp )
+
+        EnlargePanes ->
+            ( Nothing
+            , PaneEnlarge
+            )
+
+        DiminishPanes ->
+            ( Nothing
+            , PaneDiminish
+            )

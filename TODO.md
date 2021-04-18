@@ -17,13 +17,12 @@ Have patched in the Ghanian transform but need to retain base point for converti
 
 # TODO
 
-> Need quick fix for Date Line worry.
 > Need a track position scroller!
-> Make pane size variable in the model (? Layout tab in accordion; pass in contexts ?)
-> Popup explanatory text.
+> Popup explanatory text for accordion.
+> Need quick fix for Date Line worry.
 
-10. Bring all the edit stuff over.
-11. Map integration. (leaves the nasty JS stuff to the end!)
+10. Map integration. (check with variable size panes!)
+11. Bring all the edit stuff over.
 12. OAuth integration. (could we not use a popup to avoid losing state?)
 
 # BACKLOG, being enhancements ...

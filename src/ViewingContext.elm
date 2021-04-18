@@ -4,6 +4,7 @@ import Angle exposing (Angle)
 import Axis3d exposing (Axis3d)
 import Length
 import LocalCoords exposing (LocalCoords)
+import Pixels exposing (Pixels, pixels)
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Time
@@ -25,6 +26,7 @@ type alias ViewingContext =
     , mouseDownTime : Time.Posix
     , viewingMode : ViewingMode
     , contextId : Int -- ( 0 = Plan, 1 = First Person, 2 = Profile, 3 = Third person)
+    , size : (Quantity Int Pixels, Quantity Int Pixels)
     }
 
 
@@ -42,6 +44,7 @@ defaultViewingContext =
     , mouseDownTime = Time.millisToPosix 0
     , viewingMode = ViewPlan
     , contextId = 0
+    , size = (pixels 800, pixels 600)
     }
 
 

@@ -17,17 +17,11 @@ import Json.Decode as D
 import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Pixels exposing (Pixels, inPixels)
 import Point3d exposing (Point3d, distanceFromAxis)
+import Quantity exposing (Quantity)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (useIcon)
-
-
-view3dHeight =
-    580
-
-
-view3dWidth =
-    860
 
 
 type ImageMsg
@@ -51,6 +45,8 @@ type
     = ImageOnly
     | PointerMove TrackPoint
     | ImageNoOp
+    | PaneEnlarge
+    | PaneDiminish
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
@@ -108,8 +104,11 @@ onContextMenu msg =
         |> htmlAttribute
 
 
-zoomLevelFromBoundingBox : List TrackPoint -> ( Float, Point3d Length.Meters LocalCoords )
-zoomLevelFromBoundingBox points =
+zoomLevelFromBoundingBox :
+    ( Quantity Int Pixels, Quantity Int Pixels )
+    -> List TrackPoint
+    -> ( Float, Point3d Length.Meters LocalCoords )
+zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
     let
         box =
             BoundingBox3d.hullOfN .xyz points
@@ -122,10 +121,10 @@ zoomLevelFromBoundingBox points =
             pointInEarthCoordinates <| BoundingBox3d.centerPoint box
 
         horizontalMetresPerPixel =
-            inMeters width / view3dWidth
+            inMeters width / (toFloat <| inPixels view3dWidth)
 
         verticalMetresPerPixel =
-            inMeters height / view3dHeight
+            inMeters height / (toFloat <| inPixels view3dHeight)
 
         desiredMetresPerPixel =
             1.5 * max horizontalMetresPerPixel verticalMetresPerPixel

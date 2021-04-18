@@ -12,9 +12,10 @@ import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import Length exposing (Meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
-import Pixels exposing (Pixels)
+import Pixels exposing (Pixels, inPixels)
 import Point2d
 import Point3d exposing (Point3d, distanceFromAxis)
+import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (Scene)
@@ -28,16 +29,17 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 
 initialiseView :
-    List TrackPoint
+    (Quantity Int Pixels, Quantity Int Pixels)
+    -> List TrackPoint
     -> ViewingContext
-initialiseView track =
+initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         profileTrack =
             track
 
         ( zoom, centralPoint ) =
-            profileZoomLevelFromBoundingBox profileTrack
+            profileZoomLevelFromBoundingBox viewSize profileTrack
     in
     { defaultViewingContext
         | focalPoint = centralPoint
@@ -48,8 +50,9 @@ initialiseView track =
     }
 
 
-profileZoomLevelFromBoundingBox : List TrackPoint -> ( Float, Point3d Length.Meters LocalCoords )
-profileZoomLevelFromBoundingBox points =
+profileZoomLevelFromBoundingBox : (Quantity Int Pixels, Quantity Int Pixels)
+    -> List TrackPoint -> ( Float, Point3d Length.Meters LocalCoords )
+profileZoomLevelFromBoundingBox (viewWidth, viewHeight) points =
     let
         lastPoint =
             points
@@ -72,7 +75,7 @@ profileZoomLevelFromBoundingBox points =
                 |> Length.inMeters
 
         horizontalMetresPerPixel =
-            width / view3dWidth
+            width / (toFloat <| inPixels viewWidth)
 
         zoom =
             logBase 2 (metresPerPixelAtEquatorZoomZero / horizontalMetresPerPixel)
@@ -93,7 +96,7 @@ viewScene context scene wrapper =
             html <|
                 Scene3d.unlit
                     { camera = deriveViewPointAndCamera context
-                    , dimensions = ( Pixels.pixels view3dWidth, Pixels.pixels view3dHeight )
+                    , dimensions = context.size
                     , background = Scene3d.backgroundColor Color.lightCharcoal
                     , clipDepth = Length.meters 1
                     , entities = scene
@@ -218,13 +221,13 @@ detectHit context event =
         screenPoint =
             Point2d.pixels x y
 
+        ( w, h ) = context.size
+        ( wFloat, hFloat) = (toFloatQuantity w, toFloatQuantity h)
+
         screenRectangle =
-            Rectangle2d.with
-                { x1 = Pixels.pixels 0
-                , y1 = Pixels.pixels view3dHeight
-                , x2 = Pixels.pixels view3dWidth
-                , y2 = Pixels.pixels 0
-                }
+            Rectangle2d.from
+                (Point2d.xy Quantity.zero hFloat)
+                (Point2d.xy wFloat Quantity.zero)
 
         camera =
             deriveViewPointAndCamera context
