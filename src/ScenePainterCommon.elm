@@ -37,18 +37,6 @@ type ImageMsg
     | ImageReset
 
 
-type
-    PostUpdateAction
-    -- This experimental pattern for returning information back to
-    -- main about what needs to follow, since we can't know about the
-    -- program at large, only our small part.
-    = ImageOnly
-    | PointerMove TrackPoint
-    | ImageNoOp
-    | PaneEnlarge
-    | PaneDiminish
-
-
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
 withMouseCapture wrap =
     [ htmlAttribute <| Mouse.onDown (ImageGrab >> wrap)

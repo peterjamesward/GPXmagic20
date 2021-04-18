@@ -9,6 +9,7 @@ import Direction3d exposing (positiveZ)
 import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
+import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import Length exposing (Meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)

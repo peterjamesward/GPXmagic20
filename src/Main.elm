@@ -11,19 +11,17 @@ import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
-import List.Extra
+import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import SceneBuilderProfile
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..))
 import Task
 import Time
 import Track exposing (Track)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
-import ViewingContext exposing (ViewingContext)
 
 
 type Msg
@@ -298,14 +296,9 @@ processViewPaneMessage innerMsg model track =
         ImageNoOp ->
             updatedModel
 
-        PaneEnlarge ->
+        MapOverContexts f ->
             { updatedModel
-                | viewPanes = ViewPane.mapOverPanes enlargePane updatedModel.viewPanes
-            }
-
-        PaneDiminish ->
-            { updatedModel
-                | viewPanes = ViewPane.mapOverPanes diminishPane updatedModel.viewPanes
+                | viewPanes = ViewPane.mapOverContexts f updatedModel.viewPanes
             }
 
 
@@ -407,7 +400,7 @@ repaintTrack model =
                 | staticScene = updatedScene
                 , visibleMarkers = updatedMarkers
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
-                , viewPanes = ViewPane.mapOverPanes (refreshSceneSearcher isTrack) model.viewPanes
+                , viewPanes = ViewPane.mapOverContexts (refreshSceneSearcher isTrack) model.viewPanes
             }
 
         Nothing ->

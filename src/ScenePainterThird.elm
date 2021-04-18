@@ -4,18 +4,17 @@ module ScenePainterThird exposing (..)
 -- Build others for profile, plan, first person, and factor out common bits.
 
 import Angle exposing (Angle, inDegrees)
-import Axis3d exposing (Axis3d)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (negativeZ, positiveZ)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
+import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point2d
-import Point3d exposing (Point3d)
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene3d exposing (Entity, backgroundColor)
@@ -23,7 +22,6 @@ import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
-import ViewPureStyles exposing (defaultRowLayout)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)

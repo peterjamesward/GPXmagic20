@@ -2,14 +2,14 @@ module ScenePainterPlan exposing (..)
 
 -- This is our PLAN view screen painter.
 
-import Angle exposing (Angle, inDegrees)
-import Axis3d exposing (Axis3d)
+import Angle exposing (Angle)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (negativeZ, positiveY, positiveZ)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
+import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)

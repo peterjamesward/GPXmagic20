@@ -7,11 +7,12 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import List.Extra
 import Pixels exposing (Pixels, pixels)
 import Quantity exposing (Quantity)
 import SceneBuilder exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg, PostUpdateAction(..), trackPointNearestRay)
+import ScenePainterCommon exposing (ImageMsg, trackPointNearestRay)
 import ScenePainterPlan
 import ScenePainterProfile
 import ScenePainterThird
@@ -23,6 +24,17 @@ import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
 
+type ViewPaneMessage
+    = ChooseViewMode Int ViewingMode
+    | ImageMessage Int ScenePainterCommon.ImageMsg
+    | AddPane
+    | RemovePane Int
+    | EnlargePanes
+    | DiminishPanes
+    | LinkPanes
+    | UnlinkPanes
+
+
 type alias ViewPane =
     { paneId : Int
     , visible : Bool
@@ -32,6 +44,7 @@ type alias ViewPane =
     , planContext : ViewingContext
     , profileContext : ViewingContext
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
+    , panesLinked : Bool
     }
 
 
@@ -44,6 +57,7 @@ defaultViewPane =
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
     , viewPixels = ( pixels 800, pixels 600 )
+    , panesLinked = True
     }
 
 
@@ -65,8 +79,13 @@ updateViewPanes pane panes =
             panes
 
 
-mapOverPanes : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
-mapOverPanes contextUpdate panes =
+mapOverPanes : (ViewPane -> ViewPane) -> List ViewPane -> List ViewPane
+mapOverPanes f panes =
+    List.map f panes
+
+
+mapOverContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
+mapOverContexts contextUpdate panes =
     panes
         |> List.map
             (\pane ->
@@ -160,15 +179,6 @@ getActiveContext pane =
             pane.planContext
 
 
-type ViewPaneMessage
-    = ChooseViewMode Int ViewingMode
-    | ImageMessage Int ScenePainterCommon.ImageMsg
-    | AddPane
-    | RemovePane Int
-    | EnlargePanes
-    | DiminishPanes
-
-
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
 imageMessageWrapper paneId m =
     ImageMessage paneId m
@@ -216,7 +226,7 @@ view ( scene, profile ) wrapper pane =
         column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
             [ row [ width fill ]
                 [ el [ alignLeft ] <| viewModeChoices pane wrapper
-                , viewAddAndRemove pane wrapper
+                , viewPaneControls pane wrapper
                 ]
             , viewScene
                 ( scene, profile )
@@ -248,46 +258,46 @@ fallbackScenePainter _ _ _ =
     text "Any day now!"
 
 
-viewAddAndRemove : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
-viewAddAndRemove pane wrap =
-    row
-        [ spacing 10
-        , alignRight
-        , moveLeft 50
-        ]
-        [ if pane.paneId == 0 then
+viewPaneControls : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
+viewPaneControls pane wrap =
+    let
+        makeButton cmd icon =
             button
                 []
-                { onPress = Just <| wrap EnlargePanes
-                , label = useIcon FeatherIcons.maximize2
+                { onPress = Just <| wrap cmd
+                , label = useIcon icon
                 }
 
-          else
-            none
-        , if pane.paneId == 0 then
-            button
-                []
-                { onPress = Just <| wrap DiminishPanes
-                , label = useIcon FeatherIcons.minimize2
-                }
+        enlargeButton =
+            makeButton EnlargePanes FeatherIcons.maximize2
 
-          else
-            none
-        , button
-            []
-            { onPress = Just <| wrap AddPane
-            , label = useIcon FeatherIcons.copy
-            }
-        , if pane.paneId > 0 then
-            button
-                []
-                { onPress = Just <| wrap (RemovePane pane.paneId)
-                , label = useIcon FeatherIcons.xSquare
-                }
+        diminishButton =
+            makeButton DiminishPanes FeatherIcons.minimize2
 
-          else
-            none
-        ]
+        addButton =
+            makeButton AddPane FeatherIcons.copy
+
+        removeButton id =
+            makeButton (RemovePane id) FeatherIcons.xSquare
+
+        linkButton =
+            if pane.panesLinked then
+                makeButton UnlinkPanes FeatherIcons.unlock
+
+            else
+                makeButton LinkPanes FeatherIcons.lock
+    in
+    row [ spacing 10, alignRight, moveLeft 50 ] <|
+        if pane.paneId == 0 then
+            [ linkButton
+            , enlargeButton
+            , diminishButton
+            , addButton
+            ]
+
+        else
+            [ removeButton pane.paneId
+            ]
 
 
 update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, PostUpdateAction )
@@ -367,10 +377,13 @@ update msg panes now =
 
         EnlargePanes ->
             ( Nothing
-            , PaneEnlarge
+            , MapOverContexts enlargePane
             )
 
         DiminishPanes ->
             ( Nothing
-            , PaneDiminish
+            , MapOverContexts diminishPane
             )
+
+        _ ->
+            ( Nothing, ImageNoOp )
