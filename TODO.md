@@ -19,15 +19,12 @@ Have patched in the Ghanian transform but need to retain base point for converti
 
 > Need a track position scroller!
 > Popup explanatory text for accordion.
-> Need quick fix for Date Line worry.
 
 10. Map integration. (check with variable size panes!)
 11. Bring all the edit stuff over.
 12. OAuth integration. (could we not use a popup to avoid losing state?)
 
 # BACKLOG, being enhancements ...
-
-Popup explanatory text.
 
 DSL for navigating the graph ("tulips" for directions?)
 

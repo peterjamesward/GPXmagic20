@@ -438,12 +438,16 @@ view model =
                 , row (width fill :: defaultRowLayout) <|
                     case model.track of
                         Just isTrack ->
-                            [ el [ width fill,  alignTop ] <|
+                            [ el [ width fill, alignTop ] <|
                                 viewAllPanes
                                     model.viewPanes
                                     ( model.completeScene, model.profileScene )
                                     viewPaneMessageWrapper
-                            , el [ alignTop ] <|
+                            , el
+                                [ alignTop
+                                , width <| maximum 400 <| minimum 300 <| fill
+                                ]
+                              <|
                                 column defaultColumnLayout
                                     [ markerButton isTrack markerMessageWrapper
                                     , undoRedoButtons model
@@ -462,7 +466,7 @@ view model =
 
 viewAllPanes : List ViewPane -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
 viewAllPanes panes ( scene, profile ) wrapper =
-    wrappedRow [width fill ] <|
+    wrappedRow [ width fill ] <|
         List.map
             (ViewPane.view ( scene, profile ) wrapper)
             panes
