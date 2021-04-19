@@ -31,8 +31,13 @@ type ViewPaneMessage
     | RemovePane Int
     | EnlargePanes
     | DiminishPanes
-    | LinkPanes
-    | UnlinkPanes
+    | LinkPane Int Bool
+
+
+type ViewPaneAction
+    = ApplyToAllPanes (ViewPane -> ViewPane)
+    | ImageAction ImagePostUpdateActions.PostUpdateAction
+    | PaneNoOp
 
 
 type alias ViewPane =
@@ -44,10 +49,11 @@ type alias ViewPane =
     , planContext : ViewingContext
     , profileContext : ViewingContext
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
-    , panesLinked : Bool
+    , paneLinked : Bool
     }
 
 
+defaultViewPane : ViewPane
 defaultViewPane =
     { paneId = 0
     , visible = True
@@ -57,7 +63,7 @@ defaultViewPane =
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
     , viewPixels = ( pixels 800, pixels 600 )
-    , panesLinked = True
+    , paneLinked = True
     }
 
 
@@ -98,31 +104,49 @@ mapOverContexts contextUpdate panes =
             )
 
 
-enlargePane : ViewingContext -> ViewingContext
-enlargePane context =
+enlargePane : ViewPane -> ViewPane
+enlargePane pane =
     let
-        ( width, height ) =
-            context.size
+        enlargeContext context =
+            let
+                ( width, height ) =
+                    context.size
+            in
+            { context
+                | size =
+                    ( width |> Quantity.plus (pixels 80)
+                    , height |> Quantity.plus (pixels 60)
+                    )
+            }
     in
-    { context
-        | size =
-            ( width |> Quantity.plus (pixels 80)
-            , height |> Quantity.plus (pixels 60)
-            )
+    { pane
+        | thirdPersonContext = enlargeContext pane.thirdPersonContext
+        , firstPersonContext = enlargeContext pane.firstPersonContext
+        , planContext = enlargeContext pane.planContext
+        , profileContext = enlargeContext pane.profileContext
     }
 
 
-diminishPane : ViewingContext -> ViewingContext
-diminishPane context =
+diminishPane : ViewPane -> ViewPane
+diminishPane pane =
     let
-        ( width, height ) =
-            context.size
+        diminishContext context =
+            let
+                ( width, height ) =
+                    context.size
+            in
+            { context
+                | size =
+                    ( width |> Quantity.minus (pixels 80)
+                    , height |> Quantity.minus (pixels 60)
+                    )
+            }
     in
-    { context
-        | size =
-            ( width |> Quantity.minus (pixels 80)
-            , height |> Quantity.minus (pixels 60)
-            )
+    { pane
+        | thirdPersonContext = diminishContext pane.thirdPersonContext
+        , firstPersonContext = diminishContext pane.firstPersonContext
+        , planContext = diminishContext pane.planContext
+        , profileContext = diminishContext pane.profileContext
     }
 
 
@@ -280,27 +304,28 @@ viewPaneControls pane wrap =
         removeButton id =
             makeButton (RemovePane id) FeatherIcons.xSquare
 
-        linkButton =
-            if pane.panesLinked then
-                makeButton UnlinkPanes FeatherIcons.unlock
+        linkButton id =
+            if pane.paneLinked then
+                makeButton (LinkPane id False) FeatherIcons.lock
 
             else
-                makeButton LinkPanes FeatherIcons.lock
+                makeButton (LinkPane id True) FeatherIcons.unlock
     in
     row [ spacing 10, alignRight, moveLeft 50 ] <|
         if pane.paneId == 0 then
-            [ linkButton
+            [ linkButton pane.paneId
             , enlargeButton
             , diminishButton
             , addButton
             ]
 
         else
-            [ removeButton pane.paneId
+            [ linkButton pane.paneId
+            , removeButton pane.paneId
             ]
 
 
-update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, PostUpdateAction )
+update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, ViewPaneAction )
 update msg panes now =
     case msg of
         ChooseViewMode paneId mode ->
@@ -310,10 +335,10 @@ update msg panes now =
             in
             case currentPane of
                 Just pane ->
-                    ( Just { pane | activeContext = mode }, ImageNoOp )
+                    ( Just { pane | activeContext = mode }, PaneNoOp )
 
                 Nothing ->
-                    ( Nothing, ImageNoOp )
+                    ( Nothing, PaneNoOp )
 
         ImageMessage paneId imageMsg ->
             let
@@ -328,27 +353,33 @@ update msg panes now =
                                 ( newContext, action ) =
                                     ScenePainterThird.update imageMsg pane.thirdPersonContext now
                             in
-                            ( Just { pane | thirdPersonContext = newContext }, action )
+                            ( Just { pane | thirdPersonContext = newContext }
+                            , ImageAction action
+                            )
 
                         ViewPlan ->
                             let
                                 ( newContext, action ) =
                                     ScenePainterPlan.update imageMsg pane.planContext now
                             in
-                            ( Just { pane | planContext = newContext }, action )
+                            ( Just { pane | planContext = newContext }
+                            , ImageAction action
+                            )
 
                         ViewProfile ->
                             let
                                 ( newContext, action ) =
                                     ScenePainterProfile.update imageMsg pane.profileContext now
                             in
-                            ( Just { pane | profileContext = newContext }, action )
+                            ( Just { pane | profileContext = newContext }
+                            , ImageAction action
+                            )
 
                         _ ->
-                            ( Just pane, ImageNoOp )
+                            ( Just pane, PaneNoOp )
 
                 Nothing ->
-                    ( Nothing, ImageNoOp )
+                    ( Nothing, PaneNoOp )
 
         AddPane ->
             -- Make visible first non-visible pane
@@ -359,7 +390,7 @@ update msg panes now =
                 paneMadeVisible =
                     Maybe.map (\pane -> { pane | visible = True }) firstHiddenPane
             in
-            ( paneMadeVisible, ImageNoOp )
+            ( paneMadeVisible, PaneNoOp )
 
         RemovePane id ->
             let
@@ -373,17 +404,41 @@ update msg panes now =
                 paneHidden =
                     Maybe.map (\pane -> { pane | visible = False }) currentPane
             in
-            ( paneHidden, ImageNoOp )
+            ( paneHidden, PaneNoOp )
 
         EnlargePanes ->
             ( Nothing
-            , MapOverContexts enlargePane
+            , ApplyToAllPanes enlargePane
             )
 
         DiminishPanes ->
             ( Nothing
-            , MapOverContexts diminishPane
+            , ApplyToAllPanes diminishPane
             )
 
-        _ ->
-            ( Nothing, ImageNoOp )
+        LinkPane id isLinked ->
+            let
+                currentPane =
+                    if id > 0 then
+                        List.Extra.getAt id panes
+
+                    else
+                        Nothing
+
+                paneLinked =
+                    Maybe.map (\pane -> { pane | paneLinked = isLinked }) currentPane
+            in
+            ( paneLinked, PaneNoOp )
+
+updatePointerInLinkedPanes : TrackPoint -> ViewPane -> ViewPane
+updatePointerInLinkedPanes tp pane =
+    if pane.paneLinked then
+        { pane
+            | thirdPersonContext = ScenePainterCommon.changeFocusTo tp pane.thirdPersonContext
+            , firstPersonContext = ScenePainterCommon.changeFocusTo tp pane.firstPersonContext
+            , planContext = ScenePainterCommon.changeFocusTo tp pane.planContext
+            , profileContext = ScenePainterProfile.changeFocusTo tp pane.profileContext
+        }
+
+    else
+        pane

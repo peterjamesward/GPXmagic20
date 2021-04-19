@@ -22,6 +22,7 @@ import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (useIcon)
+import ViewingContext exposing (ViewingContext)
 
 
 type ImageMsg
@@ -128,3 +129,8 @@ trackPointNearestRay track ray =
     track
         |> List.Extra.minimumBy
             (Length.inMeters << distanceFromAxis ray << .xyz)
+
+
+changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
+changeFocusTo tp context =
+    { context | focalPoint = tp.xyz }

@@ -20,7 +20,7 @@ import Task
 import Time
 import Track exposing (Track)
 import Url exposing (Url)
-import ViewPane as ViewPane exposing (ViewPane, ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
 
 
@@ -266,10 +266,10 @@ processViewPaneMessage innerMsg model track =
             { model | viewPanes = updatedViewPanes }
     in
     case postUpdateAction of
-        ImageOnly ->
+        ViewPane.ImageAction ImageOnly ->
             updatedModel
 
-        PointerMove tp ->
+        ViewPane.ImageAction (PointerMove tp) ->
             let
                 updatedTrack =
                     { track | currentNode = tp }
@@ -291,15 +291,19 @@ processViewPaneMessage innerMsg model track =
                 , staticScene = updatedScene
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                 , visibleMarkers = updatedMarkers
+                , viewPanes = ViewPane.mapOverPanes
+                    (updatePointerInLinkedPanes tp)
+                    updatedModel.viewPanes
             }
 
-        ImageNoOp ->
+        ViewPane.ImageAction ImageNoOp ->
             updatedModel
 
-        MapOverContexts f ->
-            { updatedModel
-                | viewPanes = ViewPane.mapOverContexts f updatedModel.viewPanes
-            }
+        ViewPane.ApplyToAllPanes f ->
+            { updatedModel | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes }
+
+        ViewPane.PaneNoOp ->
+            updatedModel
 
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model

@@ -30,7 +30,7 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 
 initialiseView :
-    (Quantity Int Pixels, Quantity Int Pixels)
+    ( Quantity Int Pixels, Quantity Int Pixels )
     -> List TrackPoint
     -> ViewingContext
 initialiseView viewSize track =
@@ -51,9 +51,11 @@ initialiseView viewSize track =
     }
 
 
-profileZoomLevelFromBoundingBox : (Quantity Int Pixels, Quantity Int Pixels)
-    -> List TrackPoint -> ( Float, Point3d Length.Meters LocalCoords )
-profileZoomLevelFromBoundingBox (viewWidth, viewHeight) points =
+profileZoomLevelFromBoundingBox :
+    ( Quantity Int Pixels, Quantity Int Pixels )
+    -> List TrackPoint
+    -> ( Float, Point3d Length.Meters LocalCoords )
+profileZoomLevelFromBoundingBox ( viewWidth, viewHeight ) points =
     let
         lastPoint =
             points
@@ -222,8 +224,11 @@ detectHit context event =
         screenPoint =
             Point2d.pixels x y
 
-        ( w, h ) = context.size
-        ( wFloat, hFloat) = (toFloatQuantity w, toFloatQuantity h)
+        ( w, h ) =
+            context.size
+
+        ( wFloat, hFloat ) =
+            ( toFloatQuantity w, toFloatQuantity h )
 
         screenRectangle =
             Rectangle2d.from
@@ -245,3 +250,8 @@ profilePointNearestRay track ray =
     track
         |> List.Extra.minimumBy
             (Length.inMeters << distanceFromAxis ray << .profileXZ)
+
+
+changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
+changeFocusTo tp context =
+    { context | focalPoint = tp.profileXZ }

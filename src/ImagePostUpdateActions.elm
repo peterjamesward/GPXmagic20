@@ -1,7 +1,6 @@
 module ImagePostUpdateActions exposing (..)
 
 import TrackPoint exposing (TrackPoint)
-import ViewingContext exposing (ViewingContext)
 
 
 type
@@ -12,4 +11,3 @@ type
     = ImageOnly
     | PointerMove TrackPoint
     | ImageNoOp
-    | MapOverContexts (ViewingContext -> ViewingContext)
