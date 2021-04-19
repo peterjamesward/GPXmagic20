@@ -14,12 +14,12 @@ Simple: Auto remove sharp "folds" in loaded track.
 9. Multiple viewports and views.
 Turns out that elm-3d-geo prefers coordinates near the origin.
 Have patched in the Ghanian transform but need to retain base point for converting back!
+Synchronize window focal points (Display option?)
 
 # TODO
 
 > Need a track position scroller!
 > Popup explanatory text for accordion.
-> Synchronize window focal points (Display option?)
 
 10. Map integration. (check with variable size panes!)
 11. Bring all the edit stuff over.
