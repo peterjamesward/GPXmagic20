@@ -10,4 +10,5 @@ type
     -- program at large, only our small part.
     = ImageOnly
     | PointerMove TrackPoint
+    | FocusMove TrackPoint
     | ImageNoOp

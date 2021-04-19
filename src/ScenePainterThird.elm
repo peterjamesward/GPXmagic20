@@ -180,7 +180,7 @@ update msg view now =
                         | focalPoint = tp.xyz
                         , orbiting = Nothing
                       }
-                    , PointerMove tp
+                    , FocusMove tp
                     )
 
                 Nothing ->

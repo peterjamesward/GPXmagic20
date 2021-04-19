@@ -151,7 +151,7 @@ update msg view now =
             case detectHit view event of
                 Just tp ->
                     ( { view | focalPoint = tp.xyz }
-                    , PointerMove tp
+                    , FocusMove tp
                     )
 
                 Nothing ->

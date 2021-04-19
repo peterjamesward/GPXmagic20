@@ -19,6 +19,7 @@ import SceneBuilderProfile
 import Task
 import Time
 import Track exposing (Track)
+import TrackPoint exposing (TrackPoint)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
@@ -264,12 +265,9 @@ processViewPaneMessage innerMsg model track =
 
         updatedModel =
             { model | viewPanes = updatedViewPanes }
-    in
-    case postUpdateAction of
-        ViewPane.ImageAction ImageOnly ->
-            updatedModel
 
-        ViewPane.ImageAction (PointerMove tp) ->
+        movePointer : TrackPoint  -> Model
+        movePointer tp =
             let
                 updatedTrack =
                     { track | currentNode = tp }
@@ -291,9 +289,23 @@ processViewPaneMessage innerMsg model track =
                 , staticScene = updatedScene
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                 , visibleMarkers = updatedMarkers
-                , viewPanes = ViewPane.mapOverPanes
+            }
+    in
+    case postUpdateAction of
+        ViewPane.ImageAction ImageOnly ->
+            updatedModel
+
+        ViewPane.ImageAction (PointerMove tp) ->
+            movePointer tp
+
+        ViewPane.ImageAction (FocusMove tp) ->
+            let
+                withMovedPointer = movePointer tp
+            in
+            { withMovedPointer
+                | viewPanes = ViewPane.mapOverPanes
                     (updatePointerInLinkedPanes tp)
-                    updatedModel.viewPanes
+                    withMovedPointer.viewPanes
             }
 
         ViewPane.ImageAction ImageNoOp ->
