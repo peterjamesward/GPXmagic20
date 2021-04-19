@@ -14,8 +14,10 @@ import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
+import OAuthTypes as O exposing (..)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import SceneBuilderProfile
+import StravaAuth exposing (getStravaToken)
 import Task
 import Time
 import Track exposing (Track)
@@ -38,6 +40,7 @@ type Msg
     | Redo
     | DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
+    | OAuthMessage OAuthMsg
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -64,13 +67,20 @@ viewPaneMessageWrapper : ViewPane.ViewPaneMessage -> Msg
 viewPaneMessageWrapper m =
     ViewPaneMessage m
 
+wrapAuthMessage : OAuthMsg -> Msg
+wrapAuthMessage msg =
+    OAuthMessage msg
 
-main : Program Int Model Msg
+
+main : Program (Maybe (List Int)) Model Msg
 main =
-    Browser.document
-        { init = init
+    -- This is the 'main' from OAuth example/
+    application
+        { init = Maybe.map StravaAuth.convertBytes >> init
         , update = update
         , subscriptions = subscriptions
+        , onUrlRequest = always (OAuthMessage NoOp)
+        , onUrlChange = always (OAuthMessage NoOp)
         , view = view
         }
 
@@ -93,11 +103,16 @@ type alias Model =
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
+    , stravaAuthentication : O.Model
     }
 
-
-init : Int -> ( Model, Cmd Msg )
-init mflags =
+init : Maybe { state : String } -> Url -> Key -> ( Model, Cmd Msg )
+init mflags origin navigationKey =
+    -- We stitch in the OAuth init stuff somehow here.
+    let
+        ( authData, authCmd ) =
+            StravaAuth.init mflags origin navigationKey wrapAuthMessage
+    in
     ( { filename = Nothing
       , time = Time.millisToPosix 0
       , zone = Time.utc
@@ -115,6 +130,7 @@ init mflags =
       , undoStack = []
       , redoStack = []
       , changeCounter = 0
+      , stravaAuthentication = authData
       }
     , Cmd.batch
         []
@@ -187,6 +203,20 @@ update msg model =
             ( Maybe.map (processDeleteMessage deleteMsg model) model.track
                 |> Maybe.withDefault model
             , Cmd.none
+            )
+
+        -- Delegate wrapped OAuthmessages. Be bowled over if this works first time. Or fiftieth.
+        -- Maybe look after to see if there is yet a token. Easy way to know.
+        OAuthMessage authMsg ->
+            let
+                ( newAuthData, authCmd ) =
+                    StravaAuth.update authMsg model.stravaAuthentication
+
+                isToken =
+                    getStravaToken newAuthData
+            in
+            ( { model | stravaAuthentication = newAuthData }
+            , Cmd.map OAuthMessage authCmd
             )
 
 

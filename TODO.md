@@ -8,7 +8,7 @@
 7. Editing with graph
 Indexing preserving. OK.
 Position preserving. OK. 
-8. New controls layout? No - folk will complain.
+8. New controls layout? No, minor refresh.
 ? Zoom + | - overlay on view instead of scroll bar (as per Map).
 Simple: Auto remove sharp "folds" in loaded track.
 9. Multiple viewports and views.
@@ -20,8 +20,10 @@ Synchronize window focal points (Display option?)
 
 > Need a track position scroller!
 > Popup explanatory text for accordion.
+> 10. Map integration. 
+      > Check with variable size panes.
+      > Try for multiple map views. 
 
-10. Map integration. (check with variable size panes!)
 11. Bring all the edit stuff over.
 12. OAuth integration. (could we not use a popup to avoid losing state?)
 

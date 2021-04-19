@@ -6,9 +6,13 @@
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
+            "andrewMacmurray/elm-delay": "4.0.0",
             "avh4/elm-color": "1.0.0",
+            "chelovek0v/bbase64": "1.0.1",
             "cuducos/elm-format-number": "8.1.4",
+            "danfishgold/base64-bytes": "1.1.0",
             "elm/browser": "1.0.2",
+            "elm/bytes": "1.0.8",
             "elm/core": "1.0.5",
             "elm/file": "1.0.5",
             "elm/html": "1.0.0",
@@ -22,6 +26,7 @@
             "elm-explorations/linear-algebra": "1.0.3",
             "elm-explorations/webgl": "1.1.2",
             "feathericons/elm-feather": "1.5.0",
+            "folkertdev/elm-sha2": "1.0.0",
             "ianmackenzie/elm-1d-parameter": "1.0.1",
             "ianmackenzie/elm-3d-camera": "3.1.0",
             "ianmackenzie/elm-3d-scene": "1.0.1",
@@ -38,11 +43,11 @@
             "smucode/elm-flat-colors": "1.0.0"
         },
         "indirect": {
-            "elm/bytes": "1.0.8",
             "elm/random": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/virtual-dom": "1.0.2",
-            "myrho/elm-round": "1.0.4"
+            "myrho/elm-round": "1.0.4",
+            "rtfeldman/elm-hex": "1.0.0"
         }
     },
     "test-dependencies": {
