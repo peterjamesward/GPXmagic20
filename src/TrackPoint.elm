@@ -6,6 +6,7 @@ import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
 import Direction3d exposing (Direction3d)
 import EarthConstants exposing (metresPerDegree)
+import Json.Encode as E
 import Length exposing (Meters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -286,3 +287,71 @@ adjustProfileXZ point distanceFromStart =
         Quantity.zero
         (Point3d.zCoordinate point)
 
+
+trackPointsToJSON : List TrackPoint -> E.Value
+trackPointsToJSON tps =
+    -- Similar but each point is a feature so it is draggable.
+    --var geojson = {
+    --    'type': 'FeatureCollection',
+    --    'features': [
+    --        {
+    --            'type': 'Feature',
+    --            'geometry': {
+    --                'type': 'Point',
+    --                'coordinates': [0, 0]
+    --            }
+    --        }
+    --    ]
+    --};
+    let
+        features =
+            List.map makeFeature tps
+
+        makeFeature tp =
+            E.object
+                [ ( "type", E.string "Feature" )
+                , ( "geometry", point tp )
+                ]
+
+        point tp =
+            E.object
+                [ ( "type", E.string "Point" )
+                , ( "coordinates", latLonPair tp )
+                ]
+
+        latLonPair tp =
+            let
+                (lon, lat, ele) = pointInEarthCoordinates tp.xyz
+            in
+            E.list E.float [ lon, lat ]
+    in
+    E.object
+        [ ( "type", E.string "FeatureCollection" )
+        , ( "features", E.list identity features )
+        ]
+
+
+trackToJSON : List TrackPoint -> E.Value
+trackToJSON tps =
+    -- JSON suitable for Mapbox API to add polyline for route.
+    let
+        geometry =
+            E.object
+                [ ( "type", E.string "LineString" )
+                , ( "coordinates", E.list identity coordinates )
+                ]
+
+        coordinates =
+            List.map latLonPair tps
+
+        latLonPair tp =
+            let
+                (lon, lat, ele) = pointInEarthCoordinates tp.xyz
+            in
+            E.list E.float [ lon, lat ]
+    in
+    E.object
+        [ ( "type", E.string "Feature" )
+        , ( "properties", E.object [] )
+        , ( "geometry", geometry )
+        ]

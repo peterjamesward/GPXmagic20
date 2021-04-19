@@ -67,6 +67,7 @@ viewPaneMessageWrapper : ViewPane.ViewPaneMessage -> Msg
 viewPaneMessageWrapper m =
     ViewPaneMessage m
 
+
 wrapAuthMessage : OAuthMsg -> Msg
 wrapAuthMessage msg =
     OAuthMessage msg
@@ -105,6 +106,7 @@ type alias Model =
     , changeCounter : Int
     , stravaAuthentication : O.Model
     }
+
 
 init : Maybe { state : String } -> Url -> Key -> ( Model, Cmd Msg )
 init mflags origin navigationKey =
@@ -296,7 +298,7 @@ processViewPaneMessage innerMsg model track =
         updatedModel =
             { model | viewPanes = updatedViewPanes }
 
-        movePointer : TrackPoint  -> Model
+        movePointer : TrackPoint -> Model
         movePointer tp =
             let
                 updatedTrack =
@@ -330,12 +332,14 @@ processViewPaneMessage innerMsg model track =
 
         ViewPane.ImageAction (FocusMove tp) ->
             let
-                withMovedPointer = movePointer tp
+                withMovedPointer =
+                    movePointer tp
             in
             { withMovedPointer
-                | viewPanes = ViewPane.mapOverPanes
-                    (updatePointerInLinkedPanes tp)
-                    withMovedPointer.viewPanes
+                | viewPanes =
+                    ViewPane.mapOverPanes
+                        (updatePointerInLinkedPanes tp)
+                        withMovedPointer.viewPanes
             }
 
         ViewPane.ImageAction ImageNoOp ->

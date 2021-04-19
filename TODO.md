@@ -20,7 +20,7 @@ Synchronize window focal points (Display option?)
 
 > Need a track position scroller!
 > Popup explanatory text for accordion.
-> 10. Map integration. 
+> 10. Map integration. May have found how to have permanent DIV for map with show/hide!
       > Check with variable size panes.
       > Try for multiple map views. 
 

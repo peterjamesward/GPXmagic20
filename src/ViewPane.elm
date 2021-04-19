@@ -7,6 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import Html.Attributes exposing (id, style)
 import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import List.Extra
 import Pixels exposing (Pixels, pixels)
@@ -220,6 +221,7 @@ viewModeChoices pane wrapper =
             [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
             , Input.optionWith ViewPlan <| radioButton "Plan"
             , Input.optionWith ViewProfile <| radioButton "Profile"
+            , Input.optionWith ViewMap <| radioButton "Map"
             ]
         }
 
@@ -252,6 +254,7 @@ view ( scene, profile ) wrapper pane =
                 [ el [ alignLeft ] <| viewModeChoices pane wrapper
                 , viewPaneControls pane wrapper
                 ]
+            , mapHolder (100,100) (imageMessageWrapper pane.paneId >> wrapper)
             , viewScene
                 ( scene, profile )
                 (imageMessageWrapper pane.paneId >> wrapper)
@@ -430,6 +433,7 @@ update msg panes now =
             in
             ( paneLinked, PaneNoOp )
 
+
 updatePointerInLinkedPanes : TrackPoint -> ViewPane -> ViewPane
 updatePointerInLinkedPanes tp pane =
     if pane.paneLinked then
@@ -442,3 +446,21 @@ updatePointerInLinkedPanes tp pane =
 
     else
         pane
+
+
+mapHolder : ( Int, Int ) -> (ImageMsg -> msg) -> Element msg
+mapHolder size wrapper =
+    let
+        ( viewWidth, viewHeight ) =
+            size
+    in
+    el
+        [ width <| px viewWidth
+        , height <| px viewHeight
+        , clip
+        , alignLeft
+        , alignTop
+        , htmlAttribute (id "map")
+        , htmlAttribute (style "display" "none")
+        ]
+        (text "HERE BE MAP")
