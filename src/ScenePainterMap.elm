@@ -12,6 +12,7 @@ import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
+import ViewPureStyles exposing (conditionallyVisible)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -52,12 +53,8 @@ viewScene context scene wrapper =
         ( viewWidth, viewHeight ) =
             context.size
     in
-    el
-        [ width <| px <| (34 + inPixels viewWidth)
-        , height <| px <| inPixels viewHeight
-        ]
-    <|
-        el
+    row [ spacing 0, padding 0 ]
+        [ el
             [ width <| px <| inPixels viewWidth
             , height <| px <| inPixels viewHeight
             , alignLeft
@@ -65,3 +62,5 @@ viewScene context scene wrapper =
             , htmlAttribute (id "map")
             ]
             (text "Ideally, there would be a map here.")
+        , conditionallyVisible False <| zoomButtons wrapper
+        ]

@@ -22,6 +22,7 @@ import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
+import ViewPureStyles exposing (conditionallyVisible)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -272,17 +273,6 @@ radioButton label state =
     <|
         el [ centerX, centerY ] <|
             text label
-
-
-conditionallyVisible : Bool -> Element msg -> Element msg
-conditionallyVisible test element =
-    -- This turns out to be the secret sauce for easier map integration.
-    -- It means we can pre-load a Mapbox map element.
-    if test then
-        el [] element
-
-    else
-        el [ htmlAttribute (style "display" "none") ] element
 
 
 view : ( Scene, Scene ) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg

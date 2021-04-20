@@ -5,10 +5,11 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Html.Attributes exposing (style)
 
 
 defaultRowLayout =
-    [ ]
+    []
 
 
 defaultColumnLayout =
@@ -31,6 +32,17 @@ prettyButtonStyles =
         [ Border.shadow { offset = ( 4, 0 ), size = 3, blur = 5, color = buttonShadow } ]
     , centerX
     ]
+
+
+conditionallyVisible : Bool -> Element msg -> Element msg
+conditionallyVisible test element =
+    -- This turns out to be the secret sauce for easier map integration.
+    -- It means we can pre-load a Mapbox map element.
+    if test then
+        el [] element
+
+    else
+        el [ htmlAttribute (style "display" "none") ] element
 
 
 commonShortHorizontalSliderStyles =
