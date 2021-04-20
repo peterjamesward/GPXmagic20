@@ -8,6 +8,7 @@ import Length
 import LocalCoords exposing (LocalCoords)
 import MapboxKey exposing (mapboxKey)
 import Point3d
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, trackPointsToJSON, trackToJSON)
 import Utils exposing (showDecimal2, showDecimal6)
 
@@ -87,19 +88,26 @@ toggleDragging state info =
             ]
 
 
-addTrackToMap : MapInfo -> Cmd msg
-addTrackToMap info =
+
+--addTrackToMap : Maybe Track -> Cmd msg
+
+addTrackToMap track  =
     -- This is to add the route as a polyline.
     -- We will separately add track points as draggable wotsits.
-    mapPort <|
-        E.object
-            [ ( "Cmd", E.string "Track" )
-            , ( "lon", E.float info.centreLon )
-            , ( "lat", E.float info.centreLat )
-            , ( "zoom", E.float info.mapZoom )
-            , ( "data", trackToJSON info.points ) -- Route as polyline
-            , ( "points", trackPointsToJSON info.points ) -- Make track points draggable
-            ]
+    case track of
+        Just isTrack ->
+            mapPort <|
+                E.object
+                    [ ( "Cmd", E.string "Track" )
+                    --, ( "lon", E.float info.centreLon )
+                    --, ( "lat", E.float info.centreLat )
+                    --, ( "zoom", E.float info.mapZoom )
+                    , ( "data", trackToJSON isTrack.track ) -- Route as polyline
+                    , ( "points", trackPointsToJSON isTrack.track ) -- Make track points draggable
+                    ]
+
+        Nothing ->
+            mapPort <| E.object []
 
 
 addMarkersToMap :

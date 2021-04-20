@@ -179,9 +179,7 @@ update msg model =
             )
 
         GpxLoaded content ->
-            ( processGpxLoaded content model
-            , Cmd.none
-            )
+            processGpxLoaded content model
 
         ViewPaneMessage innerMsg ->
             ( Maybe.map (processViewPaneMessage innerMsg model) model.track
@@ -250,7 +248,7 @@ processDeleteMessage deleteMsg model isTrack =
             model
 
 
-processGpxLoaded : String -> Model -> Model
+processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
 processGpxLoaded content model =
     let
         track =
@@ -284,7 +282,7 @@ processGpxLoaded content model =
                 Nothing ->
                     model.viewPanes
     in
-    { model
+    ( { model
         | track = track
         , staticScene = scene
         , profileScene = profile
@@ -293,7 +291,9 @@ processGpxLoaded content model =
         , completeScene = markers ++ scene
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
-    }
+      }
+    , MapController.addTrackToMap track
+    )
 
 
 processViewPaneMessage : ViewPaneMessage -> Model -> Track -> Model
