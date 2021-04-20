@@ -460,7 +460,7 @@ repaintTrack model =
                 | staticScene = updatedScene
                 , visibleMarkers = updatedMarkers
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
-                , viewPanes = ViewPane.mapOverContexts (refreshSceneSearcher isTrack) model.viewPanes
+                , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
             }
 
         Nothing ->

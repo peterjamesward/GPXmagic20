@@ -14,6 +14,7 @@ import Pixels exposing (Pixels, pixels)
 import Quantity exposing (Quantity)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, trackPointNearestRay)
+import ScenePainterMap
 import ScenePainterPlan
 import ScenePainterProfile
 import ScenePainterThird
@@ -49,6 +50,7 @@ type alias ViewPane =
     , firstPersonContext : ViewingContext
     , planContext : ViewingContext
     , profileContext : ViewingContext
+    , mapContext : ViewingContext
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
     , paneLinked : Bool
     }
@@ -63,6 +65,7 @@ defaultViewPane =
     , firstPersonContext = newViewingContext ViewFirstPerson
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
+    , mapContext = newViewingContext ViewMap
     , viewPixels = ( pixels 800, pixels 600 )
     , paneLinked = True
     }
@@ -91,18 +94,30 @@ mapOverPanes f panes =
     List.map f panes
 
 
-mapOverContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
-mapOverContexts contextUpdate panes =
+mapOverAllContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
+mapOverAllContexts f panes =
     panes
         |> List.map
             (\pane ->
                 { pane
-                    | thirdPersonContext = contextUpdate pane.thirdPersonContext
-                    , firstPersonContext = contextUpdate pane.firstPersonContext
-                    , planContext = contextUpdate pane.planContext
-                    , profileContext = contextUpdate pane.profileContext
+                    | thirdPersonContext = f pane.thirdPersonContext
+                    , firstPersonContext = f pane.firstPersonContext
+                    , planContext = f pane.planContext
+                    , profileContext = f pane.profileContext
+                    , mapContext = f pane.mapContext
                 }
             )
+
+mapOverPaneContexts : (ViewingContext -> ViewingContext) -> ViewPane -> ViewPane
+mapOverPaneContexts f pane =
+    { pane
+        | thirdPersonContext = f pane.thirdPersonContext
+        , firstPersonContext = f pane.firstPersonContext
+        , planContext = f pane.planContext
+        , profileContext = f pane.profileContext
+        , mapContext = f pane.mapContext
+    }
+
 
 
 enlargePane : ViewPane -> ViewPane
@@ -120,12 +135,7 @@ enlargePane pane =
                     )
             }
     in
-    { pane
-        | thirdPersonContext = enlargeContext pane.thirdPersonContext
-        , firstPersonContext = enlargeContext pane.firstPersonContext
-        , planContext = enlargeContext pane.planContext
-        , profileContext = enlargeContext pane.profileContext
-    }
+    pane |> mapOverPaneContexts enlargeContext
 
 
 diminishPane : ViewPane -> ViewPane
@@ -143,12 +153,7 @@ diminishPane pane =
                     )
             }
     in
-    { pane
-        | thirdPersonContext = diminishContext pane.thirdPersonContext
-        , firstPersonContext = diminishContext pane.firstPersonContext
-        , planContext = diminishContext pane.planContext
-        , profileContext = diminishContext pane.profileContext
-    }
+    pane |> mapOverPaneContexts diminishContext
 
 
 resetAllViews :
@@ -161,6 +166,7 @@ resetAllViews track pane =
         , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
         , planContext = ScenePainterPlan.initialiseView pane.viewPixels track
         , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track
+        , mapContext = ScenePainterMap.initialiseView pane.viewPixels track
     }
 
 
@@ -201,7 +207,7 @@ getActiveContext pane =
             pane.planContext
 
         ViewMap ->
-            pane.planContext
+            pane.mapContext
 
 
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
@@ -248,6 +254,8 @@ radioButton label state =
 
 conditionallyVisible : Bool -> Element msg -> Element msg
 conditionallyVisible test element =
+    -- This turns out to be the secret sauce for easier map integration.
+    -- It means we can pre-load a Mapbox map element.
     if test then
         el [] element
 
@@ -279,34 +287,11 @@ view ( scene, profile ) wrapper pane =
                     profile
                     (imageMessageWrapper pane.paneId >> wrapper)
             , conditionallyVisible (pane.activeContext == ViewMap) <|
-                mapHolder ( 100, 100 )
+                ScenePainterMap.viewScene
+                    (getActiveContext pane)
+                    profile
                     (imageMessageWrapper pane.paneId >> wrapper)
-
-            --, viewScene
-            --    ( scene, profile )
-            --    (imageMessageWrapper pane.paneId >> wrapper)
-            --    (getActiveContext pane)
             ]
-
-
-viewScene : ( Scene, Scene ) -> (ImageMsg -> msg) -> ViewingContext -> Element msg
-viewScene ( scene, profile ) wrapper context =
-    case context.viewingMode of
-        ViewThirdPerson ->
-            ScenePainterThird.viewScene context scene wrapper
-
-        ViewPlan ->
-            ScenePainterPlan.viewScene context scene wrapper
-
-        ViewProfile ->
-            ScenePainterProfile.viewScene context profile wrapper
-
-        _ ->
-            fallbackScenePainter context scene wrapper
-
-
-fallbackScenePainter _ _ _ =
-    text "Any day now!"
 
 
 viewPaneControls : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
@@ -466,24 +451,8 @@ updatePointerInLinkedPanes tp pane =
             , firstPersonContext = ScenePainterCommon.changeFocusTo tp pane.firstPersonContext
             , planContext = ScenePainterCommon.changeFocusTo tp pane.planContext
             , profileContext = ScenePainterProfile.changeFocusTo tp pane.profileContext
+            , mapContext = ScenePainterCommon.changeFocusTo tp pane.mapContext
         }
 
     else
         pane
-
-
-mapHolder : ( Int, Int ) -> (ImageMsg -> msg) -> Element msg
-mapHolder size wrapper =
-    let
-        ( viewWidth, viewHeight ) =
-            size
-    in
-    el
-        [ width <| px viewWidth
-        , height <| px viewHeight
-        , clip
-        , alignLeft
-        , alignTop
-        , htmlAttribute (id "map")
-        ]
-        (text "HERE BE MAP")

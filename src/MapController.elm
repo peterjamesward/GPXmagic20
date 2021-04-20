@@ -18,27 +18,8 @@ type MapStyle
     | MapStyleSatellite
 
 
-type MapState
-    = WaitingForNode
-    | WaitingForMapLoad
-    | MapLoaded
-    | TrackLoaded
-    | MapStopping
-    | MapStopped
-
-
-type
-    MapMessage
-    -- These will arrive through the inbound Port and update the state machine.
-    = NodeAvailable
-    | MapHasLoaded
-    | TrackHasLoaded
-    | MapHasStopped
-
-
 type alias MapInfo =
-    { mapState : MapState
-    , box : BoundingBox3d Length.Meters LocalCoords
+    { box : BoundingBox3d Length.Meters LocalCoords
     , points : List TrackPoint
     , centreLon : Float -- track values from user map interactions.
     , centreLat : Float -- track values from user map interactions.
@@ -49,12 +30,11 @@ type alias MapInfo =
 
 
 defaultMapInfo =
-    { mapState = MapLoaded
-    , box = BoundingBox3d.singleton Point3d.origin
+    { box = BoundingBox3d.singleton Point3d.origin
     , points = []
     , centreLon = 0.0
     , centreLat = 0.0
-    , mapZoom = 12.0
+    , mapZoom = 0.0
     , current = ( 0.0, 0.0 )
     , marker = Nothing
     }
@@ -156,35 +136,12 @@ addMarkersToMap current marker smoothBend nudged =
                     ]
 
 
-decodeState state =
-    text <|
-        case state of
-            WaitingForNode ->
-                "Waiting for node"
-
-            WaitingForMapLoad ->
-                "Waiting for map to load"
-
-            MapLoaded ->
-                "Map loaded"
-
-            TrackLoaded ->
-                "Track loaded"
-
-            MapStopping ->
-                "Stopping"
-
-            MapStopped ->
-                "Stopped"
-
-
 viewMapInfo : Maybe MapInfo -> Element msg
 viewMapInfo mapInfo =
     case mapInfo of
         Just info ->
             column [ padding 10, spacing 10, centerX ]
-                [ decodeState info.mapState
-                , row [ padding 10, spacing 10, centerX ]
+                [ row [ padding 10, spacing 10, centerX ]
                     [ column [ padding 10, spacing 10, centerX ]
                         [ text "Longitude "
                         , text "Latitude "
@@ -211,24 +168,6 @@ processMapMessage info json =
             decodeValue msgDecoder json
     in
     case msg of
-        Ok "no node" ->
-            Just
-                ( { info | mapState = WaitingForNode }
-                , createMap info
-                )
-
-        Ok "map ready" ->
-            Just
-                ( { info | mapState = MapLoaded }
-                , addTrackToMap info
-                )
-
-        Ok "track ready" ->
-            Just
-                ( { info | mapState = MapLoaded }
-                , addMarkersToMap info.current info.marker [] []
-                )
-
         Ok "move" ->
             -- User is dragging/zooming the map
             --( { 'msg' : 'move'

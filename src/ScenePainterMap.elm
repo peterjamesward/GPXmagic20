@@ -10,7 +10,7 @@ import Quantity exposing (Quantity)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import TrackPoint exposing (TrackPoint)
-import ViewingContext exposing (ViewingContext, newViewingContext)
+import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
 
@@ -23,15 +23,13 @@ initialiseView viewSize track =
     let
         ( zoom, centralPoint ) =
             zoomLevelFromBoundingBox viewSize track
-
-        viewContext =
-            newViewingContext ViewMap
     in
-    { viewContext
+    { defaultViewingContext
         | focalPoint = centralPoint
         , sceneSearcher = always Nothing
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
+        , viewingMode = ViewMap
     }
 
 
@@ -52,5 +50,5 @@ viewScene context scene wrapper =
         , alignTop
         , htmlAttribute (id "map")
         ]
-        (text "HERE BE MAP")
+        (text "Ideally, there would be a map here.")
 
