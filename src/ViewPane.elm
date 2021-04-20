@@ -231,6 +231,14 @@ imageMessageWrapper paneId m =
 
 viewModeChoices : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
 viewModeChoices pane wrapper =
+    let
+        fullOptionList =
+            [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
+            , Input.optionWith ViewPlan <| radioButton "Plan"
+            , Input.optionWith ViewProfile <| radioButton "Profile"
+            , Input.optionWith ViewMap <| radioButton "Map"
+            ]
+    in
     Input.radioRow
         [ Border.rounded 6 ]
         { onChange = ChooseViewMode pane.paneId >> wrapper
@@ -238,11 +246,11 @@ viewModeChoices pane wrapper =
         , label =
             Input.labelHidden "Choose view"
         , options =
-            [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
-            , Input.optionWith ViewPlan <| radioButton "Plan"
-            , Input.optionWith ViewProfile <| radioButton "Profile"
-            , Input.optionWith ViewMap <| radioButton "Map"
-            ]
+            if pane.paneId == 0 then
+                fullOptionList
+
+            else
+                List.take 3 fullOptionList
         }
 
 
@@ -347,6 +355,9 @@ viewPaneControls pane wrap =
 
         else
             [ linkButton pane.paneId
+            , enlargeButton
+            , diminishButton
+            , addButton
             , removeButton pane.paneId
             ]
 
