@@ -4,13 +4,14 @@ import BoundingBox3d exposing (BoundingBox3d)
 import Element exposing (Element, centerX, column, padding, row, spacing, text)
 import Json.Decode exposing (Decoder, decodeValue, field, float, string)
 import Json.Encode as E
-import Length
+import Length exposing (inMeters)
 import LocalCoords exposing (LocalCoords)
 import MapboxKey exposing (mapboxKey)
 import Point3d
-import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, trackPointsToJSON, trackToJSON)
+import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
+import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (showDecimal2, showDecimal6)
+import ViewingContext exposing (ViewingContext)
 
 
 type MapStyle
@@ -62,8 +63,14 @@ createMap info =
             ]
 
 
-centreMap : Float -> Float -> Cmd msg
-centreMap lon lat =
+centreMap : ViewingContext -> Track -> Cmd msg
+centreMap context track =
+    let
+        ( lon, lat, _ ) =
+            context.focalPoint
+                |> withoutGhanianTransform track
+                |> pointInEarthCoordinates
+    in
     mapPort <|
         E.object
             [ ( "Cmd", E.string "Centre" )
@@ -73,41 +80,38 @@ centreMap lon lat =
             ]
 
 
-removeMap : Cmd msg
-removeMap =
-    mapPort <| E.object [ ( "Cmd", E.string "Stop" ) ]
 
-
-toggleDragging : Bool -> MapInfo -> Cmd msg
-toggleDragging state info =
-    mapPort <|
-        E.object
-            [ ( "Cmd", E.string "Drag" )
-            , ( "Enable", E.bool state )
-            , ( "points", trackPointsToJSON info.points ) -- Make track points draggable
-            ]
-
-
-
+--toggleDragging : Bool -> MapInfo -> Cmd msg
+--toggleDragging state info =
+--    mapPort <|
+--        E.object
+--            [ ( "Cmd", E.string "Drag" )
+--            , ( "Enable", E.bool state )
+--            , ( "points", trackPointsToJSON info.points ) -- Make track points draggable
+--            ]
+--
 --addTrackToMap : Maybe Track -> Cmd msg
 
-addTrackToMap track  =
+
+addTrackToMap : ViewingContext -> Track -> Cmd msg
+addTrackToMap context track =
     -- This is to add the route as a polyline.
     -- We will separately add track points as draggable wotsits.
-    case track of
-        Just isTrack ->
-            mapPort <|
-                E.object
-                    [ ( "Cmd", E.string "Track" )
-                    --, ( "lon", E.float info.centreLon )
-                    --, ( "lat", E.float info.centreLat )
-                    --, ( "zoom", E.float info.mapZoom )
-                    , ( "data", trackToJSON isTrack.track ) -- Route as polyline
-                    , ( "points", trackPointsToJSON isTrack.track ) -- Make track points draggable
-                    ]
-
-        Nothing ->
-            mapPort <| E.object []
+    let
+        ( x, y, z ) =
+            context.focalPoint
+                |> withoutGhanianTransform track
+                |> pointInEarthCoordinates
+    in
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Track" )
+            , ( "lon", E.float x )
+            , ( "lat", E.float y )
+            , ( "zoom", E.float context.zoomLevel )
+            , ( "data", trackToJSON track ) -- Route as polyline
+            , ( "points", trackPointsToJSON track ) -- Make track points draggable
+            ]
 
 
 addMarkersToMap :
@@ -131,16 +135,18 @@ addMarkersToMap current marker smoothBend nudged =
                     [ ( "Cmd", E.string "Mark" )
                     , ( "orange", encodePos current )
                     , ( "purple", encodePos mark )
-                    , ( "bend", trackToJSON smoothBend )
-                    , ( "nudge", trackToJSON nudged )
+
+                    --, ( "bend", trackToJSON smoothBend )
+                    --, ( "nudge", trackToJSON nudged )
                     ]
 
             Nothing ->
                 E.object
                     [ ( "Cmd", E.string "Mark" )
                     , ( "orange", encodePos current )
-                    , ( "bend", trackToJSON smoothBend )
-                    , ( "nudge", trackToJSON nudged )
+
+                    --, ( "bend", trackToJSON smoothBend )
+                    --, ( "nudge", trackToJSON nudged )
                     ]
 
 

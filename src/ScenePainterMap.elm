@@ -5,10 +5,12 @@ module ScenePainterMap exposing (..)
 
 import Element exposing (..)
 import Html.Attributes exposing (id)
+import MapController
 import Pixels exposing (Pixels, inPixels)
 import Quantity exposing (Quantity)
 import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
@@ -33,6 +35,13 @@ initialiseView viewSize track =
     }
 
 
+initialiseMap : ViewingContext -> Track -> List (Cmd msg)
+initialiseMap context track =
+    [ MapController.addTrackToMap context track
+    , MapController.centreMap context track
+    ]
+
+
 viewScene :
     ViewingContext
     -> Scene
@@ -51,4 +60,3 @@ viewScene context scene wrapper =
         , htmlAttribute (id "map")
         ]
         (text "Ideally, there would be a map here.")
-

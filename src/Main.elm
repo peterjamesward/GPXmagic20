@@ -272,15 +272,14 @@ processGpxLoaded content model =
         markers =
             Maybe.map SceneBuilder.renderMarkers track |> Maybe.withDefault []
 
-        newViewPanes =
+        ( newViewPanes, mapCommands ) =
             case track of
                 Just isTrack ->
-                    model.viewPanes
-                        |> List.map
-                            (ViewPane.resetAllViews isTrack.track)
+                    List.unzip <|
+                        List.map (ViewPane.resetAllViews isTrack) model.viewPanes
 
                 Nothing ->
-                    model.viewPanes
+                    ( model.viewPanes, [] )
     in
     ( { model
         | track = track
@@ -292,7 +291,7 @@ processGpxLoaded content model =
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
       }
-    , MapController.addTrackToMap track
+    , Cmd.batch <| List.concat mapCommands
     )
 
 

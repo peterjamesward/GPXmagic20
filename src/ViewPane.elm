@@ -108,6 +108,7 @@ mapOverAllContexts f panes =
                 }
             )
 
+
 mapOverPaneContexts : (ViewingContext -> ViewingContext) -> ViewPane -> ViewPane
 mapOverPaneContexts f pane =
     { pane
@@ -117,7 +118,6 @@ mapOverPaneContexts f pane =
         , profileContext = f pane.profileContext
         , mapContext = f pane.mapContext
     }
-
 
 
 enlargePane : ViewPane -> ViewPane
@@ -157,17 +157,22 @@ diminishPane pane =
 
 
 resetAllViews :
-    List TrackPoint
+    Track
     -> ViewPane
-    -> ViewPane
+    -> ( ViewPane, List (Cmd msg) )
 resetAllViews track pane =
-    { pane
-        | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
-        , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
-        , planContext = ScenePainterPlan.initialiseView pane.viewPixels track
-        , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track
-        , mapContext = ScenePainterMap.initialiseView pane.viewPixels track
-    }
+    let
+        newPane = { pane
+                          | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
+                          , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
+                          , planContext = ScenePainterPlan.initialiseView pane.viewPixels track.track
+                          , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track.track
+                          , mapContext = ScenePainterMap.initialiseView pane.viewPixels track.track
+                        }
+    in
+    ( newPane
+    , ScenePainterMap.initialiseMap pane.mapContext track
+    )
 
 
 refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
