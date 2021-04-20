@@ -61,6 +61,6 @@ viewScene context scene wrapper =
             , alignTop
             , htmlAttribute (id "map")
             ]
-            (text "Ideally, there would be a map here.")
+            none
         , conditionallyVisible False <| zoomButtons wrapper
         ]
