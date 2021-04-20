@@ -275,8 +275,9 @@ processGpxLoaded content model =
         ( newViewPanes, mapCommands ) =
             case track of
                 Just isTrack ->
-                    List.unzip <|
-                        List.map (ViewPane.resetAllViews isTrack) model.viewPanes
+                    ( List.map (ViewPane.resetAllViews isTrack) model.viewPanes
+                    , ViewPane.makeMapCommands isTrack model.viewPanes
+                    )
 
                 Nothing ->
                     ( model.viewPanes, [] )
@@ -291,7 +292,7 @@ processGpxLoaded content model =
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
       }
-    , Cmd.batch <| List.concat mapCommands
+    , Cmd.batch mapCommands
     )
 
 

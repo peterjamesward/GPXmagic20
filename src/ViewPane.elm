@@ -159,20 +159,29 @@ diminishPane pane =
 resetAllViews :
     Track
     -> ViewPane
-    -> ( ViewPane, List (Cmd msg) )
+    -> ViewPane
 resetAllViews track pane =
     let
-        newPane = { pane
-                          | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
-                          , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
-                          , planContext = ScenePainterPlan.initialiseView pane.viewPixels track.track
-                          , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track.track
-                          , mapContext = ScenePainterMap.initialiseView pane.viewPixels track.track
-                        }
+        newPane =
+            { pane
+                | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
+                , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
+                , planContext = ScenePainterPlan.initialiseView pane.viewPixels track.track
+                , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track.track
+                , mapContext = ScenePainterMap.initialiseView pane.viewPixels track.track
+            }
     in
-    ( newPane
-    , ScenePainterMap.initialiseMap pane.mapContext track
-    )
+    newPane
+
+
+makeMapCommands : Track -> List ViewPane -> List (Cmd msg)
+makeMapCommands track viewPanes =
+    case List.head viewPanes of
+        Just pane ->
+            ScenePainterMap.initialiseMap pane.mapContext track
+
+        Nothing ->
+            []
 
 
 refreshSceneSearcher : Track -> ViewingContext -> ViewingContext

@@ -106,6 +106,7 @@ addTrackToMap context track =
     mapPort <|
         E.object
             [ ( "Cmd", E.string "Track" )
+            , ( "token", E.string mapboxKey )
             , ( "lon", E.float x )
             , ( "lat", E.float y )
             , ( "zoom", E.float context.zoomLevel )
