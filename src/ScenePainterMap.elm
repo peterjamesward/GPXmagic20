@@ -53,10 +53,15 @@ viewScene context scene wrapper =
             context.size
     in
     el
-        [ width <| px <| inPixels viewWidth
+        [ width <| px <| (34 + inPixels viewWidth)
         , height <| px <| inPixels viewHeight
-        , alignLeft
-        , alignTop
-        , htmlAttribute (id "map")
         ]
-        (text "Ideally, there would be a map here.")
+    <|
+        el
+            [ width <| px <| inPixels viewWidth
+            , height <| px <| inPixels viewHeight
+            , alignLeft
+            , alignTop
+            , htmlAttribute (id "map")
+            ]
+            (text "Ideally, there would be a map here.")
