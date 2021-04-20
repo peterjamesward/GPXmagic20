@@ -12,8 +12,11 @@ import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import ImagePostUpdateActions exposing (PostUpdateAction(..))
+import Json.Encode
+import MapController exposing (..)
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
+import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
 import SceneBuilderProfile
@@ -41,6 +44,7 @@ type Msg
     | DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
+    | MapMessage Json.Encode.Value
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -126,7 +130,12 @@ init mflags origin navigationKey =
       , nudgePreview = []
       , completeScene = []
       , renderingContext = Nothing
-      , viewPanes = []
+      , viewPanes =
+            [ defaultViewPane
+            , { defaultViewPane | paneId = 1, visible = False }
+            , { defaultViewPane | paneId = 2, visible = False }
+            , { defaultViewPane | paneId = 3, visible = False }
+            ]
       , toolsAccordion = []
       , nudgeSettings = defaultNudgeSettings
       , undoStack = []
@@ -135,7 +144,9 @@ init mflags origin navigationKey =
       , stravaAuthentication = authData
       }
     , Cmd.batch
-        []
+        [ authCmd
+        , MapController.createMap MapController.defaultMapInfo
+        ]
     )
 
 
@@ -221,6 +232,9 @@ update msg model =
             , Cmd.map OAuthMessage authCmd
             )
 
+        MapMessage _ ->
+            ( model, Cmd.none )
+
 
 processDeleteMessage : DeletePoints.Msg -> Model -> Track -> Model
 processDeleteMessage deleteMsg model isTrack =
@@ -263,16 +277,12 @@ processGpxLoaded content model =
         newViewPanes =
             case track of
                 Just isTrack ->
-                    [ defaultViewPane
-                    , { defaultViewPane | paneId = 1, visible = False }
-                    , { defaultViewPane | paneId = 2, visible = False }
-                    , { defaultViewPane | paneId = 3, visible = False }
-                    ]
+                    model.viewPanes
                         |> List.map
                             (ViewPane.resetAllViews isTrack.track)
 
                 Nothing ->
-                    []
+                    model.viewPanes
     in
     { model
         | track = track
@@ -479,29 +489,24 @@ view model =
                         }
                     ]
                 , row (width fill :: defaultRowLayout) <|
-                    case model.track of
-                        Just isTrack ->
-                            [ el [ width fill, alignTop ] <|
-                                viewAllPanes
-                                    model.viewPanes
-                                    ( model.completeScene, model.profileScene )
-                                    viewPaneMessageWrapper
-                            , el
-                                [ alignTop
-                                , width <| maximum 400 <| minimum 300 <| fill
-                                ]
-                              <|
-                                column defaultColumnLayout
-                                    [ markerButton isTrack markerMessageWrapper
-                                    , undoRedoButtons model
-                                    , accordionView
-                                        (updatedAccordion model model.toolsAccordion toolsAccordion)
-                                        AccordionMessage
-                                    ]
+                    [ el [ width fill, alignTop ] <|
+                        viewAllPanes
+                            model.viewPanes
+                            ( model.completeScene, model.profileScene )
+                            viewPaneMessageWrapper
+                    , el
+                        [ alignTop
+                        , width <| maximum 400 <| minimum 300 <| fill
+                        ]
+                      <|
+                        column defaultColumnLayout
+                            [ markerButton model.track markerMessageWrapper
+                            , undoRedoButtons model
+                            , accordionView
+                                (updatedAccordion model model.toolsAccordion toolsAccordion)
+                                AccordionMessage
                             ]
-
-                        _ ->
-                            [ none ]
+                    ]
                 ]
         ]
     }
@@ -530,7 +535,9 @@ updatedAccordion model currentAccordion referenceAccordion =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 50 Tick
+        [ MapController.messageReceiver MapMessage
+        , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+        , Time.every 50 Tick
         ]
 
 

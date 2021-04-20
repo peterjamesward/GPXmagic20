@@ -20,8 +20,8 @@ type MarkerControlsMsg
     | MarkerBackOne
 
 
-markerButton : Track -> (MarkerControlsMsg -> msg) -> Element msg
-markerButton model messageWrapper =
+markerButton : Maybe Track -> (MarkerControlsMsg -> msg) -> Element msg
+markerButton track messageWrapper =
     let
         makeButton label =
             button
@@ -31,40 +31,45 @@ markerButton model messageWrapper =
                     E.text <| label
                 }
     in
-    case model.markedNode of
-        Just markedTP ->
-            column defaultColumnLayout
-                [ row defaultRowLayout
-                    [ button
-                        prettyButtonStyles
-                        { onPress = Just <| messageWrapper MarkerBackOne
-                        , label = useIcon FeatherIcons.skipBack
-                        }
-                    , makeButton "Clear marker"
-                    , button
-                        prettyButtonStyles
-                        { onPress = Just <| messageWrapper MarkerForwardOne
-                        , label = useIcon FeatherIcons.skipForward
-                        }
-                    ]
-                , el [ centerX, centerY ] <|
-                    text <|
-                        "Orange: "
-                            ++ (showDecimal2 <| Length.inMeters model.currentNode.distanceFromStart)
-                            ++ "m. Purple: "
-                            ++ (showDecimal2 <| Length.inMeters markedTP.distanceFromStart)
-                            ++ "m."
-                ]
-
+    case track of
         Nothing ->
-            column defaultColumnLayout
-                [ makeButton "Drop marker to select a range"
-                , el [ centerX, centerY ] <|
-                    text <|
-                        "Pointer at "
-                            ++ (showDecimal2 <| Length.inMeters model.currentNode.distanceFromStart)
-                            ++ "m"
-                ]
+            none
+
+        Just isTrack ->
+            case isTrack.markedNode of
+                Just markedTP ->
+                    column defaultColumnLayout
+                        [ row defaultRowLayout
+                            [ button
+                                prettyButtonStyles
+                                { onPress = Just <| messageWrapper MarkerBackOne
+                                , label = useIcon FeatherIcons.skipBack
+                                }
+                            , makeButton "Clear marker"
+                            , button
+                                prettyButtonStyles
+                                { onPress = Just <| messageWrapper MarkerForwardOne
+                                , label = useIcon FeatherIcons.skipForward
+                                }
+                            ]
+                        , el [ centerX, centerY ] <|
+                            text <|
+                                "Orange: "
+                                    ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)
+                                    ++ "m. Purple: "
+                                    ++ (showDecimal2 <| Length.inMeters markedTP.distanceFromStart)
+                                    ++ "m."
+                        ]
+
+                Nothing ->
+                    column defaultColumnLayout
+                        [ makeButton "Drop marker to select a range"
+                        , el [ centerX, centerY ] <|
+                            text <|
+                                "Pointer at "
+                                    ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)
+                                    ++ "m"
+                        ]
 
 
 update : MarkerControlsMsg -> Track -> Track

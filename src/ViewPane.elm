@@ -246,23 +246,47 @@ radioButton label state =
             text label
 
 
+conditionallyVisible : Bool -> Element msg -> Element msg
+conditionallyVisible test element =
+    if test then
+        el [] element
+
+    else
+        el [ htmlAttribute (style "display" "none") ] element
+
+
 view : ( Scene, Scene ) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
 view ( scene, profile ) wrapper pane =
-    if pane.visible then
+    conditionallyVisible pane.visible <|
         column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
             [ row [ width fill ]
                 [ el [ alignLeft ] <| viewModeChoices pane wrapper
                 , viewPaneControls pane wrapper
                 ]
-            , mapHolder (100,100) (imageMessageWrapper pane.paneId >> wrapper)
-            , viewScene
-                ( scene, profile )
-                (imageMessageWrapper pane.paneId >> wrapper)
-                (getActiveContext pane)
-            ]
+            , conditionallyVisible (pane.activeContext == ViewThirdPerson) <|
+                ScenePainterThird.viewScene
+                    (getActiveContext pane)
+                    scene
+                    (imageMessageWrapper pane.paneId >> wrapper)
+            , conditionallyVisible (pane.activeContext == ViewPlan) <|
+                ScenePainterPlan.viewScene
+                    (getActiveContext pane)
+                    scene
+                    (imageMessageWrapper pane.paneId >> wrapper)
+            , conditionallyVisible (pane.activeContext == ViewProfile) <|
+                ScenePainterProfile.viewScene
+                    (getActiveContext pane)
+                    profile
+                    (imageMessageWrapper pane.paneId >> wrapper)
+            , conditionallyVisible (pane.activeContext == ViewMap) <|
+                mapHolder ( 100, 100 )
+                    (imageMessageWrapper pane.paneId >> wrapper)
 
-    else
-        none
+            --, viewScene
+            --    ( scene, profile )
+            --    (imageMessageWrapper pane.paneId >> wrapper)
+            --    (getActiveContext pane)
+            ]
 
 
 viewScene : ( Scene, Scene ) -> (ImageMsg -> msg) -> ViewingContext -> Element msg
@@ -461,6 +485,5 @@ mapHolder size wrapper =
         , alignLeft
         , alignTop
         , htmlAttribute (id "map")
-        , htmlAttribute (style "display" "none")
         ]
         (text "HERE BE MAP")
