@@ -57,28 +57,38 @@ zoomButtons wrap =
     column
         [ alignTop
         , moveDown 5
-        , moveLeft 50
+        , moveLeft 40
         , Background.color white
         , Font.size 40
-        , padding 10
-        , spacing 20
+        , padding 6
+        , spacing 8
         ]
-        [ button
-            []
+        [ button []
             { onPress = Just <| wrap ImageZoomIn
             , label = useIcon FeatherIcons.zoomIn
             }
-        , button
-            []
+        , button []
             { onPress = Just <| wrap ImageZoomOut
             , label = useIcon FeatherIcons.zoomOut
             }
-        , button
-            []
+        , button []
             { onPress = Just <| wrap ImageReset
             , label = useIcon FeatherIcons.maximize
             }
         ]
+
+
+dummyZoomButtons wrap =
+    column
+        [ alignTop
+        , moveDown 5
+        , moveLeft 40
+        , Background.color white
+        , Font.size 40
+        , padding 6
+        , spacing 8
+        ]
+        []
 
 
 onContextMenu : a -> Element.Attribute a

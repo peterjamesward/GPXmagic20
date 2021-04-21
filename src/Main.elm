@@ -184,7 +184,7 @@ update msg model =
         ViewPaneMessage innerMsg ->
             ( Maybe.map (processViewPaneMessage innerMsg model) model.track
                 |> Maybe.withDefault model
-            , Cmd.none
+            , refreshMap
             )
 
         GraphMessage innerMsg ->
@@ -332,35 +332,37 @@ processViewPaneMessage innerMsg model track =
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                 , visibleMarkers = updatedMarkers
             }
-    in
-    case postUpdateAction of
-        ViewPane.ImageAction ImageOnly ->
-            updatedModel
 
-        ViewPane.ImageAction (PointerMove tp) ->
-            movePointer tp
+        finalModel =
+            case postUpdateAction of
+                ViewPane.ImageAction ImageOnly ->
+                    updatedModel
 
-        ViewPane.ImageAction (FocusMove tp) ->
-            let
-                withMovedPointer =
+                ViewPane.ImageAction (PointerMove tp) ->
                     movePointer tp
-            in
-            { withMovedPointer
-                | viewPanes =
-                    ViewPane.mapOverPanes
-                        (updatePointerInLinkedPanes tp)
-                        withMovedPointer.viewPanes
-            }
 
-        ViewPane.ImageAction ImageNoOp ->
-            updatedModel
+                ViewPane.ImageAction (FocusMove tp) ->
+                    let
+                        withMovedPointer =
+                            movePointer tp
+                    in
+                    { withMovedPointer
+                        | viewPanes =
+                            ViewPane.mapOverPanes
+                                (updatePointerInLinkedPanes tp)
+                                withMovedPointer.viewPanes
+                    }
 
-        ViewPane.ApplyToAllPanes f ->
-            { updatedModel | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes }
+                ViewPane.ImageAction ImageNoOp ->
+                    updatedModel
 
-        ViewPane.PaneNoOp ->
-            updatedModel
+                ViewPane.ApplyToAllPanes f ->
+                    { updatedModel | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes }
 
+                ViewPane.PaneNoOp ->
+                    updatedModel
+    in
+    (finalModel)
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model
 processGraphMessage innerMsg model isTrack =
@@ -542,7 +544,12 @@ subscriptions model =
 
 
 toolsAccordion model =
-    [ --  { label = "Tip jar"
+    [
+      { label = "Views "
+      , state = Contracted
+      , content = ViewPane.viewPaneTools viewPaneMessageWrapper
+      }
+        --  { label = "Tip jar"
       --  , state = Contracted
       --  , content = tipJar
       --  }
@@ -558,7 +565,7 @@ toolsAccordion model =
       --  , state = Contracted
       --  , content = viewGradientFixerPane model
       --  }
-      { label = "Nudge "
+      , { label = "Nudge "
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
       }

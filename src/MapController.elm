@@ -63,6 +63,15 @@ createMap info =
             ]
 
 
+refreshMap : Cmd msg
+refreshMap =
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Repaint" )
+            , ( "token", E.string mapboxKey )
+            ]
+
+
 centreMap : ViewingContext -> Track -> Cmd msg
 centreMap context track =
     let

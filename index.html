@@ -147,6 +147,12 @@ function incomingMessageHandler(msg) {
             }
             break;
 
+        case 'Repaint':
+            if (isMapCreated) {
+                map.triggerRepaint();
+            }
+            break;
+
         case 'Track':
             if (isMapCreated) {
                 addLineToMap(msg.data, msg.points);

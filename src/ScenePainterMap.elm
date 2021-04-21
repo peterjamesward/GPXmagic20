@@ -63,5 +63,5 @@ viewScene visible context scene wrapper =
             , htmlAttribute (id "map")
             ]
             none
-        , conditionallyVisible False <| zoomButtons wrapper
+        , dummyZoomButtons wrapper
         ]

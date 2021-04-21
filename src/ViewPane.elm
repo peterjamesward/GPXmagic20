@@ -322,8 +322,8 @@ view ( scene, profile ) wrapper pane =
         none
 
 
-viewPaneControls : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
-viewPaneControls pane wrap =
+viewPaneTools : (ViewPaneMessage -> msg) -> Element msg
+viewPaneTools wrap =
     let
         makeButton cmd icon =
             button
@@ -340,6 +340,23 @@ viewPaneControls pane wrap =
 
         addButton =
             makeButton AddPane FeatherIcons.copy
+    in
+    row [ spacing 10, alignRight, moveLeft 50 ] <|
+        [ enlargeButton
+        , diminishButton
+        , addButton
+        ]
+
+
+viewPaneControls : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
+viewPaneControls pane wrap =
+    let
+        makeButton cmd icon =
+            button
+                []
+                { onPress = Just <| wrap cmd
+                , label = useIcon icon
+                }
 
         removeButton id =
             makeButton (RemovePane id) FeatherIcons.xSquare
@@ -354,16 +371,10 @@ viewPaneControls pane wrap =
     row [ spacing 10, alignRight, moveLeft 50 ] <|
         if pane.paneId == 0 then
             [ linkButton pane.paneId
-            , enlargeButton
-            , diminishButton
-            , addButton
             ]
 
         else
             [ linkButton pane.paneId
-            , enlargeButton
-            , diminishButton
-            , addButton
             , removeButton pane.paneId
             ]
 
