@@ -21,7 +21,6 @@ Popup explanatory text for accordion. (Display in Info view?)
 
 # TODO
 
-Could the Accordion scroll?
 11. Bring all the edit stuff over.
 12. OAuth integration. (Could we use a popup to avoid losing state?)
 13. Fix all the tab layouts.

@@ -175,11 +175,12 @@ view entries msgWrap =
 
         isOpen entry =
             entry.state == Expanded || entry.state == ExpandedWithInfo
+
+        ( open, closed ) =
+            List.partition isOpen entries
     in
     column accordionMenuStyles <|
-        List.map viewEntry <|
-            List.filter isOpen entries
-                ++ List.filter (not << isOpen) entries
+        List.map viewEntry (open ++ closed)
 
 
 update : Msg -> List (AccordionEntry msg) -> List (AccordionEntry msg)
