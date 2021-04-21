@@ -423,12 +423,15 @@ processTrackMessage trackMsg model isTrack =
         , visibleMarkers = updatedMarkers
         , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
         , nudgePreview = []
+        , viewPanes =
+            ViewPane.mapOverPanes
+                (updatePointerInLinkedPanes newTrack.currentNode)
+                model.viewPanes
     }
 
 
 processMarkerMessage : MarkerControls.MarkerControlsMsg -> Model -> Track -> Model
 processMarkerMessage markerMsg model isTrack =
-
     let
         newTrack =
             MarkerControls.update markerMsg isTrack
