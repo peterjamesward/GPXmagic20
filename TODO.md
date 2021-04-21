@@ -16,10 +16,10 @@ Turns out that elm-3d-geo prefers coordinates near the origin.
 Have patched in the Ghanian transform but need to retain base point for converting back!
 Synchronize window focal points (Display option?)
 10. Map integration. May have found how to have permanent DIV for map with show/hide!
+Need a track position scroller!
 
 # TODO
 
-> Need a track position scroller!
 > Popup explanatory text for accordion.
 
 11. Bring all the edit stuff over.
