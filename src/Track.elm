@@ -1,12 +1,27 @@
 module Track exposing (..)
 
+import ColourPalette exposing (scrollbarBackground)
+import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Input as Input exposing (button)
+import FeatherIcons
 import Graph exposing (Graph)
 import Json.Encode as E
 import Length exposing (Meters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import Utils exposing (scrollbarThickness, useIcon)
 import Vector3d exposing (Vector3d)
+import ViewPureStyles exposing (prettyButtonStyles)
+
+
+type Msg
+    = PositionForwardOne
+    | PositionBackOne
+    | PositionSlider Int
 
 
 type alias Track =
@@ -101,3 +116,81 @@ trackToJSON track =
         , ( "properties", E.object [] )
         , ( "geometry", geometry )
         ]
+
+
+viewTrackControls : (Msg -> msg) -> Maybe Track -> Element msg
+viewTrackControls wrap track =
+    Maybe.map (positionControls wrap) track |> Maybe.withDefault none
+
+
+positionControls : (Msg -> msg) -> Track -> Element msg
+positionControls wrap track =
+    row
+        [ spacing 5
+        , padding 5
+        , centerX
+        , centerY
+        ]
+        [ positionSlider wrap track
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrap PositionBackOne
+            , label = useIcon FeatherIcons.skipBack
+            }
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrap PositionForwardOne
+            , label = useIcon FeatherIcons.skipForward
+            }
+        ]
+
+
+positionSlider : (Msg -> msg) -> Track -> Element msg
+positionSlider wrap track =
+    Input.slider
+        [ height <| px scrollbarThickness
+        , width <| px 300
+        , centerY
+        , behindContent <|
+            -- Slider track
+            el
+                [ width <| px 300
+                , height <| px scrollbarThickness
+                , centerY
+                , centerX
+                , Background.color scrollbarBackground
+                , Border.rounded 6
+                ]
+                none
+        ]
+        { onChange = wrap << (PositionSlider << round)
+        , label =
+            Input.labelHidden "Drag slider or use arrow buttons"
+        , min = 0.0
+        , max = toFloat <| List.length track.track - 1
+        , step = Just 1
+        , value = toFloat track.currentNode.index
+        , thumb = Input.defaultThumb
+        }
+
+
+update : Msg -> Track -> Track
+update msg track =
+    let
+        safeNewNode newIndex =
+            case List.Extra.getAt newIndex track.track of
+                Just tp ->
+                    { track | currentNode = tp }
+
+                Nothing ->
+                    track
+    in
+    case msg of
+        PositionForwardOne ->
+            safeNewNode <| track.currentNode.index + 1
+
+        PositionBackOne ->
+            safeNewNode <| track.currentNode.index - 1
+
+        PositionSlider index ->
+            safeNewNode index

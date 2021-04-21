@@ -47,11 +47,17 @@ type Msg
     | OAuthMessage OAuthMsg
     | MapMessage Json.Encode.Value
     | RepaintMap
+    | TrackMessage Track.Msg
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
 markerMessageWrapper m =
     MarkerMessage m
+
+
+trackMessageWrapper : Track.Msg -> Msg
+trackMessageWrapper m =
+    TrackMessage m
 
 
 graphMessageWrapper : Graph.Msg -> Msg
@@ -238,6 +244,12 @@ update msg model =
         MapMessage _ ->
             ( model, Cmd.none )
 
+        TrackMessage trackMsg ->
+            ( Maybe.map (processTrackMessage trackMsg model) model.track
+                |> Maybe.withDefault model
+            , Cmd.none
+            )
+
 
 processDeleteMessage : DeletePoints.Msg -> Model -> Track -> Model
 processDeleteMessage deleteMsg model isTrack =
@@ -367,7 +379,8 @@ processViewPaneMessage innerMsg model track =
                 ViewPane.PaneNoOp ->
                     updatedModel
     in
-    (finalModel)
+    finalModel
+
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model
 processGraphMessage innerMsg model isTrack =
@@ -396,8 +409,26 @@ processGraphMessage innerMsg model isTrack =
             model
 
 
+processTrackMessage : Track.Msg -> Model -> Track -> Model
+processTrackMessage trackMsg model isTrack =
+    let
+        newTrack =
+            Track.update trackMsg isTrack
+
+        updatedMarkers =
+            SceneBuilder.renderMarkers newTrack
+    in
+    { model
+        | track = Just newTrack
+        , visibleMarkers = updatedMarkers
+        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
+        , nudgePreview = []
+    }
+
+
 processMarkerMessage : MarkerControls.MarkerControlsMsg -> Model -> Track -> Model
 processMarkerMessage markerMsg model isTrack =
+
     let
         newTrack =
             MarkerControls.update markerMsg isTrack
@@ -508,6 +539,7 @@ view model =
                       <|
                         column defaultColumnLayout
                             [ markerButton model.track markerMessageWrapper
+                            , Track.viewTrackControls trackMessageWrapper model.track
                             , undoRedoButtons model
                             , accordionView
                                 (updatedAccordion model model.toolsAccordion toolsAccordion)
@@ -549,28 +581,28 @@ subscriptions model =
 
 
 toolsAccordion model =
-    [
-      { label = "Views "
+    [ { label = "Views "
       , state = Contracted
       , content = ViewPane.viewPaneTools viewPaneMessageWrapper
       }
-        --  { label = "Tip jar"
-      --  , state = Contracted
-      --  , content = tipJar
-      --  }
-      --, { label = "Loop maker"
-      --  , state = Contracted
-      --  , content = viewLoopTools model
-      --  }
-      --, { label = "Smooth bend"
-      --  , state = Contracted
-      --  , content = viewBendFixerPane model
-      --  }
-      --, { label = "Smooth gradient"
-      --  , state = Contracted
-      --  , content = viewGradientFixerPane model
-      --  }
-      , { label = "Nudge "
+
+    --  { label = "Tip jar"
+    --  , state = Contracted
+    --  , content = tipJar
+    --  }
+    --, { label = "Loop maker"
+    --  , state = Contracted
+    --  , content = viewLoopTools model
+    --  }
+    --, { label = "Smooth bend"
+    --  , state = Contracted
+    --  , content = viewBendFixerPane model
+    --  }
+    --, { label = "Smooth gradient"
+    --  , state = Contracted
+    --  , content = viewGradientFixerPane model
+    --  }
+    , { label = "Nudge "
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
       }
