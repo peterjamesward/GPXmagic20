@@ -10,19 +10,10 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.2.10 update 2021-09-15
+## 2.3.0 update 2021-09-17
 
-- Quick fix to minor scaling error in 2.2.9.
-
-- Essential watching: https://youtu.be/P602MjJLrZ0
-
-- Upgrade Mapbox component to v2.4.1. Performance improvements, bug fixes. Terrain!
-
-- Scale track in __Lift & Shift__ now goes from 0.1x to 10x.
-Also indicates expected route length on button.
-
-- New feature in __Lift & Shift__ to fetch track point elevations from Mapbox elevation data source.
-This is most useful after a recentre, rotate or scale. Accuracy is unknown.
+- Experimental feature to draw a route directly onto a (new) Map.
+Please see video at https://youtu.be/XXX for explanation.
 
 ## Can I support this work?
 

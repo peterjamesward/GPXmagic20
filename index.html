@@ -157,6 +157,7 @@ function incomingMessageHandler(msg) {
         case 'Repaint':
             if (isMapCreated) {
                 map.resize();
+                sketchMap.resize();
             }
             break;
 
@@ -502,7 +503,7 @@ function sketchDataCapture() {
     const latitudes = points2d.map( p => p[1] );
     const elevations = points2d.map( p => sketchMap.queryTerrainElevation(p) );
 
-    console.log(elevations);
+    //console.log(data);
 
     app.ports.messageReceiver.send(
       { 'msg' : 'sketch'

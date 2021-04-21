@@ -723,7 +723,10 @@ update msg model =
             case model.mapSketchMode of
                 False ->
                     ( { model | mapSketchMode = True }
-                    , MapController.prepareSketchMap ( lon, lat )
+                    , Cmd.batch
+                        [ MapController.prepareSketchMap ( lon, lat )
+                        , Delay.after 500 RepaintMap
+                        ]
                     )
 
                 True ->

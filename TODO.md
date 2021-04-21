@@ -9,16 +9,6 @@ Possibly something expensive in the view hierarchy, though I think that would be
 
 # TODO
 
-Use mapbox plug-in to draw a route directly on the Map.
-https://github.com/mapbox/mapbox-gl-draw
-
-1. New GPX entry mode button
-2. Shows Map view only with no track
-3. Send command to JS to enable drawing
-4. Each new point sends list of points (with elevations) to Elm
-5. Elm builds the route
-6. Another button to finish?
-
 Plan from one route, elevation from another.
 
 Appended route elevation adjusted and contiguous.
