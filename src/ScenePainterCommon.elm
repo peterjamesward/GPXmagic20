@@ -78,19 +78,6 @@ zoomButtons wrap =
         ]
 
 
-dummyZoomButtons wrap =
-    column
-        [ alignTop
-        , moveDown 5
-        , moveLeft 40
-        , Background.color white
-        , Font.size 40
-        , padding 6
-        , spacing 8
-        ]
-        []
-
-
 onContextMenu : a -> Element.Attribute a
 onContextMenu msg =
     HE.custom "contextmenu"

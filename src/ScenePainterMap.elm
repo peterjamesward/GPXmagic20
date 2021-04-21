@@ -3,7 +3,12 @@ module ScenePainterMap exposing (..)
 -- This is our map screen painter.
 -- Works with Map Controller to talk to nasty JS stuff..
 
+import ColourPalette exposing (white)
 import Element exposing (..)
+import Element.Background as Background
+import Element.Font as Font
+import Element.Input exposing (button)
+import FeatherIcons
 import Html.Attributes exposing (id)
 import MapController
 import Pixels exposing (Pixels, inPixels)
@@ -12,7 +17,7 @@ import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import ViewPureStyles exposing (conditionallyVisible)
+import Utils exposing (useIcon)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -63,5 +68,23 @@ viewScene visible context scene wrapper =
             , htmlAttribute (id "map")
             ]
             none
-        , dummyZoomButtons wrapper
+        , handyMapControls wrapper
+        ]
+
+
+handyMapControls wrap =
+    -- Might put the "click to drag" option here.
+    column
+        [ alignTop
+        , moveDown 5
+        , moveLeft 40
+        , Background.color white
+        , Font.size 40
+        , padding 6
+        , spacing 8
+        ]
+        [ button []
+            { onPress = Just <| wrap ImageNoOpMsg
+            , label = useIcon FeatherIcons.move
+            }
         ]

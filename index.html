@@ -149,7 +149,7 @@ function incomingMessageHandler(msg) {
 
         case 'Repaint':
             if (isMapCreated) {
-                map.triggerRepaint();
+                map.resize();
             }
             break;
 
