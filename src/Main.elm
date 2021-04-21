@@ -605,7 +605,7 @@ toolsAccordion model =
     , { label = "Nudge "
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
-      , info = "XXX"
+      , info = Nudge.info
       }
 
     --, { label = "Straighten"
@@ -615,7 +615,7 @@ toolsAccordion model =
     , { label = "Delete"
       , state = Contracted
       , content = viewDeleteTools model.track deleteMessageWrapper
-      , info = "XXX"
+      , info = DeletePoints.info
       }
 
     --, { label = "Fly-through"
@@ -638,7 +638,7 @@ toolsAccordion model =
                 |> Maybe.andThen
                     (Just << viewGraphControls graphMessageWrapper)
                 |> Maybe.withDefault none
-      , info = "XXX"
+      , info = Graph.info
       }
     ]
 

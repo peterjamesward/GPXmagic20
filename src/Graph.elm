@@ -86,6 +86,23 @@ type alias Route =
     { route : List Traversal }
 
 
+info = """## Graph
+
+This is a whole new mode of working r=with routes. It divides the track
+into "Edges" (which can be traversed more than once, in either direction),
+and "Nodes" (which are where Edges join).
+
+In the process, elevation differences resulting from route planning tools
+are removed, so there is a "canonical" form for each Edge. All your future
+work will use these canonical edges, for consistent elevation.
+
+Once this is done, you can apply up to 5m horizontal separation between
+different edge traversal directions. Choose left or right to suit your
+local roads (usually).
+
+More to follow ...
+"""
+
 viewGraphControls : (Msg -> msg) -> Maybe Graph -> Element msg
 viewGraphControls wrapper graph =
     let

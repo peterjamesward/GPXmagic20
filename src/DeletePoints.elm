@@ -21,6 +21,19 @@ type Action
     | DeleteNoOp
 
 
+info = """## Delete track points
+
+Without the purple marker, the "Delete" button will delete the single track point
+at the orange marker.
+
+With the purple marker, it will delete the track points
+bwteeen and including the two markers.
+
+A straight section of track will replace the deleted section.
+
+It is not possible to delete a Graph Node.
+"""
+
 viewDeleteTools : Maybe Track -> (Msg -> msg) -> Element msg
 viewDeleteTools track msgWrapper =
     case track of

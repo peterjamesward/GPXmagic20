@@ -40,6 +40,15 @@ defaultNudgeSettings =
     , vertical = Quantity.zero
     }
 
+info = """## Nudge
+
+You can adjust a single point or a section of track by
+moving it up to 5m up or down, and left or right (relative
+to direction of travel).
+
+The view panes will show a preview as an orange line.
+The change does not take effect until you click the
+"Apply nudge" button"""
 
 makeUndoMessage : Track -> String
 makeUndoMessage track =
