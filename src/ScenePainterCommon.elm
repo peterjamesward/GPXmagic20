@@ -65,11 +65,11 @@ zoomButtons wrap =
         ]
         [ button []
             { onPress = Just <| wrap ImageZoomIn
-            , label = useIcon FeatherIcons.zoomIn
+            , label = useIcon FeatherIcons.plus
             }
         , button []
             { onPress = Just <| wrap ImageZoomOut
-            , label = useIcon FeatherIcons.zoomOut
+            , label = useIcon FeatherIcons.minus
             }
         , button []
             { onPress = Just <| wrap ImageReset

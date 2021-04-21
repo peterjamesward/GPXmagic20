@@ -21,14 +21,14 @@ Need a track position scroller!
 # TODO
 
 > Popup explanatory text for accordion.
-> Position controls centre linked views.
 
 11. Bring all the edit stuff over.
 12. OAuth integration. (could we not use a popup to avoid losing state?)
 
-# BACKLOG, being enhancements ...
+# BACKLOG, being enhancements or just finishing up ...
 
 DSL for navigating the graph ("tulips" for directions?)
+Convert from Graph is snafu'd.
 
 Working offline.
 
