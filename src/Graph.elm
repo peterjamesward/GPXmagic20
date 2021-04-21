@@ -8,7 +8,7 @@ import Angle
 import Axis3d
 import Dict exposing (Dict)
 import Direction3d
-import Element as E exposing (Element, alignTop, centerX, padding, spacing)
+import Element as E exposing (..)
 import Element.Input as I
 import Length exposing (Length, Meters, inMeters, meters)
 import List.Extra as List
@@ -86,7 +86,8 @@ type alias Route =
     { route : List Traversal }
 
 
-info = """## Graph
+info =
+    """## Graph
 
 This is a whole new mode of working r=with routes. It divides the track
 into "Edges" (which can be traversed more than once, in either direction),
@@ -102,6 +103,7 @@ local roads (usually).
 
 More to follow ...
 """
+
 
 viewGraphControls : (Msg -> msg) -> Maybe Graph -> Element msg
 viewGraphControls wrapper graph =
@@ -156,12 +158,14 @@ viewGraphControls wrapper graph =
                 , label = E.text "Apply offset"
                 }
     in
-    E.row []
-        [ E.column [ spacing 10, padding 10, centerX ]
+    E.row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+        [ E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
             [ analyseButton
-            , offsetSlider
-            , applyOffsetButton
             , finishButton
+            ]
+        , E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+            [ offsetSlider
+            , applyOffsetButton
             ]
         ]
 

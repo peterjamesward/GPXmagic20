@@ -3,7 +3,7 @@ module Nudge exposing (..)
 import Angle
 import Axis3d
 import Direction3d
-import Element exposing (Element, centerX, column, el, px, row, text, width)
+import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Graph exposing (applyIndexPreservingEditsToGraph)
 import Length exposing (Length)
@@ -40,7 +40,9 @@ defaultNudgeSettings =
     , vertical = Quantity.zero
     }
 
-info = """## Nudge
+
+info =
+    """## Nudge
 
 You can adjust a single point or a section of track by
 moving it up to 5m up or down, and left or right (relative
@@ -49,6 +51,7 @@ to direction of travel).
 The view panes will show a preview as an orange line.
 The change does not take effect until you click the
 "Apply nudge" button"""
+
 
 makeUndoMessage : Track -> String
 makeUndoMessage track =
@@ -207,14 +210,12 @@ simulateNudgeNodes track settings =
 
 viewNudgeTools : NudgeSettings -> (NudgeMsg -> msg) -> Element msg
 viewNudgeTools settings msgWrapper =
-    column defaultColumnLayout
-        [ row defaultRowLayout
-            [ verticalNudgeSlider settings.vertical msgWrapper
-            , column defaultColumnLayout
-                [ horizontalNudgeSlider settings.horizontal msgWrapper
-                , nudgeButton settings msgWrapper
-                , zeroButton msgWrapper
-                ]
+    row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+        [ verticalNudgeSlider settings.vertical msgWrapper
+        , column [ width fill, spaceEvenly, centerX, paddingXY 20 10, spacingXY 20 10 ]
+            [ horizontalNudgeSlider settings.horizontal msgWrapper
+            , nudgeButton settings msgWrapper
+            , zeroButton msgWrapper
             ]
         ]
 
@@ -225,11 +226,9 @@ horizontalNudgeSlider value wrap =
         commonShortHorizontalSliderStyles
         { onChange = Length.meters >> SetHorizontalNudgeFactor >> wrap
         , label =
-            Input.labelBelow [] <|
+            Input.labelBelow [ centerX ] <|
                 text <|
-                    "Offset = "
-                        ++ (showDecimal2 <| Length.inMeters value)
-                        ++ "m"
+                    (showDecimal2 <| Length.inMeters value)
         , min = -5.0
         , max = 5.0
         , step = Nothing
@@ -245,11 +244,10 @@ verticalNudgeSlider value wrap =
             commonShortVerticalSliderStyles
             { onChange = Length.meters >> SetVerticalNudgeFactor >> wrap
             , label =
-                Input.labelBelow [ centerX ] <|
+                Input.labelLeft [ centerY ] <|
                     text <|
-                        "Height = "
-                            ++ (showDecimal2 <| Length.inMeters value)
-                            ++ "m"
+                        showDecimal2 <|
+                            Length.inMeters value
             , min = -5.0
             , max = 5.0
             , step = Nothing
@@ -278,17 +276,19 @@ zeroButton wrap =
 
 update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track, NudgeEffects )
 update msg settings track =
-    let simulated = simulateNudgeNodes track settings
+    let
+        simulated =
+            simulateNudgeNodes track settings
     in
     case msg of
         SetHorizontalNudgeFactor length ->
-            ( { settings | horizontal = length }, track, NudgePreview simulated)
+            ( { settings | horizontal = length }, track, NudgePreview simulated )
 
         SetVerticalNudgeFactor length ->
-            ( { settings | vertical = length }, track, NudgePreview simulated)
+            ( { settings | vertical = length }, track, NudgePreview simulated )
 
         ZeroNudgeFactors ->
-            ( defaultNudgeSettings, track, NudgePreview [])
+            ( defaultNudgeSettings, track, NudgePreview [] )
 
         NudgeNode _ ->
             let

@@ -17,13 +17,13 @@ Have patched in the Ghanian transform but need to retain base point for converti
 Synchronize window focal points (Display option?)
 10. Map integration. May have found how to have permanent DIV for map with show/hide!
 Need a track position scroller!
+Popup explanatory text for accordion. (Display in Info view?)
 
 # TODO
 
-> Popup explanatory text for accordion. (Display in Info view?)
-
 11. Bring all the edit stuff over.
 12. OAuth integration. (could we not use a popup to avoid losing state?)
+13. Fix all the tab layouts.
 
 # BACKLOG, being enhancements or just finishing up ...
 

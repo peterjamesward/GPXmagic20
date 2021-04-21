@@ -24,6 +24,7 @@ import SceneBuilderProfile
 import StravaAuth exposing (getStravaToken)
 import Task
 import Time
+import TipJar
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Url exposing (Url)
@@ -586,10 +587,11 @@ toolsAccordion model =
       , info = ViewPane.info
       }
 
-    --  { label = "Tip jar"
-    --  , state = Contracted
-    --  , content = tipJar
-    --  }
+      ,{ label = "Tip jar"
+      , state = Contracted
+      , content = TipJar.tipJar
+      , info = TipJar.info
+      }
     --, { label = "Loop maker"
     --  , state = Contracted
     --  , content = viewLoopTools model
