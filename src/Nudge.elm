@@ -8,6 +8,7 @@ import Element.Input as Input exposing (button)
 import Graph exposing (applyIndexPreservingEditsToGraph)
 import Length exposing (Length)
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Point3d
 import Quantity
 import Track exposing (Track)
@@ -30,11 +31,12 @@ type NudgeEffects
 
 
 type alias NudgeSettings =
-    { horizontal : Length
-    , vertical : Length
+    { horizontal : Length.Length
+    , vertical : Length.Length
     }
 
 
+defaultNudgeSettings : NudgeSettings
 defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero

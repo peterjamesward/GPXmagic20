@@ -42,7 +42,7 @@ accordionMenuStyles =
 
 
 accordionTabStyles state =
-    [ padding 10
+    [ padding 8
     , spacing 2
     , width fill
     , Border.widthEach { left = 2, right = 0, top = 2, bottom = 2 }

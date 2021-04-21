@@ -1,7 +1,7 @@
 module ViewPureStyles exposing (..)
 
 import Color exposing (blue)
-import ColourPalette exposing (buttonBackground, buttonShadow, buttonText, scrollbarBackground)
+import ColourPalette exposing (buttonBackground, buttonShadow, buttonText, collapsedTabBorder, scrollbarBackground)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -89,3 +89,30 @@ commonShortVerticalSliderStyles =
             ]
             Element.none
     ]
+
+
+checkboxIcon : Bool -> Element msg
+checkboxIcon isChecked =
+    el
+        [ width <| px 32
+        , height <| px 32
+        , centerY
+        , padding 4
+        , Border.rounded 6
+        , Border.width 2
+        , Border.color buttonShadow
+        ]
+    <|
+        el
+            [ width fill
+            , height fill
+            , Border.rounded 4
+            , Background.color <|
+                if isChecked then
+                    buttonBackground
+
+                else
+                    collapsedTabBorder
+            ]
+        <|
+            none

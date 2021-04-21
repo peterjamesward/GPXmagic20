@@ -5,6 +5,7 @@ import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
+import DisplayOptions
 import Element as E exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
@@ -49,6 +50,7 @@ type Msg
     | MapMessage Json.Encode.Value
     | RepaintMap
     | TrackMessage Track.Msg
+    | DisplayOptionsMessage DisplayOptions.Msg
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -79,6 +81,11 @@ deleteMessageWrapper m =
 viewPaneMessageWrapper : ViewPane.ViewPaneMessage -> Msg
 viewPaneMessageWrapper m =
     ViewPaneMessage m
+
+
+displayOptionsMessageWrapper : DisplayOptions.Msg -> Msg
+displayOptionsMessageWrapper m =
+    DisplayOptionsMessage m
 
 
 wrapAuthMessage : OAuthMsg -> Msg
@@ -118,6 +125,7 @@ type alias Model =
     , redoStack : List UndoEntry
     , changeCounter : Int
     , stravaAuthentication : O.Model
+    , displayOptions : DisplayOptions.DisplayOptions
     }
 
 
@@ -139,18 +147,14 @@ init mflags origin navigationKey =
       , nudgePreview = []
       , completeScene = []
       , renderingContext = Nothing
-      , viewPanes =
-            [ defaultViewPane
-            , { defaultViewPane | paneId = 1, visible = False }
-            , { defaultViewPane | paneId = 2, visible = False }
-            , { defaultViewPane | paneId = 3, visible = False }
-            ]
+      , viewPanes = ViewPane.defaultViewPanes
       , toolsAccordion = []
       , nudgeSettings = defaultNudgeSettings
       , undoStack = []
       , redoStack = []
       , changeCounter = 0
       , stravaAuthentication = authData
+      , displayOptions = DisplayOptions.defaultDisplayOptions
       }
     , Cmd.batch
         [ authCmd
@@ -248,6 +252,11 @@ update msg model =
         TrackMessage trackMsg ->
             ( Maybe.map (processTrackMessage trackMsg model) model.track
                 |> Maybe.withDefault model
+            , Cmd.none
+            )
+
+        DisplayOptionsMessage dispMsg ->
+            ( model
             , Cmd.none
             )
 
@@ -587,11 +596,22 @@ toolsAccordion model =
       , info = ViewPane.info
       }
 
-      ,{ label = "Tip jar"
+    -- TODO: MIGRATE visual options into Views tab?
+    , { label = "Visual styles"
+      , state = Contracted
+      , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
+      , info = DisplayOptions.info
+      }
+    --, { label = "Map options"
+    --  , state = Contracted
+    --  , content = viewMapOptions model
+    --  }
+    , { label = "Tip jar"
       , state = Contracted
       , content = TipJar.tipJar
       , info = TipJar.info
       }
+
     --, { label = "Loop maker"
     --  , state = Contracted
     --  , content = viewLoopTools model
@@ -642,6 +662,23 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Graph.info
       }
+
+    --, { label = "Summary"
+    --  , state = Expanded
+    --  , content = overviewSummary model
+    --  }
+    --, { label = "Road segment data"
+    --  , state = Contracted
+    --  , content = summaryData (lookupRoad model model.currentNode)
+    --  }
+    --, { label = "Gradient problems"
+    --  , state = Contracted
+    --  , content = viewGradientChanges model
+    --  }
+    --, { label = "Bend problems"
+    --  , state = Contracted
+    --  , content = viewBearingChanges model
+    --  }
     ]
 
 
