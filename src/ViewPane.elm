@@ -472,15 +472,10 @@ update msg panes now =
 
         LinkPane id isLinked ->
             let
-                currentPane =
-                    if id > 0 then
-                        List.Extra.getAt id panes
-
-                    else
-                        Nothing
-
                 paneLinked =
-                    Maybe.map (\pane -> { pane | paneLinked = isLinked }) currentPane
+                    Maybe.map
+                        (\pane -> { pane | paneLinked = isLinked })
+                        (List.Extra.getAt id panes)
             in
             ( paneLinked, PaneNoOp )
 
