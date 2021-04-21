@@ -30,10 +30,10 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 
 initialiseView :
-    (Quantity Int Pixels, Quantity Int Pixels)
+    ( Quantity Int Pixels, Quantity Int Pixels )
     -> List TrackPoint
     -> ViewingContext
-initialiseView viewSize track  =
+initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
@@ -49,26 +49,31 @@ initialiseView viewSize track  =
 
 
 viewScene :
-    ViewingContext
+    Bool
+    -> ViewingContext
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context scene wrapper =
-    row [spacing 0, padding 0]
-        [ el
-            (withMouseCapture wrapper)
-          <|
-            html <|
-                Scene3d.sunny
-                    { camera = deriveViewPointAndCamera context
-                    , dimensions = context.size
-                    , background = backgroundColor Color.lightBlue
-                    , clipDepth = Length.meters 1
-                    , entities = scene
-                    , upDirection = positiveZ
-                    , sunlightDirection = negativeZ
-                    , shadows = False
-                    }
+viewScene visible context scene wrapper =
+    row [ spacing 0, padding 0 ]
+        [ if visible then
+            el
+                (withMouseCapture wrapper)
+            <|
+                html <|
+                    Scene3d.sunny
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        , upDirection = positiveZ
+                        , sunlightDirection = negativeZ
+                        , shadows = False
+                        }
+
+          else
+            none
         , zoomButtons wrapper
         ]
 
@@ -189,8 +194,11 @@ detectHit context event =
         screenPoint =
             Point2d.pixels x y
 
-        ( w, h ) = context.size
-        ( wFloat, hFloat) = (toFloatQuantity w, toFloatQuantity h)
+        ( w, h ) =
+            context.size
+
+        ( wFloat, hFloat ) =
+            ( toFloatQuantity w, toFloatQuantity h )
 
         screenRectangle =
             Rectangle2d.from

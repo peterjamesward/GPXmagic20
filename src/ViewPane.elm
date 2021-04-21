@@ -277,33 +277,49 @@ radioButton label state =
 
 view : ( Scene, Scene ) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
 view ( scene, profile ) wrapper pane =
-    conditionallyVisible pane.visible <|
+    -- The layout logic is complicated as the result of much
+    -- experimentation to make the map behave predictably.
+    if pane.visible then
         column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
             [ row [ width fill ]
                 [ el [ alignLeft ] <| viewModeChoices pane wrapper
                 , viewPaneControls pane wrapper
                 ]
-            , conditionallyVisible (pane.activeContext == ViewThirdPerson) <|
-                ScenePainterThird.viewScene
-                    (getActiveContext pane)
-                    scene
-                    (imageMessageWrapper pane.paneId >> wrapper)
-            , conditionallyVisible (pane.activeContext == ViewPlan) <|
-                ScenePainterPlan.viewScene
-                    (getActiveContext pane)
-                    scene
-                    (imageMessageWrapper pane.paneId >> wrapper)
-            , conditionallyVisible (pane.activeContext == ViewProfile) <|
-                ScenePainterProfile.viewScene
-                    (getActiveContext pane)
-                    profile
-                    (imageMessageWrapper pane.paneId >> wrapper)
+            , conditionallyVisible (pane.activeContext /= ViewMap) <|
+                case pane.activeContext of
+                    ViewThirdPerson ->
+                        ScenePainterThird.viewScene
+                            (pane.activeContext == ViewThirdPerson)
+                            (getActiveContext pane)
+                            scene
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewPlan ->
+                        ScenePainterPlan.viewScene
+                            (pane.activeContext == ViewPlan)
+                            (getActiveContext pane)
+                            scene
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewProfile ->
+                        ScenePainterProfile.viewScene
+                            (pane.activeContext == ViewProfile)
+                            (getActiveContext pane)
+                            profile
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    _ ->
+                        none
             , conditionallyVisible (pane.activeContext == ViewMap) <|
                 ScenePainterMap.viewScene
+                    (pane.activeContext == ViewMap)
                     (getActiveContext pane)
                     profile
                     (imageMessageWrapper pane.paneId >> wrapper)
             ]
+
+    else
+        none
 
 
 viewPaneControls : ViewPane -> (ViewPaneMessage -> msg) -> Element msg

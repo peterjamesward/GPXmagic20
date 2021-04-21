@@ -44,11 +44,12 @@ initialiseMap context track =
 
 
 viewScene :
-    ViewingContext
+    Bool
+    -> ViewingContext
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context scene wrapper =
+viewScene visible context scene wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size

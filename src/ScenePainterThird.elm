@@ -55,26 +55,31 @@ initialiseView viewSize track =
 
 
 viewScene :
-    ViewingContext
+    Bool
+    -> ViewingContext
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context scene wrapper =
+viewScene visible context scene wrapper =
     row []
-        [ el
-            (withMouseCapture wrapper)
-          <|
-            html <|
-                Scene3d.sunny
-                    { camera = deriveViewPointAndCamera context
-                    , dimensions = context.size
-                    , background = backgroundColor Color.lightBlue
-                    , clipDepth = Length.meters 1
-                    , entities = scene
-                    , upDirection = positiveZ
-                    , sunlightDirection = negativeZ
-                    , shadows = False
-                    }
+        [ if visible then
+            el
+                (withMouseCapture wrapper)
+            <|
+                html <|
+                    Scene3d.sunny
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        , upDirection = positiveZ
+                        , sunlightDirection = negativeZ
+                        , shadows = False
+                        }
+
+          else
+            none
         , zoomButtons wrapper
         ]
 
