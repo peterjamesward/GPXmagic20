@@ -583,7 +583,7 @@ toolsAccordion model =
     [ { label = "Views "
       , state = Contracted
       , content = ViewPane.viewPaneTools viewPaneMessageWrapper
-      , info = "XXX"
+      , info = ViewPane.info
       }
 
     --  { label = "Tip jar"

@@ -70,7 +70,17 @@ defaultViewPane =
     , paneLinked = True
     }
 
+info = """## Views
 
+Enlarge or reduce the size of the view panes.
+
+Add another view pane, to a maximum of four.
+
+Use the Close (X) above a view pane to close it.
+
+The padlock symbol above each pane determines whether or not it
+automatically re-centres when you double click on any pane or
+change the orange pointer position with the controls."""
 
 -- Here some helpers for managing the list of panes.
 

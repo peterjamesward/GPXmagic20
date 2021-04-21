@@ -9,12 +9,14 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
+import Markdown
 import Utils exposing (useIcon)
 import ViewPureStyles exposing (prettyButtonStyles)
 
 
 type AccordionState
     = Expanded
+    | ExpandedWithInfo
     | Contracted
     | Disabled
 
@@ -46,14 +48,14 @@ accordionTabStyles state =
     , Border.widthEach { left = 2, right = 0, top = 2, bottom = 2 }
     , Border.roundEach { topLeft = 10, bottomLeft = 10, topRight = 0, bottomRight = 0 }
     , Border.color <|
-        if state == Expanded then
+        if state == Expanded || state == ExpandedWithInfo then
             expandedTabBorder
 
         else
             collapsedTabBorder
     , Border.shadow { offset = ( 4, 4 ), size = 3, blur = 5, color = expandedTabShadow }
     , Background.color <|
-        if state == Expanded then
+        if state == Expanded || state == ExpandedWithInfo then
             expandedTabBackground
 
         else
@@ -78,6 +80,9 @@ accordionToggle entries label =
                             Expanded ->
                                 Contracted
 
+                            ExpandedWithInfo ->
+                                Contracted
+
                             Contracted ->
                                 Expanded
 
@@ -91,19 +96,53 @@ accordionToggle entries label =
     List.map toggleMatching entries
 
 
+accordionToggleInfo :
+    List (AccordionEntry msg)
+    -> String
+    -> List (AccordionEntry msg)
+accordionToggleInfo entries label =
+    let
+        toggleMatching e =
+            if e.label == label then
+                { e
+                    | state =
+                        case e.state of
+                            Expanded ->
+                                ExpandedWithInfo
+
+                            ExpandedWithInfo ->
+                                Expanded
+
+                            _ ->
+                                e.state
+                }
+
+            else
+                e
+    in
+    List.map toggleMatching entries
+
+
 infoButton :
     AccordionEntry msg
     -> (Msg -> msg)
     -> Element msg
 infoButton entry msgWrap =
-    if entry.state == Expanded then
-        button []
-            { onPress = Just <| msgWrap (ToggleInfo entry.label)
-            , label = useIcon FeatherIcons.info
-            }
+    case entry.state of
+        Expanded ->
+            button []
+                { onPress = Just <| msgWrap (ToggleInfo entry.label)
+                , label = useIcon FeatherIcons.info
+                }
 
-    else
-        none
+        ExpandedWithInfo ->
+            button [ onLeft <| viewInfo entry.info ]
+                { onPress = Just <| msgWrap (ToggleInfo entry.label)
+                , label = useIcon FeatherIcons.info
+                }
+
+        _ ->
+            none
 
 
 accordionView :
@@ -121,7 +160,7 @@ accordionView entries msgWrap =
                         { onPress = Just (msgWrap <| ToggleEntry entry.label)
                         , label = text entry.label
                         }
-                    , if entry.state == Expanded then
+                    , if entry.state == Expanded || entry.state == ExpandedWithInfo then
                         el
                             [ Background.color accordionContentBackground
                             , width fill
@@ -137,16 +176,33 @@ accordionView entries msgWrap =
     column accordionMenuStyles (List.map viewEntry entries)
 
 
-accordionActiveItem : List (AccordionEntry msg) -> Maybe (AccordionEntry msg)
-accordionActiveItem entries =
-    List.head <| List.filter (\e -> e.state == Expanded) entries
-
-
 update : Msg -> List (AccordionEntry msg) -> List (AccordionEntry msg)
 update msg accordion =
     case msg of
         ToggleEntry label ->
             accordionToggle accordion label
 
-        ToggleInfo entry ->
-            accordion
+        ToggleInfo label ->
+            accordionToggleInfo accordion label
+
+viewInfo : String -> Element msg
+viewInfo info =
+    el [] <|
+        row
+            [ centerX
+            , Background.color <| rgb255 220 220 200
+            , clipY
+            , scrollbarY
+            , padding 20
+            , width <| px 400
+            , moveUp 200
+            , Border.color expandedTabBackground
+            , Border.width 3
+            ]
+            [ paragraph
+                [ width fill
+                , height <| px 200
+                ]
+              <|
+                [ html <| Markdown.toHtml [] info ]
+            ]
