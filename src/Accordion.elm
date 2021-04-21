@@ -8,6 +8,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
+import FeatherIcons
+import Utils exposing (useIcon)
+import ViewPureStyles exposing (prettyButtonStyles)
 
 
 type AccordionState
@@ -20,7 +23,13 @@ type alias AccordionEntry msg =
     { label : String
     , state : AccordionState
     , content : Element msg
+    , info : String
     }
+
+
+type Msg
+    = ToggleEntry String
+    | ToggleInfo String
 
 
 accordionMenuStyles =
@@ -57,12 +66,12 @@ accordionTabStyles state =
 
 accordionToggle :
     List (AccordionEntry msg)
-    -> AccordionEntry msg
+    -> String
     -> List (AccordionEntry msg)
-accordionToggle entries entry =
+accordionToggle entries label =
     let
         toggleMatching e =
-            if e.label == entry.label then
+            if e.label == label then
                 { e
                     | state =
                         case e.state of
@@ -78,42 +87,51 @@ accordionToggle entries entry =
 
             else
                 e
-
-        -- { e | state = Contracted }
-        isEntry e =
-            e.label == entry.label
     in
-    case List.filter isEntry entries of
-        e :: _ ->
-            List.map toggleMatching entries
+    List.map toggleMatching entries
 
-        _ ->
-            entries
+
+infoButton :
+    AccordionEntry msg
+    -> (Msg -> msg)
+    -> Element msg
+infoButton entry msgWrap =
+    if entry.state == Expanded then
+        button []
+            { onPress = Just <| msgWrap (ToggleInfo entry.label)
+            , label = useIcon FeatherIcons.info
+            }
+
+    else
+        none
 
 
 accordionView :
     List (AccordionEntry msg)
-    -> (AccordionEntry msg -> msg)
+    -> (Msg -> msg)
     -> Element msg
-accordionView entries message =
+accordionView entries msgWrap =
     let
         viewEntry : AccordionEntry msg -> Element msg
         viewEntry entry =
-            column [ width fill ]
-                [ button (accordionTabStyles entry.state)
-                    { onPress = Just (message entry)
-                    , label = text entry.label
-                    }
-                , if entry.state == Expanded then
-                    el
-                        [ Background.color accordionContentBackground
-                        , width fill
-                        , centerX
-                        ]
-                        entry.content
+            row [ width fill ]
+                [ infoButton entry msgWrap
+                , column [ width fill ]
+                    [ button (accordionTabStyles entry.state)
+                        { onPress = Just (msgWrap <| ToggleEntry entry.label)
+                        , label = text entry.label
+                        }
+                    , if entry.state == Expanded then
+                        el
+                            [ Background.color accordionContentBackground
+                            , width fill
+                            , centerX
+                            ]
+                            entry.content
 
-                  else
-                    none
+                      else
+                        none
+                    ]
                 ]
     in
     column accordionMenuStyles (List.map viewEntry entries)
@@ -122,3 +140,13 @@ accordionView entries message =
 accordionActiveItem : List (AccordionEntry msg) -> Maybe (AccordionEntry msg)
 accordionActiveItem entries =
     List.head <| List.filter (\e -> e.state == Expanded) entries
+
+
+update : Msg -> List (AccordionEntry msg) -> List (AccordionEntry msg)
+update msg accordion =
+    case msg of
+        ToggleEntry label ->
+            accordionToggle accordion label
+
+        ToggleInfo entry ->
+            accordion

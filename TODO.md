@@ -20,7 +20,7 @@ Need a track position scroller!
 
 # TODO
 
-> Popup explanatory text for accordion.
+> Popup explanatory text for accordion. (Display in Info view?)
 
 11. Bring all the edit stuff over.
 12. OAuth integration. (could we not use a popup to avoid losing state?)

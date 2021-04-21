@@ -7,7 +7,6 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
-import Html.Attributes exposing (id, style)
 import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import List.Extra
 import Pixels exposing (Pixels, pixels)
@@ -22,7 +21,7 @@ import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
-import ViewPureStyles exposing (conditionallyVisible)
+import ViewPureStyles exposing (conditionallyVisible, toolRowLayout)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -341,7 +340,7 @@ viewPaneTools wrap =
         addButton =
             makeButton AddPane FeatherIcons.copy
     in
-    row [ spacing 10, alignRight, moveLeft 50 ] <|
+    row toolRowLayout
         [ enlargeButton
         , diminishButton
         , addButton

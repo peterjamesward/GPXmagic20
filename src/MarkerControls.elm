@@ -11,7 +11,7 @@ import Length
 import List.Extra
 import Track exposing (Track)
 import Utils exposing (showDecimal2, useIcon)
-import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
+import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
 
 
 type MarkerControlsMsg
@@ -39,7 +39,7 @@ markerButton track messageWrapper =
             case isTrack.markedNode of
                 Just markedTP ->
                     column defaultColumnLayout
-                        [ row defaultRowLayout
+                        [ row toolRowLayout
                             [ button
                                 prettyButtonStyles
                                 { onPress = Just <| messageWrapper MarkerBackOne
@@ -64,7 +64,7 @@ markerButton track messageWrapper =
                 Nothing ->
                     column defaultColumnLayout
                         [ makeButton "Drop marker to select a range"
-                        , el [ centerX, centerY ] <|
+                        , el [ centerX, centerY] <|
                             text <|
                                 "Pointer at "
                                     ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)

@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, accordionView)
+import Accordion exposing (AccordionEntry, AccordionState(..), accordionView)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
@@ -28,7 +28,7 @@ import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
-import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles)
+import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
 
 
 type Msg
@@ -36,7 +36,7 @@ type Msg
     | GpxSelected File
     | GpxLoaded String
     | GraphMessage Graph.Msg
-    | AccordionMessage (AccordionEntry Msg)
+    | AccordionMessage Accordion.Msg
     | MarkerMessage MarkerControls.MarkerControlsMsg
     | NudgeMessage Nudge.NudgeMsg
     | Tick Time.Posix
@@ -204,8 +204,8 @@ update msg model =
             , Cmd.none
             )
 
-        AccordionMessage entry ->
-            ( { model | toolsAccordion = accordionToggle model.toolsAccordion entry }
+        AccordionMessage accordionMsg ->
+            ( { model | toolsAccordion = Accordion.update accordionMsg model.toolsAccordion }
             , Cmd.none
             )
 
@@ -535,11 +535,7 @@ view model =
                             model.viewPanes
                             ( model.completeScene, model.profileScene )
                             viewPaneMessageWrapper
-                    , el
-                        [ alignTop
-                        , width <| maximum 400 <| minimum 300 <| fill
-                        ]
-                      <|
+                    , el [ alignTop ] <|
                         column defaultColumnLayout
                             [ markerButton model.track markerMessageWrapper
                             , Track.viewTrackControls trackMessageWrapper model.track
@@ -587,6 +583,7 @@ toolsAccordion model =
     [ { label = "Views "
       , state = Contracted
       , content = ViewPane.viewPaneTools viewPaneMessageWrapper
+      , info = "XXX"
       }
 
     --  { label = "Tip jar"
@@ -608,6 +605,7 @@ toolsAccordion model =
     , { label = "Nudge "
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
+      , info = "XXX"
       }
 
     --, { label = "Straighten"
@@ -617,6 +615,7 @@ toolsAccordion model =
     , { label = "Delete"
       , state = Contracted
       , content = viewDeleteTools model.track deleteMessageWrapper
+      , info = "XXX"
       }
 
     --, { label = "Fly-through"
@@ -639,6 +638,7 @@ toolsAccordion model =
                 |> Maybe.andThen
                     (Just << viewGraphControls graphMessageWrapper)
                 |> Maybe.withDefault none
+      , info = "XXX"
       }
     ]
 
@@ -708,8 +708,7 @@ redo model =
 
 
 undoRedoButtons model =
-    row
-        defaultRowLayout
+    row toolRowLayout
         [ button
             prettyButtonStyles
             { onPress =

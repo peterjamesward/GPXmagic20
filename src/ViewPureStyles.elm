@@ -1,5 +1,6 @@
 module ViewPureStyles exposing (..)
 
+import Color exposing (blue)
 import ColourPalette exposing (buttonBackground, buttonShadow, buttonText, scrollbarBackground)
 import Element exposing (..)
 import Element.Background as Background
@@ -10,6 +11,13 @@ import Html.Attributes exposing (style)
 
 defaultRowLayout =
     []
+
+
+toolRowLayout =
+    [ spaceEvenly
+    , paddingXY 20 10
+    , width fill
+    ]
 
 
 defaultColumnLayout =
