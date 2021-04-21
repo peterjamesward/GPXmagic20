@@ -155,7 +155,7 @@ update msg model =
     case msg of
         Tick newTime ->
             ( { model | time = newTime }
-            , Cmd.none
+            , refreshMap
             )
 
         Undo ->
