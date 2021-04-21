@@ -1,6 +1,7 @@
 port module MapController exposing (..)
 
 import BoundingBox3d exposing (BoundingBox3d)
+import Delay
 import Element exposing (Element, centerX, column, padding, row, spacing, text)
 import Json.Decode exposing (Decoder, decodeValue, field, float, string)
 import Json.Encode as E

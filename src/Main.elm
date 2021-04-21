@@ -3,6 +3,7 @@ module Main exposing (main)
 import Accordion exposing (AccordionEntry, AccordionState(..), accordionToggle, accordionView)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import Element as E exposing (..)
 import Element.Font as Font
@@ -45,6 +46,7 @@ type Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
     | MapMessage Json.Encode.Value
+    | RepaintMap
 
 
 markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
@@ -155,7 +157,7 @@ update msg model =
     case msg of
         Tick newTime ->
             ( { model | time = newTime }
-            , refreshMap
+            , Cmd.none
             )
 
         Undo ->
@@ -184,8 +186,11 @@ update msg model =
         ViewPaneMessage innerMsg ->
             ( Maybe.map (processViewPaneMessage innerMsg model) model.track
                 |> Maybe.withDefault model
-            , refreshMap
+            , Delay.after 50 RepaintMap
             )
+
+        RepaintMap ->
+            ( model, refreshMap )
 
         GraphMessage innerMsg ->
             ( Maybe.map (processGraphMessage innerMsg model) model.track
