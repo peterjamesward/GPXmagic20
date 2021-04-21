@@ -145,11 +145,11 @@ infoButton entry msgWrap =
             none
 
 
-accordionView :
+view :
     List (AccordionEntry msg)
     -> (Msg -> msg)
     -> Element msg
-accordionView entries msgWrap =
+view entries msgWrap =
     let
         viewEntry : AccordionEntry msg -> Element msg
         viewEntry entry =
@@ -160,7 +160,7 @@ accordionView entries msgWrap =
                         { onPress = Just (msgWrap <| ToggleEntry entry.label)
                         , label = text entry.label
                         }
-                    , if entry.state == Expanded || entry.state == ExpandedWithInfo then
+                    , if isOpen entry then
                         el
                             [ Background.color accordionContentBackground
                             , width fill
@@ -172,8 +172,14 @@ accordionView entries msgWrap =
                         none
                     ]
                 ]
+
+        isOpen entry =
+            entry.state == Expanded || entry.state == ExpandedWithInfo
     in
-    column accordionMenuStyles (List.map viewEntry entries)
+    column accordionMenuStyles <|
+        List.map viewEntry <|
+            List.filter isOpen entries
+                ++ List.filter (not << isOpen) entries
 
 
 update : Msg -> List (AccordionEntry msg) -> List (AccordionEntry msg)
@@ -184,6 +190,7 @@ update msg accordion =
 
         ToggleInfo label ->
             accordionToggleInfo accordion label
+
 
 viewInfo : String -> Element msg
 viewInfo info =

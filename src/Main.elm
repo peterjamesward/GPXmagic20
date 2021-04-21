@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Accordion exposing (AccordionEntry, AccordionState(..), accordionView)
+import Accordion exposing (AccordionEntry, AccordionState(..), view)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
@@ -550,7 +550,7 @@ view model =
                             [ markerButton model.track markerMessageWrapper
                             , Track.viewTrackControls trackMessageWrapper model.track
                             , undoRedoButtons model
-                            , accordionView
+                            , Accordion.view
                                 (updatedAccordion model model.toolsAccordion toolsAccordion)
                                 AccordionMessage
                             ]
