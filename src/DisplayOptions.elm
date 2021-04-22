@@ -67,8 +67,8 @@ defaultDisplayOptions =
 
 viewDisplayOptions : DisplayOptions -> (Msg -> msg) -> Element msg
 viewDisplayOptions options wrap =
-    column []
-        [ row [ spacing 5 ]
+    column [ width fill, centerX ]
+        [ row [ spacing 5, padding 10 ]
             [ column [ spacing 5 ]
                 [ Input.checkbox []
                     { onChange = wrap << ToggleRoad
@@ -110,32 +110,28 @@ viewDisplayOptions options wrap =
                     }
                 ]
             ]
-        , Input.slider
-            commonShortHorizontalSliderStyles
-            { onChange = wrap << SetVerticalExaggeration
-            , label =
-                Input.labelBelow [] <|
-                    text <|
-                        "Elevation exaggeration = "
-                            ++ showDecimal2 options.verticalExaggeration
-            , min = 1.0
-            , max = 10.0
-            , step = Nothing
-            , value = options.verticalExaggeration
-            , thumb = Input.defaultThumb
-            }
-        , row [ spacing 5 ]
-            [ column [ spacing 5 ]
-                []
+        , row [ padding 5, centerX ]
+            [ Input.slider
+                commonShortHorizontalSliderStyles
+                { onChange = wrap << SetVerticalExaggeration
+                , label =
+                    Input.labelBelow [] <|
+                        text <|
+                            "Elevation exaggeration = "
+                                ++ showDecimal2 options.verticalExaggeration
+                , min = 1.0
+                , max = 10.0
+                , step = Nothing
+                , value = options.verticalExaggeration
+                , thumb = Input.defaultThumb
+                }
             ]
         , Input.radioRow
-            [ Border.rounded 6
-            , Border.shadow { offset = ( 0, 0 ), size = 3, blur = 10, color = rgb255 0xE0 0xE0 0xE0 }
-            ]
+            [ spaceEvenly, padding 10 ]
             { onChange = wrap << SetCurtainStyle
             , selected = Just options.curtainStyle
             , label =
-                Input.labelBelow [ centerX ] <| text "Curtain style"
+                Input.labelLeft [] <| text "Gradients:"
             , options =
                 [ Input.optionWith NoCurtain <| radioButton "None"
                 , Input.optionWith PlainCurtain <| radioButton "Plain"
