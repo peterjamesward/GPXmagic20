@@ -140,3 +140,31 @@ viewDisplayOptions options wrap =
                 ]
             }
         ]
+
+
+update : DisplayOptions -> Msg -> (Msg -> msg) -> DisplayOptions
+update options dispMsg wrap =
+    case dispMsg of
+        TogglePillars newState ->
+            { options | roadPillars = newState }
+
+        ToggleLighting newState ->
+            { options | withLighting = newState }
+
+        ToggleSeaLevel newState ->
+            { options | seaLevel = newState }
+
+        ToggleRoad newState ->
+            { options | roadTrack = newState }
+
+        ToggleCones newState ->
+            { options | roadCones = newState }
+
+        ToggleCentreLine newState ->
+            { options | centreLine = newState }
+
+        SetCurtainStyle newStyle ->
+            { options | curtainStyle = newStyle }
+
+        SetVerticalExaggeration value ->
+            { options | verticalExaggeration = value }

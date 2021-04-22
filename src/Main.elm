@@ -256,7 +256,12 @@ update msg model =
             )
 
         DisplayOptionsMessage dispMsg ->
-            ( model
+            ( { model
+                | displayOptions =
+                    DisplayOptions.update model.displayOptions
+                        dispMsg
+                        displayOptionsMessageWrapper
+              }
             , Cmd.none
             )
 
@@ -602,6 +607,7 @@ toolsAccordion model =
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info
       }
+
     --, { label = "Map options"
     --  , state = Contracted
     --  , content = viewMapOptions model
