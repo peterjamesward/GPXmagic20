@@ -1,11 +1,9 @@
 module DisplayOptions exposing (..)
 
 import Element exposing (..)
-import Element.Border as Border
 import Element.Input as Input
 import Utils exposing (showDecimal2)
-import ViewPane exposing (radioButton)
-import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, radioButton)
 
 
 info =

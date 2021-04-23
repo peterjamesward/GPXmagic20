@@ -20,7 +20,8 @@ import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
-import SceneBuilder exposing (RenderingContext, Scene, defaultRenderingContext)
+import Scene exposing (Scene)
+import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
 import StravaAuth exposing (getStravaToken)
 import Task
@@ -262,6 +263,7 @@ update msg model =
                         dispMsg
                         displayOptionsMessageWrapper
               }
+                |> repaintTrack
             , Cmd.none
             )
 
@@ -288,9 +290,8 @@ processGpxLoaded content model =
                 |> parseTrackPoints
 
         scene =
-            Maybe.map2
-                SceneBuilder.renderTrack
-                (Just defaultRenderingContext)
+            Maybe.map
+                (SceneBuilder.renderTrack model.displayOptions)
                 track
                 |> Maybe.withDefault []
 
@@ -349,9 +350,8 @@ processViewPaneMessage innerMsg model track =
                 updatedScene =
                     -- Moving markers may affect detail level.
                     -- TODO: rebuild only if needed.
-                    Maybe.map2
-                        SceneBuilder.renderTrack
-                        model.renderingContext
+                    Maybe.map
+                        (SceneBuilder.renderTrack model.displayOptions)
                         (Just updatedTrack)
                         |> Maybe.withDefault []
 
@@ -501,9 +501,8 @@ repaintTrack : Model -> Model
 repaintTrack model =
     let
         updatedScene =
-            Maybe.map2
-                SceneBuilder.renderTrack
-                model.renderingContext
+            Maybe.map
+                (SceneBuilder.renderTrack model.displayOptions)
                 model.track
                 |> Maybe.withDefault []
 

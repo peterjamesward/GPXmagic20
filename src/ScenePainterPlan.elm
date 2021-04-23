@@ -17,13 +17,12 @@ import Point2d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
+import Scene exposing (Scene)
 import Scene3d exposing (Entity, backgroundColor)
-import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
-import ViewPureStyles exposing (defaultRowLayout)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)

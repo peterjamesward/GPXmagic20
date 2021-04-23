@@ -1,10 +1,11 @@
 module SceneBuilder exposing (..)
 
-import Angle
+import Angle exposing (Angle)
 import Axis3d
-import Color
+import Color exposing (Color)
 import Cone3d
 import Direction3d exposing (negativeZ)
+import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
 import Length exposing (Length, meters)
 import LineSegment3d
@@ -13,15 +14,14 @@ import LocalCoords exposing (LocalCoords)
 import Plane3d
 import Point3d
 import Quantity exposing (Quantity)
+import Scene exposing (Scene)
 import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
+import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
+import Utils exposing (gradientColourPastel)
 import Vector3d
-
-
-type alias Scene =
-    List (Entity LocalCoords)
 
 
 type alias RenderingContext =
@@ -37,25 +37,56 @@ defaultRenderingContext =
     }
 
 
-renderTrack : RenderingContext -> Track -> Scene
-renderTrack context track =
+when : Bool -> Scene -> Scene
+when predicate scene =
+    if predicate then
+        scene
+
+    else
+        []
+
+
+renderTrack : DisplayOptions -> Track -> Scene
+renderTrack options track =
     -- Let's just try a clean room implementation here, with surface only.
+    -- Adding in extra options ...
+    --TODO: Implement selective detail (optimisation!) = simpleSelectiveDetail context track
     let
         reducedTrack =
             track.track
 
-        --simpleSelectiveDetail context track
+        trackShifted =
+            List.drop 1 reducedTrack
+
+        mapOverPairs f =
+            List.concat <| List.map2 f reducedTrack trackShifted
+
+        graphNodes =
+            Maybe.map showGraphNodes track.graph |> Maybe.withDefault []
+
+        gradientFunction =
+            case options.curtainStyle of
+                NoCurtain ->
+                    always Color.lightGray
+
+                PlainCurtain ->
+                    always Color.green
+
+                RainbowCurtain ->
+                    gradientColourPastel
+
+                PastelCurtain ->
+                    gradientColourPastel
 
         scene =
-            (Maybe.map showGraphNodes track.graph |> Maybe.withDefault [])
-                ++ (List.concat <|
-                        List.map2
-                            paintSurfaceBetween
-                            reducedTrack
-                            (List.drop 1 reducedTrack)
-                   )
+            graphNodes
+                ++ when options.centreLine (mapOverPairs (centreLineBetween gradientColourPastel))
+                ++ when options.roadTrack (mapOverPairs paintSurfaceBetween)
+                ++ when (options.curtainStyle /= NoCurtain)
+                    (mapOverPairs (curtainBetween gradientFunction))
     in
     scene
+
 
 renderMarkers : Track -> Scene
 renderMarkers track =
@@ -93,6 +124,45 @@ renderMarkers track =
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
 paintSurfaceBetween pt1 pt2 =
     paintSomethingBetween (Length.meters 3.0) (Material.matte Color.grey) pt1 pt2
+
+
+centreLineBetween : (Angle -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
+centreLineBetween colouring pt1 pt2 =
+    let
+        gradient =
+            Maybe.withDefault Direction3d.positiveX pt1.afterDirection
+                |> Direction3d.elevationFrom SketchPlane3d.xy
+
+        smallUpshiftTo pt =
+            -- To make line stand slightly proud of the road
+            { pt | xyz = pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 0.0 0.005) }
+    in
+    paintSomethingBetween
+        (Length.meters 0.5)
+        (Material.matte <| colouring gradient)
+        (smallUpshiftTo pt1)
+        (smallUpshiftTo pt2)
+
+
+curtainBetween : (Angle -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
+curtainBetween colouring pt1 pt2 =
+    let
+        gradient =
+            Maybe.withDefault Direction3d.positiveX pt1.afterDirection
+                |> Direction3d.elevationFrom SketchPlane3d.xy
+
+        roadAsSegment =
+            LineSegment3d.from pt1.xyz pt2.xyz
+
+        curtainHem =
+            roadAsSegment |> LineSegment3d.projectOnto Plane3d.xy
+    in
+    [ Scene3d.quad (Material.matte <| colouring gradient)
+        (LineSegment3d.startPoint roadAsSegment)
+        (LineSegment3d.endPoint roadAsSegment)
+        (LineSegment3d.endPoint curtainHem)
+        (LineSegment3d.startPoint curtainHem)
+    ]
 
 
 paintSomethingBetween width material pt1 pt2 =

@@ -1,11 +1,12 @@
 module ViewPureStyles exposing (..)
 
 import Color exposing (blue)
-import ColourPalette exposing (buttonBackground, buttonShadow, buttonText, collapsedTabBorder, scrollbarBackground)
+import ColourPalette exposing (buttonBackground, buttonShadow, buttonText, collapsedTabBorder, radioButtonDefault, radioButtonSelected, radioButtonText, scrollbarBackground)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import Html.Attributes exposing (style)
 
 
@@ -116,3 +117,22 @@ checkboxIcon isChecked =
             ]
         <|
             none
+
+radioButton label state =
+    el
+        [ padding 10
+        , spacing 2
+        , Border.widthEach { left = 2, right = 2, top = 2, bottom = 0 }
+        , Border.roundEach { topLeft = 10, bottomLeft = 0, topRight = 10, bottomRight = 0 }
+        , Background.color <|
+            if state == Input.Selected then
+                radioButtonSelected
+
+            else
+                radioButtonDefault
+        , Font.color radioButtonText
+        , Font.size 16
+        ]
+    <|
+        el [ centerX, centerY ] <|
+            text label

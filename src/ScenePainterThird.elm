@@ -17,8 +17,8 @@ import Pixels exposing (Pixels)
 import Point2d
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
+import Scene exposing (Scene)
 import Scene3d exposing (Entity, backgroundColor)
-import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)

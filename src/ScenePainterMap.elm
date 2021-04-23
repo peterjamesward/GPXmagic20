@@ -13,7 +13,7 @@ import Html.Attributes exposing (id)
 import MapController
 import Pixels exposing (Pixels, inPixels)
 import Quantity exposing (Quantity)
-import SceneBuilder exposing (Scene)
+import Scene exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)

@@ -11,7 +11,7 @@ import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import List.Extra
 import Pixels exposing (Pixels, pixels)
 import Quantity exposing (Quantity)
-import SceneBuilder exposing (Scene)
+import Scene exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, trackPointNearestRay)
 import ScenePainterMap
 import ScenePainterPlan
@@ -21,7 +21,7 @@ import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
-import ViewPureStyles exposing (conditionallyVisible, toolRowLayout)
+import ViewPureStyles exposing (conditionallyVisible, radioButton, toolRowLayout)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -276,24 +276,6 @@ viewModeChoices pane wrapper =
         }
 
 
-radioButton label state =
-    el
-        [ padding 10
-        , spacing 2
-        , Border.widthEach { left = 2, right = 2, top = 2, bottom = 0 }
-        , Border.roundEach { topLeft = 10, bottomLeft = 0, topRight = 10, bottomRight = 0 }
-        , Background.color <|
-            if state == Input.Selected then
-                radioButtonSelected
-
-            else
-                radioButtonDefault
-        , Font.color radioButtonText
-        , Font.size 16
-        ]
-    <|
-        el [ centerX, centerY ] <|
-            text label
 
 
 view : ( Scene, Scene ) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg

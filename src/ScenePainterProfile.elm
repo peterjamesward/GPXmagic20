@@ -18,8 +18,8 @@ import Point2d
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
+import Scene exposing (Scene)
 import Scene3d exposing (Entity)
-import SceneBuilder exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Time
 import TrackPoint exposing (TrackPoint)
