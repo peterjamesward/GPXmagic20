@@ -34,6 +34,11 @@ type Msg
     | SetVerticalExaggeration Float
 
 
+type Action
+    = NoOp
+    | ProfileChange Float
+
+
 type alias DisplayOptions =
     { roadPillars : Bool
     , roadCones : Bool
@@ -140,29 +145,45 @@ viewDisplayOptions options wrap =
         ]
 
 
-update : DisplayOptions -> Msg -> (Msg -> msg) -> DisplayOptions
+update : DisplayOptions -> Msg -> (Msg -> msg) -> ( DisplayOptions, Action )
 update options dispMsg wrap =
     case dispMsg of
         TogglePillars newState ->
-            { options | roadPillars = newState }
+            ( { options | roadPillars = newState }
+            , NoOp
+            )
 
         ToggleLighting newState ->
-            { options | withLighting = newState }
+            ( { options | withLighting = newState }
+            , NoOp
+            )
 
         ToggleSeaLevel newState ->
-            { options | seaLevel = newState }
+            ( { options | seaLevel = newState }
+            , NoOp
+            )
 
         ToggleRoad newState ->
-            { options | roadTrack = newState }
+            ( { options | roadTrack = newState }
+            , NoOp
+            )
 
         ToggleCones newState ->
-            { options | roadCones = newState }
+            ( { options | roadCones = newState }
+            , NoOp
+            )
 
         ToggleCentreLine newState ->
-            { options | centreLine = newState }
+            ( { options | centreLine = newState }
+            , NoOp
+            )
 
         SetCurtainStyle newStyle ->
-            { options | curtainStyle = newStyle }
+            ( { options | curtainStyle = newStyle }
+            , NoOp
+            )
 
         SetVerticalExaggeration value ->
-            { options | verticalExaggeration = value }
+            ( { options | verticalExaggeration = value }
+            , ProfileChange value
+            )

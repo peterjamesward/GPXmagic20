@@ -6,11 +6,12 @@ import Axis3d exposing (Axis3d)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (positiveZ)
+import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import ImagePostUpdateActions exposing (PostUpdateAction(..))
-import Length exposing (Meters)
+import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
@@ -89,10 +90,11 @@ profileZoomLevelFromBoundingBox ( viewWidth, viewHeight ) points =
 viewScene :
     Bool
     -> ViewingContext
+    -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context scene wrapper =
+viewScene visible context options scene wrapper =
     row [ spacing 0, padding 0 ]
         [ if visible then
             el
@@ -116,9 +118,15 @@ viewScene visible context scene wrapper =
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
 deriveViewPointAndCamera view =
     let
+        { x, y, z } =
+            Point3d.toRecord inMeters view.focalPoint
+
+        scaledFocus =
+            Point3d.fromTuple meters ( x, y, z * view.verticalExaggeration )
+
         viewpoint =
             Viewpoint3d.lookAt
-                { focalPoint = view.focalPoint
+                { focalPoint = scaledFocus
                 , eyePoint = eyePoint
                 , upDirection = positiveZ
                 }

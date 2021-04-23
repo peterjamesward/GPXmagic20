@@ -132,6 +132,15 @@ mapOverAllContexts f panes =
             )
 
 
+mapOverProfileContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
+mapOverProfileContexts f panes =
+    panes
+        |> List.map
+            (\pane ->
+                { pane | profileContext = f pane.profileContext }
+            )
+
+
 mapOverPaneContexts : (ViewingContext -> ViewingContext) -> ViewPane -> ViewPane
 mapOverPaneContexts f pane =
     { pane
@@ -277,8 +286,6 @@ viewModeChoices pane wrapper =
         }
 
 
-
-
 view : ( Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
 view ( scene, profile ) options wrapper pane =
     -- The layout logic is complicated as the result of much
@@ -310,6 +317,7 @@ view ( scene, profile ) options wrapper pane =
                         ScenePainterProfile.viewScene
                             (pane.activeContext == ViewProfile)
                             (getActiveContext pane)
+                            options
                             profile
                             (imageMessageWrapper pane.paneId >> wrapper)
 

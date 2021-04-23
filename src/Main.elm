@@ -32,6 +32,7 @@ import TrackPoint exposing (TrackPoint)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
+import ViewingContext
 
 
 type Msg
@@ -257,11 +258,25 @@ update msg model =
             )
 
         DisplayOptionsMessage dispMsg ->
-            ( { model
-                | displayOptions =
+            let
+                ( newOptions, action ) =
                     DisplayOptions.update model.displayOptions
                         dispMsg
                         displayOptionsMessageWrapper
+
+                viewPanes =
+                    case action of
+                        DisplayOptions.ProfileChange value ->
+                            ViewPane.mapOverProfileContexts
+                                (ViewingContext.setExaggeration value)
+                                model.viewPanes
+
+                        DisplayOptions.NoOp ->
+                            model.viewPanes
+            in
+            ( { model
+                | displayOptions = newOptions
+                , viewPanes = viewPanes
               }
                 |> repaintTrack
             , Cmd.none
