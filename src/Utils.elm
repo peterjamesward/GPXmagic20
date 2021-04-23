@@ -28,7 +28,7 @@ gradientColourPastel angle =
     --TODO: Unify these two very similar functions.
     let
         slope =
-            tan (inRadians angle) * 100.0
+            100.0 * Angle.tan angle
 
         x =
             (clamp -15.0 15.0 slope + 15.0) / 30.0
@@ -42,14 +42,14 @@ gradientColourPastel angle =
         hue =
             x * steepestAscentHue + (1.0 - x) * steepestDescentHue
     in
-    Color.hsl hue 0.6 0.7
+    Color.hsl hue 0.6 0.5
 
 
 gradientColourVivid : Angle -> Color
 gradientColourVivid angle =
     let
         slope =
-            tan (inRadians angle) * 100.0
+            100.0 * Angle.tan angle
 
         x =
             (clamp -15.0 15.0 slope + 15.0) / 30.0
@@ -63,7 +63,7 @@ gradientColourVivid angle =
         hue =
             x * steepestAscentHue + (1.0 - x) * steepestDescentHue
     in
-    Color.hsl hue 1.0 0.4
+    Color.hsl hue 0.9 0.6
 
 
 scrollbarThickness =

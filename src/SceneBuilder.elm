@@ -20,7 +20,7 @@ import Scene3d.Material as Material exposing (Material)
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (gradientColourPastel)
+import Utils exposing (gradientColourPastel, gradientColourVivid)
 import Vector3d
 
 
@@ -73,7 +73,7 @@ renderTrack options track =
                     always Color.green
 
                 RainbowCurtain ->
-                    gradientColourPastel
+                    gradientColourVivid
 
                 PastelCurtain ->
                     gradientColourPastel
@@ -130,8 +130,9 @@ centreLineBetween : (Angle -> Color) -> TrackPoint -> TrackPoint -> List (Entity
 centreLineBetween colouring pt1 pt2 =
     let
         gradient =
-            Maybe.withDefault Direction3d.positiveX pt1.afterDirection
-                |> Direction3d.elevationFrom SketchPlane3d.xy
+            Direction3d.from pt1.xyz pt2.xyz
+                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
+                |> Maybe.withDefault Quantity.zero
 
         smallUpshiftTo pt =
             -- To make line stand slightly proud of the road
@@ -139,7 +140,7 @@ centreLineBetween colouring pt1 pt2 =
     in
     paintSomethingBetween
         (Length.meters 0.5)
-        (Material.matte <| colouring gradient)
+        (Material.color <| colouring gradient)
         (smallUpshiftTo pt1)
         (smallUpshiftTo pt2)
 
@@ -148,8 +149,9 @@ curtainBetween : (Angle -> Color) -> TrackPoint -> TrackPoint -> List (Entity Lo
 curtainBetween colouring pt1 pt2 =
     let
         gradient =
-            Maybe.withDefault Direction3d.positiveX pt1.afterDirection
-                |> Direction3d.elevationFrom SketchPlane3d.xy
+            Direction3d.from pt1.xyz pt2.xyz
+                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
+                |> Maybe.withDefault Quantity.zero
 
         roadAsSegment =
             LineSegment3d.from pt1.xyz pt2.xyz
@@ -157,7 +159,7 @@ curtainBetween colouring pt1 pt2 =
         curtainHem =
             roadAsSegment |> LineSegment3d.projectOnto Plane3d.xy
     in
-    [ Scene3d.quad (Material.matte <| colouring gradient)
+    [ Scene3d.quad (Material.color <| colouring gradient)
         (LineSegment3d.startPoint roadAsSegment)
         (LineSegment3d.endPoint roadAsSegment)
         (LineSegment3d.endPoint curtainHem)

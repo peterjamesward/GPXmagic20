@@ -134,7 +134,7 @@ viewDisplayOptions options wrap =
                 [ Input.optionWith NoCurtain <| radioButton "None"
                 , Input.optionWith PlainCurtain <| radioButton "Plain"
                 , Input.optionWith PastelCurtain <| radioButton "Pastel"
-                , Input.optionWith RainbowCurtain <| radioButton "Rainbow"
+                , Input.optionWith RainbowCurtain <| radioButton "Vivid"
                 ]
             }
         ]
