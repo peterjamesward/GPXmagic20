@@ -2,7 +2,7 @@ module SceneBuilder exposing (..)
 
 import Angle exposing (Angle)
 import Axis3d
-import Color exposing (Color)
+import Color exposing (Color, black, brown)
 import Cone3d
 import Direction3d exposing (negativeZ)
 import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
@@ -20,6 +20,7 @@ import Scene3d.Material as Material exposing (Material)
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
+import Triangle3d
 import Utils exposing (gradientColourPastel, gradientColourVivid)
 import Vector3d
 
@@ -61,6 +62,9 @@ renderTrack options track =
         mapOverPairs f =
             List.concat <| List.map2 f reducedTrack trackShifted
 
+        mapOverPoints f =
+            List.concatMap f reducedTrack
+
         graphNodes =
             Maybe.map showGraphNodes track.graph |> Maybe.withDefault []
 
@@ -70,7 +74,7 @@ renderTrack options track =
                     always Color.lightGray
 
                 PlainCurtain ->
-                    always Color.green
+                    always Color.darkGreen
 
                 RainbowCurtain ->
                     gradientColourVivid
@@ -84,6 +88,8 @@ renderTrack options track =
                 ++ when options.roadTrack (mapOverPairs paintSurfaceBetween)
                 ++ when (options.curtainStyle /= NoCurtain)
                     (mapOverPairs (curtainBetween gradientFunction))
+                ++ when options.roadPillars (mapOverPoints roadSupportPillar)
+                ++ when options.roadCones (mapOverPoints trackPointCone)
     in
     scene
 
@@ -192,6 +198,63 @@ paintSomethingBetween width material pt1 pt2 =
         (LineSegment3d.endPoint leftKerb)
         (LineSegment3d.endPoint rightKerb)
         (LineSegment3d.startPoint rightKerb)
+    ]
+
+
+roadSupportPillar : TrackPoint -> List (Entity LocalCoords)
+roadSupportPillar pt =
+    -- V2.0 just uses an extruded cross.
+    let
+        centre =
+            LineSegment3d.from
+                (pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 0.0 -1.0))
+                (pt.xyz |> Point3d.projectOnto Plane3d.xy)
+
+        eastSide =
+            centre |> LineSegment3d.translateBy (Vector3d.meters -1.0 0.0 0.0)
+
+        westSide =
+            centre |> LineSegment3d.translateBy (Vector3d.meters 1.0 0.0 0.0)
+
+        northSide =
+            centre |> LineSegment3d.translateBy (Vector3d.meters 0.0 1.0 0.0)
+
+        southSide =
+            centre |> LineSegment3d.translateBy (Vector3d.meters 0.0 -1.0 0.0)
+    in
+    [ Scene3d.quad (Material.color brown)
+        (LineSegment3d.startPoint eastSide)
+        (LineSegment3d.endPoint eastSide)
+        (LineSegment3d.endPoint westSide)
+        (LineSegment3d.startPoint westSide)
+    , Scene3d.quad (Material.color brown)
+        (LineSegment3d.startPoint northSide)
+        (LineSegment3d.endPoint northSide)
+        (LineSegment3d.endPoint southSide)
+        (LineSegment3d.startPoint southSide)
+    ]
+
+
+trackPointCone : TrackPoint -> List (Entity LocalCoords)
+trackPointCone pt =
+    -- V2.0 just uses crossed triangle.
+    let
+        eastSide =
+            pt.xyz |> Point3d.translateBy (Vector3d.meters -1.0 0.0 -1.0)
+
+        westSide =
+            pt.xyz |> Point3d.translateBy (Vector3d.meters 1.0 0.0 -1.0)
+
+        northSide =
+            pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 1.0 -1.0)
+
+        southSide =
+            pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 -1.0 -1.0)
+    in
+    [ Scene3d.triangle (Material.color black)
+        (Triangle3d.fromVertices ( eastSide, pt.xyz, westSide ))
+    , Scene3d.triangle (Material.color black)
+        (Triangle3d.fromVertices ( northSide, pt.xyz, southSide ))
     ]
 
 
