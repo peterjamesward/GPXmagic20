@@ -75,7 +75,7 @@ renderTrack options track =
                     always Color.lightGray
 
                 PlainCurtain ->
-                    always Color.darkGreen
+                    always <| Color.rgb255 0 100 0
 
                 RainbowCurtain ->
                     gradientColourVivid

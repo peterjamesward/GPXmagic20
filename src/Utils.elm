@@ -42,7 +42,7 @@ gradientColourPastel angle =
         hue =
             x * steepestAscentHue + (1.0 - x) * steepestDescentHue
     in
-    Color.hsl hue 0.6 0.5
+    Color.hsl hue 0.6 0.7
 
 
 gradientColourVivid : Angle -> Color
