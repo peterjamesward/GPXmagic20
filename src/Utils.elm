@@ -63,7 +63,7 @@ gradientColourVivid angle =
         hue =
             x * steepestAscentHue + (1.0 - x) * steepestDescentHue
     in
-    Color.hsl hue 0.9 0.6
+    Color.hsl hue 1.0 0.4
 
 
 scrollbarThickness =

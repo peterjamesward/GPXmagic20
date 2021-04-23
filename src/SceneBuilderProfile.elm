@@ -5,6 +5,7 @@ import Axis3d
 import Color
 import Cone3d
 import Direction3d exposing (negativeZ)
+import DisplayOptions exposing (DisplayOptions)
 import Graph exposing (Graph)
 import Length exposing (Length, Meters, meters)
 import LineSegment3d
@@ -39,33 +40,33 @@ defaultRenderingContext =
     }
 
 
-renderTrack : RenderingContext -> Track -> Scene
-renderTrack context track =
-    -- Let's just try a clean room implementation here, with surface only.
-    let
-        reducedTrack =
-            track.track
-
-        --simpleSelectiveDetail context track
-    in
-    --(Maybe.map showGraphNodes track.graph |> Maybe.withDefault []) ++
+renderTrack : DisplayOptions -> Track -> Scene
+renderTrack options track =
     List.map2
-        paintCurtainBetween
-        reducedTrack
-        (List.drop 1 reducedTrack)
+        (paintCurtainBetween options.verticalExaggeration)
+        track.track
+        (List.drop 1 track.track)
 
 
-paintCurtainBetween : TrackPoint -> TrackPoint -> Entity LocalCoords
-paintCurtainBetween pt1 pt2 =
+paintCurtainBetween : Float -> TrackPoint -> TrackPoint -> Entity LocalCoords
+paintCurtainBetween scale pt1 pt2 =
     let
+        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
+        scaledXZ p =
+            let
+                { x, y, z } =
+                    Point3d.toMeters p.profileXZ
+            in
+            Point3d.fromTuple meters ( x, y, z * scale )
+
         gradient =
             Direction3d.from pt1.profileXZ pt2.profileXZ
                 |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
                 |> Maybe.withDefault Quantity.zero
     in
     Scene3d.quad (Material.color <| gradientColourPastel gradient)
-        pt1.profileXZ
-        pt2.profileXZ
+        (scaledXZ pt1)
+        (scaledXZ pt2)
         (Point3d.projectOnto Plane3d.xy pt2.profileXZ)
         (Point3d.projectOnto Plane3d.xy pt1.profileXZ)
 

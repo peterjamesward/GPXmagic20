@@ -5,7 +5,7 @@ import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
-import DisplayOptions
+import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
 import Element.Font as Font
 import Element.Input exposing (button)
@@ -295,9 +295,8 @@ processGpxLoaded content model =
                 |> Maybe.withDefault []
 
         profile =
-            Maybe.map2
-                SceneBuilderProfile.renderTrack
-                (Just defaultRenderingContext)
+            Maybe.map
+                (SceneBuilderProfile.renderTrack model.displayOptions)
                 track
                 |> Maybe.withDefault []
 
@@ -346,20 +345,11 @@ processViewPaneMessage innerMsg model track =
                 updatedTrack =
                     { track | currentNode = tp }
 
-                updatedScene =
-                    -- Moving markers may affect detail level.
-                    -- TODO: rebuild only if needed.
-                    Maybe.map
-                        (SceneBuilder.renderTrack model.displayOptions)
-                        (Just updatedTrack)
-                        |> Maybe.withDefault []
-
                 updatedMarkers =
                     SceneBuilder.renderMarkers updatedTrack
             in
             { updatedModel
                 | track = Just updatedTrack
-                , staticScene = updatedScene
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                 , visibleMarkers = updatedMarkers
             }
@@ -505,6 +495,12 @@ repaintTrack model =
                 model.track
                 |> Maybe.withDefault []
 
+        updatedProfile =
+            Maybe.map
+                (SceneBuilderProfile.renderTrack model.displayOptions)
+                model.track
+                |> Maybe.withDefault []
+
         updatedMarkers =
             Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
     in
@@ -512,6 +508,7 @@ repaintTrack model =
         Just isTrack ->
             { model
                 | staticScene = updatedScene
+                , profileScene = updatedProfile
                 , visibleMarkers = updatedMarkers
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
@@ -546,6 +543,7 @@ view model =
                     [ el [ width fill, alignTop ] <|
                         viewAllPanes
                             model.viewPanes
+                            model.displayOptions
                             ( model.completeScene, model.profileScene )
                             viewPaneMessageWrapper
                     , el [ alignTop ] <|
@@ -563,11 +561,11 @@ view model =
     }
 
 
-viewAllPanes : List ViewPane -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
-viewAllPanes panes ( scene, profile ) wrapper =
+viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
+viewAllPanes panes options ( scene, profile ) wrapper =
     wrappedRow [ width fill ] <|
         List.map
-            (ViewPane.view ( scene, profile ) wrapper)
+            (ViewPane.view ( scene, profile ) options wrapper)
             panes
 
 

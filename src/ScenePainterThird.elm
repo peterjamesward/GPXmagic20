@@ -7,6 +7,7 @@ import Angle exposing (Angle, inDegrees)
 import Camera3d exposing (Camera3d)
 import Color
 import Direction3d exposing (negativeZ, positiveZ)
+import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
@@ -57,26 +58,35 @@ initialiseView viewSize track =
 viewScene :
     Bool
     -> ViewingContext
+    -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context scene wrapper =
+viewScene visible context options scene wrapper =
     row []
         [ if visible then
-            el
-                (withMouseCapture wrapper)
-            <|
+            el (withMouseCapture wrapper) <|
                 html <|
-                    Scene3d.sunny
-                        { camera = deriveViewPointAndCamera context
-                        , dimensions = context.size
-                        , background = backgroundColor Color.lightBlue
-                        , clipDepth = Length.meters 1
-                        , entities = scene
-                        , upDirection = positiveZ
-                        , sunlightDirection = negativeZ
-                        , shadows = False
-                        }
+                    if options.withLighting then
+                        Scene3d.sunny
+                            { camera = deriveViewPointAndCamera context
+                            , dimensions = context.size
+                            , background = backgroundColor Color.lightBlue
+                            , clipDepth = Length.meters 1
+                            , entities = scene
+                            , upDirection = positiveZ
+                            , sunlightDirection = negativeZ
+                            , shadows = False
+                            }
+
+                    else
+                        Scene3d.unlit
+                            { camera = deriveViewPointAndCamera context
+                            , dimensions = context.size
+                            , background = backgroundColor Color.lightBlue
+                            , clipDepth = Length.meters 1
+                            , entities = scene
+                            }
 
           else
             none

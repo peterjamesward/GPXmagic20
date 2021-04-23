@@ -274,7 +274,7 @@ seaLevel useActualWaterLevel box =
         { minX, maxX, minY, maxY, minZ, maxZ } =
             BoundingBox3d.extrema <| BoundingBox3d.expandBy (meters 500) box
     in
-    [ Scene3d.quad (Material.matte green)
+    [ Scene3d.quad (Material.color Color.darkGreen)
         (Point3d.xyz minX minY groundZ)
         (Point3d.xyz minX maxY groundZ)
         (Point3d.xyz maxX maxY groundZ)

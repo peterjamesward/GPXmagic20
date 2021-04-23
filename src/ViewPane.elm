@@ -1,6 +1,7 @@
 module ViewPane exposing (..)
 
 import ColourPalette exposing (radioButtonDefault, radioButtonSelected, radioButtonText)
+import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -278,8 +279,8 @@ viewModeChoices pane wrapper =
 
 
 
-view : ( Scene, Scene ) -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
-view ( scene, profile ) wrapper pane =
+view : ( Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
+view ( scene, profile ) options wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     if pane.visible then
@@ -294,6 +295,7 @@ view ( scene, profile ) wrapper pane =
                         ScenePainterThird.viewScene
                             (pane.activeContext == ViewThirdPerson)
                             (getActiveContext pane)
+                            options
                             scene
                             (imageMessageWrapper pane.paneId >> wrapper)
 
