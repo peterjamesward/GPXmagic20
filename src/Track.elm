@@ -1,18 +1,20 @@
 module Track exposing (..)
 
+import BoundingBox3d exposing (BoundingBox3d)
 import ColourPalette exposing (scrollbarBackground)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import GpxParser
 import Graph exposing (Graph)
 import Json.Encode as E
 import Length exposing (Meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
-import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints)
 import Utils exposing (scrollbarThickness, useIcon)
 import Vector3d exposing (Vector3d)
 import ViewPureStyles exposing (prettyButtonStyles)
@@ -31,7 +33,36 @@ type alias Track =
     , markedNode : Maybe TrackPoint
     , graph : Maybe Graph
     , transform : Vector3d Meters LocalCoords
+    , box : BoundingBox3d Meters LocalCoords
     }
+
+
+trackFromGpx : String -> Maybe Track
+trackFromGpx content =
+    let
+        trackPoints =
+            GpxParser.parseTrackPoints content
+
+        ( centredPoints, transform ) =
+            -- Move to near (0,0) to maintain precision in geometry -> clip space
+            applyGhanianTransform trackPoints
+    in
+    case trackPoints of
+        [] ->
+            Nothing
+
+        n1 :: _ ->
+            Just
+                { trackName = GpxParser.parseTrackName content
+                , track = prepareTrackPoints centredPoints
+                , currentNode = n1
+                , markedNode = Nothing
+                , graph = Nothing
+                , transform = transform
+                , box =
+                    BoundingBox3d.hullOfN .xyz centredPoints
+                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                }
 
 
 removeGhanianTransform : Track -> List (Point3d Meters LocalCoords)

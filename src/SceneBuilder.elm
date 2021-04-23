@@ -2,12 +2,13 @@ module SceneBuilder exposing (..)
 
 import Angle exposing (Angle)
 import Axis3d
-import Color exposing (Color, black, brown)
+import BoundingBox3d exposing (BoundingBox3d)
+import Color exposing (Color, black, brown, green)
 import Cone3d
 import Direction3d exposing (negativeZ)
 import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
-import Length exposing (Length, meters)
+import Length exposing (Length, Meters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -90,6 +91,7 @@ renderTrack options track =
                     (mapOverPairs (curtainBetween gradientFunction))
                 ++ when options.roadPillars (mapOverPoints roadSupportPillar)
                 ++ when options.roadCones (mapOverPoints trackPointCone)
+                ++ seaLevel options.seaLevel track.box
     in
     scene
 
@@ -255,6 +257,28 @@ trackPointCone pt =
         (Triangle3d.fromVertices ( eastSide, pt.xyz, westSide ))
     , Scene3d.triangle (Material.color black)
         (Triangle3d.fromVertices ( northSide, pt.xyz, southSide ))
+    ]
+
+
+seaLevel : Bool -> BoundingBox3d Meters LocalCoords -> List (Entity LocalCoords)
+seaLevel useActualWaterLevel box =
+    -- For seaLevel, True means elevation 0, False means just below minZ
+    let
+        groundZ =
+            if useActualWaterLevel then
+                meters 0.0
+
+            else
+                BoundingBox3d.minZ box |> Quantity.minus (meters 10.0)
+
+        { minX, maxX, minY, maxY, minZ, maxZ } =
+            BoundingBox3d.extrema <| BoundingBox3d.expandBy (meters 500) box
+    in
+    [ Scene3d.quad (Material.matte green)
+        (Point3d.xyz minX minY groundZ)
+        (Point3d.xyz minX maxY groundZ)
+        (Point3d.xyz maxX maxY groundZ)
+        (Point3d.xyz maxX minY groundZ)
     ]
 
 

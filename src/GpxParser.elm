@@ -1,9 +1,7 @@
 module GpxParser exposing (..)
 
-import Graph
 import Regex
-import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints, trackPointFromGPX)
+import TrackPoint exposing (TrackPoint, trackPointFromGPX)
 
 
 asRegex t =
@@ -25,7 +23,7 @@ parseTrackName xml =
                     n
 
 
-parseTrackPoints : String -> Maybe Track
+parseTrackPoints : String -> List TrackPoint
 parseTrackPoints xml =
     let
         trkpts =
@@ -64,21 +62,5 @@ parseTrackPoints xml =
             trkpts
                 |> List.map trackPoint
                 |> List.filterMap identity
-
-        (centredPoints, transform) =
-                -- Move to near (0,0) to maintain precision in geometry -> clip space
-                applyGhanianTransform trackPoints
     in
-    case trackPoints of
-        [] ->
-            Nothing
-
-        n1 :: _ ->
-            Just
-                { trackName = parseTrackName xml
-                , track = prepareTrackPoints centredPoints
-                , currentNode = n1
-                , markedNode = Nothing
-                , graph = Nothing
-                , transform = transform
-                }
+    trackPoints

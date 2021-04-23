@@ -286,8 +286,7 @@ processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
 processGpxLoaded content model =
     let
         track =
-            content
-                |> parseTrackPoints
+            Track.trackFromGpx content
 
         scene =
             Maybe.map
