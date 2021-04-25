@@ -278,6 +278,7 @@ zeroButton wrap =
 
 update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track, NudgeEffects )
 update msg settings track =
+    --TODO: Put the preview in Nudge settings; do not return Track (only Main may change Track).
     let
         simulated =
             simulateNudgeNodes track settings

@@ -611,14 +611,13 @@ toolsAccordion model =
       , content = ViewPane.viewPaneTools viewPaneMessageWrapper
       , info = ViewPane.info
       }
-
-    -- TODO: MIGRATE visual options into Views tab?
     , { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info
       }
 
+    --TODO: Make "click to drag" normal mode for Map.
     --, { label = "Map options"
     --  , state = Contracted
     --  , content = viewMapOptions model

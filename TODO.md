@@ -21,9 +21,24 @@ Popup explanatory text for accordion. (Display in Info view?)
 
 # TODO
 
+## FIRST:
+> Move all the tools "under" Accordion.
+> Put the tools' state into their entry, with a sum type.
+> Put any previews there also (default to []).
+> Tools can return their preview (List Trackpoint) as Action (1 or 2 below).
+> Universal adoption of message Actions, to be handled as low as possible in hierarchy
+> but also passed up if necessary:
+> 1. Track geometry change (index preserving, position preserving);
+> 2. Track options change (hence rebuild required);
+> 3. Markers moved and recentre; (previews from open tabs)
+> 4. Markers moved, no recentre; (previews from open tabs)
+> 4. Nothing to do.   
+> Only invoke and consume previews from open tabs.;
+
+## THEN
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
-12. OAuth integration. (Could we use a popup to avoid losing state?)
-13. Save & Restore display options and pane layout?
+
+12. Strava OAuth integration. (Could we use a popup to avoid losing state?)
 
 # BACKLOG, being enhancements or just finishing up ...
 
@@ -46,9 +61,10 @@ Bend & Gradient problems to show distance not index.
 (These need to be pre-calculated on load or track change.)
 
 Option to limit gradients (range or whole track), retaining elevation of marked points.
-(There are options but none are, nor can be, perfect.)
+(There are options. None are perfect, but we can be easier to use than competition.)
 
 Consider allowing for more than one open GPX track.
 (For super advanced graph stitching.)
 
+Save & Restore display options and pane layout.
 
