@@ -35,6 +35,12 @@ Popup explanatory text for accordion. (Display in Info view?)
 > 4. Nothing to do.   
 > Only invoke and consume previews from open tabs.;
 
+> But I could perhaps do this less radically by simply factoring out the
+> commonality across Xxx.update calls in main.update. Possibly, the only 
+> real difference is which update method we call; the surrounding logic
+> should be the same, as outlined above. Moving into Accordion is really 
+> marginal.
+
 ## THEN
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 

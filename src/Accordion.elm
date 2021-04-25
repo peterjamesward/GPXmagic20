@@ -10,22 +10,25 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
 import Markdown
+import Scene exposing (Scene)
+import Track exposing (Track)
 import Utils exposing (useIcon)
-import ViewPureStyles exposing (prettyButtonStyles)
 
 
 type AccordionState
-    = Expanded
-    | ExpandedWithInfo
+    = Expanded Bool -- TODO: ?? Expanded Bool  instead of ~WithInfo ??
+      --| ExpandedWithInfo
     | Contracted
     | Disabled
 
 
 type alias AccordionEntry msg =
+    --TODO: Use this as dispatcher for tools' updates methods.
     { label : String
     , state : AccordionState
     , content : Element msg
     , info : String
+    , previewMaker : Track -> Scene
     }
 
 
@@ -48,18 +51,20 @@ accordionTabStyles state =
     , Border.widthEach { left = 2, right = 0, top = 2, bottom = 2 }
     , Border.roundEach { topLeft = 10, bottomLeft = 10, topRight = 0, bottomRight = 0 }
     , Border.color <|
-        if state == Expanded || state == ExpandedWithInfo then
-            expandedTabBorder
+        case state of
+            Expanded _ ->
+                expandedTabBorder
 
-        else
-            collapsedTabBorder
+            _ ->
+                collapsedTabBorder
     , Border.shadow { offset = ( 4, 4 ), size = 3, blur = 5, color = expandedTabShadow }
     , Background.color <|
-        if state == Expanded || state == ExpandedWithInfo then
-            expandedTabBackground
+        case state of
+            Expanded _ ->
+                expandedTabBackground
 
-        else
-            collapsedTabBackground
+            _ ->
+                collapsedTabBackground
     , Font.color buttonText
     , Font.center
     , Font.size 16
@@ -77,14 +82,11 @@ accordionToggle entries label =
                 { e
                     | state =
                         case e.state of
-                            Expanded ->
-                                Contracted
-
-                            ExpandedWithInfo ->
+                            Expanded _ ->
                                 Contracted
 
                             Contracted ->
-                                Expanded
+                                Expanded False
 
                             Disabled ->
                                 Disabled
@@ -107,11 +109,8 @@ accordionToggleInfo entries label =
                 { e
                     | state =
                         case e.state of
-                            Expanded ->
-                                ExpandedWithInfo
-
-                            ExpandedWithInfo ->
-                                Expanded
+                            Expanded info ->
+                                Expanded (not info)
 
                             _ ->
                                 e.state
@@ -129,13 +128,13 @@ infoButton :
     -> Element msg
 infoButton entry msgWrap =
     case entry.state of
-        Expanded ->
+        Expanded True ->
             button []
                 { onPress = Just <| msgWrap (ToggleInfo entry.label)
                 , label = useIcon FeatherIcons.info
                 }
 
-        ExpandedWithInfo ->
+        Expanded False ->
             button [ onLeft <| viewInfo entry.info ]
                 { onPress = Just <| msgWrap (ToggleInfo entry.label)
                 , label = useIcon FeatherIcons.info
@@ -174,7 +173,7 @@ view entries msgWrap =
                 ]
 
         isOpen entry =
-            entry.state == Expanded || entry.state == ExpandedWithInfo
+            entry.state == Expanded True || entry.state == Expanded False
 
         ( open, closed ) =
             List.partition isOpen entries

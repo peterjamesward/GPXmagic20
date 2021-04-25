@@ -114,7 +114,6 @@ type alias Model =
     , zone : Time.Zone
     , staticScene : Scene
     , visibleMarkers : Scene
-    , nudgePreview : Scene
     , completeScene : Scene
     , profileScene : Scene
     , profileMarkers : Scene
@@ -123,6 +122,7 @@ type alias Model =
     , track : Maybe Track
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
+    , nudgePreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
@@ -610,11 +610,13 @@ toolsAccordion model =
       , state = Contracted
       , content = ViewPane.viewPaneTools viewPaneMessageWrapper
       , info = ViewPane.info
+      , previewMaker = always []
       }
     , { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info
+      , previewMaker = always []
       }
 
     --TODO: Make "click to drag" normal mode for Map.
@@ -626,6 +628,7 @@ toolsAccordion model =
       , state = Contracted
       , content = TipJar.tipJar
       , info = TipJar.info
+      , previewMaker = always []
       }
 
     --, { label = "Loop maker"
@@ -644,6 +647,7 @@ toolsAccordion model =
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
       , info = Nudge.info
+      , previewMaker = always []
       }
 
     --, { label = "Straighten"
@@ -654,6 +658,7 @@ toolsAccordion model =
       , state = Contracted
       , content = viewDeleteTools model.track deleteMessageWrapper
       , info = DeletePoints.info
+      , previewMaker = always []
       }
 
     --, { label = "Fly-through"
@@ -677,6 +682,7 @@ toolsAccordion model =
                     (Just << viewGraphControls graphMessageWrapper)
                 |> Maybe.withDefault none
       , info = Graph.info
+      , previewMaker = always []
       }
 
     --, { label = "Summary"
