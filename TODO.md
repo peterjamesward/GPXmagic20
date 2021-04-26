@@ -2,7 +2,7 @@
 
 # TODO
 
-No Nudge preview in Profile!
+Single click on Profile broked.
 
 ## FIRST:
 > Move all the tools "under" Accordion. --No. Because there's also ViewPanes.

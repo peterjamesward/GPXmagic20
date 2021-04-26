@@ -367,6 +367,10 @@ processGpxLoaded content model =
             Maybe.map SceneBuilder.renderMarkers track
                 |> Maybe.withDefault []
 
+        profileMarkers =
+            Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) track
+                |> Maybe.withDefault []
+
         ( newViewPanes, mapCommands ) =
             case track of
                 Just isTrack ->
@@ -385,6 +389,7 @@ processGpxLoaded content model =
         , visibleMarkers = markers
         , viewPanes = newViewPanes
         , completeScene = markers ++ scene
+        , completeProfile = profileMarkers ++ profile
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
       }
