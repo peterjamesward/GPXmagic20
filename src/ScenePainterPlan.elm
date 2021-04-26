@@ -143,10 +143,10 @@ update msg view now =
             if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
                 case detectHit view event of
                     Just tp ->
-                        ( view, ActionPointerMove tp )
+                        ( { view | orbiting = Nothing }, ActionPointerMove tp )
 
                     Nothing ->
-                        ( view, ActionNoOp )
+                        ( { view | orbiting = Nothing }, ActionNoOp )
 
             else
                 ( view, ActionNoOp )

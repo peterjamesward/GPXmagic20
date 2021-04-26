@@ -15,7 +15,7 @@ import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
 import MapController exposing (..)
-import MarkerControls exposing (markerButton)
+import MarkerControls exposing (markerButton, viewTrackControls)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
@@ -41,7 +41,7 @@ type Msg
     | GpxLoaded String
     | GraphMessage Graph.Msg
     | AccordionMessage Accordion.Msg
-    | MarkerMessage MarkerControls.MarkerControlsMsg
+    | MarkerMessage MarkerControls.Msg
     | NudgeMessage Nudge.NudgeMsg
     | Tick Time.Posix
     | Undo
@@ -51,18 +51,12 @@ type Msg
     | OAuthMessage OAuthMsg
     | MapMessage Json.Encode.Value
     | RepaintMap
-    | TrackMessage Track.Msg
     | DisplayOptionsMessage DisplayOptions.Msg
 
 
-markerMessageWrapper : MarkerControls.MarkerControlsMsg -> Msg
+markerMessageWrapper : MarkerControls.Msg -> Msg
 markerMessageWrapper m =
     MarkerMessage m
-
-
-trackMessageWrapper : Track.Msg -> Msg
-trackMessageWrapper m =
-    TrackMessage m
 
 
 graphMessageWrapper : Graph.Msg -> Msg
@@ -115,6 +109,7 @@ type alias Model =
     , staticScene : Scene
     , visibleMarkers : Scene
     , completeScene : Scene
+    , completeProfile : Scene
     , profileScene : Scene
     , profileMarkers : Scene
     , renderingContext : Maybe RenderingContext
@@ -148,6 +143,7 @@ init mflags origin navigationKey =
       , visibleMarkers = []
       , nudgePreview = []
       , completeScene = []
+      , completeProfile = []
       , renderingContext = Nothing
       , viewPanes = ViewPane.defaultViewPanes
       , toolsAccordion = []
@@ -219,10 +215,12 @@ update msg model =
             )
 
         MarkerMessage markerMsg ->
-            ( Maybe.map (processMarkerMessage markerMsg model) model.track
-                |> Maybe.withDefault model
-            , Cmd.none
-            )
+            let
+                action =
+                    Maybe.map (MarkerControls.update markerMsg) model.track
+                        |> Maybe.withDefault ActionNoOp
+            in
+            processPostUpdateAction model action
 
         NudgeMessage nudgeMsg ->
             let
@@ -257,12 +255,6 @@ update msg model =
         MapMessage _ ->
             ( model, Cmd.none )
 
-        TrackMessage trackMsg ->
-            ( Maybe.map (processTrackMessage trackMsg model) model.track
-                |> Maybe.withDefault model
-            , Cmd.none
-            )
-
         DisplayOptionsMessage dispMsg ->
             let
                 ( newOptions, action ) =
@@ -291,10 +283,60 @@ update msg model =
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
-    case action of
-        ActionTrackChanged editType newTrack undoMsg ->
+    -- This should be the one place from where actions are orchestrated.
+    -- I doubt that will ever be true.
+    case ( model.track, action ) of
+        ( Just track, ActionTrackChanged editType newTrack undoMsg ) ->
             ( model |> trackHasChanged undoMsg newTrack
             , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
+            )
+
+        ( Just track, ActionPointerMove tp ) ->
+            let
+                updatedTrack =
+                    { track | currentNode = tp }
+            in
+            ( { model | track = Just updatedTrack }
+                |> repaintMarkers
+            , Cmd.batch
+                [ MapController.addMarkersToMap updatedTrack [] []
+                , Delay.after 50 RepaintMap
+                ]
+            )
+
+        ( Just track, ActionFocusMove tp ) ->
+            let
+                updatedTrack =
+                    { track | currentNode = tp }
+            in
+            ( { model
+                | track = Just updatedTrack
+                , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
+              }
+                |> repaintMarkers
+            , Cmd.batch
+                [ MapController.addMarkersToMap updatedTrack [] []
+                , MapController.centreMapOnCurrent updatedTrack
+                , Delay.after 50 RepaintMap
+                ]
+            )
+
+        ( Just track, ActionMarkerMove maybeTp ) ->
+            let
+                updatedTrack =
+                    { track | markedNode = maybeTp }
+            in
+            ( { model | track = Just updatedTrack }
+                |> repaintMarkers
+            , Cmd.batch
+                [ MapController.addMarkersToMap updatedTrack [] []
+                , Delay.after 50 RepaintMap
+                ]
+            )
+
+        ( Just track, ActionRepaintMap ) ->
+            ( model
+            , Delay.after 50 RepaintMap
             )
 
         _ ->
@@ -360,70 +402,20 @@ processViewPaneMessage innerMsg model track =
 
         updatedModel =
             { model | viewPanes = updatedViewPanes }
-
-        updatedTrack tp =
-            { track | currentNode = tp }
-
-        movePointer : TrackPoint -> Model
-        movePointer tp =
-            let
-                updatedMarkers =
-                    SceneBuilder.renderMarkers (updatedTrack tp)
-            in
-            { updatedModel
-                | completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-                , visibleMarkers = updatedMarkers
-            }
-
-        finalModel =
-            -- This is so flaky.
-            case postUpdateAction of
-                ViewPane.ImageAction (ActionPointerMove tp) ->
-                    let
-                        withMovedPointer =
-                            movePointer tp
-                    in
-                    ( movePointer tp
-                    , Cmd.batch
-                        [ MapController.addMarkersToMap (updatedTrack tp) [] []
-                        , Delay.after 50 RepaintMap
-                        ]
-                    )
-
-                ViewPane.ImageAction (ActionFocusMove tp) ->
-                    let
-                        withMovedPointer =
-                            movePointer tp
-                    in
-                    ( { withMovedPointer
-                        | viewPanes =
-                            ViewPane.mapOverPanes
-                                (updatePointerInLinkedPanes tp)
-                                withMovedPointer.viewPanes
-                      }
-                    , Cmd.batch
-                        [ MapController.addMarkersToMap (updatedTrack tp) [] []
-                        , MapController.centreMapOnCurrent (updatedTrack tp)
-                        , Delay.after 50 RepaintMap
-                        ]
-                    )
-
-                ViewPane.ImageAction ActionRepaintMap ->
-                    ( updatedModel
-                    , Delay.after 50 RepaintMap
-                    )
-
-                ViewPane.ApplyToAllPanes f ->
-                    ( { updatedModel
-                        | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes
-                      }
-                    , Delay.after 50 RepaintMap
-                    )
-
-                _ ->
-                    ( updatedModel, Cmd.none )
     in
-    finalModel
+    case postUpdateAction of
+        ViewPane.ImageAction innerAction ->
+            processPostUpdateAction updatedModel innerAction
+
+        ViewPane.ApplyToAllPanes f ->
+            ( { updatedModel
+                | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes
+              }
+            , Delay.after 50 RepaintMap
+            )
+
+        ViewPane.PaneNoOp ->
+            ( updatedModel, Cmd.none )
 
 
 processGraphMessage : Graph.Msg -> Model -> Track -> Model
@@ -451,44 +443,6 @@ processGraphMessage innerMsg model isTrack =
 
         _ ->
             model
-
-
-processTrackMessage : Track.Msg -> Model -> Track -> Model
-processTrackMessage trackMsg model isTrack =
-    let
-        newTrack =
-            Track.update trackMsg isTrack
-
-        updatedMarkers =
-            SceneBuilder.renderMarkers newTrack
-    in
-    { model
-        | track = Just newTrack
-        , visibleMarkers = updatedMarkers
-        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-        , nudgePreview = []
-        , viewPanes =
-            ViewPane.mapOverPanes
-                (updatePointerInLinkedPanes newTrack.currentNode)
-                model.viewPanes
-    }
-
-
-processMarkerMessage : MarkerControls.MarkerControlsMsg -> Model -> Track -> Model
-processMarkerMessage markerMsg model isTrack =
-    let
-        newTrack =
-            MarkerControls.update markerMsg isTrack
-
-        updatedMarkers =
-            SceneBuilder.renderMarkers newTrack
-    in
-    { model
-        | track = Just newTrack
-        , visibleMarkers = updatedMarkers
-        , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-        , nudgePreview = []
-    }
 
 
 processNudgeMessage : Nudge.NudgeMsg -> Model -> Track -> ( Model, PostUpdateAction )
@@ -532,6 +486,31 @@ trackHasChanged undoMsg newTrack oldModel =
     repaintTrack withNewTrack
 
 
+repaintMarkers : Model -> Model
+repaintMarkers model =
+    let
+        updatedMarkers =
+            Maybe.map SceneBuilder.renderMarkers model.track
+                |> Maybe.withDefault []
+
+        updatedProfileMarkers =
+            Maybe.map SceneBuilderProfile.renderMarkers model.track
+                |> Maybe.withDefault []
+    in
+    case model.track of
+        Just isTrack ->
+            { model
+                | visibleMarkers = updatedMarkers
+                , profileMarkers = updatedProfileMarkers
+                , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
+                , completeProfile = updatedProfileMarkers ++ model.profileScene
+                , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
+            }
+
+        Nothing ->
+            model
+
+
 repaintTrack : Model -> Model
 repaintTrack model =
     let
@@ -549,6 +528,10 @@ repaintTrack model =
 
         updatedMarkers =
             Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
+
+        updatedProfileMarkers =
+            Maybe.map SceneBuilderProfile.renderMarkers model.track
+                |> Maybe.withDefault []
     in
     case model.track of
         Just isTrack ->
@@ -556,7 +539,9 @@ repaintTrack model =
                 | staticScene = updatedScene
                 , profileScene = updatedProfile
                 , visibleMarkers = updatedMarkers
+                , profileMarkers = updatedProfileMarkers
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
+                , completeProfile = updatedProfileMarkers ++ model.profileScene
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
             }
 
@@ -595,7 +580,7 @@ view model =
                     , el [ alignTop ] <|
                         column defaultColumnLayout
                             [ markerButton model.track markerMessageWrapper
-                            , Track.viewTrackControls trackMessageWrapper model.track
+                            , viewTrackControls markerMessageWrapper model.track
                             , undoRedoButtons model
                             , Accordion.view
                                 (updatedAccordion model model.toolsAccordion toolsAccordion)
@@ -637,14 +622,13 @@ subscriptions model =
 
 
 toolsAccordion model =
-    [
-    --{ label = "Views "
-    --  , state = Contracted
-    --  , content = ViewPane.viewPaneTools viewPaneMessageWrapper
-    --  , info = ViewPane.info
-    --  , previewMaker = always []
-    --  }
-    --,
+    [ --{ label = "Views "
+      --  , state = Contracted
+      --  , content = ViewPane.viewPaneTools viewPaneMessageWrapper
+      --  , info = ViewPane.info
+      --  , previewMaker = always []
+      --  }
+      --,
       { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper

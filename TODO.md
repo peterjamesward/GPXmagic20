@@ -1,28 +1,7 @@
-# DONE
-1. Basic structures and operations. Keep it simple. OK
-2. Populate and test. (Parse GPX.) OK
-3. All trackpoint derivations in one pass. OK
-4. Simple rendering. OK
-5. Rendering with variable detail. OK
-6. Graph. OK (incomplete)
-7. Editing with graph
-Indexing preserving. OK.
-Position preserving. OK. 
-8. New controls layout? No, minor refresh.
-? Zoom + | - overlay on view instead of scroll bar (as per Map).
-Simple: Auto remove sharp "folds" in loaded track.
-9. Multiple viewports and views.
-Turns out that elm-3d-geo prefers coordinates near the origin (due to loss of precision?).
-Have patched in the Ghanian transform but need to retain base point for converting back!
-Synchronize window focal points (Display option?)
-10. Map integration. May have found how to have permanent DIV for map with show/hide!
-Need a track position scroller!
-Popup explanatory text for accordion. (Display in Info view?)
-
 # TODO
 
-No markers in Profile!
 No Nudge preview in Profile!
+The number of repetitions of the scene composition is embarrassing.
 
 ## FIRST:
 > Move all the tools "under" Accordion. --No. Because there's also ViewPanes.

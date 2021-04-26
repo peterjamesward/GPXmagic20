@@ -14,6 +14,7 @@ type
     | ActionTrackChanged TrackEditType Track String
     | ActionPreview String (List TrackPoint)
     | ActionPointerMove TrackPoint
+    | ActionMarkerMove (Maybe TrackPoint)
     | ActionFocusMove TrackPoint
     | ActionOptionsChanged DisplayOptions
     | ActionRepaintMap
