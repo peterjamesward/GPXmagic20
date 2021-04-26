@@ -16,8 +16,7 @@ import Utils exposing (useIcon)
 
 
 type AccordionState
-    = Expanded Bool -- TODO: ?? Expanded Bool  instead of ~WithInfo ??
-      --| ExpandedWithInfo
+    = Expanded Bool
     | Contracted
     | Disabled
 
@@ -129,13 +128,13 @@ infoButton :
 infoButton entry msgWrap =
     case entry.state of
         Expanded True ->
-            button []
+            button [ onLeft <| viewInfo entry.info ]
                 { onPress = Just <| msgWrap (ToggleInfo entry.label)
                 , label = useIcon FeatherIcons.info
                 }
 
         Expanded False ->
-            button [ onLeft <| viewInfo entry.info ]
+            button []
                 { onPress = Just <| msgWrap (ToggleInfo entry.label)
                 , label = useIcon FeatherIcons.info
                 }

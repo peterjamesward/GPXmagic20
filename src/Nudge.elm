@@ -10,6 +10,7 @@ import Length exposing (Length)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
+import PostUpdateActions
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -163,8 +164,8 @@ nudgeTrackPoint trackpoint settings =
     { trackpoint | xyz = newXYZ }
 
 
-simulateNudgeNodes : Track -> NudgeSettings -> List TrackPoint
-simulateNudgeNodes track settings =
+previewNudgeNodes : Track -> NudgeSettings -> List TrackPoint
+previewNudgeNodes track settings =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
     -- For a Graph, this must update canonical nodes and edges.
@@ -276,26 +277,44 @@ zeroButton wrap =
         }
 
 
-update : NudgeMsg -> NudgeSettings -> Track -> ( NudgeSettings, Track, NudgeEffects )
+update :
+    NudgeMsg
+    -> NudgeSettings
+    -> Track
+    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction )
 update msg settings track =
-    --TODO: Put the preview in Nudge settings; do not return Track (only Main may change Track).
     let
-        simulated =
-            simulateNudgeNodes track settings
+        preview newSettings =
+            previewNudgeNodes track newSettings
     in
     case msg of
         SetHorizontalNudgeFactor length ->
-            ( { settings | horizontal = length }, track, NudgePreview simulated )
+            let
+                newSettings =
+                    { settings | horizontal = length }
+            in
+            ( newSettings
+            , PostUpdateActions.ActionPreview "nudge" (preview newSettings)
+            )
 
         SetVerticalNudgeFactor length ->
-            ( { settings | vertical = length }, track, NudgePreview simulated )
+            let
+                newSettings =
+                    { settings | vertical = length }
+            in
+            ( newSettings
+            , PostUpdateActions.ActionPreview "nudge" (preview newSettings)
+            )
 
         ZeroNudgeFactors ->
-            ( defaultNudgeSettings, track, NudgePreview [] )
+            ( defaultNudgeSettings
+            , PostUpdateActions.ActionPreview "nudge" []
+            )
 
         NudgeNode _ ->
-            let
-                undoMessage =
-                    makeUndoMessage track
-            in
-            ( settings, nudgeNodes track settings, NudgeTrackChanged undoMessage )
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (nudgeNodes track settings)
+                (makeUndoMessage track)
+            )

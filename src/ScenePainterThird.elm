@@ -11,7 +11,7 @@ import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import ImagePostUpdateActions exposing (PostUpdateAction(..))
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
@@ -132,7 +132,7 @@ update msg view now =
                 | orbiting = Just event.offsetPos
                 , mouseDownTime = now
               }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageDrag event ->
@@ -158,14 +158,14 @@ update msg view now =
                         , elevation = newElevation
                         , orbiting = Just ( dx, dy )
                       }
-                    , ImageOnly
+                    , ActionNoOp
                     )
 
                 _ ->
-                    ( view, ImageOnly )
+                    ( view, ActionNoOp )
 
         ImageRelease _ ->
-            ( { view | orbiting = Nothing }, ImageOnly )
+            ( { view | orbiting = Nothing }, ActionNoOp )
 
         ImageMouseWheel deltaY ->
             let
@@ -173,20 +173,20 @@ update msg view now =
                     -0.001 * deltaY
             in
             ( { view | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel + increment }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageClick event ->
             if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
                 case detectHit view event of
                     Just tp ->
-                        ( { view | orbiting = Nothing }, PointerMove tp )
+                        ( { view | orbiting = Nothing }, ActionPointerMove tp )
 
                     Nothing ->
-                        ( { view | orbiting = Nothing }, ImageOnly )
+                        ( { view | orbiting = Nothing }, ActionNoOp )
 
             else
-                ( view, ImageOnly )
+                ( view, ActionNoOp )
 
         ImageDoubleClick event ->
             case detectHit view event of
@@ -195,21 +195,21 @@ update msg view now =
                         | focalPoint = tp.xyz
                         , orbiting = Nothing
                       }
-                    , FocusMove tp
+                    , ActionFocusMove tp
                     )
 
                 Nothing ->
-                    ( { view | orbiting = Nothing }, ImageOnly )
+                    ( { view | orbiting = Nothing }, ActionNoOp )
 
         ImageNoOpMsg ->
-            ( { view | orbiting = Nothing }, ImageOnly )
+            ( { view | orbiting = Nothing }, ActionNoOp )
 
         ImageZoomIn ->
             ( { view
                 | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel + 0.5
                 , orbiting = Nothing
               }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageZoomOut ->
@@ -217,7 +217,7 @@ update msg view now =
                 | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel - 0.5
                 , orbiting = Nothing
               }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageReset ->
@@ -227,7 +227,7 @@ update msg view now =
                 , zoomLevel = view.defaultZoomLevel
                 , orbiting = Nothing
               }
-            , ImageOnly
+            , ActionNoOp
             )
 
 

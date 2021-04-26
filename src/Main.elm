@@ -13,13 +13,13 @@ import File exposing (File)
 import File.Select as Select
 import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
-import ImagePostUpdateActions exposing (PostUpdateAction(..))
 import Json.Encode
 import MapController exposing (..)
 import MarkerControls exposing (markerButton)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
@@ -223,16 +223,20 @@ update msg model =
             )
 
         NudgeMessage nudgeMsg ->
-            ( Maybe.map (processNudgeMessage nudgeMsg model) model.track
-                |> Maybe.withDefault model
-            , Cmd.none
-            )
+            let
+                ( newModel, action ) =
+                    Maybe.map (processNudgeMessage nudgeMsg model) model.track
+                        |> Maybe.withDefault ( model, ActionNoOp )
+            in
+            processPostUpdateAction newModel action
 
         DeleteMessage deleteMsg ->
-            ( Maybe.map (processDeleteMessage deleteMsg model) model.track
-                |> Maybe.withDefault model
-            , Cmd.none
-            )
+            let
+                action =
+                    Maybe.map (DeletePoints.update deleteMsg) model.track
+                        |> Maybe.withDefault ActionNoOp
+            in
+            processPostUpdateAction model action
 
         -- Delegate wrapped OAuthmessages. Be bowled over if this works first time. Or fiftieth.
         -- Maybe look after to see if there is yet a token. Easy way to know.
@@ -283,18 +287,16 @@ update msg model =
             )
 
 
-processDeleteMessage : DeletePoints.Msg -> Model -> Track -> Model
-processDeleteMessage deleteMsg model isTrack =
-    let
-        ( newTrack, action ) =
-            DeletePoints.update deleteMsg isTrack
-    in
+processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
+processPostUpdateAction model action =
     case action of
-        DeleteTrackChanged undoMsg ->
-            model |> trackHasChanged undoMsg newTrack
+        ActionTrackChanged editType newTrack undoMsg ->
+            ( model |> trackHasChanged undoMsg newTrack
+            , refreshMap
+            )
 
         _ ->
-            model
+            ( model, Cmd.none )
 
 
 processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
@@ -371,13 +373,13 @@ processViewPaneMessage innerMsg model track =
 
         finalModel =
             case postUpdateAction of
-                ViewPane.ImageAction ImageOnly ->
+                ViewPane.ImageAction ActionNoOp ->
                     updatedModel
 
-                ViewPane.ImageAction (PointerMove tp) ->
+                ViewPane.ImageAction (ActionPointerMove tp) ->
                     movePointer tp
 
-                ViewPane.ImageAction (FocusMove tp) ->
+                ViewPane.ImageAction (ActionFocusMove tp) ->
                     let
                         withMovedPointer =
                             movePointer tp
@@ -389,14 +391,13 @@ processViewPaneMessage innerMsg model track =
                                 withMovedPointer.viewPanes
                     }
 
-                ViewPane.ImageAction ImageNoOp ->
-                    updatedModel
-
                 ViewPane.ApplyToAllPanes f ->
                     { updatedModel | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes }
 
                 ViewPane.PaneNoOp ->
                     updatedModel
+
+                _ -> updatedModel
     in
     finalModel
 
@@ -466,27 +467,33 @@ processMarkerMessage markerMsg model isTrack =
     }
 
 
-processNudgeMessage : Nudge.NudgeMsg -> Model -> Track -> Model
+processNudgeMessage : Nudge.NudgeMsg -> Model -> Track -> ( Model, PostUpdateAction )
 processNudgeMessage nudgeMsg model isTrack =
     let
-        ( newSetttings, newTrack, action ) =
+        ( newSetttings, action ) =
             Nudge.update nudgeMsg model.nudgeSettings isTrack
-    in
-    case action of
-        NudgeTrackChanged undoMsg ->
-            { model | nudgePreview = [] }
-                |> trackHasChanged undoMsg newTrack
 
-        NudgePreview points ->
-            let
-                newPreview =
-                    SceneBuilder.previewNudge points
-            in
-            { model
-                | nudgePreview = newPreview
-                , completeScene = newPreview ++ model.visibleMarkers ++ model.staticScene
-                , nudgeSettings = newSetttings
-            }
+        newModel =
+            case action of
+                ActionTrackChanged editType newTrack undoMsg ->
+                    { model | nudgePreview = [] }
+                        |> trackHasChanged undoMsg newTrack
+
+                ActionPreview label points ->
+                    let
+                        newPreview =
+                            SceneBuilder.previewNudge points
+                    in
+                    { model
+                        | nudgePreview = newPreview
+                        , completeScene = newPreview ++ model.visibleMarkers ++ model.staticScene
+                        , nudgeSettings = newSetttings
+                    }
+
+                _ ->
+                    model
+    in
+    ( newModel, action )
 
 
 trackHasChanged : String -> Track -> Model -> Model

@@ -5,6 +5,7 @@ import Element.Input exposing (button)
 import Graph exposing (applyNodePreservingEditsToGraph)
 import Length
 import List.Extra
+import PostUpdateActions exposing (PostUpdateAction)
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -74,11 +75,14 @@ makeUndoMessage track =
         "Delete from " ++ showDecimal2 start ++ " to " ++ showDecimal2 finish
 
 
-update : Msg -> Track -> ( Track, Action )
+update : Msg -> Track -> PostUpdateAction
 update msg track =
     case msg of
         DeleteTrackPoints ->
-            ( deletePoints track, DeleteTrackChanged <| makeUndoMessage track )
+            PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                (deletePoints track)
+                (makeUndoMessage track)
 
 
 deletePoints : Track -> Track

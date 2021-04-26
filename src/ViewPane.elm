@@ -8,7 +8,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
-import ImagePostUpdateActions exposing (PostUpdateAction(..))
+import PostUpdateActions exposing (PostUpdateAction(..))
 import List.Extra
 import Pixels exposing (Pixels, pixels)
 import Quantity exposing (Quantity)
@@ -39,7 +39,7 @@ type ViewPaneMessage
 
 type ViewPaneAction
     = ApplyToAllPanes (ViewPane -> ViewPane)
-    | ImageAction ImagePostUpdateActions.PostUpdateAction
+    | ImageAction PostUpdateActions.PostUpdateAction
     | PaneNoOp
 
 

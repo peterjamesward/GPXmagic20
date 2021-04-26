@@ -10,7 +10,7 @@ import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import ImagePostUpdateActions exposing (PostUpdateAction(..))
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -159,7 +159,7 @@ update msg view now =
                     event.keys.ctrl || event.button == SecondButton
             in
             ( view
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageDrag event ->
@@ -168,12 +168,12 @@ update msg view now =
                     event.offsetPos
             in
             ( view
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageRelease _ ->
             ( view
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageMouseWheel deltaY ->
@@ -182,49 +182,49 @@ update msg view now =
                     -0.001 * deltaY
             in
             ( { view | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel + increment }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageClick event ->
             if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
                 case detectHit view event of
                     Just tp ->
-                        ( view, PointerMove tp )
+                        ( view, ActionPointerMove tp )
 
                     Nothing ->
-                        ( view, ImageOnly )
+                        ( view, ActionNoOp )
 
             else
-                ( view, ImageOnly )
+                ( view, ActionNoOp )
 
         ImageDoubleClick event ->
             case detectHit view event of
                 Just tp ->
                     ( { view | focalPoint = tp.profileXZ }
-                    , FocusMove tp
+                    , ActionFocusMove tp
                     )
 
                 Nothing ->
-                    ( view, ImageOnly )
+                    ( view, ActionNoOp )
 
         ImageNoOpMsg ->
-            ( view, ImageOnly )
+            ( view, ActionNoOp )
 
         ImageZoomIn ->
             ( { view | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel + 0.5 }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageZoomOut ->
             ( { view | zoomLevel = clamp 0.0 22.0 <| view.zoomLevel - 0.5 }
-            , ImageOnly
+            , ActionNoOp
             )
 
         ImageReset ->
             ( { view
                 | zoomLevel = view.defaultZoomLevel
               }
-            , ImageOnly
+            , ActionNoOp
             )
 
 

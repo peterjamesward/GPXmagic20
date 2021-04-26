@@ -12,7 +12,7 @@ Position preserving. OK.
 ? Zoom + | - overlay on view instead of scroll bar (as per Map).
 Simple: Auto remove sharp "folds" in loaded track.
 9. Multiple viewports and views.
-Turns out that elm-3d-geo prefers coordinates near the origin.
+Turns out that elm-3d-geo prefers coordinates near the origin (due to loss of precision?).
 Have patched in the Ghanian transform but need to retain base point for converting back!
 Synchronize window focal points (Display option?)
 10. Map integration. May have found how to have permanent DIV for map with show/hide!
@@ -22,9 +22,7 @@ Popup explanatory text for accordion. (Display in Info view?)
 # TODO
 
 ## FIRST:
-> Move all the tools "under" Accordion.
-> Put the tools' state into their entry, with a sum type.
-> Put any previews there also (default to []).
+> Move all the tools "under" Accordion. --No. Because there's also ViewPanes.
 > Tools can return their preview (List Trackpoint) as Action (1 or 2 below).
 > Universal adoption of message Actions, to be handled as low as possible in hierarchy
 > but also passed up if necessary:
@@ -34,12 +32,8 @@ Popup explanatory text for accordion. (Display in Info view?)
 > 4. Markers moved, no recentre; (previews from open tabs)
 > 4. Nothing to do.   
 > Only invoke and consume previews from open tabs.;
-
-> But I could perhaps do this less radically by simply factoring out the
-> commonality across Xxx.update calls in main.update. Possibly, the only 
-> real difference is which update method we call; the surrounding logic
-> should be the same, as outlined above. Moving into Accordion is really 
-> marginal.
+> 
+> Put +/resize ViewPane controls back at top left of pane zero.
 
 ## THEN
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
