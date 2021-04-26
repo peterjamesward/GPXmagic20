@@ -128,19 +128,14 @@ paintSomethingBetween scale width material pt1 pt2 =
                 (scaledXZ pt1)
                 (scaledXZ pt2)
 
-        halfWidth =
-            Vector3d.from pt1.profileXZ pt2.profileXZ
-                |> Vector3d.projectOnto Plane3d.zx
-                |> Vector3d.scaleTo width
-
-        ( leftKerbVector, rightKerbVector ) =
-            ( Vector3d.rotateAround Axis3d.y (Angle.degrees 90) halfWidth
-            , Vector3d.rotateAround Axis3d.y (Angle.degrees -90) halfWidth
+        ( topEdgeVector, bottomEdgeVector ) =
+            ( Vector3d.fromTuple meters (0.0, 0.0, width)
+            , Vector3d.fromTuple meters (0.0, 0.0, -1 * width)
             )
 
         ( topEdge, bottomEdge ) =
-            ( LineSegment3d.translateBy leftKerbVector roadAsSegment
-            , LineSegment3d.translateBy rightKerbVector roadAsSegment
+            ( LineSegment3d.translateBy topEdgeVector roadAsSegment
+            , LineSegment3d.translateBy bottomEdgeVector roadAsSegment
             )
     in
     [ Scene3d.quad material
@@ -230,7 +225,7 @@ previewNudge options points =
         nudgeElement tp1 tp2 =
             paintSomethingBetween
                 options.verticalExaggeration
-                (Length.meters 0.1)
+                0.5
                 (Material.matte Color.darkGrey)
                 tp1
                 tp2
