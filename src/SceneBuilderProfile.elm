@@ -71,15 +71,23 @@ paintCurtainBetween scale pt1 pt2 =
         (Point3d.projectOnto Plane3d.xy pt1.profileXZ)
 
 
-renderMarkers : Track -> Scene
-renderMarkers track =
+renderMarkers : DisplayOptions -> Track -> Scene
+renderMarkers options track =
     let
+        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
+        scaledXZ p =
+            let
+                { x, y, z } =
+                    Point3d.toMeters p.profileXZ
+            in
+            Point3d.fromTuple meters ( x, y, z * options.verticalExaggeration )
+
         currentPositionDisc point =
             [ cone (Material.color Color.lightOrange) <|
                 Cone3d.startingAt
                     (Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 10.1)
-                        point.profileXZ
+                        (scaledXZ point)
                     )
                     negativeZ
                     { radius = meters <| 3.0
@@ -92,7 +100,7 @@ renderMarkers track =
                 Cone3d.startingAt
                     (Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 10.1)
-                        point.profileXZ
+                        (scaledXZ point)
                     )
                     negativeZ
                     { radius = meters <| 3.5

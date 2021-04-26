@@ -503,7 +503,7 @@ repaintMarkers model =
                 |> Maybe.withDefault []
 
         updatedProfileMarkers =
-            Maybe.map SceneBuilderProfile.renderMarkers model.track
+            Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
                 |> Maybe.withDefault []
     in
     case model.track of
@@ -539,7 +539,7 @@ repaintTrack model =
             Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
 
         updatedProfileMarkers =
-            Maybe.map SceneBuilderProfile.renderMarkers model.track
+            Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
                 |> Maybe.withDefault []
     in
     case model.track of
