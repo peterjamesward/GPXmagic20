@@ -574,7 +574,7 @@ view model =
                         viewAllPanes
                             model.viewPanes
                             model.displayOptions
-                            ( model.completeScene, model.profileScene )
+                            ( model.completeScene, model.completeProfile )
                             viewPaneMessageWrapper
                     , el [ alignTop ] <|
                         column defaultColumnLayout
