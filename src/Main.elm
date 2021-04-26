@@ -392,7 +392,6 @@ processGpxLoaded content model =
 
 processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg model track =
-    --TODO: Repaint Map only if views actually change size.
     let
         ( newPane, postUpdateAction ) =
             ViewPane.update innerMsg model.viewPanes model.time

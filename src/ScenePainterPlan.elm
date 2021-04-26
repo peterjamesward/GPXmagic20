@@ -9,12 +9,12 @@ import Direction3d exposing (negativeZ, positiveY, positiveZ)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import PostUpdateActions exposing (PostUpdateAction(..))
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
 import Point2d
 import Point3d exposing (Point3d)
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
@@ -112,7 +112,7 @@ update msg view now =
                 alternate =
                     event.keys.ctrl || event.button == SecondButton
             in
-            ( view
+            ( { view | mouseDownTime = now }
             , ActionNoOp
             )
 
@@ -143,10 +143,10 @@ update msg view now =
             if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
                 case detectHit view event of
                     Just tp ->
-                        ( { view | orbiting = Nothing }, ActionPointerMove tp )
+                        ( view, ActionPointerMove tp )
 
                     Nothing ->
-                        ( { view | orbiting = Nothing }, ActionNoOp )
+                        ( view, ActionNoOp )
 
             else
                 ( view, ActionNoOp )
