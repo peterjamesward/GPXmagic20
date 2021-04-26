@@ -44,7 +44,15 @@ initialiseView viewSize track =
 initialiseMap : ViewingContext -> Track -> List (Cmd msg)
 initialiseMap context track =
     [ MapController.addTrackToMap context track
+    , MapController.addMarkersToMap track [] []
     , MapController.centreMap context track
+    ]
+
+
+mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)
+mapTrackHasChanged context track =
+    [ MapController.addTrackToMap context track
+    , MapController.addMarkersToMap track [] []
     ]
 
 

@@ -16,6 +16,7 @@ type
     | ActionPointerMove TrackPoint
     | ActionFocusMove TrackPoint
     | ActionOptionsChanged DisplayOptions
+    | ActionRepaintMap
     | ActionNoOp
 
 

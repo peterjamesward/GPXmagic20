@@ -47,7 +47,7 @@ trackFromGpx content =
             -- Move to near (0,0) to maintain precision in geometry -> clip space
             applyGhanianTransform trackPoints
     in
-    case trackPoints of
+    case centredPoints of
         [] ->
             Nothing
 
@@ -76,6 +76,14 @@ removeGhanianTransform track =
 withoutGhanianTransform : Track -> Point3d Meters LocalCoords -> Point3d Meters LocalCoords
 withoutGhanianTransform track point =
     Point3d.translateBy (track.transform |> Vector3d.reverse) point
+
+
+latLonPair tp =
+    let
+        ( lon, lat, ele ) =
+            pointInEarthCoordinates tp
+    in
+    E.list E.float [ lon, lat ]
 
 
 trackPointsToJSON : Track -> E.Value
@@ -108,13 +116,6 @@ trackPointsToJSON track =
                 [ ( "type", E.string "Point" )
                 , ( "coordinates", latLonPair tp )
                 ]
-
-        latLonPair tp =
-            let
-                ( lon, lat, ele ) =
-                    pointInEarthCoordinates tp
-            in
-            E.list E.float [ lon, lat ]
     in
     E.object
         [ ( "type", E.string "FeatureCollection" )
@@ -134,13 +135,6 @@ trackToJSON track =
 
         coordinates =
             List.map latLonPair (removeGhanianTransform track)
-
-        latLonPair tp =
-            let
-                ( lon, lat, ele ) =
-                    pointInEarthCoordinates tp
-            in
-            E.list E.float [ lon, lat ]
     in
     E.object
         [ ( "type", E.string "Feature" )

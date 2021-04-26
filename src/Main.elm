@@ -197,10 +197,12 @@ update msg model =
             processGpxLoaded content model
 
         ViewPaneMessage innerMsg ->
-            ( Maybe.map (processViewPaneMessage innerMsg model) model.track
-                |> Maybe.withDefault model
-            , Delay.after 50 RepaintMap
-            )
+            case model.track of
+                Just track ->
+                    processViewPaneMessage innerMsg model track
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         RepaintMap ->
             ( model, refreshMap )
@@ -326,6 +328,7 @@ processGpxLoaded content model =
                 Just isTrack ->
                     ( List.map (ViewPane.resetAllViews isTrack) model.viewPanes
                     , ViewPane.makeMapCommands isTrack model.viewPanes
+                        ++ [ Delay.after 50 RepaintMap ]
                     )
 
                 Nothing ->
@@ -345,8 +348,9 @@ processGpxLoaded content model =
     )
 
 
-processViewPaneMessage : ViewPaneMessage -> Model -> Track -> Model
+processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg model track =
+    --TODO: Repaint Map only if views actually change size.
     let
         ( newPane, postUpdateAction ) =
             ViewPane.update innerMsg model.viewPanes model.time
@@ -375,27 +379,38 @@ processViewPaneMessage innerMsg model track =
         finalModel =
             case postUpdateAction of
                 ViewPane.ImageAction (ActionPointerMove tp) ->
-                    movePointer tp
+                    ( movePointer tp
+                    , Delay.after 50 RepaintMap
+                    )
 
                 ViewPane.ImageAction (ActionFocusMove tp) ->
                     let
                         withMovedPointer =
                             movePointer tp
                     in
-                    { withMovedPointer
+                    ( { withMovedPointer
                         | viewPanes =
                             ViewPane.mapOverPanes
                                 (updatePointerInLinkedPanes tp)
                                 withMovedPointer.viewPanes
-                    }
+                      }
+                    , Delay.after 50 RepaintMap
+                    )
+
+                ViewPane.ImageAction (ActionRepaintMap) ->
+                    ( updatedModel
+                    , Delay.after 50 RepaintMap
+                    )
 
                 ViewPane.ApplyToAllPanes f ->
-                    { updatedModel
+                    ( { updatedModel
                         | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes
-                    }
+                      }
+                    , Delay.after 50 RepaintMap
+                    )
 
                 _ ->
-                    updatedModel
+                    ( updatedModel, Cmd.none )
     in
     finalModel
 

@@ -8,9 +8,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
-import PostUpdateActions exposing (PostUpdateAction(..))
 import List.Extra
 import Pixels exposing (Pixels, pixels)
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, trackPointNearestRay)
@@ -402,7 +402,9 @@ update msg panes now =
             in
             case currentPane of
                 Just pane ->
-                    ( Just { pane | activeContext = mode }, PaneNoOp )
+                    ( Just { pane | activeContext = mode }
+                    , ImageAction ActionRepaintMap
+                    )
 
                 Nothing ->
                     ( Nothing, PaneNoOp )

@@ -126,26 +126,29 @@ addTrackToMap context track =
 
 
 addMarkersToMap :
-    ( Float, Float ) -- current track point
-    -> Maybe ( Float, Float ) -- dropped marker
+    Track
     -> List TrackPoint -- bend smoothing suggestion
     -> List TrackPoint -- node nudging preview
     -> Cmd msg
-addMarkersToMap current marker smoothBend nudged =
+addMarkersToMap track smoothBend nudged =
     let
-        encodePos ( lon, lat ) =
+        realWorldPosition tp =
+            Track.withoutGhanianTransform track tp.xyz
+            |> TrackPoint.pointInEarthCoordinates
+
+        encodePos ( lon, lat, ele ) =
             E.object
                 [ ( "lon", E.float lon )
                 , ( "lat", E.float lat )
                 ]
     in
     mapPort <|
-        case marker of
+        case track.markedNode of
             Just mark ->
                 E.object
                     [ ( "Cmd", E.string "Mark" )
-                    , ( "orange", encodePos current )
-                    , ( "purple", encodePos mark )
+                    , ( "orange", encodePos <| realWorldPosition track.currentNode )
+                    , ( "purple", encodePos <| realWorldPosition mark )
 
                     --, ( "bend", trackToJSON smoothBend )
                     --, ( "nudge", trackToJSON nudged )
@@ -154,7 +157,7 @@ addMarkersToMap current marker smoothBend nudged =
             Nothing ->
                 E.object
                     [ ( "Cmd", E.string "Mark" )
-                    , ( "orange", encodePos current )
+                    , ( "orange", encodePos <| realWorldPosition track.currentNode  )
 
                     --, ( "bend", trackToJSON smoothBend )
                     --, ( "nudge", trackToJSON nudged )
