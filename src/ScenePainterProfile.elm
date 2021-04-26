@@ -10,13 +10,13 @@ import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import PostUpdateActions exposing (PostUpdateAction(..))
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
 import Point2d
 import Point3d exposing (Point3d, distanceFromAxis)
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
@@ -158,7 +158,7 @@ update msg view now =
                 alternate =
                     event.keys.ctrl || event.button == SecondButton
             in
-            ( view
+            ( { view | mouseDownTime = now }
             , ActionNoOp
             )
 

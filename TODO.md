@@ -2,20 +2,6 @@
 
 # TODO
 
-Single click on Profile broked.
-
-## FIRST:
-> Move all the tools "under" Accordion. --No. Because there's also ViewPanes.
-> Tools can return their preview (List Trackpoint) as Action (1 or 2 below).
-> Universal adoption of message Actions, to be handled as low as possible in hierarchy
-> but also passed up if necessary:
-> 1. Track geometry change (index preserving, position preserving);
-> 2. Track options change (hence rebuild required);
-> 3. Markers moved and recentre; (previews from open tabs)
-> 4. Markers moved, no recentre; (previews from open tabs)
-> 4. Nothing to do.   
-
-## THEN
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 
 12. Strava OAuth integration. (Could we use a popup to avoid losing state?)
