@@ -90,6 +90,24 @@ centreMap context track =
             ]
 
 
+centreMapOnCurrent : Track -> Cmd msg
+centreMapOnCurrent  track =
+    let
+        ( lon, lat, _ ) =
+            track.currentNode.xyz
+                |> withoutGhanianTransform track
+                |> pointInEarthCoordinates
+    in
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Centre" )
+            , ( "token", E.string mapboxKey )
+            , ( "lon", E.float lon )
+            , ( "lat", E.float lat )
+            ]
+
+
+
 
 --toggleDragging : Bool -> MapInfo -> Cmd msg
 --toggleDragging state info =

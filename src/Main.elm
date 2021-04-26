@@ -361,26 +361,33 @@ processViewPaneMessage innerMsg model track =
         updatedModel =
             { model | viewPanes = updatedViewPanes }
 
+        updatedTrack tp =
+            { track | currentNode = tp }
+
         movePointer : TrackPoint -> Model
         movePointer tp =
             let
-                updatedTrack =
-                    { track | currentNode = tp }
-
                 updatedMarkers =
-                    SceneBuilder.renderMarkers updatedTrack
+                    SceneBuilder.renderMarkers (updatedTrack tp)
             in
             { updatedModel
-                | track = Just updatedTrack
-                , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
+                | completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
                 , visibleMarkers = updatedMarkers
             }
 
         finalModel =
+            -- This is so flaky.
             case postUpdateAction of
                 ViewPane.ImageAction (ActionPointerMove tp) ->
+                    let
+                        withMovedPointer =
+                            movePointer tp
+                    in
                     ( movePointer tp
-                    , Delay.after 50 RepaintMap
+                    , Cmd.batch
+                        [ MapController.addMarkersToMap (updatedTrack tp) [] []
+                        , Delay.after 50 RepaintMap
+                        ]
                     )
 
                 ViewPane.ImageAction (ActionFocusMove tp) ->
@@ -394,10 +401,14 @@ processViewPaneMessage innerMsg model track =
                                 (updatePointerInLinkedPanes tp)
                                 withMovedPointer.viewPanes
                       }
-                    , Delay.after 50 RepaintMap
+                    , Cmd.batch
+                        [ MapController.addMarkersToMap (updatedTrack tp) [] []
+                        , MapController.centreMapOnCurrent (updatedTrack tp)
+                        , Delay.after 50 RepaintMap
+                        ]
                     )
 
-                ViewPane.ImageAction (ActionRepaintMap) ->
+                ViewPane.ImageAction ActionRepaintMap ->
                     ( updatedModel
                     , Delay.after 50 RepaintMap
                     )
