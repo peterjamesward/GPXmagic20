@@ -328,6 +328,8 @@ view ( scene, profile ) options wrapper pane =
 
                     _ ->
                         none
+
+            -- We leave the Map DIV intact, as destroying and creating is APITA.
             , conditionallyVisible (pane.activeContext == ViewMap) <|
                 ScenePainterMap.viewScene
                     (pane.activeContext == ViewMap)

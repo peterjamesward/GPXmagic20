@@ -160,8 +160,12 @@ nudgeTrackPoint trackpoint settings =
             trackpoint.xyz
                 |> Point3d.translateBy horizontalVector
                 |> Point3d.translateBy verticalVector
+
+        newProfileXZ =
+            trackpoint.profileXZ
+                |> Point3d.translateBy verticalVector
     in
-    { trackpoint | xyz = newXYZ }
+    { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
 previewNudgeNodes : Track -> NudgeSettings -> List TrackPoint

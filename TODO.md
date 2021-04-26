@@ -1,7 +1,8 @@
+
+
 # TODO
 
 No Nudge preview in Profile!
-The number of repetitions of the scene composition is embarrassing.
 
 ## FIRST:
 > Move all the tools "under" Accordion. --No. Because there's also ViewPanes.

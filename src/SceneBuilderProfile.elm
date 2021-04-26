@@ -104,36 +104,42 @@ renderMarkers track =
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
 
 
-paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
-paintSurfaceBetween pt1 pt2 =
-    paintSomethingBetween (Length.meters 3.0) (Material.matte Color.grey) pt1 pt2
 
-
-paintSomethingBetween width material pt1 pt2 =
+paintSomethingBetween scale width material pt1 pt2 =
     let
+        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
+        scaledXZ p =
+            let
+                { x, y, z } =
+                    Point3d.toMeters p.profileXZ
+            in
+            Point3d.fromTuple meters ( x, y, z * scale )
+
         roadAsSegment =
-            LineSegment3d.from pt1.profileXZ pt2.profileXZ
+            LineSegment3d.from
+                (scaledXZ pt1)
+                (scaledXZ pt2)
 
         halfWidth =
             Vector3d.from pt1.profileXZ pt2.profileXZ
-                |> Vector3d.projectOnto Plane3d.xy
+                |> Vector3d.projectOnto Plane3d.zx
                 |> Vector3d.scaleTo width
 
         ( leftKerbVector, rightKerbVector ) =
-            ( Vector3d.rotateAround Axis3d.z (Angle.degrees 90) halfWidth
-            , Vector3d.rotateAround Axis3d.z (Angle.degrees -90) halfWidth
+            ( Vector3d.rotateAround Axis3d.y (Angle.degrees 90) halfWidth
+            , Vector3d.rotateAround Axis3d.y (Angle.degrees -90) halfWidth
             )
 
-        ( leftKerb, rightKerb ) =
+        ( topEdge, bottomEdge ) =
             ( LineSegment3d.translateBy leftKerbVector roadAsSegment
             , LineSegment3d.translateBy rightKerbVector roadAsSegment
             )
     in
     [ Scene3d.quad material
-        (LineSegment3d.startPoint leftKerb)
-        (LineSegment3d.endPoint leftKerb)
-        (LineSegment3d.endPoint rightKerb)
-        (LineSegment3d.startPoint rightKerb)
+        (LineSegment3d.startPoint topEdge)
+        (LineSegment3d.endPoint topEdge)
+        (LineSegment3d.endPoint bottomEdge)
+        (LineSegment3d.startPoint bottomEdge)
     ]
 
 
@@ -210,11 +216,16 @@ showGraphNodes graph =
     graph |> Graph.nodePointList |> List.map makeNode
 
 
-previewNudge : List TrackPoint -> List (Entity LocalCoords)
-previewNudge points =
+previewNudge : DisplayOptions -> List TrackPoint -> List (Entity LocalCoords)
+previewNudge options points =
     let
         nudgeElement tp1 tp2 =
-            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightOrange) tp1 tp2
+            paintSomethingBetween
+                options.verticalExaggeration
+                (Length.meters 0.1)
+                (Material.matte Color.darkGrey)
+                tp1
+                tp2
     in
     List.concat <|
         List.map2

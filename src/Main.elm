@@ -118,6 +118,7 @@ type alias Model =
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
     , nudgePreview : Scene
+    , nudgeProfilePreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
@@ -142,6 +143,7 @@ init mflags origin navigationKey =
       , profileMarkers = []
       , visibleMarkers = []
       , nudgePreview = []
+      , nudgeProfilePreview = []
       , completeScene = []
       , completeProfile = []
       , renderingContext = Nothing
@@ -453,17 +455,25 @@ processNudgeMessage nudgeMsg model isTrack =
         newModel =
             case action of
                 ActionTrackChanged editType newTrack undoMsg ->
-                    { model | nudgePreview = [] }
+                    { model
+                        | nudgePreview = []
+                        , nudgeProfilePreview = []
+                    }
                         |> trackHasChanged undoMsg newTrack
 
                 ActionPreview label points ->
                     let
                         newPreview =
                             SceneBuilder.previewNudge points
+
+                        newProfilePreview =
+                            SceneBuilderProfile.previewNudge model.displayOptions points
                     in
                     { model
                         | nudgePreview = newPreview
+                        , nudgeProfilePreview = newProfilePreview
                         , completeScene = newPreview ++ model.visibleMarkers ++ model.staticScene
+                        , completeProfile = newProfilePreview ++ model.profileMarkers ++ model.profileScene
                         , nudgeSettings = newSetttings
                     }
 
@@ -502,7 +512,7 @@ repaintMarkers model =
                 | visibleMarkers = updatedMarkers
                 , profileMarkers = updatedProfileMarkers
                 , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-                , completeProfile = updatedProfileMarkers ++ model.profileScene
+                , completeProfile = updatedProfileMarkers ++ model.nudgeProfilePreview ++ model.profileScene
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
             }
 
