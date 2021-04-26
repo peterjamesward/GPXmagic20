@@ -21,6 +21,9 @@ Popup explanatory text for accordion. (Display in Info view?)
 
 # TODO
 
+No markers in Profile!
+No Nudge preview in Profile!
+
 ## FIRST:
 > Move all the tools "under" Accordion. --No. Because there's also ViewPanes.
 > Tools can return their preview (List Trackpoint) as Action (1 or 2 below).
@@ -31,9 +34,6 @@ Popup explanatory text for accordion. (Display in Info view?)
 > 3. Markers moved and recentre; (previews from open tabs)
 > 4. Markers moved, no recentre; (previews from open tabs)
 > 4. Nothing to do.   
-> Only invoke and consume previews from open tabs.;
-> 
-> Put +/resize ViewPane controls back at top left of pane zero.
 
 ## THEN
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)

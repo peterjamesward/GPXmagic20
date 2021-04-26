@@ -637,13 +637,15 @@ subscriptions model =
 
 
 toolsAccordion model =
-    [ { label = "Views "
-      , state = Contracted
-      , content = ViewPane.viewPaneTools viewPaneMessageWrapper
-      , info = ViewPane.info
-      , previewMaker = always []
-      }
-    , { label = "Visual styles"
+    [
+    --{ label = "Views "
+    --  , state = Contracted
+    --  , content = ViewPane.viewPaneTools viewPaneMessageWrapper
+    --  , info = ViewPane.info
+    --  , previewMaker = always []
+    --  }
+    --,
+      { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info

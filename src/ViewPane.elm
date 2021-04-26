@@ -293,7 +293,12 @@ view ( scene, profile ) options wrapper pane =
     if pane.visible then
         column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
             [ row [ width fill ]
-                [ el [ alignLeft ] <| viewModeChoices pane wrapper
+                [ if pane.paneId == 0 then
+                    viewPaneTools wrapper
+
+                  else
+                    none
+                , el [ centerX ] <| viewModeChoices pane wrapper
                 , viewPaneControls pane wrapper
                 ]
             , conditionallyVisible (pane.activeContext /= ViewMap) <|
@@ -354,7 +359,7 @@ viewPaneTools wrap =
         addButton =
             makeButton AddPane FeatherIcons.copy
     in
-    row toolRowLayout
+    row [ padding 10, spacing 10 ]
         [ enlargeButton
         , diminishButton
         , addButton
