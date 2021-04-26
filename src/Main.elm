@@ -292,7 +292,7 @@ processPostUpdateAction model action =
     case action of
         ActionTrackChanged editType newTrack undoMsg ->
             ( model |> trackHasChanged undoMsg newTrack
-            , refreshMap
+            , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
             )
 
         _ ->
@@ -318,7 +318,8 @@ processGpxLoaded content model =
                 |> Maybe.withDefault []
 
         markers =
-            Maybe.map SceneBuilder.renderMarkers track |> Maybe.withDefault []
+            Maybe.map SceneBuilder.renderMarkers track
+                |> Maybe.withDefault []
 
         ( newViewPanes, mapCommands ) =
             case track of
@@ -373,9 +374,6 @@ processViewPaneMessage innerMsg model track =
 
         finalModel =
             case postUpdateAction of
-                ViewPane.ImageAction ActionNoOp ->
-                    updatedModel
-
                 ViewPane.ImageAction (ActionPointerMove tp) ->
                     movePointer tp
 
@@ -392,12 +390,12 @@ processViewPaneMessage innerMsg model track =
                     }
 
                 ViewPane.ApplyToAllPanes f ->
-                    { updatedModel | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes }
+                    { updatedModel
+                        | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes
+                    }
 
-                ViewPane.PaneNoOp ->
+                _ ->
                     updatedModel
-
-                _ -> updatedModel
     in
     finalModel
 
