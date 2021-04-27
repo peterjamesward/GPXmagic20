@@ -525,3 +525,8 @@ updatePointerInLinkedPanes tp pane =
 
     else
         pane
+
+
+mapPaneIsLinked : List ViewPane -> Bool
+mapPaneIsLinked panes =
+    List.head panes |> Maybe.map .paneLinked |> Maybe.withDefault False

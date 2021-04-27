@@ -319,7 +319,11 @@ processPostUpdateAction model action =
                 |> renderVaryingSceneElements
             , Cmd.batch
                 [ MapController.addMarkersToMap updatedTrack [] []
-                , MapController.centreMapOnCurrent updatedTrack
+                , if ViewPane.mapPaneIsLinked model.viewPanes then
+                    MapController.centreMapOnCurrent updatedTrack
+
+                  else
+                    Cmd.none
                 ]
             )
 
