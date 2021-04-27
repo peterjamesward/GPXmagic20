@@ -2,8 +2,9 @@
 
 # TODO
 
-BUG: Initial zoom levels are wrong now.
 BUG: Should be able to Unlink map from centering.
+
+IDEA: Horizontal info tabs running below image panes.
 
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 

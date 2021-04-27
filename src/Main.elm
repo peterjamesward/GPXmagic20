@@ -370,6 +370,7 @@ processGpxLoaded content model =
         | track = track
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
+        , viewPanes = newViewPanes
       }
         |> renderTrackSceneElements
     , Cmd.batch mapCommands
