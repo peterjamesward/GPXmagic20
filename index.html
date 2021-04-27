@@ -156,8 +156,8 @@ function incomingMessageHandler(msg) {
         case 'Track':
             if (isMapCreated) {
                 addLineToMap(msg.data, msg.points);
-                map.setCenter([msg.lon, msg.lat]);
-                map.setZoom(msg.zoom)
+//                map.setCenter([msg.lon, msg.lat]);
+//                map.setZoom(msg.zoom)
             }
             break;
 
@@ -177,6 +177,12 @@ function incomingMessageHandler(msg) {
         case 'Centre':
             if (isMapCreated) {
                 centreMap(msg.lon, msg.lat);
+            }
+            break;
+
+        case 'Zoom':
+            if (isMapCreated) {
+                map.setZoom(msg.zoom)
             }
             break;
     }

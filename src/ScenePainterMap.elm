@@ -4,6 +4,7 @@ module ScenePainterMap exposing (..)
 -- Works with Map Controller to talk to nasty JS stuff..
 
 import ColourPalette exposing (white)
+import Delay exposing (after)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -46,6 +47,7 @@ initialiseMap context track =
     [ MapController.addTrackToMap context track
     , MapController.addMarkersToMap track [] []
     , MapController.centreMap context track
+    , MapController.zoomMap context
     ]
 
 

@@ -210,6 +210,16 @@ makeMapCommands : Track -> List ViewPane -> List (Cmd msg)
 makeMapCommands track viewPanes =
     case List.head viewPanes of
         Just pane ->
+            ScenePainterMap.mapTrackHasChanged pane.mapContext track
+
+        Nothing ->
+            []
+
+
+initialiseMap : Track -> List ViewPane -> List (Cmd msg)
+initialiseMap track viewPanes =
+    case List.head viewPanes of
+        Just pane ->
             ScenePainterMap.initialiseMap pane.mapContext track
 
         Nothing ->

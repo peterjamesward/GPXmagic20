@@ -11,6 +11,7 @@ type
     -- main about what needs to follow, since we can't know about the
     -- program at large, only our small part.
     = ActionTrackChanged TrackEditType Track String
+    | ActionRerender
     | ActionPreview
     | ActionPointerMove TrackPoint
     | ActionMarkerMove (Maybe TrackPoint)

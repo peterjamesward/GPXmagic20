@@ -2,7 +2,8 @@
 
 # TODO
 
-BUG: Undo is not repainting Map.
+BUG: Initial zoom levels are wrong now.
+BUG: Should be able to Unlink map from centering.
 
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 

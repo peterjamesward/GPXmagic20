@@ -172,14 +172,10 @@ update msg model =
             )
 
         Undo ->
-            ( model |> undo |> renderTrackSceneElements
-            , Cmd.none
-            )
+            processPostUpdateAction (undo model) ActionRerender
 
         Redo ->
-            ( model |> redo |> renderTrackSceneElements
-            , Cmd.none
-            )
+            processPostUpdateAction (redo model) ActionRerender
 
         GpxRequested ->
             ( model
@@ -294,6 +290,12 @@ processPostUpdateAction model action =
             , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
             )
 
+        ( Just track, ActionRerender ) ->
+            ( model
+                |> renderTrackSceneElements
+            , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
+            )
+
         ( Just track, ActionPointerMove tp ) ->
             let
                 updatedTrack =
@@ -357,7 +359,7 @@ processGpxLoaded content model =
             case track of
                 Just isTrack ->
                     ( List.map (ViewPane.resetAllViews isTrack) model.viewPanes
-                    , ViewPane.makeMapCommands isTrack model.viewPanes
+                    , ViewPane.initialiseMap isTrack model.viewPanes
                         ++ [ Delay.after 50 RepaintMap ]
                     )
 

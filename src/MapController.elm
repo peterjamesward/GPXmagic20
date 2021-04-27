@@ -90,8 +90,18 @@ centreMap context track =
             ]
 
 
+zoomMap : ViewingContext -> Cmd msg
+zoomMap context =
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Zoom" )
+            , ( "token", E.string mapboxKey )
+            , ( "zoom", E.float context.zoomLevel )
+            ]
+
+
 centreMapOnCurrent : Track -> Cmd msg
-centreMapOnCurrent  track =
+centreMapOnCurrent track =
     let
         ( lon, lat, _ ) =
             track.currentNode.xyz
@@ -105,7 +115,6 @@ centreMapOnCurrent  track =
             , ( "lon", E.float lon )
             , ( "lat", E.float lat )
             ]
-
 
 
 
@@ -152,7 +161,7 @@ addMarkersToMap track smoothBend nudged =
     let
         realWorldPosition tp =
             Track.withoutGhanianTransform track tp.xyz
-            |> TrackPoint.pointInEarthCoordinates
+                |> TrackPoint.pointInEarthCoordinates
 
         encodePos ( lon, lat, ele ) =
             E.object
@@ -175,7 +184,7 @@ addMarkersToMap track smoothBend nudged =
             Nothing ->
                 E.object
                     [ ( "Cmd", E.string "Mark" )
-                    , ( "orange", encodePos <| realWorldPosition track.currentNode  )
+                    , ( "orange", encodePos <| realWorldPosition track.currentNode )
 
                     --, ( "bend", trackToJSON smoothBend )
                     --, ( "nudge", trackToJSON nudged )
