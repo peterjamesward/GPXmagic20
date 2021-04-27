@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Accordion exposing (AccordionEntry, AccordionState(..), view)
+import BendSmoothTools
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
@@ -52,6 +53,7 @@ type Msg
     | MapMessage Json.Encode.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
+    | BendSmoothMessage BendSmoothTools.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -82,6 +84,11 @@ viewPaneMessageWrapper m =
 displayOptionsMessageWrapper : DisplayOptions.Msg -> Msg
 displayOptionsMessageWrapper m =
     DisplayOptionsMessage m
+
+
+bendSmootherMessageWrapper : BendSmoothTools.Msg -> Msg
+bendSmootherMessageWrapper m =
+    BendSmoothMessage m
 
 
 wrapAuthMessage : OAuthMsg -> Msg
@@ -124,6 +131,7 @@ type alias Model =
     , changeCounter : Int
     , stravaAuthentication : O.Model
     , displayOptions : DisplayOptions.DisplayOptions
+    , bendOptions : BendSmoothTools.BendOptions
     }
 
 
@@ -155,6 +163,7 @@ init mflags origin navigationKey =
       , changeCounter = 0
       , stravaAuthentication = authData
       , displayOptions = DisplayOptions.defaultDisplayOptions
+      , bendOptions = BendSmoothTools.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -276,6 +285,9 @@ update msg model =
                 |> renderTrackSceneElements
             , Cmd.none
             )
+
+        BendSmoothMessage bendMsg ->
+            ( model, Cmd.none )
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -594,25 +606,13 @@ subscriptions model =
 
 
 toolsAccordion model =
-    [ --{ label = "Views "
-      --  , state = Contracted
-      --  , content = ViewPane.viewPaneTools viewPaneMessageWrapper
-      --  , info = ViewPane.info
-      --  , previewMaker = always []
-      --  }
-      --,
+    [ -- For V2 we see if a single collection works...
       { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info
       , previewMaker = always []
       }
-
-    --TODO: Make "click to drag" normal mode for Map.
-    --, { label = "Map options"
-    --  , state = Contracted
-    --  , content = viewMapOptions model
-    --  }
     , { label = "Tip jar"
       , state = Contracted
       , content = TipJar.tipJar
@@ -624,10 +624,12 @@ toolsAccordion model =
     --  , state = Contracted
     --  , content = viewLoopTools model
     --  }
-    --, { label = "Smooth bend"
-    --  , state = Contracted
-    --  , content = viewBendFixerPane model
-    --  }
+    , { label = "Bend smoother classic"
+      , state = Contracted
+      , content = BendSmoothTools.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
+      , info = "WRITE ME"
+      , previewMaker = always []
+      }
     --, { label = "Smooth gradient"
     --  , state = Contracted
     --  , content = viewGradientFixerPane model

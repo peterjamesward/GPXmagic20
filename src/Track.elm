@@ -6,11 +6,11 @@ import GpxParser
 import Graph exposing (Graph)
 import Json.Encode as E
 import Length exposing (Meters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints)
 import Vector3d exposing (Vector3d)
-
 
 
 type alias Track =
@@ -129,3 +129,14 @@ trackToJSON track =
         , ( "geometry", geometry )
         ]
 
+
+nextPointOn : Track -> TrackPoint -> TrackPoint
+nextPointOn track from =
+    List.Extra.getAt (from.index + 1) track.track
+        |> Maybe.withDefault from
+
+
+prevPointOn : Track -> TrackPoint -> TrackPoint
+prevPointOn track from =
+    List.Extra.getAt (from.index - 1) track.track
+        |> Maybe.withDefault from

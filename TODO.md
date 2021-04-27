@@ -2,7 +2,7 @@
 
 # TODO
 
-IDEA: Horizontal info tabs running below image panes.
+    --TODO: Make "click to drag" normal mode for Map.
 
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 
