@@ -168,8 +168,8 @@ nudgeTrackPoint trackpoint settings =
     { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
-previewNudgeNodes : Track -> NudgeSettings -> List TrackPoint
-previewNudgeNodes track settings =
+previewNudgeNodes : NudgeSettings -> Track -> List TrackPoint
+previewNudgeNodes settings track  =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
     -- For a Graph, this must update canonical nodes and edges.
@@ -287,10 +287,6 @@ update :
     -> Track
     -> ( NudgeSettings, PostUpdateActions.PostUpdateAction )
 update msg settings track =
-    let
-        preview newSettings =
-            previewNudgeNodes track newSettings
-    in
     case msg of
         SetHorizontalNudgeFactor length ->
             let
@@ -298,7 +294,7 @@ update msg settings track =
                     { settings | horizontal = length }
             in
             ( newSettings
-            , PostUpdateActions.ActionPreview "nudge" (preview newSettings)
+            , PostUpdateActions.ActionPreview
             )
 
         SetVerticalNudgeFactor length ->
@@ -307,12 +303,12 @@ update msg settings track =
                     { settings | vertical = length }
             in
             ( newSettings
-            , PostUpdateActions.ActionPreview "nudge" (preview newSettings)
+            , PostUpdateActions.ActionPreview
             )
 
         ZeroNudgeFactors ->
             ( defaultNudgeSettings
-            , PostUpdateActions.ActionPreview "nudge" []
+            , PostUpdateActions.ActionPreview
             )
 
         NudgeNode _ ->

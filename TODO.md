@@ -2,6 +2,8 @@
 
 # TODO
 
+BUG: Undo is not repainting Map.
+
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 
 12. Strava OAuth integration. (Could we use a popup to avoid losing state?)

@@ -28,7 +28,7 @@ import Task
 import Time
 import TipJar
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
@@ -172,12 +172,12 @@ update msg model =
             )
 
         Undo ->
-            ( model |> undo |> repaintTrack
+            ( model |> undo |> renderTrackSceneElements
             , Cmd.none
             )
 
         Redo ->
-            ( model |> redo |> repaintTrack
+            ( model |> redo |> renderTrackSceneElements
             , Cmd.none
             )
 
@@ -195,12 +195,8 @@ update msg model =
             processGpxLoaded content model
 
         ViewPaneMessage innerMsg ->
-            case model.track of
-                Just track ->
-                    processViewPaneMessage innerMsg model track
-
-                Nothing ->
-                    ( model, Cmd.none )
+            Maybe.map (processViewPaneMessage innerMsg model) model.track
+                |> Maybe.withDefault ( model, Cmd.none )
 
         RepaintMap ->
             ( model, refreshMap )
@@ -226,11 +222,14 @@ update msg model =
 
         NudgeMessage nudgeMsg ->
             let
-                ( newModel, action ) =
-                    Maybe.map (processNudgeMessage nudgeMsg model) model.track
-                        |> Maybe.withDefault ( model, ActionNoOp )
+                ( newSetttings, action ) =
+                    Maybe.map (Nudge.update nudgeMsg model.nudgeSettings) model.track
+                        |> Maybe.withDefault ( model.nudgeSettings, ActionNoOp )
+
+                updateSettings m =
+                    { m | nudgeSettings = newSetttings }
             in
-            processPostUpdateAction newModel action
+            processPostUpdateAction (updateSettings model) action
 
         DeleteMessage deleteMsg ->
             let
@@ -278,7 +277,7 @@ update msg model =
                 | displayOptions = newOptions
                 , viewPanes = viewPanes
               }
-                |> repaintTrack
+                |> renderTrackSceneElements
             , Cmd.none
             )
 
@@ -289,7 +288,9 @@ processPostUpdateAction model action =
     -- I doubt that will ever be true.
     case ( model.track, action ) of
         ( Just track, ActionTrackChanged editType newTrack undoMsg ) ->
-            ( model |> trackHasChanged undoMsg newTrack
+            ( model
+                |> addToUndoStack undoMsg
+                |> updateTrackInModel newTrack
             , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
             )
 
@@ -299,11 +300,9 @@ processPostUpdateAction model action =
                     { track | currentNode = tp }
             in
             ( { model | track = Just updatedTrack }
-                |> repaintMarkers
+                |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack [] []
-                , Delay.after 50 RepaintMap
-                ]
+                [ MapController.addMarkersToMap updatedTrack [] [] ]
             )
 
         ( Just track, ActionFocusMove tp ) ->
@@ -315,11 +314,10 @@ processPostUpdateAction model action =
                 | track = Just updatedTrack
                 , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
               }
-                |> repaintMarkers
+                |> renderVaryingSceneElements
             , Cmd.batch
                 [ MapController.addMarkersToMap updatedTrack [] []
                 , MapController.centreMapOnCurrent updatedTrack
-                , Delay.after 50 RepaintMap
                 ]
             )
 
@@ -329,16 +327,20 @@ processPostUpdateAction model action =
                     { track | markedNode = maybeTp }
             in
             ( { model | track = Just updatedTrack }
-                |> repaintMarkers
+                |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack [] []
-                , Delay.after 50 RepaintMap
-                ]
+                [ MapController.addMarkersToMap updatedTrack [] [] ]
             )
 
         ( Just track, ActionRepaintMap ) ->
             ( model
             , Delay.after 50 RepaintMap
+            )
+
+        ( Just track, ActionPreview ) ->
+            ( model |> renderVaryingSceneElements
+            , Cmd.batch
+                [ MapController.addMarkersToMap track [] [] ]
             )
 
         _ ->
@@ -350,26 +352,6 @@ processGpxLoaded content model =
     let
         track =
             Track.trackFromGpx content
-
-        scene =
-            Maybe.map
-                (SceneBuilder.renderTrack model.displayOptions)
-                track
-                |> Maybe.withDefault []
-
-        profile =
-            Maybe.map
-                (SceneBuilderProfile.renderTrack model.displayOptions)
-                track
-                |> Maybe.withDefault []
-
-        markers =
-            Maybe.map SceneBuilder.renderMarkers track
-                |> Maybe.withDefault []
-
-        profileMarkers =
-            Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) track
-                |> Maybe.withDefault []
 
         ( newViewPanes, mapCommands ) =
             case track of
@@ -384,15 +366,10 @@ processGpxLoaded content model =
     in
     ( { model
         | track = track
-        , staticScene = scene
-        , profileScene = profile
-        , visibleMarkers = markers
-        , viewPanes = newViewPanes
-        , completeScene = markers ++ scene
-        , completeProfile = profileMarkers ++ profile
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
       }
+        |> renderTrackSceneElements
     , Cmd.batch mapCommands
     )
 
@@ -439,69 +416,53 @@ processGraphMessage innerMsg model isTrack =
                 | graph = newGraph
                 , track = newTrackPoints
             }
+
+        newModel : Model -> Model
+        newModel m =
+            { m | track = Just newTrack }
     in
     case action of
         GraphChanged undoMsg ->
-            model |> trackHasChanged undoMsg newTrack
+            model |> addToUndoStack undoMsg |> newModel
 
         GraphSettingsChanged ->
-            { model | track = Just newTrack }
+            model |> newModel
 
         _ ->
             model
 
 
-processNudgeMessage : Nudge.NudgeMsg -> Model -> Track -> ( Model, PostUpdateAction )
-processNudgeMessage nudgeMsg model isTrack =
-    let
-        ( newSetttings, action ) =
-            Nudge.update nudgeMsg model.nudgeSettings isTrack
-
-        newModel =
-            case action of
-                ActionTrackChanged editType newTrack undoMsg ->
-                    { model
-                        | nudgePreview = []
-                        , nudgeProfilePreview = []
-                    }
-                        |> trackHasChanged undoMsg newTrack
-
-                ActionPreview label points ->
-                    let
-                        newPreview =
-                            SceneBuilder.previewNudge points
-
-                        newProfilePreview =
-                            SceneBuilderProfile.previewNudge model.displayOptions points
-                    in
-                    { model
-                        | nudgePreview = newPreview
-                        , nudgeProfilePreview = newProfilePreview
-                        , completeScene = newPreview ++ model.visibleMarkers ++ model.staticScene
-                        , completeProfile = newProfilePreview ++ model.profileMarkers ++ model.profileScene
-                        , nudgeSettings = newSetttings
-                    }
-
-                _ ->
-                    model
-    in
-    ( newModel, action )
+updateTrackInModel : Track -> Model -> Model
+updateTrackInModel track model =
+    { model | track = Just track }
+        |> repeatTrackDerivations
 
 
-trackHasChanged : String -> Track -> Model -> Model
-trackHasChanged undoMsg newTrack oldModel =
-    let
-        pushUndoStack =
-            oldModel |> addToUndoStack undoMsg
+repeatTrackDerivations : Model -> Model
+repeatTrackDerivations model =
+    case model.track of
+        Just isTrack ->
+            let
+                newTrack =
+                    { isTrack | track = prepareTrackPoints isTrack.track }
+            in
+            { model | track = Just newTrack }
+                |> renderTrackSceneElements
 
-        withNewTrack =
-            { pushUndoStack | track = Just newTrack }
-    in
-    repaintTrack withNewTrack
+        Nothing ->
+            model
 
 
-repaintMarkers : Model -> Model
-repaintMarkers model =
+composeScene : Model -> Model
+composeScene model =
+    { model
+        | completeScene = model.visibleMarkers ++ model.nudgePreview ++ model.staticScene
+        , completeProfile = model.profileMarkers ++ model.nudgeProfilePreview ++ model.profileScene
+    }
+
+
+renderVaryingSceneElements : Model -> Model
+renderVaryingSceneElements model =
     let
         updatedMarkers =
             Maybe.map SceneBuilder.renderMarkers model.track
@@ -510,23 +471,23 @@ repaintMarkers model =
         updatedProfileMarkers =
             Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
                 |> Maybe.withDefault []
+
+        --TODO: Solicit previews from open controls
+        updatedNudgePreview =
+            Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
+                |> Maybe.withDefault []
     in
-    case model.track of
-        Just isTrack ->
-            { model
-                | visibleMarkers = updatedMarkers
-                , profileMarkers = updatedProfileMarkers
-                , completeScene = updatedMarkers ++ model.nudgePreview ++ model.staticScene
-                , completeProfile = updatedProfileMarkers ++ model.nudgeProfilePreview ++ model.profileScene
-                , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
-            }
-
-        Nothing ->
-            model
+    { model
+        | visibleMarkers = updatedMarkers
+        , profileMarkers = updatedProfileMarkers
+        , nudgePreview = SceneBuilder.previewNudge updatedNudgePreview
+        , nudgeProfilePreview = SceneBuilderProfile.previewNudge model.displayOptions updatedNudgePreview
+    }
+        |> composeScene
 
 
-repaintTrack : Model -> Model
-repaintTrack model =
+renderTrackSceneElements : Model -> Model
+renderTrackSceneElements model =
     let
         updatedScene =
             Maybe.map
@@ -539,25 +500,15 @@ repaintTrack model =
                 (SceneBuilderProfile.renderTrack model.displayOptions)
                 model.track
                 |> Maybe.withDefault []
-
-        updatedMarkers =
-            Maybe.map SceneBuilder.renderMarkers model.track |> Maybe.withDefault []
-
-        updatedProfileMarkers =
-            Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
-                |> Maybe.withDefault []
     in
     case model.track of
         Just isTrack ->
             { model
                 | staticScene = updatedScene
                 , profileScene = updatedProfile
-                , visibleMarkers = updatedMarkers
-                , profileMarkers = updatedProfileMarkers
-                , completeScene = updatedMarkers ++ model.nudgePreview ++ updatedScene
-                , completeProfile = updatedProfileMarkers ++ model.profileScene
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
             }
+                |> renderVaryingSceneElements
 
         Nothing ->
             model
