@@ -7,15 +7,32 @@ import Element.Input as Input exposing (button)
 import Geometry101 as G exposing (..)
 import Length exposing (Meters, inMeters)
 import LineSegment2d
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point2d exposing (Point2d)
 import Point3d exposing (Point3d, xCoordinate, yCoordinate, zCoordinate)
 import Polyline2d
+import PostUpdateActions
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
+
+
+info =
+    """## Bend smoother classic
+
+Carried over directly from v1, this tool tries to replace
+a section of the route between markers with a circular arc.
+
+This will generally give a reasonable curve. It will also
+provide a uniform gradient between the markers, which may
+not be what you want.
+
+Use the spacing to vary the number of track points used to
+define the bend, and hence the smoothness."""
+
 
 
 type Msg
@@ -51,6 +68,99 @@ type alias DrawingRoad =
     }
 
 
+update :
+    Msg
+    -> BendOptions
+    -> Track
+    -> ( BendOptions, PostUpdateActions.PostUpdateAction )
+update msg settings track =
+    case msg of
+        SetBendTrackPointSpacing spacing ->
+            let
+                newSettings =
+                    { settings | bendTrackPointSpacing = spacing }
+            in
+            ( newSettings
+            , PostUpdateActions.ActionPreview
+            )
+
+        SmoothBend ->
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                (smoothBend track settings)
+                (makeUndoMessage settings track)
+            )
+
+
+smoothBend : Track -> BendOptions -> Track
+smoothBend track options =
+    -- The replacement bend is a pre-computed list of Point3d,
+    -- We splice them in as Trackpoints.
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+    in
+    case options.smoothedBend of
+        Just bend ->
+            let
+                numCurrentPoints =
+                    abs (track.currentNode.index - marker.index) - 1
+
+                numNewPoints =
+                    List.length bend.nodes - 2
+
+                newCurrent =
+                    if track.currentNode.index > bend.startIndex then
+                        List.Extra.getAt
+                            (track.currentNode.index - numCurrentPoints + numNewPoints)
+                            track.track
+                            |> Maybe.withDefault track.currentNode
+
+                    else
+                        track.currentNode
+
+                newMark =
+                    if marker.index > bend.startIndex then
+                        List.Extra.getAt
+                            (marker.index - numCurrentPoints + numNewPoints)
+                            track.track
+                            |> Maybe.withDefault marker
+
+                    else
+                        marker
+            in
+            { track
+                | track =
+                        List.take bend.startIndex track.track
+                            ++ bend.nodes
+                            ++ List.drop (bend.endIndex + 1) track.track
+                , currentNode = newCurrent
+                , markedNode = Just newMark
+            }
+
+        _ ->
+            track
+
+
+makeUndoMessage : BendOptions -> Track -> String
+makeUndoMessage options track =
+    let
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( dist1, dist2 ) =
+            ( Length.inMeters track.currentNode.distanceFromStart
+            , Length.inMeters markerPosition.distanceFromStart)
+
+        ( from, to ) =
+            ( min dist1 dist2
+            , max dist1 dist2
+            )
+    in
+        "Smooth bend " ++ showDecimal2 from ++ " to " ++ showDecimal2 to
+
+
 roadToGeometry : DrawingRoad -> G.Road
 roadToGeometry road =
     { startAt =
@@ -62,26 +172,6 @@ roadToGeometry road =
         , y = Length.inMeters <| yCoordinate road.endsAt
         }
     }
-
-
-tryBendSmoother : BendOptions -> Track -> Maybe SmoothedBend
-tryBendSmoother options track =
-    let
-        marker =
-            Maybe.withDefault track.currentNode track.markedNode
-
-        ( startPoint, endPoint ) =
-            if track.currentNode.index <= marker.index then
-                ( track.currentNode, marker )
-
-            else
-                ( marker, track.currentNode )
-    in
-    if endPoint.index >= startPoint.index + 2 then
-        lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
-
-    else
-        Nothing
 
 
 lookForSmoothBendOption :

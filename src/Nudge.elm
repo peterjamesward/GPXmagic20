@@ -8,7 +8,6 @@ import Element.Input as Input exposing (button)
 import Graph exposing (applyIndexPreservingEditsToGraph)
 import Length exposing (Length)
 import List.Extra
-import LocalCoords exposing (LocalCoords)
 import Point3d
 import PostUpdateActions
 import Quantity
@@ -62,16 +61,20 @@ makeUndoMessage track =
         markerPosition =
             track.markedNode |> Maybe.withDefault track.currentNode
 
+        ( dist1, dist2 ) =
+            ( Length.inMeters track.currentNode.distanceFromStart
+            , Length.inMeters markerPosition.distanceFromStart)
+
         ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
+            ( min dist1 dist2
+            , max dist1 dist2
             )
     in
     if to > from then
-        "Nudge " ++ String.fromInt from ++ " to " ++ String.fromInt to
+        "Nudge from " ++ showDecimal2 from ++ " to " ++ showDecimal2 to
 
     else
-        "Nudge node " ++ String.fromInt from
+        "Nudge node at" ++ showDecimal2 from
 
 
 nudgeNodes : Track -> NudgeSettings -> Track

@@ -2,7 +2,9 @@
 
 # TODO
 
-    --TODO: Make "click to drag" normal mode for Map.
+--TODO: Make "click to drag" normal mode for Map.
+
+BUG: Bend smoothing does not restore current marker.
 
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
 

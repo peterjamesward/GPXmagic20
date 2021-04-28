@@ -214,9 +214,9 @@ update msg model =
             )
 
         AccordionMessage accordionMsg ->
-            ( { model | toolsAccordion = Accordion.update accordionMsg model.toolsAccordion }
-            , Cmd.none
-            )
+            processPostUpdateAction
+                { model | toolsAccordion = Accordion.update accordionMsg model.toolsAccordion }
+                PostUpdateActions.ActionPreview
 
         MarkerMessage markerMsg ->
             let
@@ -288,7 +288,14 @@ update msg model =
             )
 
         BendSmoothMessage bendMsg ->
-            ( model, Cmd.none )
+            let
+                ( newOptions, action ) =
+                    Maybe.map (BendSmoother.update bendMsg model.bendOptions) model.track
+                        |> Maybe.withDefault ( model.bendOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | bendOptions = newOptions }
+                action
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -476,8 +483,15 @@ repeatTrackDerivations model =
 composeScene : Model -> Model
 composeScene model =
     { model
-        | completeScene = model.visibleMarkers ++ model.nudgePreview ++ model.staticScene
-        , completeProfile = model.profileMarkers ++ model.nudgeProfilePreview ++ model.profileScene
+        | completeScene =
+            model.visibleMarkers
+                ++ model.nudgePreview
+                ++ model.bendPreview
+                ++ model.staticScene
+        , completeProfile =
+            model.profileMarkers
+                ++ model.nudgeProfilePreview
+                ++ model.profileScene
     }
 
 
@@ -492,7 +506,6 @@ renderVaryingSceneElements model =
             Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
                 |> Maybe.withDefault []
 
-        --TODO: Solicit previews from open controls
         updatedNudgePreview =
             if
                 Accordion.tabIsOpen "Nudge" model.toolsAccordion
@@ -505,17 +518,22 @@ renderVaryingSceneElements model =
                 []
 
         updatedBendOptions =
+            let
+                options =
+                    model.bendOptions
+            in
             if Accordion.tabIsOpen "Bend smoother classic" model.toolsAccordion then
-                Maybe.map (tryBendSmoother model.bendOptions) model.track
-                    |> Maybe.withDefault model.bendOptions
+                Maybe.map (tryBendSmoother options) model.track
+                    |> Maybe.withDefault options
 
             else
-                model.bendOptions
+                { options | smoothedBend = Nothing }
     in
     { model
         | visibleMarkers = updatedMarkers
         , profileMarkers = updatedProfileMarkers
         , nudgePreview = SceneBuilder.previewNudge updatedNudgePreview
+        , bendOptions = updatedBendOptions
         , bendPreview =
             Maybe.map
                 (.nodes >> SceneBuilder.previewBend)
@@ -632,13 +650,11 @@ toolsAccordion model =
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info
-      , previewMaker = always []
       }
     , { label = "Tip jar"
       , state = Contracted
       , content = TipJar.tipJar
       , info = TipJar.info
-      , previewMaker = always []
       }
 
     --, { label = "Loop maker"
@@ -648,19 +664,17 @@ toolsAccordion model =
     , { label = "Bend smoother classic"
       , state = Contracted
       , content = BendSmoother.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
-      , info = "WRITE ME"
-      , previewMaker = always []
+      , info = BendSmoother.info
       }
 
     --, { label = "Smooth gradient"
     --  , state = Contracted
     --  , content = viewGradientFixerPane model
     --  }
-    , { label = "Nudge "
+    , { label = "Nudge"
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
       , info = Nudge.info
-      , previewMaker = always []
       }
 
     --, { label = "Straighten"
@@ -671,7 +685,6 @@ toolsAccordion model =
       , state = Contracted
       , content = viewDeleteTools model.track deleteMessageWrapper
       , info = DeletePoints.info
-      , previewMaker = always []
       }
 
     --, { label = "Fly-through"
@@ -695,7 +708,6 @@ toolsAccordion model =
                     (Just << viewGraphControls graphMessageWrapper)
                 |> Maybe.withDefault none
       , info = Graph.info
-      , previewMaker = always []
       }
 
     --, { label = "Summary"
@@ -822,6 +834,7 @@ undoRedoButtons model =
 
 tryBendSmoother : BendSmoother.BendOptions -> Track -> BendSmoother.BendOptions
 tryBendSmoother options track =
+    -- This, sadly, still here because import loops.
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode

@@ -28,7 +28,6 @@ type alias AccordionEntry msg =
     , state : AccordionState
     , content : Element msg
     , info : String
-    , previewMaker : Track -> Scene
     }
 
 
