@@ -30,7 +30,7 @@ type alias TrackPoint =
     , afterDirection : Maybe (Direction3d LocalCoords)
     , effectiveDirection : Maybe (Direction3d LocalCoords)
     , directionChange : Maybe Angle
-    , gradientChange : Maybe Angle
+    , gradientChange : Maybe Float
     }
 
 
@@ -119,12 +119,11 @@ prepareTrackPoints trackPoints =
             Direction3d.from pt1.xyz pt2.xyz
                 |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
                 |> Maybe.withDefault Quantity.zero
+                |> Angle.tan
+                |> (*) 100.0
 
         gradientChange prev point next =
-            Quantity.minus
-                (gradient prev point)
-                (gradient point next)
-                |> Quantity.abs
+            abs <| (gradient prev point) - (gradient point next)
 
         processedPoints =
             case trackPoints of

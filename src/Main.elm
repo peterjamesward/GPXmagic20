@@ -30,6 +30,7 @@ import Task
 import Time
 import TipJar
 import Track exposing (Track)
+import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
@@ -140,7 +141,7 @@ type alias Model =
     , displayOptions : DisplayOptions.DisplayOptions
     , bendOptions : BendSmoother.BendOptions
     , bendPreview : Scene
-    , loopiness : Loop.Loopiness
+    , observations : TrackObservations
     }
 
 
@@ -174,7 +175,7 @@ init mflags origin navigationKey =
       , displayOptions = DisplayOptions.defaultDisplayOptions
       , bendOptions = BendSmoother.defaultOptions
       , bendPreview = []
-      , loopiness = Loop.NotALoop <| meters 0.0
+      , observations = TrackObservations.defaultObservations
       }
     , Cmd.batch
         [ authCmd
@@ -310,11 +311,17 @@ update msg model =
         LoopMsg loopMsg ->
             let
                 ( newOptions, action ) =
-                    Maybe.map (Loop.update loopMsg model.loopiness) model.track
-                        |> Maybe.withDefault ( model.loopiness, ActionNoOp )
+                    Maybe.map (Loop.update loopMsg model.observations.loopiness) model.track
+                        |> Maybe.withDefault ( model.observations.loopiness, ActionNoOp )
+
+                oldObs =
+                    model.observations
+
+                newObs =
+                    { oldObs | loopiness = newOptions }
             in
             processPostUpdateAction
-                { model | loopiness = newOptions }
+                { model | observations = newObs }
                 action
 
 
@@ -492,8 +499,14 @@ repeatTrackDerivations model =
             let
                 newTrack =
                     { isTrack | track = prepareTrackPoints isTrack.track }
+
+                newObservations =
+                    deriveProblems newTrack model.observations
             in
-            { model | track = Just newTrack }
+            { model
+                | track = Just newTrack
+                , observations = newObservations
+            }
                 |> renderTrackSceneElements
 
         Nothing ->
@@ -679,7 +692,7 @@ toolsAccordion model =
       }
     , { label = "Loop maker"
       , state = Contracted
-      , content = Loop.viewLoopTools model.loopiness model.track loopMessageWrapper
+      , content = Loop.viewLoopTools model.observations.loopiness model.track loopMessageWrapper
       , info = Loop.info
       }
     , { label = "Bend smoother classic"

@@ -16,7 +16,16 @@ type alias TrackObservations =
     , zeroLengths : List TrackPoint
     , loopiness : Loop.Loopiness
     , bearingThreshold : Angle
-    , gradientThreshold : Angle
+    , gradientThreshold : Float
+    }
+
+defaultObservations =
+    { abruptBearingChanges = []
+    , abruptGradientChanges = []
+    , zeroLengths = []
+    , loopiness = NotALoop <| meters 0.0
+    , bearingThreshold = Angle.degrees 90.0
+    , gradientThreshold = 10.0
     }
 
 
@@ -26,8 +35,8 @@ deriveProblems track options =
         suddenGradientChanges =
             List.filter
                 (.gradientChange
-                    >> Maybe.withDefault Quantity.zero
-                    >> Quantity.greaterThan options.gradientThreshold)
+                    >> Maybe.withDefault 0.0
+                    >> (>) options.gradientThreshold)
                 track.track
 
         suddenBearingChanges =
@@ -40,7 +49,7 @@ deriveProblems track options =
         zeroLengths =
             List.map2
                 (\pt1 pt2 ->
-                    if pt1.distanceFromStart == pt2.distanceFromStart
+                    if pt1.distanceFromStart == pt2.distanceFromStart then
                         Just pt1
 
                     else
@@ -74,7 +83,7 @@ deriveProblems track options =
                         NotALoop gap
 
                 _ ->
-                    NotALoop 0.0
+                    NotALoop <| meters 0.0
     in
     { options
         | abruptGradientChanges = suddenGradientChanges
