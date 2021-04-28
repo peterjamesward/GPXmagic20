@@ -14,6 +14,7 @@ import File exposing (File)
 import File.Select as Select
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
+import Loop
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
@@ -53,6 +54,7 @@ type Msg
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
+    | LoopMsg Loop.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -95,6 +97,11 @@ wrapAuthMessage msg =
     OAuthMessage msg
 
 
+loopMessageWrapper : Loop.Msg -> Msg
+loopMessageWrapper msg =
+    LoopMsg msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -132,6 +139,7 @@ type alias Model =
     , displayOptions : DisplayOptions.DisplayOptions
     , bendOptions : BendSmoother.BendOptions
     , bendPreview : Scene
+    , loopiness : Loop.Loopiness
     }
 
 
@@ -165,6 +173,7 @@ init mflags origin navigationKey =
       , displayOptions = DisplayOptions.defaultDisplayOptions
       , bendOptions = BendSmoother.defaultOptions
       , bendPreview = []
+      , loopiness = Loop.NotALoop 0.0
       }
     , Cmd.batch
         [ authCmd
@@ -295,6 +304,16 @@ update msg model =
             in
             processPostUpdateAction
                 { model | bendOptions = newOptions }
+                action
+
+        LoopMsg loopMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (Loop.update loopMsg model.loopiness) model.track
+                        |> Maybe.withDefault ( model.loopiness, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | loopiness = newOptions }
                 action
 
 
@@ -644,6 +663,7 @@ subscriptions model =
         ]
 
 
+toolsAccordion : Model -> List (AccordionEntry Msg)
 toolsAccordion model =
     [ -- For V2 we see if a single collection works...
       { label = "Visual styles"
@@ -656,11 +676,11 @@ toolsAccordion model =
       , content = TipJar.tipJar
       , info = TipJar.info
       }
-
-    --, { label = "Loop maker"
-    --  , state = Contracted
-    --  , content = viewLoopTools model
-    --  }
+    , { label = "Loop maker"
+      , state = Contracted
+      , content = Loop.viewLoopTools model.loopiness model.track loopMessageWrapper
+      , info = Loop.info
+      }
     , { label = "Bend smoother classic"
       , state = Contracted
       , content = BendSmoother.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
