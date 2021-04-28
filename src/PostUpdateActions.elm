@@ -1,6 +1,5 @@
 module PostUpdateActions exposing (..)
 
-import DisplayOptions exposing (DisplayOptions)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 

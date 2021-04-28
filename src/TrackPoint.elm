@@ -115,6 +115,17 @@ prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
+        gradient pt1 pt2 =
+            Direction3d.from pt1.xyz pt2.xyz
+                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
+                |> Maybe.withDefault Quantity.zero
+
+        gradientChange prev point next =
+            Quantity.minus
+                (gradient prev point)
+                (gradient point next)
+                |> Quantity.abs
+
         processedPoints =
             case trackPoints of
                 firstPoint :: secondPoint :: morePoints ->
@@ -181,6 +192,7 @@ prepareTrackPoints trackPoints =
                                 , beforeDirection = beforeDirection
                                 , afterDirection = afterDirection
                                 , directionChange = directionChange
+                                , gradientChange = Just <| gradientChange previous penultimate last
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
                                         beforeDirection
@@ -238,6 +250,7 @@ prepareTrackPoints trackPoints =
                                 , beforeDirection = beforeDirection
                                 , afterDirection = afterDirection
                                 , directionChange = directionChange
+                                , gradientChange = Just <| gradientChange previous point next
                                 , effectiveDirection =
                                     Maybe.map2 meanBearing
                                         beforeDirection

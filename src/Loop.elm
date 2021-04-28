@@ -3,9 +3,10 @@ module Loop exposing (..)
 import Direction3d
 import Element exposing (..)
 import Element.Input exposing (button)
-import Length exposing (meters)
+import Length exposing (Meters, inMeters, meters)
 import Point3d
 import PostUpdateActions
+import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal2)
@@ -33,9 +34,9 @@ tools across the start/finish, then move the start point back.
 type
     Loopiness
     -- Not sure this is the best place, but better here than Main.
-    = NotALoop Float
+    = NotALoop (Quantity Float Meters)
     | IsALoop
-    | AlmostLoop Float -- if, say, less than 200m back to start.
+    | AlmostLoop (Quantity Float Meters) -- if, say, less than 200m back to start.
 
 
 type Msg
@@ -89,7 +90,10 @@ viewLoopTools loopiness track wrap =
 
                     AlmostLoop gap ->
                         [ row [ spacing 10, padding 5, centerX ]
-                            [ text <| "This track is " ++ showDecimal2 gap ++ "\naway from a loop"
+                            [ text <|
+                                "This track is "
+                                    ++ showDecimal2 (inMeters gap)
+                                    ++ "\naway from a loop"
                             , loopButton
                             ]
                         , commonButtons
@@ -97,7 +101,10 @@ viewLoopTools loopiness track wrap =
 
                     NotALoop gap ->
                         [ row [ spacing 10, padding 5, centerX ]
-                            [ text <| "This track is " ++ showDecimal2 gap ++ " away from a loop"
+                            [ text <|
+                                "This track is "
+                                    ++ showDecimal2 (inMeters gap)
+                                    ++ " away from a loop"
                             , loopButton
                             ]
                         , commonButtons
@@ -164,7 +171,7 @@ closeTheLoop track loopiness =
             { startPoint | xyz = newLocation }
 
         newTrack gap =
-            if gap < 1.0 then
+            if gap |> Quantity.lessThanOrEqualTo (meters 1.0) then
                 -- Replace last trackpoint with the first as we are so close.
                 List.take (List.length track.track - 1) track.track
                     ++ List.take 1 track.track

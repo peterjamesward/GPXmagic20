@@ -14,6 +14,7 @@ import File exposing (File)
 import File.Select as Select
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
+import Length exposing (meters)
 import Loop
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
@@ -173,7 +174,7 @@ init mflags origin navigationKey =
       , displayOptions = DisplayOptions.defaultDisplayOptions
       , bendOptions = BendSmoother.defaultOptions
       , bendPreview = []
-      , loopiness = Loop.NotALoop 0.0
+      , loopiness = Loop.NotALoop <| meters 0.0
       }
     , Cmd.batch
         [ authCmd
