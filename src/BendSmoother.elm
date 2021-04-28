@@ -34,7 +34,6 @@ Use the spacing to vary the number of track points used to
 define the bend, and hence the smoothness."""
 
 
-
 type Msg
     = SmoothBend
     | SetBendTrackPointSpacing Float
@@ -114,7 +113,7 @@ smoothBend track options =
                     if track.currentNode.index > bend.startIndex then
                         List.Extra.getAt
                             (track.currentNode.index - numCurrentPoints + numNewPoints)
-                            track.track
+                            newTrackPoints
                             |> Maybe.withDefault track.currentNode
 
                     else
@@ -124,17 +123,19 @@ smoothBend track options =
                     if marker.index > bend.startIndex then
                         List.Extra.getAt
                             (marker.index - numCurrentPoints + numNewPoints)
-                            track.track
+                            newTrackPoints
                             |> Maybe.withDefault marker
 
                     else
                         marker
+
+                newTrackPoints =
+                    List.take bend.startIndex track.track
+                        ++ bend.nodes
+                        ++ List.drop (bend.endIndex + 1) track.track
             in
             { track
-                | track =
-                        List.take bend.startIndex track.track
-                            ++ bend.nodes
-                            ++ List.drop (bend.endIndex + 1) track.track
+                | track = newTrackPoints
                 , currentNode = newCurrent
                 , markedNode = Just newMark
             }
@@ -151,14 +152,15 @@ makeUndoMessage options track =
 
         ( dist1, dist2 ) =
             ( Length.inMeters track.currentNode.distanceFromStart
-            , Length.inMeters markerPosition.distanceFromStart)
+            , Length.inMeters markerPosition.distanceFromStart
+            )
 
         ( from, to ) =
             ( min dist1 dist2
             , max dist1 dist2
             )
     in
-        "Smooth bend " ++ showDecimal2 from ++ " to " ++ showDecimal2 to
+    "Smooth bend " ++ showDecimal2 from ++ " to " ++ showDecimal2 to
 
 
 roadToGeometry : DrawingRoad -> G.Road
