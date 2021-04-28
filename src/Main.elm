@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Accordion exposing (AccordionEntry, AccordionState(..), view)
-import BendSmoothTools
+import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
@@ -12,7 +12,6 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
-import GpxParser exposing (parseTrackPoints)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
 import MapController exposing (..)
@@ -53,7 +52,7 @@ type Msg
     | MapMessage Json.Encode.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
-    | BendSmoothMessage BendSmoothTools.Msg
+    | BendSmoothMessage BendSmoother.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -86,7 +85,7 @@ displayOptionsMessageWrapper m =
     DisplayOptionsMessage m
 
 
-bendSmootherMessageWrapper : BendSmoothTools.Msg -> Msg
+bendSmootherMessageWrapper : BendSmoother.Msg -> Msg
 bendSmootherMessageWrapper m =
     BendSmoothMessage m
 
@@ -131,7 +130,8 @@ type alias Model =
     , changeCounter : Int
     , stravaAuthentication : O.Model
     , displayOptions : DisplayOptions.DisplayOptions
-    , bendOptions : BendSmoothTools.BendOptions
+    , bendOptions : BendSmoother.BendOptions
+    , bendPreview : Scene
     }
 
 
@@ -163,7 +163,8 @@ init mflags origin navigationKey =
       , changeCounter = 0
       , stravaAuthentication = authData
       , displayOptions = DisplayOptions.defaultDisplayOptions
-      , bendOptions = BendSmoothTools.defaultOptions
+      , bendOptions = BendSmoother.defaultOptions
+      , bendPreview = []
       }
     , Cmd.batch
         [ authCmd
@@ -493,13 +494,33 @@ renderVaryingSceneElements model =
 
         --TODO: Solicit previews from open controls
         updatedNudgePreview =
-            Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
-                |> Maybe.withDefault []
+            if
+                Accordion.tabIsOpen "Nudge" model.toolsAccordion
+                    && Nudge.settingNotZero model.nudgeSettings
+            then
+                Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
+                    |> Maybe.withDefault []
+
+            else
+                []
+
+        updatedBendOptions =
+            if Accordion.tabIsOpen "Bend smoother classic" model.toolsAccordion then
+                Maybe.map (tryBendSmoother model.bendOptions) model.track
+                    |> Maybe.withDefault model.bendOptions
+
+            else
+                model.bendOptions
     in
     { model
         | visibleMarkers = updatedMarkers
         , profileMarkers = updatedProfileMarkers
         , nudgePreview = SceneBuilder.previewNudge updatedNudgePreview
+        , bendPreview =
+            Maybe.map
+                (.nodes >> SceneBuilder.previewBend)
+                updatedBendOptions.smoothedBend
+                |> Maybe.withDefault []
         , nudgeProfilePreview = SceneBuilderProfile.previewNudge model.displayOptions updatedNudgePreview
     }
         |> composeScene
@@ -626,10 +647,11 @@ toolsAccordion model =
     --  }
     , { label = "Bend smoother classic"
       , state = Contracted
-      , content = BendSmoothTools.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
+      , content = BendSmoother.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
       , info = "WRITE ME"
       , previewMaker = always []
       }
+
     --, { label = "Smooth gradient"
     --  , state = Contracted
     --  , content = viewGradientFixerPane model
@@ -796,3 +818,26 @@ undoRedoButtons model =
                         E.text "Nothing to redo"
             }
         ]
+
+
+tryBendSmoother : BendSmoother.BendOptions -> Track -> BendSmoother.BendOptions
+tryBendSmoother options track =
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        ( startPoint, endPoint ) =
+            if track.currentNode.index <= marker.index then
+                ( track.currentNode, marker )
+
+            else
+                ( marker, track.currentNode )
+    in
+    { options
+        | smoothedBend =
+            if endPoint.index >= startPoint.index + 2 then
+                lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
+
+            else
+                Nothing
+    }

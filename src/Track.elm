@@ -1,7 +1,6 @@
 module Track exposing (..)
 
 import BoundingBox3d exposing (BoundingBox3d)
-import Element exposing (..)
 import GpxParser
 import Graph exposing (Graph)
 import Json.Encode as E
@@ -140,3 +139,4 @@ prevPointOn : Track -> TrackPoint -> TrackPoint
 prevPointOn track from =
     List.Extra.getAt (from.index - 1) track.track
         |> Maybe.withDefault from
+

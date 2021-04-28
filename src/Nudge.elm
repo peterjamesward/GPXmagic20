@@ -169,7 +169,7 @@ nudgeTrackPoint trackpoint settings =
 
 
 previewNudgeNodes : NudgeSettings -> Track -> List TrackPoint
-previewNudgeNodes settings track  =
+previewNudgeNodes settings track =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
     -- For a Graph, this must update canonical nodes and edges.
@@ -318,3 +318,11 @@ update msg settings track =
                 (nudgeNodes track settings)
                 (makeUndoMessage track)
             )
+
+
+settingNotZero : NudgeSettings -> Bool
+settingNotZero settings =
+    Length.inMeters settings.horizontal
+        /= 0.0
+        || Length.inMeters settings.vertical
+        /= 0.0

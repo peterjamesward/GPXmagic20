@@ -9,6 +9,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
+import List.Extra
 import Markdown
 import Scene exposing (Scene)
 import Track exposing (Track)
@@ -212,3 +213,15 @@ viewInfo info =
               <|
                 [ html <| Markdown.toHtml [] info ]
             ]
+
+
+tabIsOpen : String -> List (AccordionEntry msg) -> Bool
+tabIsOpen label entries =
+    entries
+        |> List.Extra.find
+            (\entry ->
+                entry.label
+                    == label
+                    && (entry.state == Expanded True || entry.state == Expanded False)
+            )
+        |> (/=) Nothing

@@ -2,6 +2,8 @@ module BendSmoother exposing (..)
 
 import Angle
 import Arc2d exposing (Arc2d)
+import Element exposing (..)
+import Element.Input as Input exposing (button)
 import Geometry101 as G exposing (..)
 import Length exposing (Meters, inMeters)
 import LineSegment2d
@@ -10,12 +12,31 @@ import Point2d exposing (Point2d)
 import Point3d exposing (Point3d, xCoordinate, yCoordinate, zCoordinate)
 import Polyline2d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, trackPointFromPoint)
+import Utils exposing (showDecimal2)
 import Vector3d
+import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
+
+
+type Msg
+    = SmoothBend
+    | SetBendTrackPointSpacing Float
+
+
+type alias BendOptions =
+    { bendTrackPointSpacing : Float
+    , smoothedBend : Maybe SmoothedBend
+    }
+
+
+defaultOptions =
+    { bendTrackPointSpacing = 5.0
+    , smoothedBend = Nothing
+    }
 
 
 type alias SmoothedBend =
-    { nodes : List (Point3d Length.Meters LocalCoords) -- make ourselves work entirely in Meters LocalCoords
+    { nodes : List TrackPoint
     , centre : Point2d Length.Meters LocalCoords
     , radius : Float
     , startIndex : Int -- Lead-in node that is NOT to be replaced
@@ -41,6 +62,26 @@ roadToGeometry road =
         , y = Length.inMeters <| yCoordinate road.endsAt
         }
     }
+
+
+tryBendSmoother : BendOptions -> Track -> Maybe SmoothedBend
+tryBendSmoother options track =
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        ( startPoint, endPoint ) =
+            if track.currentNode.index <= marker.index then
+                ( track.currentNode, marker )
+
+            else
+                ( marker, track.currentNode )
+    in
+    if endPoint.index >= startPoint.index + 2 then
+        lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
+
+    else
+        Nothing
 
 
 lookForSmoothBendOption :
@@ -182,11 +223,14 @@ makeSmoothBend trackPointSpacing roadAB roadCD arc =
                 elevate
                 (List.map LineSegment2d.startPoint <| List.drop 1 segments)
                 (List.range 1 (numberPointsOnArc - 1))
+
+        asTrackPoints =
+            [ roadAB.startsAt, newEntryPoint ]
+                ++ newArcPoints
+                ++ [ newExitPoint, roadCD.endsAt ]
+                |> List.map trackPointFromPoint
     in
-    { nodes =
-        [ roadAB.startsAt, newEntryPoint ]
-            ++ newArcPoints
-            ++ [ newExitPoint, roadCD.endsAt ]
+    { nodes = asTrackPoints
     , centre = Arc2d.centerPoint arc
     , radius = inMeters <| Arc2d.radius arc
     , startIndex = roadAB.index
@@ -339,3 +383,50 @@ parallelFindSemicircle r1 r2 =
 
         _ ->
             Nothing
+
+
+viewBendFixerPane : BendOptions -> (Msg -> msg) -> Element msg
+viewBendFixerPane bendOptions wrap =
+    let
+        fixBendButton smooth =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrap SmoothBend
+                , label =
+                    text <|
+                        "Smooth between markers\nRadius "
+                            ++ showDecimal2 smooth.radius
+                }
+    in
+    column [ spacing 10, padding 10, alignTop, centerX ]
+        [ case bendOptions.smoothedBend of
+            Just smooth ->
+                row [ spacing 10, padding 10, alignTop ]
+                    [ fixBendButton smooth
+                    , bendSmoothnessSlider bendOptions wrap
+                    ]
+
+            Nothing ->
+                column [ spacing 10, padding 10, alignTop, centerX ]
+                    [ text "Sorry, failed to find a nice bend."
+                    , text "Try re-positioning the current pointer or marker."
+                    ]
+        ]
+
+
+bendSmoothnessSlider : BendOptions -> (Msg -> msg) -> Element msg
+bendSmoothnessSlider model wrap =
+    Input.slider
+        commonShortHorizontalSliderStyles
+        { onChange = wrap << SetBendTrackPointSpacing
+        , label =
+            Input.labelBelow [] <|
+                text <|
+                    "Spacing = "
+                        ++ showDecimal2 model.bendTrackPointSpacing
+        , min = 1.0
+        , max = 10.0
+        , step = Nothing
+        , value = model.bendTrackPointSpacing
+        , thumb = Input.defaultThumb
+        }

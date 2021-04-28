@@ -34,6 +34,22 @@ type alias TrackPoint =
     }
 
 
+trackPointFromPoint : Point3d Meters LocalCoords -> TrackPoint
+trackPointFromPoint point =
+    -- For some compatibility bringing v1.0 stuff over.
+    { xyz = point
+    , profileXZ = Point3d.origin
+    , costMetric = 0.0
+    , index = 0
+    , distanceFromStart = Quantity.zero
+    , beforeDirection = Nothing
+    , afterDirection = Nothing
+    , effectiveDirection = Nothing
+    , directionChange = Nothing
+    , gradientChange = Nothing
+    }
+
+
 trackPointFromGPX : Float -> Float -> Float -> TrackPoint
 trackPointFromGPX lon lat ele =
     let
@@ -286,4 +302,3 @@ adjustProfileXZ point distanceFromStart =
         distanceFromStart
         Quantity.zero
         (Point3d.zCoordinate point)
-
