@@ -30,6 +30,9 @@ This will generally give a reasonable curve. It will also
 provide a uniform gradient between the markers, which may
 not be what you want.
 
+A yellow line shows what the curve will look like, assuming
+the algorithm can find one, and this control tab is open.
+
 Use the spacing to vary the number of track points used to
 define the bend, and hence the smoothness."""
 

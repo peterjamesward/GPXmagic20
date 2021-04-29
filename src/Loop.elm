@@ -4,6 +4,7 @@ import Direction3d
 import Element exposing (..)
 import Element.Input exposing (button)
 import Length exposing (Meters, inMeters, meters)
+import List.Extra
 import Point3d
 import PostUpdateActions
 import Quantity exposing (Quantity)
@@ -140,7 +141,12 @@ update msg settings track =
                     settings
             in
             ( newSettings
-            , PostUpdateActions.ActionPreview
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                (changeLoopStart track)
+                ("move start to "
+                    ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
+                )
             )
 
 
@@ -188,3 +194,18 @@ closeTheLoop track loopiness =
 
         _ ->
             track
+
+
+changeLoopStart : Track -> Track
+changeLoopStart track =
+    let
+        n =
+            track.currentNode.index
+
+        ( startToCurrent, currentToEnd ) =
+            List.Extra.splitAt n track.track
+
+        newStart =
+            List.take 1 currentToEnd
+    in
+    { track | track = currentToEnd ++ startToCurrent ++ newStart }

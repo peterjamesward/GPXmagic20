@@ -12,6 +12,7 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
+import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
 import Length exposing (meters)
@@ -57,6 +58,7 @@ type Msg
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg Loop.Msg
+    | GradientMessage GradientSmoother.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -104,6 +106,11 @@ loopMessageWrapper msg =
     LoopMsg msg
 
 
+gradientMessageWrapper : GradientSmoother.Msg -> Msg
+gradientMessageWrapper msg =
+    GradientMessage msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -142,6 +149,7 @@ type alias Model =
     , bendOptions : BendSmoother.BendOptions
     , bendPreview : Scene
     , observations : TrackObservations
+    , gradientOptions : GradientSmoother.Options
     }
 
 
@@ -176,6 +184,7 @@ init mflags origin navigationKey =
       , bendOptions = BendSmoother.defaultOptions
       , bendPreview = []
       , observations = TrackObservations.defaultObservations
+      , gradientOptions = GradientSmoother.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -323,6 +332,9 @@ update msg model =
             processPostUpdateAction
                 { model | observations = newObs }
                 action
+
+        GradientMessage _ ->
+            ( model, Cmd.none )
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -680,15 +692,15 @@ subscriptions model =
 toolsAccordion : Model -> List (AccordionEntry Msg)
 toolsAccordion model =
     [ -- For V2 we see if a single collection works...
-      { label = "Visual styles"
+      { label = "Tip jar"
+      , state = Expanded False
+      , content = TipJar.tipJar
+      , info = TipJar.info
+      }
+    , { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
       , info = DisplayOptions.info
-      }
-    , { label = "Tip jar"
-      , state = Contracted
-      , content = TipJar.tipJar
-      , info = TipJar.info
       }
     , { label = "Loop maker"
       , state = Contracted
@@ -700,11 +712,18 @@ toolsAccordion model =
       , content = BendSmoother.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
       , info = BendSmoother.info
       }
-
-    --, { label = "Smooth gradient"
-    --  , state = Contracted
-    --  , content = viewGradientFixerPane model
-    --  }
+    , { label = "Smooth gradient"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (GradientSmoother.viewGradientFixerPane
+                    model.gradientOptions
+                    gradientMessageWrapper
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = GradientSmoother.info
+      }
     , { label = "Nudge"
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
