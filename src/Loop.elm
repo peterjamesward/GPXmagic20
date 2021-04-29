@@ -119,21 +119,19 @@ update :
 update msg settings track =
     case msg of
         CloseTheLoop ->
-            let
-                newSettings =
-                    settings
-            in
-            ( newSettings
-            , PostUpdateActions.ActionPreview
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                (closeTheLoop track settings)
+                "close the loop"
             )
 
         ReverseTrack ->
-            let
-                newSettings =
-                    settings
-            in
-            ( newSettings
-            , PostUpdateActions.ActionPreview
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                { track | track = List.reverse track.track }
+                "reverse track"
             )
 
         ChangeLoopStart tp ->
