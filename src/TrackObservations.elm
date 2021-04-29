@@ -19,12 +19,13 @@ type alias TrackObservations =
     , gradientThreshold : Float
     }
 
+
 defaultObservations =
     { abruptBearingChanges = []
     , abruptGradientChanges = []
     , zeroLengths = []
     , loopiness = NotALoop <| meters 0.0
-    , bearingThreshold = Angle.degrees 90.0
+    , bearingThreshold = Angle.degrees 60.0
     , gradientThreshold = 10.0
     }
 
@@ -36,14 +37,17 @@ deriveProblems track options =
             List.filter
                 (.gradientChange
                     >> Maybe.withDefault 0.0
-                    >> (>) options.gradientThreshold)
+                    >> (\x -> x > options.gradientThreshold)
+                )
                 track.track
 
         suddenBearingChanges =
             List.filter
                 (.directionChange
                     >> Maybe.withDefault Quantity.zero
-                    >> Quantity.greaterThan options.bearingThreshold)
+                    >> Quantity.abs
+                    >> Quantity.greaterThan options.bearingThreshold
+                )
                 track.track
 
         zeroLengths =
@@ -59,24 +63,28 @@ deriveProblems track options =
                 (List.drop 1 track.track)
                 |> List.filterMap identity
 
-        (firstPoint, lastPoint) =
-            (List.head track.track, List.Extra.last track.track)
+        ( firstPoint, lastPoint ) =
+            ( List.head track.track, List.Extra.last track.track )
 
         loopy =
-            case (firstPoint, lastPoint) of
-                (Just ptStart, Just ptEnd) ->
+            case ( firstPoint, lastPoint ) of
+                ( Just ptStart, Just ptEnd ) ->
                     let
-                        gap = Point3d.distanceFrom ptStart.xyz ptEnd.xyz
+                        gap =
+                            Point3d.distanceFrom ptStart.xyz ptEnd.xyz
 
-                        heightDiff = Point3d.zCoordinate ptStart.xyz |>
-                            Quantity.minus (Point3d.zCoordinate ptEnd.xyz) |>
-                            Quantity.abs
+                        heightDiff =
+                            Point3d.zCoordinate ptStart.xyz
+                                |> Quantity.minus (Point3d.zCoordinate ptEnd.xyz)
+                                |> Quantity.abs
                     in
-                    if (gap |> Quantity.lessThanOrEqualTo (meters 1.0)) &&
-                       (heightDiff |> Quantity.lessThanOrEqualTo (meters 1.0)) then
+                    if
+                        (gap |> Quantity.lessThanOrEqualTo (meters 1.0))
+                            && (heightDiff |> Quantity.lessThanOrEqualTo (meters 1.0))
+                    then
                         IsALoop
 
-                    else if (gap |> Quantity.lessThanOrEqualTo (meters 1000.0)) then
+                    else if gap |> Quantity.lessThanOrEqualTo (meters 1000.0) then
                         AlmostLoop gap
 
                     else

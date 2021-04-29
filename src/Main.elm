@@ -423,7 +423,7 @@ processGpxLoaded content model =
         , toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes
       }
-        |> renderTrackSceneElements
+        |> repeatTrackDerivations
     , Cmd.batch mapCommands
     )
 
