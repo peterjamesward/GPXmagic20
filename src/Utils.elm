@@ -2,11 +2,14 @@ module Utils exposing (..)
 
 import Angle exposing (Angle, inRadians)
 import Color exposing (Color)
+import Direction3d
 import Element exposing (html)
 import FeatherIcons
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
+import Quantity
+import SketchPlane3d
 
 
 type alias Point =

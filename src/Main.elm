@@ -333,8 +333,16 @@ update msg model =
                 { model | observations = newObs }
                 action
 
-        GradientMessage _ ->
-            ( model, Cmd.none )
+        GradientMessage gradMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (GradientSmoother.update gradMsg model.gradientOptions)
+                        model.track
+                        |> Maybe.withDefault ( model.gradientOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | gradientOptions = newOptions }
+                action
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -693,7 +701,7 @@ toolsAccordion : Model -> List (AccordionEntry Msg)
 toolsAccordion model =
     [ -- For V2 we see if a single collection works...
       { label = "Tip jar"
-      , state = Expanded False
+      , state = Contracted
       , content = TipJar.tipJar
       , info = TipJar.info
       }
