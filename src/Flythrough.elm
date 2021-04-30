@@ -1,9 +1,10 @@
 module Flythrough exposing (..)
 
+import Direction3d
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import FeatherIcons
-import Length exposing (inMeters)
+import Length exposing (inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
@@ -254,22 +255,38 @@ update options msg wrap track =
             )
 
 
+
+--TODO: Use track orientation to place camera??
+
+
 resetFlythrough : Track -> Options -> Maybe Flythrough
 resetFlythrough track options =
     case List.drop track.currentNode.index track.track of
         pt1 :: pt2 :: rest ->
+            let
+                focusPoint =
+                    Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 eyeHeight)
+                        pt2.xyz
+
+                trackDirection =
+                    pt1.afterDirection
+                        |> Maybe.withDefault Direction3d.x
+
+                cameraShift =
+                    Vector3d.from pt1.xyz pt2.xyz
+                        |> Vector3d.reverse
+                        |> Vector3d.scaleTo (meters 10.0)
+            in
             Just
                 { metresFromRouteStart = inMeters track.currentNode.distanceFromStart
                 , pointsRemaining = pt1 :: pt2 :: rest
                 , running = False
                 , cameraPosition =
-                    Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 eyeHeight)
-                        pt1.xyz
-                , focusPoint =
-                    Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 eyeHeight)
-                        pt2.xyz
+                    focusPoint
+                        |> Point3d.translateBy
+                            cameraShift
+                , focusPoint = focusPoint
                 , lastUpdated = options.modelTime
                 }
 
