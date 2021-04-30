@@ -15,7 +15,6 @@ import File.Select as Select
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
-import Length exposing (meters)
 import Loop
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
@@ -26,6 +25,7 @@ import PostUpdateActions exposing (PostUpdateAction(..))
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
+import Straightener
 import StravaAuth exposing (getStravaToken)
 import Task
 import Time
@@ -59,6 +59,7 @@ type Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg Loop.Msg
     | GradientMessage GradientSmoother.Msg
+    | StraightenMessage Straightener.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -111,6 +112,11 @@ gradientMessageWrapper msg =
     GradientMessage msg
 
 
+straightenMessageWrapper : Straightener.Msg -> Msg
+straightenMessageWrapper msg =
+    StraightenMessage msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -150,6 +156,7 @@ type alias Model =
     , bendPreview : Scene
     , observations : TrackObservations
     , gradientOptions : GradientSmoother.Options
+    , straightenOptions : Straightener.Options
     }
 
 
@@ -185,6 +192,7 @@ init mflags origin navigationKey =
       , bendPreview = []
       , observations = TrackObservations.defaultObservations
       , gradientOptions = GradientSmoother.defaultOptions
+      , straightenOptions = Straightener.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -342,6 +350,17 @@ update msg model =
             in
             processPostUpdateAction
                 { model | gradientOptions = newOptions }
+                action
+
+        StraightenMessage straight ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (Straightener.update straight model.straightenOptions)
+                        model.track
+                        |> Maybe.withDefault ( model.straightenOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | straightenOptions = newOptions }
                 action
 
 
@@ -581,6 +600,18 @@ renderVaryingSceneElements model =
 
             else
                 { options | smoothedBend = Nothing }
+
+        updatedStraightenOptions =
+            let
+                options =
+                    model.straightenOptions
+            in
+            if Accordion.tabIsOpen "Straighten" model.toolsAccordion then
+                Maybe.map (Straightener.lookForSimplifications options) model.track
+                    |> Maybe.withDefault options
+
+            else
+                options
     in
     { model
         | visibleMarkers = updatedMarkers
@@ -592,7 +623,11 @@ renderVaryingSceneElements model =
                 (.nodes >> SceneBuilder.previewBend)
                 updatedBendOptions.smoothedBend
                 |> Maybe.withDefault []
-        , nudgeProfilePreview = SceneBuilderProfile.previewNudge model.displayOptions updatedNudgePreview
+        , nudgeProfilePreview =
+            SceneBuilderProfile.previewNudge
+                model.displayOptions
+                updatedNudgePreview
+        , straightenOptions = updatedStraightenOptions
     }
         |> composeScene
 
@@ -737,11 +772,18 @@ toolsAccordion model =
       , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
       , info = Nudge.info
       }
-
-    --, { label = "Straighten"
-    --  , state = Contracted
-    --  , content = viewStraightenTools model
-    --  }
+    , { label = "Straighten"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (Straightener.viewStraightenTools
+                    model.straightenOptions
+                    straightenMessageWrapper
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = Straightener.info
+      }
     , { label = "Delete"
       , state = Contracted
       , content = viewDeleteTools model.track deleteMessageWrapper

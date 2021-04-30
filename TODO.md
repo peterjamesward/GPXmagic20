@@ -2,6 +2,7 @@
 
 # TODO
 
+--TODO: Perhaps pack closed tabs into a wrapper row. (Perhaps the open ones also.)
 --TODO: Make "click to drag" normal mode for Map.
 --TODO: Bring back pan actions for views.
 
