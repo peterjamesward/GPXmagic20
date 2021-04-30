@@ -2,6 +2,7 @@ module ViewingContext exposing (..)
 
 import Angle exposing (Angle)
 import Axis3d exposing (Axis3d)
+import Flythrough exposing (Flythrough)
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, pixels)
@@ -28,6 +29,7 @@ type alias ViewingContext =
     , contextId : Int -- ( 0 = Plan, 1 = First Person, 2 = Profile, 3 = Third person)
     , size : (Quantity Int Pixels, Quantity Int Pixels)
     , verticalExaggeration : Float
+    , flythrough : Maybe Flythrough
     }
 
 
@@ -47,6 +49,7 @@ defaultViewingContext =
     , contextId = 0
     , size = (pixels 800, pixels 600)
     , verticalExaggeration = 1.0
+    , flythrough = Nothing
     }
 
 

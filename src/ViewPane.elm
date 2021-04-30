@@ -14,6 +14,7 @@ import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import ScenePainterCommon exposing (ImageMsg, trackPointNearestRay)
+import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
 import ScenePainterProfile
@@ -119,26 +120,16 @@ mapOverPanes f panes =
 
 mapOverAllContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
 mapOverAllContexts f panes =
-    panes
-        |> List.map
-            (\pane ->
-                { pane
-                    | thirdPersonContext = f pane.thirdPersonContext
-                    , firstPersonContext = f pane.firstPersonContext
-                    , planContext = f pane.planContext
-                    , profileContext = f pane.profileContext
-                    , mapContext = f pane.mapContext
-                }
-            )
+    List.map
+        (mapOverPaneContexts f)
+        panes
 
 
 mapOverProfileContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
 mapOverProfileContexts f panes =
-    panes
-        |> List.map
-            (\pane ->
-                { pane | profileContext = f pane.profileContext }
-            )
+    List.map
+        (\pane -> { pane | profileContext = f pane.profileContext })
+        panes
 
 
 mapOverPaneContexts : (ViewingContext -> ViewingContext) -> ViewPane -> ViewPane
@@ -197,7 +188,7 @@ resetAllViews track pane =
         newPane =
             { pane
                 | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
-                , firstPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
+                , firstPersonContext = ScenePainterFirst.initialiseView pane.viewPixels track.track
                 , planContext = ScenePainterPlan.initialiseView pane.viewPixels track.track
                 , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track.track
                 , mapContext = ScenePainterMap.initialiseView pane.viewPixels track.track
@@ -276,6 +267,7 @@ viewModeChoices pane wrapper =
     let
         fullOptionList =
             [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
+            , Input.optionWith ViewFirstPerson <| radioButton "First person"
             , Input.optionWith ViewPlan <| radioButton "Plan"
             , Input.optionWith ViewProfile <| radioButton "Profile"
             , Input.optionWith ViewMap <| radioButton "Map"
@@ -316,6 +308,14 @@ view ( scene, profile ) options wrapper pane =
                     ViewThirdPerson ->
                         ScenePainterThird.viewScene
                             (pane.activeContext == ViewThirdPerson)
+                            (getActiveContext pane)
+                            options
+                            scene
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewFirstPerson ->
+                        ScenePainterFirst.viewScene
+                            (pane.activeContext == ViewFirstPerson)
                             (getActiveContext pane)
                             options
                             scene
@@ -440,6 +440,16 @@ update msg panes now =
                                     ScenePainterThird.update imageMsg pane.thirdPersonContext now
                             in
                             ( Just { pane | thirdPersonContext = newContext }
+                            , ImageAction action
+                            )
+
+                        ViewFirstPerson ->
+                            let
+                                ( newContext, action ) =
+                                    -- We can safely use the 3rd person update here.
+                                    ScenePainterThird.update imageMsg pane.firstPersonContext now
+                            in
+                            ( Just { pane | firstPersonContext = newContext }
                             , ImageAction action
                             )
 
