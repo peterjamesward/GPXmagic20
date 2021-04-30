@@ -11,7 +11,7 @@ import MapboxKey exposing (mapboxKey)
 import Point3d
 import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
-import Utils exposing (showDecimal2, showDecimal6)
+import Utils exposing (showDecimal0, showDecimal2, showDecimal6)
 import ViewingContext exposing (ViewingContext)
 
 
@@ -205,7 +205,7 @@ viewMapInfo mapInfo =
                     , column [ padding 10, spacing 10, centerX ]
                         [ text <| showDecimal6 info.centreLon
                         , text <| showDecimal6 info.centreLat
-                        , text <| showDecimal2 info.mapZoom
+                        , text <| showDecimal0 info.mapZoom
                         ]
                     ]
                 ]

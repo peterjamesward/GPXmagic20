@@ -13,7 +13,7 @@ import Quantity
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
@@ -112,9 +112,9 @@ smoothGradient track bumpiness =
 
         undoMessage =
             "gradient smoothing\nfrom "
-                ++ showDecimal2 (inMeters startPoint.distanceFromStart)
+                ++ showDecimal0 (inMeters startPoint.distanceFromStart)
                 ++ " to "
-                ++ showDecimal2 (inMeters endPoint.distanceFromStart)
+                ++ showDecimal0 (inMeters endPoint.distanceFromStart)
                 ++ "."
 
         slope =

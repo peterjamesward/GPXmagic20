@@ -85,6 +85,18 @@ showDecimal2 x =
     format locale x
 
 
+showDecimal0 x =
+    let
+        locale =
+            { usLocale
+                | decimals = Exact 0
+                , thousandSeparator = ""
+                , negativePrefix = "-"
+            }
+    in
+    format locale x
+
+
 showDecimal6 x =
     let
         locale =

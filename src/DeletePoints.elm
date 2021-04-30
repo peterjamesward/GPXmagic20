@@ -9,7 +9,7 @@ import PostUpdateActions exposing (PostUpdateAction)
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (defaultColumnLayout, prettyButtonStyles)
 
 
@@ -69,10 +69,10 @@ makeUndoMessage track =
             )
     in
     if start == finish then
-        "Delete point at " ++ showDecimal2 start
+        "Delete point at " ++ showDecimal0 start
 
     else
-        "Delete from " ++ showDecimal2 start ++ " to " ++ showDecimal2 finish
+        "Delete from " ++ showDecimal0 start ++ " to " ++ showDecimal0 finish
 
 
 update : Msg -> Track -> PostUpdateAction

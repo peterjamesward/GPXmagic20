@@ -15,7 +15,7 @@ import Polyline2d
 import PostUpdateActions
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -163,7 +163,7 @@ makeUndoMessage options track =
             , max dist1 dist2
             )
     in
-    "Smooth bend " ++ showDecimal2 from ++ " to " ++ showDecimal2 to
+    "Smooth bend " ++ showDecimal0 from ++ " to " ++ showDecimal0 to
 
 
 roadToGeometry : DrawingRoad -> G.Road

@@ -13,7 +13,7 @@ import PostUpdateActions
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (..)
 
@@ -71,10 +71,10 @@ makeUndoMessage track =
             )
     in
     if to > from then
-        "Nudge from " ++ showDecimal2 from ++ " to " ++ showDecimal2 to
+        "Nudge from " ++ showDecimal0 from ++ " to " ++ showDecimal0 to
 
     else
-        "Nudge node at" ++ showDecimal2 from
+        "Nudge node at" ++ showDecimal0 from
 
 
 nudgeNodes : Track -> NudgeSettings -> Track

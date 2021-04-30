@@ -10,7 +10,7 @@ import PostUpdateActions
 import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
 
@@ -93,7 +93,7 @@ viewLoopTools loopiness track wrap =
                         [ row [ spacing 10, padding 5, centerX ]
                             [ text <|
                                 "This track is "
-                                    ++ showDecimal2 (inMeters gap)
+                                    ++ showDecimal0 (inMeters gap)
                                     ++ "\naway from a loop"
                             , loopButton
                             ]
@@ -104,7 +104,7 @@ viewLoopTools loopiness track wrap =
                         [ row [ spacing 10, padding 5, centerX ]
                             [ text <|
                                 "This track is "
-                                    ++ showDecimal2 (inMeters gap)
+                                    ++ showDecimal0 (inMeters gap)
                                     ++ " away from a loop"
                             , loopButton
                             ]
