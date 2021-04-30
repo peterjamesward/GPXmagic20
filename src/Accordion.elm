@@ -149,8 +149,8 @@ view :
     -> Element msg
 view entries msgWrap =
     let
-        viewEntry : AccordionEntry msg -> Element msg
-        viewEntry entry =
+        viewOpenEntry : AccordionEntry msg -> Element msg
+        viewOpenEntry entry =
             row [ width fill ]
                 [ infoButton entry msgWrap
                 , column [ width fill ]
@@ -158,18 +158,21 @@ view entries msgWrap =
                         { onPress = Just (msgWrap <| ToggleEntry entry.label)
                         , label = text entry.label
                         }
-                    , if isOpen entry then
-                        el
-                            [ Background.color accordionContentBackground
-                            , width fill
-                            , centerX
-                            ]
-                            entry.content
-
-                      else
-                        none
+                    , el
+                        [ Background.color accordionContentBackground
+                        , width fill
+                        , centerX
+                        ]
+                        entry.content
                     ]
                 ]
+
+        viewClosedEntry : AccordionEntry msg -> Element msg
+        viewClosedEntry entry =
+            button (accordionTabStyles entry.state)
+                { onPress = Just (msgWrap <| ToggleEntry entry.label)
+                , label = text entry.label
+                }
 
         isOpen entry =
             entry.state == Expanded True || entry.state == Expanded False
@@ -178,7 +181,8 @@ view entries msgWrap =
             List.partition isOpen entries
     in
     column accordionMenuStyles <|
-        List.map viewEntry (open ++ closed)
+        List.map viewOpenEntry open
+            ++ [ wrappedRow [] (List.map viewClosedEntry closed) ]
 
 
 update : Msg -> List (AccordionEntry msg) -> List (AccordionEntry msg)
