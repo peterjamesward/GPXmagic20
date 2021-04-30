@@ -118,6 +118,7 @@ flythrough newTime flying speed =
                         clamp 0.0 1.0 (10.0 - segRemaining) / 10.0
 
                     camera3d =
+                        -- The camera is where the bike is!
                         Point3d.translateBy
                             (Vector3d.meters 0.0 0.0 eyeHeight)
                         <|
@@ -127,21 +128,16 @@ flythrough newTime flying speed =
                                 segFraction
 
                     lookingAt =
+                        -- Should be looking at the next point, until we are close
+                        -- enough to start looking at the one beyond that.
                         case pointsBeyond of
                             pointBeyond :: _ ->
-                                let
-                                    next3d =
-                                        Point3d.midpoint
-                                            pointInFront.xyz
-                                            pointBeyond.xyz
-                                in
-                                Point3d.translateBy
-                                    (Vector3d.meters 0.0 0.0 eyeHeight)
-                                <|
-                                    Point3d.interpolateFrom
-                                        pointInFront.xyz
-                                        next3d
-                                        headTurnFraction
+                                Point3d.interpolateFrom
+                                    pointInFront.xyz
+                                    pointBeyond.xyz
+                                    headTurnFraction
+                                    |> Point3d.translateBy
+                                        (Vector3d.meters 0.0 0.0 eyeHeight)
 
                             [] ->
                                 Point3d.translateBy
@@ -268,10 +264,6 @@ resetFlythrough track options =
                     Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 eyeHeight)
                         pt2.xyz
-
-                trackDirection =
-                    pt1.afterDirection
-                        |> Maybe.withDefault Direction3d.x
 
                 cameraShift =
                     Vector3d.from pt1.xyz pt2.xyz

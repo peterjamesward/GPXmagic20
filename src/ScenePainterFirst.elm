@@ -8,7 +8,7 @@ import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (Element, el, html, none, row)
 import Flythrough exposing (eyeHeight)
-import Length
+import Length exposing (meters)
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point3d
@@ -95,21 +95,17 @@ deriveViewPointAndCamera view =
         ( _, latitude, _ ) =
             pointInEarthCoordinates view.focalPoint
 
-        eyePoint point =
-            Point3d.translateBy
-                (Vector3d.meters 0.0 0.0 eyeHeight)
-                point.xyz
-
         cameraViewpoint =
             case view.flythrough of
                 Nothing ->
                     Viewpoint3d.orbitZ
                         { focalPoint = view.focalPoint
+                            |> Point3d.translateBy (Vector3d.meters 0 0 1)
                         , azimuth = view.azimuth
                         , elevation = view.elevation
                         , distance =
                             Length.meters <|
-                                10.0
+                                50.0
                                     * metresPerPixel view.zoomLevel (degrees latitude)
                         }
 
