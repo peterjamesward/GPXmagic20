@@ -43,7 +43,7 @@ initialiseView viewSize track =
             newViewingContext ViewFirstPerson
     in
     { viewContext
-        | focalPoint = centralPoint
+        | focalPoint = firstPointOnTrack
         , sceneSearcher = trackPointNearestRay track
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
@@ -124,4 +124,3 @@ deriveViewPointAndCamera view =
         { viewpoint = cameraViewpoint
         , verticalFieldOfView = Angle.degrees <| 120.0 / (1 + view.zoomLevel / 2.0)
         }
-

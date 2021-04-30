@@ -7,9 +7,11 @@ import Length exposing (inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
+import PostUpdateActions exposing (PostUpdateAction)
 import Time
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0)
+import Utils exposing (showDecimal0, useIcon)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -28,7 +30,8 @@ started, not the start of the route."""
 
 type Msg
     = SetFlythroughSpeed Float
-    | RunFlythrough Bool
+    | StartFlythrough
+    | PauseFlythrough
     | ResetFlythrough
 
 
@@ -45,12 +48,14 @@ type alias Flythrough =
 type alias Options =
     { flythroughSpeed : Float
     , flythrough : Maybe Flythrough
+    , modelTime : Time.Posix
     }
 
 
 defaultOptions =
-    { flythroughSpeed = 10.0
+    { flythroughSpeed = 1.0
     , flythrough = Nothing
+    , modelTime = Time.millisToPosix 0
     }
 
 
@@ -78,17 +83,18 @@ flythrough newTime flying speed =
             case flying.pointsRemaining of
                 pointBehind :: pointInFront :: _ ->
                     if newDistance >= inMeters pointInFront.distanceFromStart then
-                        (List.drop 1 flying.pointsRemaining)
+                        List.drop 1 flying.pointsRemaining
+
                     else
                         flying.pointsRemaining
 
                 _ ->
                     -- Not goood.
                     flying.pointsRemaining
-
     in
     if not flying.running then
         flying
+
     else
         case remainingPoints of
             pointBehind :: pointInFront :: pointsBeyond ->
@@ -97,8 +103,8 @@ flythrough newTime flying speed =
                         newDistance - inMeters pointBehind.distanceFromStart
 
                     segLength =
-                        (inMeters pointInFront.distanceFromStart
-                            - inMeters pointBehind.distanceFromStart)
+                        inMeters pointInFront.distanceFromStart
+                            - inMeters pointBehind.distanceFromStart
 
                     segFraction =
                         segInsetMetres / segLength
@@ -156,18 +162,6 @@ flythrough newTime flying speed =
 flythroughControls : Options -> (Msg -> msg) -> Element msg
 flythroughControls options wrapper =
     let
-        reset =
-            FeatherIcons.rewind
-                |> FeatherIcons.toHtml []
-
-        play =
-            FeatherIcons.play
-                |> FeatherIcons.toHtml []
-
-        pause =
-            FeatherIcons.pause
-                |> FeatherIcons.toHtml []
-
         flythroughSpeedSlider =
             Input.slider
                 commonShortHorizontalSliderStyles
@@ -189,21 +183,21 @@ flythroughControls options wrapper =
             button
                 prettyButtonStyles
                 { onPress = Just <| wrapper ResetFlythrough
-                , label = html reset
+                , label = useIcon FeatherIcons.rewind
                 }
 
         playButton =
             button
                 prettyButtonStyles
-                { onPress = Just (wrapper <| RunFlythrough True)
-                , label = html play
+                { onPress = Just <| wrapper StartFlythrough
+                , label = useIcon FeatherIcons.play
                 }
 
         pauseButton =
             button
                 prettyButtonStyles
-                { onPress = Just (wrapper <| RunFlythrough False)
-                , label = html pause
+                { onPress = Just <| wrapper <| PauseFlythrough
+                , label = useIcon FeatherIcons.pause
                 }
 
         playPauseButton =
@@ -235,3 +229,93 @@ flythroughControls options wrapper =
                 none
         ]
 
+
+update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction )
+update options msg wrap track =
+    case msg of
+        SetFlythroughSpeed speed ->
+            ( { options | flythroughSpeed = speed }
+            , PostUpdateActions.ActionNoOp
+            )
+
+        StartFlythrough ->
+            ( startFlythrough track options
+            , PostUpdateActions.ActionNoOp
+            )
+
+        PauseFlythrough ->
+            ( togglePause options
+            , PostUpdateActions.ActionNoOp
+            )
+
+        ResetFlythrough ->
+            ( { options | flythrough = resetFlythrough track options }
+            , PostUpdateActions.ActionNoOp
+            )
+
+
+resetFlythrough : Track -> Options -> Maybe Flythrough
+resetFlythrough track options =
+    case List.drop track.currentNode.index track.track of
+        pt1 :: pt2 :: rest ->
+            Just
+                { metresFromRouteStart = inMeters track.currentNode.distanceFromStart
+                , pointsRemaining = pt1 :: pt2 :: rest
+                , running = False
+                , cameraPosition =
+                    Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 eyeHeight)
+                        pt1.xyz
+                , focusPoint =
+                    Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 eyeHeight)
+                        pt2.xyz
+                , lastUpdated = options.modelTime
+                }
+
+        _ ->
+            -- Hmm, not enough track
+            Nothing
+
+
+startFlythrough : Track -> Options -> Options
+startFlythrough track options =
+    case resetFlythrough track options of
+        Just flying ->
+            { options | flythrough = Just { flying | running = True } }
+
+        Nothing ->
+            options
+
+
+togglePause : Options -> Options
+togglePause options =
+    case options.flythrough of
+        Just flying ->
+            { options
+                | flythrough =
+                    Just
+                        { flying
+                            | running = not flying.running
+                        }
+            }
+
+        Nothing ->
+            options
+
+
+advanceFlythrough : Time.Posix -> Options -> Options
+advanceFlythrough newTime options =
+    case options.flythrough of
+        Just flying ->
+            { options
+                | flythrough =
+                    Just <|
+                        flythrough
+                            newTime
+                            flying
+                            options.flythroughSpeed
+            }
+
+        Nothing ->
+            options

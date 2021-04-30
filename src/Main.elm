@@ -12,7 +12,7 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
-import Flythrough
+import Flythrough exposing (Flythrough)
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
@@ -37,7 +37,7 @@ import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
-import ViewingContext
+import ViewingContext exposing (ViewingContext)
 
 
 type Msg
@@ -117,6 +117,7 @@ gradientMessageWrapper msg =
 straightenMessageWrapper : Straightener.Msg -> Msg
 straightenMessageWrapper msg =
     StraightenMessage msg
+
 
 flythroughMessageWrapper : Flythrough.Msg -> Msg
 flythroughMessageWrapper msg =
@@ -209,11 +210,34 @@ init mflags origin navigationKey =
     )
 
 
+passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
+passFlythroughToContext flight context =
+    { context | flythrough = flight }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Tick newTime ->
-            ( { model | time = newTime }
+            let
+                flythrough =
+                    model.flythrough
+
+                updatedFlythrough =
+                    Flythrough.advanceFlythrough
+                        newTime
+                        { flythrough | modelTime = newTime }
+            in
+            ( { model
+                | time = newTime
+                , flythrough = updatedFlythrough
+
+                -- This passing through time is perhaps not the best idea.
+                , viewPanes =
+                    ViewPane.mapOverAllContexts
+                        (passFlythroughToContext updatedFlythrough.flythrough)
+                        model.viewPanes
+              }
             , Cmd.none
             )
 
@@ -372,7 +396,26 @@ update msg model =
                 action
 
         FlythroughMessage flythroughMsg ->
-            ( model, Cmd.none )
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (Flythrough.update
+                            model.flythrough
+                            flythroughMsg
+                            flythroughMessageWrapper
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.flythrough, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model
+                    | flythrough = newOptions
+                    , viewPanes =
+                        ViewPane.mapOverAllContexts
+                            (passFlythroughToContext newOptions.flythrough)
+                            model.viewPanes
+                }
+                action
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -800,12 +843,12 @@ toolsAccordion model =
       , content = viewDeleteTools model.track deleteMessageWrapper
       , info = DeletePoints.info
       }
-
     , { label = "Fly-through"
       , state = Contracted
       , content = Flythrough.flythroughControls model.flythrough flythroughMessageWrapper
       , info = Flythrough.info
       }
+
     --, { label = "Strava"
     --  , state = Contracted
     --  , content = viewStravaDataAccessTab model

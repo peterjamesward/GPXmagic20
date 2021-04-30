@@ -36,7 +36,7 @@ type alias ViewingContext =
 defaultViewingContext : ViewingContext
 defaultViewingContext =
     { azimuth = Angle.degrees -90.0
-    , elevation = Angle.degrees 90.0
+    , elevation = Angle.degrees 30.0
     , distance = Length.meters 100.0
     , orbiting = Nothing
     , zoomLevel = 12.0
