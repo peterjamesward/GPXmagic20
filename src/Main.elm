@@ -12,6 +12,7 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
+import Flythrough
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Json.Encode
@@ -60,6 +61,7 @@ type Msg
     | LoopMsg Loop.Msg
     | GradientMessage GradientSmoother.Msg
     | StraightenMessage Straightener.Msg
+    | FlythroughMessage Flythrough.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -116,6 +118,10 @@ straightenMessageWrapper : Straightener.Msg -> Msg
 straightenMessageWrapper msg =
     StraightenMessage msg
 
+flythroughMessageWrapper : Flythrough.Msg -> Msg
+flythroughMessageWrapper msg =
+    FlythroughMessage msg
+
 
 main : Program (Maybe (List Int)) Model Msg
 main =
@@ -157,6 +163,7 @@ type alias Model =
     , observations : TrackObservations
     , gradientOptions : GradientSmoother.Options
     , straightenOptions : Straightener.Options
+    , flythrough : Flythrough.Options
     }
 
 
@@ -193,6 +200,7 @@ init mflags origin navigationKey =
       , observations = TrackObservations.defaultObservations
       , gradientOptions = GradientSmoother.defaultOptions
       , straightenOptions = Straightener.defaultOptions
+      , flythrough = Flythrough.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -362,6 +370,9 @@ update msg model =
             processPostUpdateAction
                 { model | straightenOptions = newOptions }
                 action
+
+        FlythroughMessage flythroughMsg ->
+            ( model, Cmd.none )
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -790,10 +801,11 @@ toolsAccordion model =
       , info = DeletePoints.info
       }
 
-    --, { label = "Fly-through"
-    --  , state = Contracted
-    --  , content = flythroughControls model
-    --  }
+    , { label = "Fly-through"
+      , state = Contracted
+      , content = Flythrough.flythroughControls model.flythrough flythroughMessageWrapper
+      , info = Flythrough.info
+      }
     --, { label = "Strava"
     --  , state = Contracted
     --  , content = viewStravaDataAccessTab model
