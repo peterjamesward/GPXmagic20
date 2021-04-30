@@ -239,16 +239,21 @@ simplifyTrack options track =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( startPoint, endPoint ) =
-            ( if track.currentNode.index <= marker.index then
-                track.currentNode
+            ( if track.markedNode == Nothing then
+                0
+              else if track.currentNode.index <= marker.index then
+                track.currentNode.index
 
               else
-                marker
-            , if track.currentNode.index > marker.index then
-                track.currentNode
+                marker.index
+            , if track.markedNode == Nothing then
+                List.length track.track
+
+              else if track.currentNode.index > marker.index then
+                track.currentNode.index
 
               else
-                marker
+                marker.index
             )
 
         undoMessage =
@@ -258,7 +263,7 @@ simplifyTrack options track =
 
         nodesToRemove =
             List.filter
-                (\n -> n >= startPoint.index && n <= endPoint.index)
+                (\n -> n >= startPoint && n <= endPoint)
                 options.metricFilteredPoints
     in
     ( { track | track = removeByIndexNumbers nodesToRemove track.track }
