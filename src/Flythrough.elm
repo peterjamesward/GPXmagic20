@@ -1,11 +1,9 @@
 module Flythrough exposing (..)
 
-import Direction3d
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import FeatherIcons
 import Length exposing (inMeters, meters)
-import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import PostUpdateActions exposing (PostUpdateAction)
@@ -94,7 +92,7 @@ flythrough newTime flying speed =
                     flying.pointsRemaining
     in
     if not flying.running then
-        flying
+        { flying | lastUpdated = newTime }
 
     else
         case remainingPoints of
@@ -190,11 +188,17 @@ flythroughControls options wrapper =
                 , label = useIcon FeatherIcons.play
                 }
 
-        pauseButton =
+        pauseButton isRunning =
             button
                 prettyButtonStyles
                 { onPress = Just <| wrapper <| PauseFlythrough
-                , label = useIcon FeatherIcons.pause
+                , label =
+                    useIcon <|
+                        if isRunning then
+                            FeatherIcons.pause
+
+                        else
+                            FeatherIcons.play
                 }
 
         playPauseButton =
@@ -203,11 +207,7 @@ flythroughControls options wrapper =
                     playButton
 
                 Just flying ->
-                    if flying.running then
-                        pauseButton
-
-                    else
-                        playButton
+                    pauseButton flying.running
     in
     column [ padding 10, spacing 10, centerX ]
         [ row [ padding 10, spacing 10, centerX ]
