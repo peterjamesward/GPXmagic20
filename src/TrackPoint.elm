@@ -6,8 +6,9 @@ import Axis3d exposing (Axis3d)
 import Direction2d exposing (Direction2d)
 import Direction3d exposing (Direction3d)
 import EarthConstants exposing (metresPerDegree)
+import Element exposing (..)
 import Json.Encode as E
-import Length exposing (Meters, meters)
+import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Plane3d
@@ -15,6 +16,7 @@ import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import Triangle3d
+import Utils exposing (bearingToDisplayDegrees, showDecimal2)
 import Vector3d exposing (Vector3d)
 
 
@@ -31,6 +33,7 @@ type alias TrackPoint =
     , effectiveDirection : Maybe (Direction3d LocalCoords)
     , directionChange : Maybe Angle
     , gradientChange : Maybe Float
+    , roadVector : Vector3d Length.Meters LocalCoords
     }
 
 
@@ -47,6 +50,7 @@ trackPointFromPoint point =
     , effectiveDirection = Nothing
     , directionChange = Nothing
     , gradientChange = Nothing
+    , roadVector = Vector3d.zero
     }
 
 
@@ -71,6 +75,7 @@ trackPointFromGPX lon lat ele =
     , effectiveDirection = Nothing
     , directionChange = Nothing
     , gradientChange = Nothing
+    , roadVector = Vector3d.zero
     }
 
 
@@ -123,7 +128,7 @@ prepareTrackPoints trackPoints =
                 |> (*) 100.0
 
         gradientChange prev point next =
-            abs <| (gradient prev point) - (gradient point next)
+            abs <| gradient prev point - gradient point next
 
         processedPoints =
             case trackPoints of
@@ -134,6 +139,7 @@ prepareTrackPoints trackPoints =
                             , costMetric = 10 ^ 10 -- i.e. do not remove me!
                             , afterDirection = trackPointBearing firstPoint secondPoint
                             , profileXZ = adjustProfileXZ firstPoint.xyz (meters 0.0)
+                            , roadVector = Vector3d.from firstPoint.xyz secondPoint.xyz
                           }
                         ]
                         1
@@ -203,6 +209,7 @@ prepareTrackPoints trackPoints =
                                                 ( previous.xyz, penultimate.xyz, last.xyz )
                                 , distanceFromStart = distanceFromStart
                                 , profileXZ = adjustProfileXZ penultimate.xyz distanceFromStart
+                                , roadVector = Vector3d.from penultimate.xyz last.xyz
                             }
 
                         lastSpan =
@@ -261,6 +268,7 @@ prepareTrackPoints trackPoints =
                                                 ( previous.xyz, point.xyz, next.xyz )
                                 , distanceFromStart = distanceFromStart
                                 , profileXZ = adjustProfileXZ point.xyz distanceFromStart
+                                , roadVector = Vector3d.from point.xyz next.xyz
                             }
                     in
                     helper
@@ -314,3 +322,4 @@ adjustProfileXZ point distanceFromStart =
         distanceFromStart
         Quantity.zero
         (Point3d.zCoordinate point)
+

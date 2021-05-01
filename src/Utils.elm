@@ -138,3 +138,17 @@ httpErrorString error =
 
 useIcon =
     html << FeatherIcons.toHtml [] << FeatherIcons.withSize 24
+
+
+bearingToDisplayDegrees : Angle -> String
+bearingToDisplayDegrees angle =
+    angle
+        |> Angle.inDegrees
+        |> (\x ->
+                if x < 0 then
+                    360.0 + x
+
+                else
+                    x
+           )
+        |> showDecimal2

@@ -132,41 +132,35 @@ deriveProblems track options =
         justXYZ =
             List.map .xyz track.track
 
-        vectors =
-            List.map2
-                Vector3d.from
-                justXYZ
-                (List.drop 1 justXYZ)
-
         upVectors =
             List.filter
-                (Vector3d.zComponent >> Quantity.greaterThan zero)
-                vectors
+                (.roadVector >> Vector3d.zComponent >> Quantity.greaterThan zero)
+                track.track
 
         downVectors =
             List.filter
-                (Vector3d.zComponent >> Quantity.lessThan zero)
-                vectors
+                (.roadVector >> Vector3d.zComponent >> Quantity.lessThan zero)
+                track.track
 
         ascent =
             upVectors
-                |> List.map (Vector3d.zComponent >> inMeters)
+                |> List.map (.roadVector >> Vector3d.zComponent >> inMeters)
                 |> List.sum
 
         descent =
             downVectors
-                |> List.map (Vector3d.zComponent >> inMeters)
+                |> List.map (.roadVector >> Vector3d.zComponent >> inMeters)
                 |> List.sum
                 |> abs
 
         climbingDistance =
             upVectors
-                |> List.map (Vector3d.length >> inMeters)
+                |> List.map (.roadVector >> Vector3d.length >> inMeters)
                 |> List.sum
 
         descendingDistance =
             downVectors
-                |> List.map (Vector3d.length >> inMeters)
+                |> List.map (.roadVector >> Vector3d.length >> inMeters)
                 |> List.sum
     in
     { options

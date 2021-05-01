@@ -32,7 +32,7 @@ import StravaAuth exposing (getStravaToken)
 import Task
 import Time
 import TipJar
-import Track exposing (Track)
+import Track exposing (Track, summaryData)
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
@@ -897,13 +897,16 @@ toolsAccordion model =
     , { label = "Summary"
       , state = Expanded False
       , content = TrackObservations.overviewSummary model.observations
-      , info = "Stuff about the route."
+      , info = "Data about the route."
+      }
+    , { label = "Road segment data"
+      , state = Contracted
+      , content =
+            Maybe.map summaryData model.track
+                |> Maybe.withDefault none
+      , info = "Data about the next bit of road."
       }
 
-    --, { label = "Road segment data"
-    --  , state = Contracted
-    --  , content = summaryData (lookupRoad model model.currentNode)
-    --  }
     --, { label = "Gradient problems"
     --  , state = Contracted
     --  , content = viewGradientChanges model

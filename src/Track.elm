@@ -1,14 +1,20 @@
 module Track exposing (..)
 
+import Angle
 import BoundingBox3d exposing (BoundingBox3d)
+import Direction3d
+import Element exposing (..)
 import GpxParser
 import Graph exposing (Graph)
 import Json.Encode as E
-import Length exposing (Meters)
+import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
+import Quantity
+import SketchPlane3d
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints)
+import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)
 import Vector3d exposing (Vector3d)
 
 
@@ -141,3 +147,61 @@ prevPointOn track from =
         |> Maybe.withDefault from
 
 
+summaryData : Track -> Element msg
+summaryData track =
+    let
+        pt =
+            track.currentNode
+
+        gradient =
+            pt.roadVector
+                |> Vector3d.direction
+                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
+                |> Maybe.withDefault Quantity.zero
+                |> Angle.tan
+                |> (*) 100.0
+
+        bearing =
+            pt.afterDirection
+                |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
+                |> Maybe.withDefault Quantity.zero
+
+        ( lon, lat, ele ) =
+            pt.xyz
+                |> withoutGhanianTransform track
+                |> pointInEarthCoordinates
+    in
+    column [ centerX ]
+        [ row [ padding 20, centerX, spacing 10 ]
+            [ column [ spacing 10 ]
+                [ text "Start point index "
+                , text "Length "
+                ]
+            , column [ spacing 10 ]
+                [ text <| String.fromInt pt.index
+                , text <| showDecimal2 <| inMeters <| Vector3d.length pt.roadVector
+                ]
+            , column [ spacing 10 ]
+                [ text "Gradient "
+                , text "Bearing "
+                ]
+            , column [ spacing 10 ]
+                [ text <| showDecimal2 gradient
+                , text <| bearingToDisplayDegrees bearing
+                ]
+            ]
+        , row [ padding 10, centerX, alignTop, spacing 10 ]
+            [ column [ spacing 10 ]
+                [ text "Latitude "
+                , text "Longitude "
+                , text "Elevation "
+                , text "Distance "
+                ]
+            , column [ spacing 10 ]
+                [ text <| showDecimal6 lat
+                , text <| showDecimal6 lon
+                , text <| showDecimal2 <| inMeters <| Point3d.zCoordinate pt.xyz
+                , text <| showDecimal2 <| inMeters pt.distanceFromStart
+                ]
+            ]
+        ]
