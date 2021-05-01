@@ -11,11 +11,14 @@ import Flythrough exposing (eyeHeight)
 import Length exposing (meters)
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
+import Plane3d
 import Point3d
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import Scene3d exposing (backgroundColor)
 import ScenePainterCommon exposing (ImageMsg, trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
+import SketchPlane3d
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
 import ViewingContext exposing (ViewingContext, newViewingContext)
@@ -25,28 +28,41 @@ import Viewpoint3d
 
 initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
-    -> List TrackPoint
+    -> Track
     -> ViewingContext
 initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         firstPointOnTrack =
-            track
+            track.track
                 |> List.head
                 |> Maybe.map .xyz
                 |> Maybe.withDefault centralPoint
+                |> Point3d.translateBy (Vector3d.meters 0 0 1)
 
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track
+            zoomLevelFromBoundingBox viewSize track.track
 
         viewContext =
             newViewingContext ViewFirstPerson
+
+        _ = Debug.log "Azimuth" trackAzimuth
+
+        trackAzimuth =
+            track.track
+                |> List.head
+                |> Maybe.andThen .afterDirection
+                |> Maybe.withDefault Direction3d.x
+                |> Direction3d.reverse
+                |> Direction3d.azimuthIn SketchPlane3d.xy
     in
     { viewContext
         | focalPoint = firstPointOnTrack
-        , sceneSearcher = trackPointNearestRay track
-        , zoomLevel = zoom
-        , defaultZoomLevel = zoom
+        , azimuth = trackAzimuth
+        , elevation = Angle.degrees 10
+        , sceneSearcher = trackPointNearestRay track.track
+        , zoomLevel = 14.0
+        , defaultZoomLevel = 14.0
     }
 
 
@@ -118,5 +134,5 @@ deriveViewPointAndCamera view =
     in
     Camera3d.perspective
         { viewpoint = cameraViewpoint
-        , verticalFieldOfView = Angle.degrees <| 120.0 / (1 + view.zoomLevel / 2.0)
+        , verticalFieldOfView = Angle.degrees <| 120.0 - view.zoomLevel * 4.0
         }

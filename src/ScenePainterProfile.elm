@@ -23,6 +23,7 @@ import Scene exposing (Scene)
 import Scene3d exposing (Entity)
 import ScenePainterCommon exposing (..)
 import Time
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Vector3d
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
@@ -32,20 +33,20 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
-    -> List TrackPoint
+    -> Track
     -> ViewingContext
 initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         profileTrack =
-            track
+            track.track
 
         ( zoom, centralPoint ) =
             profileZoomLevelFromBoundingBox viewSize profileTrack
     in
     { defaultViewingContext
         | focalPoint = centralPoint
-        , sceneSearcher = profilePointNearestRay track
+        , sceneSearcher = profilePointNearestRay profileTrack
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewProfile

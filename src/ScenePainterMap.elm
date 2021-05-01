@@ -25,13 +25,13 @@ import ViewingMode exposing (ViewingMode(..))
 
 initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
-    -> List TrackPoint
+    -> Track
     -> ViewingContext
 initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track
+            zoomLevelFromBoundingBox viewSize track.track
     in
     { defaultViewingContext
         | focalPoint = centralPoint

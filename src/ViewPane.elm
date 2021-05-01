@@ -187,11 +187,11 @@ resetAllViews track pane =
     let
         newPane =
             { pane
-                | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track.track
-                , firstPersonContext = ScenePainterFirst.initialiseView pane.viewPixels track.track
-                , planContext = ScenePainterPlan.initialiseView pane.viewPixels track.track
-                , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track.track
-                , mapContext = ScenePainterMap.initialiseView pane.viewPixels track.track
+                | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
+                , firstPersonContext = ScenePainterFirst.initialiseView pane.viewPixels track
+                , planContext = ScenePainterPlan.initialiseView pane.viewPixels track
+                , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track
+                , mapContext = ScenePainterMap.initialiseView pane.viewPixels track
             }
     in
     newPane

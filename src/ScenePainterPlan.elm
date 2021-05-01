@@ -21,6 +21,7 @@ import Scene exposing (Scene)
 import Scene3d exposing (Entity, backgroundColor)
 import ScenePainterCommon exposing (..)
 import Time
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
@@ -30,17 +31,17 @@ import Viewpoint3d exposing (Viewpoint3d)
 
 initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
-    -> List TrackPoint
+    -> Track
     -> ViewingContext
 initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track
+            zoomLevelFromBoundingBox viewSize track.track
     in
     { defaultViewingContext
         | focalPoint = centralPoint
-        , sceneSearcher = trackPointNearestRay track
+        , sceneSearcher = trackPointNearestRay track.track
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewPlan
