@@ -12,6 +12,7 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
+import Filters
 import Flythrough exposing (Flythrough)
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
@@ -62,6 +63,7 @@ type Msg
     | GradientMessage GradientSmoother.Msg
     | StraightenMessage Straightener.Msg
     | FlythroughMessage Flythrough.Msg
+    | FilterMessage Filters.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -124,6 +126,11 @@ flythroughMessageWrapper msg =
     FlythroughMessage msg
 
 
+filterMessageWrapper : Filters.Msg -> Msg
+filterMessageWrapper msg =
+    FilterMessage msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -165,6 +172,7 @@ type alias Model =
     , gradientOptions : GradientSmoother.Options
     , straightenOptions : Straightener.Options
     , flythrough : Flythrough.Options
+    , filterOptions : Filters.Options
     }
 
 
@@ -202,6 +210,7 @@ init mflags origin navigationKey =
       , gradientOptions = GradientSmoother.defaultOptions
       , straightenOptions = Straightener.defaultOptions
       , flythrough = Flythrough.defaultOptions
+      , filterOptions = Filters.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -415,6 +424,17 @@ update msg model =
                             (passFlythroughToContext newOptions.flythrough)
                             model.viewPanes
                 }
+                action
+
+        FilterMessage filter ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (Filters.update filter model.filterOptions model.observations)
+                        model.track
+                        |> Maybe.withDefault ( model.filterOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | filterOptions = newOptions }
                 action
 
 
@@ -853,10 +873,17 @@ toolsAccordion model =
     --  , state = Contracted
     --  , content = viewStravaDataAccessTab model
     --  }
-    --, { label = "Filters"
-    --  , state = Contracted
-    --  , content = viewFilterControls model
-    --  }
+    , { label = "Filters"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (Filters.viewFilterControls model.filterOptions
+                    filterMessageWrapper
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = Filters.info
+      }
     , { label = "The Labyrinth"
       , state = Contracted
       , content =
