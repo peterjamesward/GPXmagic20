@@ -9,8 +9,9 @@ import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
 import Element.Font as Font
-import Element.Input exposing (button)
+import Element.Input as Input exposing (button)
 import File exposing (File)
+import File.Download as Download
 import File.Select as Select
 import Filters
 import Flythrough exposing (Flythrough)
@@ -21,6 +22,7 @@ import Json.Encode
 import Loop
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
+import Maybe.Extra
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
@@ -29,7 +31,7 @@ import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
 import Straightener
-import StravaAuth exposing (getStravaToken)
+import StravaAuth exposing (getStravaToken, stravaButton)
 import Task
 import Time
 import TipJar
@@ -38,8 +40,16 @@ import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, defaultViewPane, diminishPane, enlargePane, refreshSceneSearcher, updatePointerInLinkedPanes)
-import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
+import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
 import ViewingContext exposing (ViewingContext)
+import WriteGPX exposing (writeGPX)
+
+
+type GpxSource
+    = GpxNone
+    | GpxLocalFile
+    | GpxStrava
+    | GpxKomoot
 
 
 type Msg
@@ -67,6 +77,8 @@ type Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
     | InsertMessage InsertPoints.Msg
+    | UserChangedFilename String
+    | OutputGPX
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -159,6 +171,7 @@ main =
 
 type alias Model =
     { filename : Maybe String
+    , gpxSource : GpxSource
     , time : Time.Posix
     , zone : Time.Zone
     , staticScene : Scene
@@ -199,6 +212,7 @@ init mflags origin navigationKey =
             StravaAuth.init mflags origin navigationKey wrapAuthMessage
     in
     ( { filename = Nothing
+      , gpxSource = GpxNone
       , time = Time.millisToPosix 0
       , zone = Time.utc
       , track = Nothing
@@ -485,6 +499,16 @@ update msg model =
                 { model | problemOptions = newOptions }
                 action
 
+        UserChangedFilename txt ->
+            ( { model | filename = Just txt }
+            , Cmd.none
+            )
+
+        OutputGPX ->
+            ( { model | changeCounter = 0 }
+            , outputGPX model
+            )
+
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
@@ -583,6 +607,7 @@ processGpxLoaded content model =
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes
+        , gpxSource = GpxLocalFile
       }
         |> repeatTrackDerivations
     , Cmd.batch mapCommands
@@ -802,6 +827,15 @@ view model =
                         { onPress = Just GpxRequested
                         , label = text "Load GPX from your computer"
                         }
+                    , if model.changeCounter == 0 then
+                        stravaButton model.stravaAuthentication wrapAuthMessage
+
+                      else
+                        E.text "Save your work before\nconnecting to Strava"
+
+                    --, stravaRouteOption model
+                    , viewAndEditFilename model
+                    , saveButtonIfChanged model
                     ]
                 , row (width fill :: defaultRowLayout) <|
                     [ el [ width fill, alignTop ] <|
@@ -1113,3 +1147,67 @@ tryBendSmoother options track =
             else
                 Nothing
     }
+
+
+viewAndEditFilename : Model -> Element Msg
+viewAndEditFilename model =
+    let
+        filename =
+            Maybe.withDefault "" model.filename
+
+        trackName =
+            Maybe.map .trackName model.track
+                |> Maybe.Extra.join
+    in
+    case model.gpxSource of
+        GpxNone ->
+            E.none
+
+        _ ->
+            column [ Font.size 14 ]
+                [ displayName trackName
+                , Input.text [ width (px 200) ]
+                    { onChange = UserChangedFilename
+                    , text = filename
+                    , placeholder = Nothing
+                    , label = Input.labelHidden "File name"
+                    }
+                ]
+
+
+saveButtonIfChanged : Model -> Element Msg
+saveButtonIfChanged model =
+    case model.undoStack of
+        _ :: _ ->
+            button
+                prettyButtonStyles
+                { onPress = Just OutputGPX
+                , label = E.text "Save as GPX file to your computer"
+                }
+
+        _ ->
+            none
+
+
+outputGPX : Model -> Cmd Msg
+outputGPX model =
+    let
+        gpxString =
+            Maybe.map writeGPX model.track
+            |> Maybe.withDefault "Sorry, nothing to write."
+
+        outputFilename =
+            case model.filename of
+                Just filename ->
+                    filename
+                        ++ (if not (String.endsWith ".GPX" (String.toUpper filename)) then
+                                ".gpx"
+
+                            else
+                                ""
+                           )
+
+                Nothing ->
+                    "NOFILENAME"
+    in
+    Download.string outputFilename "text/gpx" gpxString

@@ -136,3 +136,13 @@ radioButton label state =
     <|
         el [ centerX, centerY ] <|
             text label
+
+displayName n =
+    case n of
+        Just s ->
+            el [ Font.size 20 ]
+                (text s)
+
+        _ ->
+            none
+
