@@ -64,6 +64,7 @@ type Msg
     | StraightenMessage Straightener.Msg
     | FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
+    | ProblemMessage TrackObservations.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -131,6 +132,11 @@ filterMessageWrapper msg =
     FilterMessage msg
 
 
+problemMessageWrapper : TrackObservations.Msg -> Msg
+problemMessageWrapper msg =
+    ProblemMessage msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -173,6 +179,7 @@ type alias Model =
     , straightenOptions : Straightener.Options
     , flythrough : Flythrough.Options
     , filterOptions : Filters.Options
+    , problemOptions : TrackObservations.Options
     }
 
 
@@ -211,6 +218,7 @@ init mflags origin navigationKey =
       , straightenOptions = Straightener.defaultOptions
       , flythrough = Flythrough.defaultOptions
       , filterOptions = Filters.defaultOptions
+      , problemOptions = TrackObservations.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -437,6 +445,22 @@ update msg model =
                 { model | filterOptions = newOptions }
                 action
 
+        ProblemMessage probMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (TrackObservations.update
+                            probMsg
+                            model.problemOptions
+                            model.observations
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.problemOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | problemOptions = newOptions }
+                action
+
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
@@ -614,7 +638,7 @@ repeatTrackDerivations model =
                     { isTrack | track = prepareTrackPoints isTrack.track }
 
                 newObservations =
-                    deriveProblems newTrack model.observations
+                    deriveProblems newTrack model.problemOptions
             in
             { model
                 | track = Just newTrack
@@ -894,27 +918,36 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Graph.info
       }
-    , { label = "Summary"
+    , { label = "Route summary"
       , state = Expanded False
       , content = TrackObservations.overviewSummary model.observations
       , info = "Data about the route."
       }
-    , { label = "Road segment data"
+    , { label = "Road segment"
       , state = Contracted
       , content =
             Maybe.map summaryData model.track
                 |> Maybe.withDefault none
-      , info = "Data about the next bit of road."
+      , info = "Data about the road at the orange marker."
       }
-
-    --, { label = "Gradient problems"
-    --  , state = Contracted
-    --  , content = viewGradientChanges model
-    --  }
-    --, { label = "Bend problems"
-    --  , state = Contracted
-    --  , content = viewBearingChanges model
-    --  }
+    , { label = "Gradient problems"
+      , state = Contracted
+      , content =
+            TrackObservations.viewGradientChanges
+                model.problemOptions
+                model.observations
+                problemMessageWrapper
+      , info = TrackObservations.info
+      }
+    , { label = "Bend problems"
+      , state = Contracted
+      , content =
+            TrackObservations.viewBearingChanges
+                model.problemOptions
+                model.observations
+                problemMessageWrapper
+      , info = TrackObservations.info
+      }
     ]
 
 

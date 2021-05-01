@@ -2,15 +2,50 @@ module TrackObservations exposing (..)
 
 import Angle exposing (Angle)
 import Element exposing (..)
+import Element.Input as Input exposing (button)
 import Length exposing (inMeters, meters)
 import List.Extra
 import Loop exposing (Loopiness(..))
 import Point3d
+import PostUpdateActions
 import Quantity exposing (zero)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
+import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
+
+
+info =
+    """## Bend and Gradient problems
+
+Similar in concept, these tabs help you find the worst
+issues on the route. They will list places where the gradient
+or direction changes by more than the threshold you choose.
+
+Click on an entry to centre the views on that point.
+
+Use Autofix to apply a simple fix to all the points listed
+that are within the range of the Orange and Purple markers."""
+
+
+type Msg
+    = LocateProblem TrackPoint
+    | Autofix (List TrackPoint)
+    | SetBearingChangeThreshold Angle
+    | SetGradientChangeThreshold Float
+
+
+type alias Options =
+    { gradientChangeThreshold : Float -- In 'slope' units, 100 * tan angle.
+    , directionChangeThreshold : Angle -- In range -pi to +pi.
+    }
+
+
+defaultOptions =
+    { gradientChangeThreshold = 10.0
+    , directionChangeThreshold = Angle.degrees 90.0
+    }
 
 
 type alias TrackObservations =
@@ -18,8 +53,6 @@ type alias TrackObservations =
     , abruptGradientChanges : List TrackPoint
     , zeroLengths : List TrackPoint
     , loopiness : Loop.Loopiness
-    , bearingThreshold : Angle
-    , gradientThreshold : Float
     , highestMetres : Float
     , lowestMetres : Float
     , trackLength : Float
@@ -35,8 +68,6 @@ defaultObservations =
     , abruptGradientChanges = []
     , zeroLengths = []
     , loopiness = NotALoop <| meters 0.0
-    , bearingThreshold = Angle.degrees 60.0
-    , gradientThreshold = 10.0
     , highestMetres = 0.0
     , lowestMetres = 0.0
     , trackLength = 0.0
@@ -47,14 +78,53 @@ defaultObservations =
     }
 
 
-deriveProblems : Track -> TrackObservations -> TrackObservations
+update :
+    Msg
+    -> Options
+    -> TrackObservations
+    -> Track
+    -> ( Options, PostUpdateActions.PostUpdateAction )
+update msg settings observations track =
+    case msg of
+        LocateProblem trackPoint ->
+            ( settings
+            , PostUpdateActions.ActionFocusMove trackPoint
+            )
+
+        SetBearingChangeThreshold angle ->
+            ( { settings | directionChangeThreshold = angle }
+            , PostUpdateActions.ActionNoOp
+            )
+
+        SetGradientChangeThreshold threshold ->
+            ( { settings | gradientChangeThreshold = threshold }
+            , PostUpdateActions.ActionNoOp
+            )
+
+        Autofix trackPoints ->
+            let
+                newTrack =
+                    track
+            in
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                newTrack
+                ("Autofix "
+                    ++ (String.fromInt <| List.length trackPoints)
+                    ++ " points."
+                )
+            )
+
+
+deriveProblems : Track -> Options -> TrackObservations
 deriveProblems track options =
     let
         suddenGradientChanges =
             List.filter
                 (.gradientChange
                     >> Maybe.withDefault 0.0
-                    >> (\x -> x > options.gradientThreshold)
+                    >> (\x -> x > options.gradientChangeThreshold)
                 )
                 track.track
 
@@ -63,7 +133,7 @@ deriveProblems track options =
                 (.directionChange
                     >> Maybe.withDefault Quantity.zero
                     >> Quantity.abs
-                    >> Quantity.greaterThan options.bearingThreshold
+                    >> Quantity.greaterThan options.directionChangeThreshold
                 )
                 track.track
 
@@ -163,18 +233,17 @@ deriveProblems track options =
                 |> List.map (.roadVector >> Vector3d.length >> inMeters)
                 |> List.sum
     in
-    { options
-        | abruptGradientChanges = suddenGradientChanges
-        , abruptBearingChanges = suddenBearingChanges
-        , zeroLengths = zeroLengths
-        , loopiness = loopy
-        , trackLength = trackLength
-        , highestMetres = highest
-        , lowestMetres = lowest
-        , climbingDistance = climbingDistance
-        , descendingDistance = descendingDistance
-        , totalClimbing = ascent
-        , totalDescending = descent
+    { abruptGradientChanges = suddenGradientChanges
+    , abruptBearingChanges = suddenBearingChanges
+    , zeroLengths = zeroLengths
+    , loopiness = loopy
+    , trackLength = trackLength
+    , highestMetres = highest
+    , lowestMetres = lowest
+    , climbingDistance = climbingDistance
+    , descendingDistance = descendingDistance
+    , totalClimbing = ascent
+    , totalDescending = descent
     }
 
 
@@ -200,3 +269,121 @@ overviewSummary obs =
             , text <| showDecimal2 obs.totalDescending
             ]
         ]
+
+
+viewGradientChanges : Options -> TrackObservations -> (Msg -> msg) -> Element msg
+viewGradientChanges options obs wrap =
+    let
+        exceeds b a =
+            a > b
+
+        exceedingThreshold =
+            obs.abruptGradientChanges
+                |> List.filter
+                    (\pt ->
+                        Maybe.withDefault 0.0 pt.gradientChange
+                            |> exceeds options.gradientChangeThreshold
+                    )
+
+        linkButton point =
+            button prettyButtonStyles
+                { onPress = Just (wrap <| LocateProblem point)
+                , label = text <| showDecimal0 <| inMeters point.distanceFromStart
+                }
+
+        autosmoothButton =
+            case exceedingThreshold of
+                [] ->
+                    none
+
+                _ ->
+                    button prettyButtonStyles
+                        { onPress = Just (wrap <| Autofix exceedingThreshold)
+                        , label = text <| "Try AutoFix today"
+                        }
+    in
+    column [ spacing 5, padding 10 ]
+        [ row [ spacing 10 ]
+            [ gradientChangeThresholdSlider options wrap
+            , autosmoothButton
+            ]
+        , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
+            List.map linkButton exceedingThreshold
+        ]
+
+
+viewBearingChanges : Options -> TrackObservations -> (Msg -> msg) -> Element msg
+viewBearingChanges options obs wrap =
+    let
+        exceeds b a =
+            a > b
+
+        exceedingThreshold =
+            obs.abruptBearingChanges
+                |> List.filter
+                    (\pt ->
+                        Maybe.withDefault zero pt.directionChange
+                            |> Quantity.greaterThan options.directionChangeThreshold
+                    )
+
+        linkButton point =
+            button prettyButtonStyles
+                { onPress = Just (wrap <| LocateProblem point)
+                , label = text <| showDecimal0 <| inMeters point.distanceFromStart
+                }
+
+        autosmoothButton =
+            case exceedingThreshold of
+                [] ->
+                    none
+
+                _ ->
+                    button prettyButtonStyles
+                        { onPress = Just (wrap <| Autofix exceedingThreshold)
+                        , label = text <| "Try AutoFix today"
+                        }
+    in
+    column [ spacing 5, padding 10 ]
+        [ row [ spacing 10 ]
+            [ bearingChangeThresholdSlider options wrap
+            , autosmoothButton
+            ]
+        , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
+            List.map linkButton exceedingThreshold
+        ]
+
+
+gradientChangeThresholdSlider : Options -> (Msg -> msg) -> Element msg
+gradientChangeThresholdSlider options wrap =
+    Input.slider
+        commonShortHorizontalSliderStyles
+        { onChange = wrap << SetGradientChangeThreshold
+        , label =
+            Input.labelBelow [] <|
+                text <|
+                    "Gradient change threshold = "
+                        ++ showDecimal0 options.gradientChangeThreshold
+        , min = 5.0
+        , max = 20.0
+        , step = Just 1.0
+        , value = options.gradientChangeThreshold
+        , thumb = Input.defaultThumb
+        }
+
+
+bearingChangeThresholdSlider : Options -> (Msg -> msg) -> Element msg
+bearingChangeThresholdSlider options wrap =
+    Input.slider
+        commonShortHorizontalSliderStyles
+        { onChange = wrap << SetBearingChangeThreshold << Angle.degrees
+        , label =
+            Input.labelBelow [] <|
+                text <|
+                    "Direction change threshold = "
+                        ++ showDecimal0 (Angle.inDegrees options.directionChangeThreshold)
+        , min = 20.0
+        , max = 120.0
+        , step = Just 1.0
+        , value = Angle.inDegrees options.directionChangeThreshold
+        , thumb = Input.defaultThumb
+        }
