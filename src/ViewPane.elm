@@ -284,7 +284,7 @@ viewModeChoices pane wrapper =
                 fullOptionList
 
             else
-                List.take 3 fullOptionList
+                List.take 4 fullOptionList
         }
 
 

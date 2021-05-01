@@ -16,6 +16,7 @@ import Filters
 import Flythrough exposing (Flythrough)
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
+import InsertPoints
 import Json.Encode
 import Loop
 import MapController exposing (..)
@@ -65,6 +66,7 @@ type Msg
     | FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
+    | InsertMessage InsertPoints.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -137,6 +139,11 @@ problemMessageWrapper msg =
     ProblemMessage msg
 
 
+insertMessageWrapper : InsertPoints.Msg -> Msg
+insertMessageWrapper msg =
+    InsertMessage msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -180,6 +187,7 @@ type alias Model =
     , flythrough : Flythrough.Options
     , filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
+    , insertOptions : InsertPoints.Options
     }
 
 
@@ -219,6 +227,7 @@ init mflags origin navigationKey =
       , flythrough = Flythrough.defaultOptions
       , filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
+      , insertOptions = InsertPoints.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -313,6 +322,21 @@ update msg model =
                     { m | nudgeSettings = newSetttings }
             in
             processPostUpdateAction (updateSettings model) action
+
+        InsertMessage insertMsg ->
+            let
+                ( newSettings, action ) =
+                    Maybe.map
+                        (InsertPoints.update
+                            insertMsg
+                            model.insertOptions
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.insertOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | insertOptions = newSettings }
+                action
 
         DeleteMessage deleteMsg ->
             let
@@ -881,6 +905,19 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = Straightener.info
+      }
+    , { label = "Insert"
+      , state = Contracted
+      , content =
+            case model.track of
+                Just _ ->
+                    InsertPoints.viewTools
+                        model.insertOptions
+                        insertMessageWrapper
+
+                Nothing ->
+                    none
+      , info = InsertPoints.info
       }
     , { label = "Delete"
       , state = Contracted

@@ -8,8 +8,11 @@
 --TODO: Bring back pan actions for views.
 
 11. Bring all the edit stuff over. (Fixing all the tab layouts.)
+Only Insert left to do, it seems.
 
 12. Strava OAuth integration. (Could we use a popup to avoid losing state?)
+
+13. Write output file!
 
 # BACKLOG, being enhancements or just finishing up ...
 

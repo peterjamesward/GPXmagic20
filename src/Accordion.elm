@@ -204,14 +204,14 @@ viewInfo info =
             , clipY
             , scrollbarY
             , padding 20
-            , width <| px 400
+            , width <| px 500
             , moveUp 200
             , Border.color expandedTabBackground
             , Border.width 3
             ]
             [ paragraph
                 [ width fill
-                , height <| px 200
+                , height <| px 300
                 ]
               <|
                 [ html <| Markdown.toHtml [] info ]
