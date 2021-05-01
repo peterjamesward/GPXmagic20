@@ -929,11 +929,6 @@ toolsAccordion model =
       , content = Flythrough.flythroughControls model.flythrough flythroughMessageWrapper
       , info = Flythrough.info
       }
-
-    --, { label = "Strava"
-    --  , state = Contracted
-    --  , content = viewStravaDataAccessTab model
-    --  }
     , { label = "Filters"
       , state = Contracted
       , content =
@@ -985,6 +980,11 @@ toolsAccordion model =
                 problemMessageWrapper
       , info = TrackObservations.info
       }
+
+    --, { label = "Strava"
+    --  , state = Contracted
+    --  , content = viewStravaDataAccessTab model
+    --  }
     ]
 
 
