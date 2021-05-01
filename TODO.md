@@ -2,12 +2,14 @@
 
 # TODO
 
+12. Strava OAuth integration. (Could we use a popup to avoid losing state?)
+
+--TODO: Strava segment paste.
 --TODO: Hit detect in 1st.
 --TODO: Flythrough in all linked views.
 --TODO: Make "click to drag" normal mode for Map.
 --TODO: Bring back pan actions for views.
-
-12. Strava OAuth integration. (Could we use a popup to avoid losing state?)
+--TODO: Graph - the thing that kicked it all off.
 
 13. Write output file!
 

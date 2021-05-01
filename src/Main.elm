@@ -32,6 +32,7 @@ import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
+import StravaTools exposing (stravaRouteOption)
 import Task
 import Time
 import TipJar
@@ -79,6 +80,7 @@ type Msg
     | InsertMessage InsertPoints.Msg
     | UserChangedFilename String
     | OutputGPX
+    | StravaMessage StravaTools.Msg
 
 
 markerMessageWrapper : MarkerControls.Msg -> Msg
@@ -156,6 +158,11 @@ insertMessageWrapper msg =
     InsertMessage msg
 
 
+stravaMessageWrapper : StravaTools.Msg -> Msg
+stravaMessageWrapper msg =
+    StravaMessage msg
+
+
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -190,7 +197,6 @@ type alias Model =
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
-    , stravaAuthentication : O.Model
     , displayOptions : DisplayOptions.DisplayOptions
     , bendOptions : BendSmoother.BendOptions
     , bendPreview : Scene
@@ -201,6 +207,8 @@ type alias Model =
     , filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
     , insertOptions : InsertPoints.Options
+    , stravaOptions : StravaTools.Options
+    , stravaAuthentication : O.Model
     }
 
 
@@ -231,7 +239,6 @@ init mflags origin navigationKey =
       , undoStack = []
       , redoStack = []
       , changeCounter = 0
-      , stravaAuthentication = authData
       , displayOptions = DisplayOptions.defaultDisplayOptions
       , bendOptions = BendSmoother.defaultOptions
       , bendPreview = []
@@ -242,6 +249,8 @@ init mflags origin navigationKey =
       , filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
       , insertOptions = InsertPoints.defaultOptions
+      , stravaOptions = StravaTools.defaultOptions
+      , stravaAuthentication = authData
       }
     , Cmd.batch
         [ authCmd
@@ -366,7 +375,6 @@ update msg model =
             let
                 ( newAuthData, authCmd ) =
                     StravaAuth.update authMsg model.stravaAuthentication
-
                 isToken =
                     getStravaToken newAuthData
             in
@@ -508,6 +516,9 @@ update msg model =
             ( { model | changeCounter = 0 }
             , outputGPX model
             )
+
+        StravaMessage _ ->
+            ( model, Cmd.none )
 
 
 processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
@@ -828,12 +839,16 @@ view model =
                         , label = text "Load GPX from your computer"
                         }
                     , if model.changeCounter == 0 then
-                        stravaButton model.stravaAuthentication wrapAuthMessage
+                        stravaButton
+                            model.stravaAuthentication
+                            wrapAuthMessage
 
                       else
                         E.text "Save your work before\nconnecting to Strava"
-
-                    --, stravaRouteOption model
+                    , stravaRouteOption
+                        model.stravaAuthentication
+                        model.stravaOptions
+                        stravaMessageWrapper
                     , viewAndEditFilename model
                     , saveButtonIfChanged model
                     ]
@@ -1149,6 +1164,10 @@ tryBendSmoother options track =
     }
 
 
+
+-- Bunch of small stuff here I can't be bothered to make modules for.
+
+
 viewAndEditFilename : Model -> Element Msg
 viewAndEditFilename model =
     let
@@ -1194,7 +1213,7 @@ outputGPX model =
     let
         gpxString =
             Maybe.map writeGPX model.track
-            |> Maybe.withDefault "Sorry, nothing to write."
+                |> Maybe.withDefault "Sorry, nothing to write."
 
         outputFilename =
             case model.filename of
