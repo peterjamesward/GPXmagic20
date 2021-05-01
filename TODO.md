@@ -2,9 +2,8 @@
 
 # TODO
 
-BUG: Hit detect broke in 1st
-BUG: Flythrough goes back to start after pause.
-
+--TODO: Hit detect in 1st.
+--TODO: Flythrough in all linked views.
 --TODO: Make "click to drag" normal mode for Map.
 --TODO: Bring back pan actions for views.
 

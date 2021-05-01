@@ -894,11 +894,12 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Graph.info
       }
+    , { label = "Summary"
+      , state = Expanded False
+      , content = TrackObservations.overviewSummary model.observations
+      , info = "Stuff about the route."
+      }
 
-    --, { label = "Summary"
-    --  , state = Expanded
-    --  , content = overviewSummary model
-    --  }
     --, { label = "Road segment data"
     --  , state = Contracted
     --  , content = summaryData (lookupRoad model model.currentNode)
