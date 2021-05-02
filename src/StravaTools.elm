@@ -13,7 +13,7 @@ import StravaAuth exposing (getStravaToken)
 import StravaDataLoad exposing (..)
 import StravaPasteStreams exposing (pasteStreams)
 import StravaTypes exposing (..)
-import Track exposing (Track, trackBoundingBox, trackPointFromLonLat)
+import Track exposing (Track, trackBoundingBox, searchTrackPointFromLonLat)
 import Url
 import Url.Builder as Builder
 import ViewPureStyles exposing (displayName, prettyButtonStyles)
@@ -245,33 +245,10 @@ viewStravaTab options wrap track =
             -- 2. After header loaded, to load and paste the streams.
             case options.externalSegment of
                 SegmentOk segment ->
-                    let
-                        pStartingTrackPoint =
-                            trackPointFromLonLat
-                                ( segment.start_longitude, segment.start_latitude )
-                                track
-
-                        pEndingTrackPoint =
-                            trackPointFromLonLat
-                                ( segment.end_longitude, segment.end_latitude )
-                                track
-
-                        buttonText =
-                            case ( pStartingTrackPoint, pEndingTrackPoint ) of
-                                ( Just start, Just finish ) ->
-                                    if start.index < finish.index then
-                                        "Paste segment into route"
-
-                                    else
-                                        "Reverse segment and paste into route"
-
-                                _ ->
-                                    "Oh! Can't work out how to paste this."
-                    in
                     button
                         prettyButtonStyles
                         { onPress = Just <| wrap LoadSegmentStreams
-                        , label = text buttonText
+                        , label = text "Paste into route"
                         }
 
                 SegmentNone ->

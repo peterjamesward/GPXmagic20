@@ -10,14 +10,12 @@ import Json.Encode as E
 import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
-import Point2d
 import Point3d exposing (Point3d)
 import Quantity
 import SketchPlane3d
-import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints, trackPointFromGPX)
 import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)
-import Vector3d exposing (Vector3d)
-
+import Vector3d exposing (..)
 
 type alias Track =
     { track : List TrackPoint
@@ -60,10 +58,13 @@ trackFromGpx content =
 
 removeGhanianTransform : Track -> List (Point3d Meters LocalCoords)
 removeGhanianTransform track =
-    track.track
-        |> List.map .xyz
-        |> List.map
-            (track.transform |> Vector3d.reverse |> Point3d.translateBy)
+    let
+        reverseTransform =
+            track.transform |> Vector3d.reverse >> Point3d.translateBy
+    in
+    List.map
+        (.xyz >> reverseTransform)
+        track.track
 
 
 withoutGhanianTransform : Track -> Point3d Meters LocalCoords -> Point3d Meters LocalCoords
@@ -208,20 +209,21 @@ summaryData track =
         ]
 
 
-trackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
-trackPointFromLonLat ( lon, lat ) track =
-    -- Why do I have the feeling I've already written this?
+searchTrackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
+searchTrackPointFromLonLat ( lon, lat ) track =
     let
         searchPoint =
-            Point3d.meters lon lat 0.0
+            trackPointFromGPX lon lat 0.0
+            |> .xyz
+            |> Point3d.translateBy track.transform
 
-        earthPoint pt =
-            withoutGhanianTransform track pt.xyz
+        distance =
+            .xyz >> Point3d.distanceFrom searchPoint >> Length.inMeters
 
-        distance pt =
-            Length.inMeters <| Point3d.distanceFrom (earthPoint pt) searchPoint
+        nearest =
+            List.Extra.minimumBy distance track.track
     in
-    List.Extra.minimumBy distance track.track
+    nearest
 
 
 trackBoundingBox : Track -> BoundingBox3d Meters LocalCoords

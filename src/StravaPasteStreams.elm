@@ -2,7 +2,7 @@ module StravaPasteStreams exposing (..)
 
 import Point3d
 import StravaTypes exposing (StravaSegment, StravaSegmentStreams)
-import Track exposing (Track, trackPointFromLonLat)
+import Track exposing (Track, searchTrackPointFromLonLat)
 import TrackPoint exposing (..)
 
 
@@ -11,21 +11,23 @@ pasteStreams track segment streams =
     let
         pStartingTrackPoint =
             -- Our first track point will be replaced with the first stream point
-            trackPointFromLonLat
+            searchTrackPointFromLonLat
                 ( segment.start_longitude, segment.start_latitude )
                 track
 
         pEndingTrackPoint =
             -- Our last track point will be replaced with the last stream point
-            trackPointFromLonLat
+            searchTrackPointFromLonLat
                 ( segment.end_longitude, segment.end_latitude )
                 track
 
         pointsFromStreams =
             List.map2
                 (\latLon ele ->
-                    Point3d.meters latLon.lng latLon.lat ele
+                    trackPointFromGPX latLon.lng latLon.lat ele
+                        |> .xyz
                         |> Point3d.translateBy track.transform
+                        |> trackPointFromPoint
                 )
                 streams.latLngs.data
                 streams.altitude.data
@@ -57,7 +59,7 @@ pasteStreams track segment streams =
                             List.drop (max start finish + 1) track.track
                     in
                     precedingPoints
-                        ++ List.map trackPointFromPoint orientedSegment
+                        ++ orientedSegment
                         ++ remainingPoints
 
                 _ ->
