@@ -10,6 +10,7 @@ import Json.Encode as E
 import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Point2d
 import Point3d exposing (Point3d)
 import Quantity
 import SketchPlane3d
@@ -205,3 +206,25 @@ summaryData track =
                 ]
             ]
         ]
+
+
+trackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
+trackPointFromLonLat ( lon, lat ) track =
+    -- Why do I have the feeling I've already written this?
+    let
+        searchPoint =
+            Point3d.meters lon lat 0.0
+
+        earthPoint pt =
+            withoutGhanianTransform track pt.xyz
+
+        distance pt =
+            Length.inMeters <| Point3d.distanceFrom (earthPoint pt) searchPoint
+    in
+    List.Extra.minimumBy distance track.track
+
+
+trackBoundingBox : Track -> BoundingBox3d Meters LocalCoords
+trackBoundingBox track =
+    BoundingBox3d.hullOfN .xyz track.track
+        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)

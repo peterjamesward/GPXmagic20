@@ -515,11 +515,15 @@ update msg model =
         StravaMessage stravaMsg ->
             let
                 ( newOptions, action ) =
-                    StravaTools.update
-                        stravaMsg
-                        model.stravaOptions
-                        model.stravaAuthentication
-                        stravaMessageWrapper
+                    Maybe.map
+                        (StravaTools.update
+                            stravaMsg
+                            model.stravaOptions
+                            model.stravaAuthentication
+                            stravaMessageWrapper
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.stravaOptions, ActionNoOp )
             in
             processPostUpdateAction
                 { model | stravaOptions = newOptions }
@@ -1041,11 +1045,15 @@ toolsAccordion model =
                 problemMessageWrapper
       , info = TrackObservations.info
       }
-
-    --, { label = "Strava"
-    --  , state = Contracted
-    --  , content = viewStravaDataAccessTab model
-    --  }
+    , { label = "Strava"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (StravaTools.viewStravaTab model.stravaOptions stravaMessageWrapper)
+                model.track
+                |> Maybe.withDefault none
+      , info = StravaTools.info
+      }
     ]
 
 

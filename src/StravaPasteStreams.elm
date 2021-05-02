@@ -1,32 +1,31 @@
 module StravaPasteStreams exposing (..)
 
+import Point3d
 import StravaTypes exposing (StravaSegment, StravaSegmentStreams)
-import TrackPoint exposing (TrackPoint, TrackPointType(..), fromGPXcoords, reindexTrackpoints, trackPointFromLatLon)
+import Track exposing (Track, trackPointFromLonLat)
+import TrackPoint exposing (..)
 
 
-pasteStreams : List TrackPoint -> StravaSegment -> StravaSegmentStreams -> List TrackPoint
-pasteStreams trackPoints segment streams =
+pasteStreams : Track -> StravaSegment -> StravaSegmentStreams -> List TrackPoint
+pasteStreams track segment streams =
     let
         pStartingTrackPoint =
             -- Our first track point will be replaced with the first stream point
-            trackPointFromLatLon segment.start_latitude segment.start_longitude trackPoints
+            trackPointFromLonLat
+                ( segment.start_longitude, segment.start_latitude )
+                track
 
         pEndingTrackPoint =
             -- Our last track point will be replaced with the last stream point
-            trackPointFromLatLon segment.end_latitude segment.end_longitude trackPoints
+            trackPointFromLonLat
+                ( segment.end_longitude, segment.end_latitude )
+                track
 
-        trackPointsFromStreams =
+        pointsFromStreams =
             List.map2
                 (\latLon ele ->
-                    { lat = latLon.lat
-                    , lon = latLon.lng
-                    , ele = ele
-                    , idx = 0
-                    , info = AnyPoint
-                    , naturalBearing = 0.0
-                    , xyz = fromGPXcoords latLon.lng latLon.lng ele
-                    , costMetric = 0.0 -- Don't know yet.
-                    }
+                    Point3d.meters latLon.lng latLon.lat ele
+                        |> Point3d.translateBy track.transform
                 )
                 streams.latLngs.data
                 streams.altitude.data
@@ -36,32 +35,32 @@ pasteStreams trackPoints segment streams =
                 ( Just startingTrackPoint, Just endingTrackPoint ) ->
                     let
                         start =
-                            startingTrackPoint.idx
+                            startingTrackPoint.index
 
                         finish =
-                            endingTrackPoint.idx
+                            endingTrackPoint.index
 
                         orientedSegment =
                             if start == finish then
                                 []
 
                             else if start < finish then
-                                trackPointsFromStreams
+                                pointsFromStreams
 
                             else
-                                List.reverse trackPointsFromStreams
+                                List.reverse pointsFromStreams
 
                         precedingPoints =
-                            List.take (min start finish) trackPoints
+                            List.take (min start finish) track.track
 
                         remainingPoints =
-                            List.drop (max start finish + 1) trackPoints
+                            List.drop (max start finish + 1) track.track
                     in
                     precedingPoints
-                        ++ orientedSegment
+                        ++ List.map trackPointFromPoint orientedSegment
                         ++ remainingPoints
 
                 _ ->
-                    trackPoints
+                    track.track
     in
-    reindexTrackpoints newRoute
+    newRoute
