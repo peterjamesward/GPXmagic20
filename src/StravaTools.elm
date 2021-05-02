@@ -3,10 +3,11 @@ module StravaTools exposing (..)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Http
+import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthTypes as O exposing (Flow(..))
 import PostUpdateActions
 import StravaAuth exposing (getStravaToken)
-import StravaDataLoad exposing (requestStravaRouteHeader)
+import StravaDataLoad exposing (requestStravaRoute, requestStravaRouteHeader, stravaProcessRoute, stravaRouteName)
 import StravaTypes exposing (..)
 import Track exposing (Track)
 import Url exposing (Protocol(..), Url)
@@ -19,6 +20,7 @@ type Msg
     | HandleSegmentData (Result Http.Error StravaSegment)
     | HandleSegmentStreams (Result Http.Error StravaSegmentStreams)
     | HandleRouteData (Result Http.Error StravaRoute)
+    | GpxDownloaded (Result Http.Error String)
 
 
 type alias Options =
@@ -73,25 +75,32 @@ update msg settings authentication wrap =
                     )
 
         HandleRouteData response ->
-            ( settings
-            , PostUpdateActions.ActionNoOp
-            )
+            case getStravaToken authentication of
+                Just token ->
+                    let
+                        stravaRoute =
+                            stravaProcessRoute response
+                    in
+                    ( { settings | stravaRoute = stravaRoute }
+                    , PostUpdateActions.ActionStravaFetch
+                        (requestStravaRoute
+                            (wrap << GpxDownloaded)
+                            settings.externalRouteId
+                            token
+                        )
+                    )
 
-        --case getStravaToken authentication of
-        --    Just token ->
-        --        let
-        --            stravaRoute =
-        --                stravaProcessRoute response
-        --        in
-        --        ( { model
-        --            | stravaRoute = stravaRoute
-        --            , filename = stravaRouteName stravaRoute
-        --          }
-        --        , requestStravaRoute GpxDownloaded model.externalRouteId token
-        --        )
-        --
-        --    Nothing ->
-        --        ( model, Cmd.none )
+                Nothing ->
+                    ( settings, PostUpdateActions.ActionNoOp )
+
+        GpxDownloaded response ->
+            case response of
+                Ok content ->
+                    ( settings, PostUpdateActions.ActionNewRoute content GpxStrava )
+
+                Err _ ->
+                    ( settings, PostUpdateActions.ActionNoOp )
+
         HandleSegmentData response ->
             ( settings
             , PostUpdateActions.ActionNoOp

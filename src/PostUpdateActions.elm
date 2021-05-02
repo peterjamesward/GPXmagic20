@@ -1,8 +1,6 @@
 module PostUpdateActions exposing (..)
 
-import Http
-import OAuth exposing (Token)
-import StravaTypes exposing (StravaRoute)
+import OAuth.GpxSource exposing (GpxSource)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 
@@ -21,6 +19,7 @@ type
     | ActionRepaintMap
     | ActionNoOp
     | ActionStravaFetch cmd
+    | ActionNewRoute String GpxSource
 
 
 type TrackEditType

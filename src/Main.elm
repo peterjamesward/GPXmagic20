@@ -24,6 +24,7 @@ import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
+import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..))
@@ -44,13 +45,6 @@ import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMess
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
-
-
-type GpxSource
-    = GpxNone
-    | GpxLocalFile
-    | GpxStrava
-    | GpxKomoot
 
 
 type Msg
@@ -603,8 +597,12 @@ processPostUpdateAction model action =
                 [ MapController.addMarkersToMap track [] [] ]
             )
 
-        (_, ActionStravaFetch a) ->
+        ( _, ActionStravaFetch a ) ->
             ( model, a )
+
+        ( _, ActionNewRoute content source ) ->
+            { model | gpxSource = source }
+                |> processGpxLoaded content
 
         _ ->
             ( model, Cmd.none )
