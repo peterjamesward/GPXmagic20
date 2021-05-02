@@ -132,7 +132,7 @@ positionSlider wrap track =
         }
 
 
-update : Msg -> Track -> PostUpdateActions.PostUpdateAction
+update : Msg -> Track -> PostUpdateActions.PostUpdateAction msg
 update msg track =
     let
         safeNewNode newIndex =

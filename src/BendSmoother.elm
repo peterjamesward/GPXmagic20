@@ -74,7 +74,7 @@ update :
     Msg
     -> BendOptions
     -> Track
-    -> ( BendOptions, PostUpdateActions.PostUpdateAction )
+    -> ( BendOptions, PostUpdateActions.PostUpdateAction msg )
 update msg settings track =
     case msg of
         SetBendTrackPointSpacing spacing ->

@@ -50,7 +50,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction )
+    -> ( Options, PostUpdateActions.PostUpdateAction msg)
 update msg settings track =
     case msg of
         SetBumpinessFactor bumpiness ->

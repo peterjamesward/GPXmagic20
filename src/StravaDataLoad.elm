@@ -5,10 +5,10 @@ import BoundingBox3d exposing (BoundingBox3d)
 import Http
 import Json.Decode as D exposing (Decoder, field)
 import Length
+import LocalCoords exposing (LocalCoords)
 import OAuth exposing (Token, errorCodeToString, useToken)
 import Point2d
 import StravaTypes exposing (..)
-import TrackPoint exposing (GPXCoords(..))
 import Url.Builder as Builder
 import Utils exposing (httpErrorString)
 
@@ -54,7 +54,7 @@ requestStravaSegment msg segmentId token =
 
 stravaProcessSegment :
     Result Http.Error StravaSegment
-    -> BoundingBox3d Length.Meters GPXCoords
+    -> BoundingBox3d Length.Meters LocalCoords
     -> StravaSegmentStatus
 stravaProcessSegment response box =
     let

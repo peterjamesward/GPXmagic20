@@ -288,7 +288,7 @@ update :
     NudgeMsg
     -> NudgeSettings
     -> Track
-    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction )
+    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction msg)
 update msg settings track =
     case msg of
         SetHorizontalNudgeFactor length ->

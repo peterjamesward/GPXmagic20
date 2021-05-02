@@ -227,7 +227,7 @@ flythroughControls options wrapper =
         ]
 
 
-update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction )
+update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction (Cmd msg))
 update options msg wrap track =
     case msg of
         SetFlythroughSpeed speed ->

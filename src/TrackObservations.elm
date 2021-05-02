@@ -83,7 +83,7 @@ update :
     -> Options
     -> TrackObservations
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction )
+    -> ( Options, PostUpdateActions.PostUpdateAction msg)
 update msg settings observations track =
     case msg of
         LocateProblem trackPoint ->

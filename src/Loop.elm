@@ -116,7 +116,7 @@ update :
     Msg
     -> Loopiness
     -> Track
-    -> ( Loopiness, PostUpdateActions.PostUpdateAction )
+    -> ( Loopiness, PostUpdateActions.PostUpdateAction msg)
 update msg settings track =
     case msg of
         CloseTheLoop ->

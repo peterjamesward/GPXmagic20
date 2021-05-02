@@ -38,9 +38,9 @@ type ViewPaneMessage
     | LinkPane Int Bool
 
 
-type ViewPaneAction
+type ViewPaneAction msg
     = ApplyToAllPanes (ViewPane -> ViewPane)
-    | ImageAction PostUpdateActions.PostUpdateAction
+    | ImageAction (PostUpdateActions.PostUpdateAction msg)
     | PaneNoOp
 
 
@@ -409,7 +409,7 @@ viewPaneControls pane wrap =
             ]
 
 
-update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, ViewPaneAction )
+update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, ViewPaneAction msg)
 update msg panes now =
     case msg of
         ChooseViewMode paneId mode ->

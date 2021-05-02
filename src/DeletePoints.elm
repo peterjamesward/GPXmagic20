@@ -75,7 +75,7 @@ makeUndoMessage track =
         "Delete from " ++ showDecimal0 start ++ " to " ++ showDecimal0 finish
 
 
-update : Msg -> Track -> PostUpdateAction
+update : Msg -> Track -> PostUpdateAction msg
 update msg track =
     case msg of
         DeleteTrackPoints ->

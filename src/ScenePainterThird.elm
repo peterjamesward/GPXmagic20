@@ -11,11 +11,11 @@ import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import PostUpdateActions exposing (PostUpdateAction(..))
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point2d
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
@@ -118,7 +118,11 @@ deriveViewPointAndCamera view =
         }
 
 
-update : ImageMsg -> ViewingContext -> Time.Posix -> ( ViewingContext, PostUpdateAction )
+update :
+    ImageMsg
+    -> ViewingContext
+    -> Time.Posix
+    -> ( ViewingContext, PostUpdateAction msg )
 update msg view now =
     -- Second return value indicates whether selection needs to change.
     case msg of

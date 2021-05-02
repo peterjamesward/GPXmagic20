@@ -375,6 +375,7 @@ update msg model =
             let
                 ( newAuthData, authCmd ) =
                     StravaAuth.update authMsg model.stravaAuthentication
+
                 isToken =
                     getStravaToken newAuthData
             in
@@ -517,11 +518,21 @@ update msg model =
             , outputGPX model
             )
 
-        StravaMessage _ ->
-            ( model, Cmd.none )
+        StravaMessage stravaMsg ->
+            let
+                ( newOptions, action ) =
+                    StravaTools.update
+                        stravaMsg
+                        model.stravaOptions
+                        model.stravaAuthentication
+                        stravaMessageWrapper
+            in
+            processPostUpdateAction
+                { model | stravaOptions = newOptions }
+                action
 
 
-processPostUpdateAction : Model -> PostUpdateAction -> ( Model, Cmd Msg )
+processPostUpdateAction : Model -> PostUpdateAction (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
     -- I doubt that will ever be true.
@@ -591,6 +602,9 @@ processPostUpdateAction model action =
             , Cmd.batch
                 [ MapController.addMarkersToMap track [] [] ]
             )
+
+        (_, ActionStravaFetch a) ->
+            ( model, a )
 
         _ ->
             ( model, Cmd.none )
@@ -832,7 +846,7 @@ view model =
           <|
             column
                 [ width fill ]
-                [ row defaultRowLayout
+                [ row [ spacing 10, padding 10 ]
                     [ button
                         prettyButtonStyles
                         { onPress = Just GpxRequested

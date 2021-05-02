@@ -148,7 +148,8 @@ deriveViewPointAndCamera view =
     camera
 
 
-update : ImageMsg -> ViewingContext -> Time.Posix -> ( ViewingContext, PostUpdateAction )
+update : ImageMsg
+    -> ViewingContext -> Time.Posix -> ( ViewingContext, PostUpdateAction msg)
 update msg view now =
     -- Second return value indicates whether selection needs to change.
     case msg of

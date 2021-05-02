@@ -1,11 +1,14 @@
 module PostUpdateActions exposing (..)
 
+import Http
+import OAuth exposing (Token)
+import StravaTypes exposing (StravaRoute)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 
 
 type
-    PostUpdateAction
+    PostUpdateAction cmd
     -- This experimental pattern for returning information back to
     -- main about what needs to follow, since we can't know about the
     -- program at large, only our small part.
@@ -17,6 +20,7 @@ type
     | ActionFocusMove TrackPoint
     | ActionRepaintMap
     | ActionNoOp
+    | ActionStravaFetch cmd
 
 
 type TrackEditType
