@@ -4,7 +4,7 @@ import Base64.Encode as Base64
 import Browser.Navigation as Navigation exposing (Key)
 import Bytes exposing (Bytes)
 import Bytes.Encode as Bytes
-import Delay exposing (after)
+import Delay exposing ( after)
 import Element exposing (..)
 import Element.Input exposing (button)
 import Http
@@ -98,7 +98,12 @@ init mflags origin navigationKey wrapperMsg =
 
                     else
                         ( { flow = Authorized code, redirectUri = redirectUri }
-                        , clearUrl
+                        , Cmd.batch
+                            -- Artificial delay to make the live demo easier to follow.
+                            -- In practice, the access token could be requested right here.
+                            [ Delay.after 50 (wrapperMsg AccessTokenRequested)
+                            , clearUrl
+                            ]
                         )
 
         OAuth.Error error ->
@@ -232,7 +237,7 @@ gotAccessToken model authenticationResponse =
 
         Ok { token } ->
             ( { model | flow = Authenticated token }
-            ,  Cmd.none
+            , Delay.after 100 UserInfoRequested
             )
 
 
@@ -305,7 +310,7 @@ stravaButton model msgWrapper =
             []
 
         imgUrl =
-            Builder.relative [ "images", "btn_strava_connectwith_orange.svg" ] []
+            Builder.relative ["images", "btn_strava_connectwith_orange.svg" ] []
     in
     case model.flow of
         Done userInfo _ ->

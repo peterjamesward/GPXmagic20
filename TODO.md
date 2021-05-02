@@ -15,6 +15,8 @@
 
 # BACKLOG, being enhancements or just finishing up ...
 
+Tab to highlight gradients over threshold (10, 15, 20, 25).
+
 DSL for navigating the graph ("tulips" for directions, heading?)
 Convert from Graph is snafu'd.
 
