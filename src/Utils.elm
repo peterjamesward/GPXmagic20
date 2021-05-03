@@ -145,10 +145,13 @@ bearingToDisplayDegrees angle =
     angle
         |> Angle.inDegrees
         |> (\x ->
-                if x < 0 then
-                    360.0 + x
+                if x <= 90 then
+                    90 - x
+
+                else if x > 90 then
+                    450 - x
 
                 else
-                    x
+                    90 + abs x
            )
         |> showDecimal2

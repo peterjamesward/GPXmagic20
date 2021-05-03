@@ -11,6 +11,7 @@ import Json.Encode as E
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra as Maybe
 import Plane3d
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
@@ -114,6 +115,7 @@ applyGhanianTransform points =
             , toOrigin
             )
 
+
 gradientFromPoint : TrackPoint -> Float
 gradientFromPoint pt =
     pt.roadVector
@@ -123,12 +125,12 @@ gradientFromPoint pt =
         |> Angle.tan
         |> (*) 100.0
 
+
 prepareTrackPoints : List TrackPoint -> List TrackPoint
 prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
-
         -- We are blowing the stack and I suspect this is the culprit.
         -- Let's try without the ugly explicit recursion.
         firstPassSetsForwardLooking =
@@ -140,10 +142,18 @@ prepareTrackPoints trackPoints =
 
         deriveForward : TrackPoint -> TrackPoint -> TrackPoint
         deriveForward point nextPt =
+            let
+                vector =
+                    Vector3d.from point.xyz nextPt.xyz
+            in
             { point
-                | afterDirection = trackPointBearing point nextPt
+                | afterDirection =
+                    vector
+                        |> Vector3d.direction
+                        |> Maybe.map (Direction3d.projectOnto Plane3d.xy)
+                        |> Maybe.join
                 , profileXZ = adjustProfileXZ point.xyz (meters 0.0)
-                , roadVector = Vector3d.from point.xyz nextPt.xyz
+                , roadVector = vector
             }
 
         secondPassSetsBackwardLooking =
