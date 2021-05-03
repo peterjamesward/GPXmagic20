@@ -2,20 +2,27 @@ module BendSmoother exposing (..)
 
 import Angle
 import Arc2d exposing (Arc2d)
+import Arc3d exposing (Arc3d)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Geometry101 as G exposing (..)
-import Length exposing (Meters, inMeters)
+import Length exposing (Meters, inMeters, meters)
 import LineSegment2d
+import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Plane3d
 import Point2d exposing (Point2d)
 import Point3d exposing (Point3d, xCoordinate, yCoordinate, zCoordinate)
 import Polyline2d
+import Polyline3d
 import PostUpdateActions
+import Quantity
+import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
+import Vector2d
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -34,12 +41,19 @@ A yellow line shows what the curve will look like, assuming
 the algorithm can find one, and this control tab is open.
 
 Use the spacing to vary the number of track points used to
-define the bend, and hence the smoothness."""
+define the bend, and hence the smoothness.
+
+### New in V2
+
+When applied to a single point, the new _Bend Smoother 3D_ will
+reduce the gradient and direction changes at the point to below
+a set threshold while preserving the gradients before and after."""
 
 
 type Msg
     = SmoothBend
     | SetBendTrackPointSpacing Float
+    | SoftenBend
 
 
 type alias BendOptions =
@@ -92,6 +106,11 @@ update msg settings track =
                 PostUpdateActions.EditPreservesNodePosition
                 (smoothBend track settings)
                 (makeUndoMessage settings track)
+            )
+
+        SoftenBend ->
+            ( settings
+            , softenCurrentPoint track
             )
 
 
@@ -492,6 +511,13 @@ viewBendFixerPane bendOptions wrap =
                         "Smooth between markers\nRadius "
                             ++ showDecimal2 smooth.radius
                 }
+
+        softenButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrap SoftenBend
+                , label = text "Smooth in 3D"
+                }
     in
     column [ spacing 10, padding 10, alignTop, centerX ]
         [ case bendOptions.smoothedBend of
@@ -506,6 +532,7 @@ viewBendFixerPane bendOptions wrap =
                     [ text "Sorry, failed to find a nice bend."
                     , text "Try re-positioning the current pointer or marker."
                     ]
+        , softenButton
         ]
 
 
@@ -525,3 +552,138 @@ bendSmoothnessSlider model wrap =
         , value = model.bendTrackPointSpacing
         , thumb = Input.defaultThumb
         }
+
+
+softenCurrentPoint : Track -> PostUpdateActions.PostUpdateAction cmd
+softenCurrentPoint track =
+    -- Apply the new bend smoother to the current point, if possible.
+    case singlePoint3dArc track of
+        Just arc ->
+            let
+                precedingTrack =
+                    List.take track.currentNode.index track.track
+
+                remainingTrack =
+                    List.drop (track.currentNode.index + 1) track.track
+
+                newPoints =
+                    Arc3d.startPoint arc
+                        :: (Arc3d.segments 5 arc
+                                |> Polyline3d.segments
+                                |> List.map LineSegment3d.endPoint
+                           )
+
+                newTrackPoints =
+                    List.map trackPointFromPoint newPoints
+            in
+            PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                { track | track = precedingTrack ++ newTrackPoints ++ remainingTrack }
+                "Smooth single point"
+
+        Nothing ->
+            PostUpdateActions.ActionNoOp
+
+
+singlePoint3dArc : Track -> Maybe (Arc3d Meters LocalCoords)
+singlePoint3dArc track =
+    let
+        ( a, pb, c ) =
+            ( List.Extra.getAt (track.currentNode.index - 1) track.track
+            , track.currentNode
+            , List.Extra.getAt (track.currentNode.index + 1) track.track
+            )
+    in
+    case ( a, c ) of
+        ( Just pa, Just pc ) ->
+            -- Must have three points to play with!
+            let
+                ( splitAB, splitBC ) =
+                    -- Where do we want to begin and end?
+                    ( Point3d.interpolateFrom pa.xyz pb.xyz 0.7
+                    , Point3d.interpolateFrom pb.xyz pc.xyz 0.3
+                    )
+
+                ( abDistFromCorner, bcDistFromCorner ) =
+                    -- Which is closest to the corner and hence limits the choice?
+                    ( Point3d.distanceFrom splitAB pb.xyz
+                    , Point3d.distanceFrom splitBC pb.xyz
+                    )
+
+                ( arcStart, arcEnd ) =
+                    -- Use shortest length from both edges.
+                    if abDistFromCorner |> Quantity.lessThanOrEqualTo bcDistFromCorner then
+                        ( splitAB
+                        , pb.xyz
+                            |> Point3d.translateBy
+                                (Vector3d.scaleTo abDistFromCorner pb.roadVector)
+                        )
+
+                    else
+                        ( pa.xyz
+                            |> Point3d.translateBy
+                                (Vector3d.scaleTo
+                                    (Vector3d.length pa.roadVector |> Quantity.minus bcDistFromCorner)
+                                    pa.roadVector
+                                )
+                        , splitBC
+                        )
+
+                trianglePlane =
+                    SketchPlane3d.throughPoints pa.xyz pb.xyz pc.xyz
+            in
+            case trianglePlane of
+                -- Points necessarily co-planar but type requires us to check!
+                Just plane ->
+                    let
+                        ( planarA, planarB, planarC ) =
+                            -- I think if we project into 2d, the classic logic will hold.
+                            ( arcStart |> Point3d.projectInto plane
+                            , pb.xyz |> Point3d.projectInto plane
+                            , arcEnd |> Point3d.projectInto plane
+                            )
+
+                        ( r1Equation, r2Equation ) =
+                            ( lineEquationFromTwoPoints
+                                (Point2d.toRecord inMeters planarA)
+                                (Point2d.toRecord inMeters planarB)
+                            , lineEquationFromTwoPoints
+                                (Point2d.toRecord inMeters planarB)
+                                (Point2d.toRecord inMeters planarC)
+                            )
+
+                        ( perpFromFirstTangentPoint, perpFromSecondTangentPoint ) =
+                            ( linePerpendicularTo r1Equation (Point2d.toRecord inMeters planarA)
+                            , linePerpendicularTo r2Equation (Point2d.toRecord inMeters planarC)
+                            )
+
+                        circleCenter =
+                            lineIntersection perpFromFirstTangentPoint perpFromSecondTangentPoint
+
+                        findArc centre =
+                            let
+                                radius =
+                                    distance centre (Point2d.toRecord inMeters planarA)
+
+                                bisector =
+                                    Vector2d.from
+                                        (Point2d.fromRecord meters centre)
+                                        planarB
+
+                                midArcPoint =
+                                    Point2d.fromRecord meters centre
+                                        |> Point2d.translateBy
+                                            (Vector2d.scaleTo (meters radius) bisector)
+
+                                midPoint3d =
+                                    midArcPoint |> Point3d.on plane
+                            in
+                            Arc3d.throughPoints arcStart midPoint3d arcEnd
+                    in
+                    Maybe.withDefault Nothing <| Maybe.map findArc circleCenter
+
+                Nothing ->
+                    Nothing
+
+        _ ->
+            Nothing
