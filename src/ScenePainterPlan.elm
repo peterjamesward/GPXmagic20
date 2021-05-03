@@ -85,26 +85,22 @@ deriveViewPointAndCamera view =
         ( _, latitude, _ ) =
             pointInEarthCoordinates view.focalPoint
 
-        viewpoint =
-            case view.flythrough of
-                Just flying ->
-                    Viewpoint3d.lookAt
-                        { eyePoint = eyePoint
-                        , focalPoint = flying.cameraPosition
-                        , upDirection = Direction3d.positiveZ
-                        }
-
-                Nothing ->
-                    Viewpoint3d.lookAt
-                        { focalPoint = view.focalPoint
-                        , eyePoint = eyePoint
-                        , upDirection = positiveY
-                        }
+        lookingAt =
+            Maybe.map .cameraPosition view.flythrough
+                |> Maybe.withDefault view.focalPoint
 
         eyePoint =
             Point3d.translateBy
                 (Vector3d.meters 0.0 0.0 5000.0)
-                view.focalPoint
+                lookingAt
+
+        viewpoint =
+            Viewpoint3d.lookAt
+                { focalPoint = lookingAt
+                , eyePoint = eyePoint
+                , upDirection = positiveY
+                }
+
     in
     Camera3d.orthographic
         { viewpoint = viewpoint

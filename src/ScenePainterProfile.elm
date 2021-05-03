@@ -120,40 +120,33 @@ viewScene visible context options scene wrapper =
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
 deriveViewPointAndCamera view =
     let
-        { x, y, z } =
-            Point3d.toRecord inMeters view.focalPoint
-
-        scaledFocus =
-            Point3d.fromTuple meters ( x, y, z * view.verticalExaggeration )
-
-        viewpoint =
+        lookingAtBeforeScaling =
             case view.flythrough of
                 Just flying ->
                     let
                         riderXYZ =
                             Point3d.toRecord inMeters flying.cameraPosition
-
-                        inProfile =
-                            Point3d.fromRecord meters
-                                { riderXYZ | x = flying.metresFromRouteStart }
                     in
-                    Viewpoint3d.lookAt
-                        { eyePoint = eyePoint
-                        , focalPoint = inProfile
-                        , upDirection = Direction3d.positiveZ
-                        }
+                    { riderXYZ | x = flying.metresFromRouteStart }
 
                 Nothing ->
-                    Viewpoint3d.lookAt
-                        { focalPoint = scaledFocus
-                        , eyePoint = eyePoint
-                        , upDirection = positiveZ
-                        }
+                    Point3d.toRecord inMeters view.focalPoint
+
+        scaledFocus =
+            { lookingAtBeforeScaling | z = lookingAtBeforeScaling.z * view.verticalExaggeration }
+                |> Point3d.fromRecord meters
 
         eyePoint =
             Point3d.translateBy
                 (Vector3d.meters 0.0 -1000.0 0.0)
-                view.focalPoint
+                scaledFocus
+
+        viewpoint =
+            Viewpoint3d.lookAt
+                { focalPoint = scaledFocus
+                , eyePoint = eyePoint
+                , upDirection = positiveZ
+                }
 
         camera =
             Camera3d.orthographic
