@@ -5,6 +5,7 @@ import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length
 import LineSegment3d exposing (LineSegment3d)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Loop exposing (Loopiness(..))
 import Point3d exposing (Point3d)
@@ -67,7 +68,7 @@ update :
     -> Options
     -> TrackObservations
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg)
+    -> ( Options, PostUpdateActions.PostUpdateAction msg )
 update msg settings observations track =
     case msg of
         SetFilterBias bias ->
@@ -218,54 +219,35 @@ applyWeightedAverageFilter track filterBias loopiness =
         points =
             track.track
 
-        marker =
-            Maybe.withDefault track.currentNode track.markedNode
-
         ( startPoint, endPoint ) =
-            ( if track.currentNode.index <= marker.index then
-                track.currentNode
+            case track.markedNode of
+                Just marker ->
+                    if track.currentNode.index <= marker.index then
+                        ( Just track.currentNode, track.markedNode )
 
-              else
-                marker
-            , if track.currentNode.index > marker.index then
-                track.currentNode
+                    else
+                        ( track.markedNode, Just track.currentNode )
 
-              else
-                marker
-            )
+                Nothing ->
+                    ( List.head points, List.Extra.last points )
 
         ( start, finish ) =
-            ( startPoint.index, endPoint.index )
+            ( Maybe.map .index startPoint |> Maybe.withDefault 0
+            , Maybe.map .index endPoint |> Maybe.withDefault (List.length points - 1)
+            )
 
-        firstPoint =
+        ( firstPoint, lastPoint ) =
             -- This is used for wrap-around on loop, in which case use second point
-            if loopiness == IsALoop then
-                List.take 1 <| List.drop 1 points
+            -- Yes, this is expensive code. Might improve one day.
+            if loopiness == IsALoop && track.markedNode == Nothing then
+                ( List.take 1 <| List.drop 1 points
+                , List.take 1 <| List.drop 1 <| List.reverse points
+                )
 
             else
-                List.take 1 points
-
-        lastPoint =
-            -- This is used for wrap-around on loop, in which case use penultimate point
-            if loopiness == IsALoop then
-                List.take 1 <| List.drop 1 <| List.reverse points
-
-            else
-                List.take 1 <| List.reverse points
-
-        filteredLoop =
-            List.map3
-                (weightedAverage (filterBias / 100.0))
-                (lastPoint ++ points)
-                points
-                (List.drop 1 points ++ firstPoint)
-
-        filtered =
-            List.map3
-                (weightedAverage (filterBias / 100.0))
-                (firstPoint ++ points)
-                points
-                (List.drop 1 points ++ lastPoint)
+                ( List.take 1 points
+                , List.take 1 <| List.reverse points
+                )
 
         withinRange =
             List.take finish >> List.drop start
@@ -273,11 +255,25 @@ applyWeightedAverageFilter track filterBias loopiness =
         ( fixedFirst, fixedLast ) =
             ( List.take (start + 1) points, List.drop finish points )
     in
-    if start == finish && loopiness == IsALoop then
-        filteredLoop
+    if track.markedNode == Nothing && loopiness == IsALoop then
+        List.map3
+            (weightedAverage (filterBias / 100.0))
+            (lastPoint ++ points)
+            points
+            (List.drop 1 points ++ firstPoint)
 
     else
-        fixedFirst ++ withinRange filtered ++ fixedLast
+        let
+            filtered =
+                List.map3
+                    (weightedAverage (filterBias / 100.0))
+                    (firstPoint ++ points)
+                    points
+                    (List.drop 1 points ++ lastPoint)
+        in
+        fixedFirst
+            ++ withinRange filtered
+            ++ fixedLast
 
 
 weightedAverage :

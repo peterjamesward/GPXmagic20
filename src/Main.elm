@@ -720,6 +720,8 @@ processGpxLoaded content model =
         , toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes
         , gpxSource = GpxLocalFile
+        , undoStack = []
+        , redoStack = []
       }
         |> repeatTrackDerivations
     , Cmd.batch mapCommands

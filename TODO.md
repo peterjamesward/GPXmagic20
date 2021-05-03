@@ -2,8 +2,6 @@
 
 # TODO
 
---TODO: Crap; blows the stack on big route.
---TODO: Centroid avg should work on whole track if no purple.
 --TODO: Bring back pan actions for views.
 
 # BACKLOG, being enhancements or just finishing up ...
