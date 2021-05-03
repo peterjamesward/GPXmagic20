@@ -79,86 +79,6 @@ type Msg
     | StravaMessage StravaTools.Msg
 
 
-markerMessageWrapper : MarkerControls.Msg -> Msg
-markerMessageWrapper m =
-    MarkerMessage m
-
-
-graphMessageWrapper : Graph.Msg -> Msg
-graphMessageWrapper m =
-    GraphMessage m
-
-
-nudgeMessageWrapper : Nudge.NudgeMsg -> Msg
-nudgeMessageWrapper m =
-    NudgeMessage m
-
-
-deleteMessageWrapper : DeletePoints.Msg -> Msg
-deleteMessageWrapper m =
-    DeleteMessage m
-
-
-viewPaneMessageWrapper : ViewPane.ViewPaneMessage -> Msg
-viewPaneMessageWrapper m =
-    ViewPaneMessage m
-
-
-displayOptionsMessageWrapper : DisplayOptions.Msg -> Msg
-displayOptionsMessageWrapper m =
-    DisplayOptionsMessage m
-
-
-bendSmootherMessageWrapper : BendSmoother.Msg -> Msg
-bendSmootherMessageWrapper m =
-    BendSmoothMessage m
-
-
-wrapAuthMessage : OAuthMsg -> Msg
-wrapAuthMessage msg =
-    OAuthMessage msg
-
-
-loopMessageWrapper : Loop.Msg -> Msg
-loopMessageWrapper msg =
-    LoopMsg msg
-
-
-gradientMessageWrapper : GradientSmoother.Msg -> Msg
-gradientMessageWrapper msg =
-    GradientMessage msg
-
-
-straightenMessageWrapper : Straightener.Msg -> Msg
-straightenMessageWrapper msg =
-    StraightenMessage msg
-
-
-flythroughMessageWrapper : Flythrough.Msg -> Msg
-flythroughMessageWrapper msg =
-    FlythroughMessage msg
-
-
-filterMessageWrapper : Filters.Msg -> Msg
-filterMessageWrapper msg =
-    FilterMessage msg
-
-
-problemMessageWrapper : TrackObservations.Msg -> Msg
-problemMessageWrapper msg =
-    ProblemMessage msg
-
-
-insertMessageWrapper : InsertPoints.Msg -> Msg
-insertMessageWrapper msg =
-    InsertMessage msg
-
-
-stravaMessageWrapper : StravaTools.Msg -> Msg
-stravaMessageWrapper msg =
-    StravaMessage msg
-
-
 main : Program (Maybe (List Int)) Model Msg
 main =
     -- This is the 'main' from OAuth example/
@@ -213,7 +133,7 @@ init mflags origin navigationKey =
     -- We stitch in the OAuth init stuff somehow here.
     let
         ( authData, authCmd ) =
-            StravaAuth.init mflags origin navigationKey wrapAuthMessage
+            StravaAuth.init mflags origin navigationKey OAuthMessage
     in
     ( { filename = Nothing
       , gpxSource = GpxNone
@@ -432,7 +352,7 @@ update msg model =
                 ( newOptions, action ) =
                     DisplayOptions.update model.displayOptions
                         dispMsg
-                        displayOptionsMessageWrapper
+                        DisplayOptionsMessage
 
                 viewPanes =
                     case action of
@@ -507,7 +427,7 @@ update msg model =
                         (Flythrough.update
                             model.flythrough
                             flythroughMsg
-                            flythroughMessageWrapper
+                            FlythroughMessage
                         )
                         model.track
                         |> Maybe.withDefault ( model.flythrough, ActionNoOp )
@@ -567,7 +487,7 @@ update msg model =
                             stravaMsg
                             model.stravaOptions
                             model.stravaAuthentication
-                            stravaMessageWrapper
+                            StravaMessage
                         )
                         model.track
                         |> Maybe.withDefault ( model.stravaOptions, ActionNoOp )
@@ -733,7 +653,7 @@ processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg model track =
     let
         ( newPane, postUpdateAction ) =
-            ViewPane.update innerMsg model.viewPanes viewPaneMessageWrapper
+            ViewPane.update innerMsg model.viewPanes ViewPaneMessage
 
         updatedViewPanes =
             ViewPane.updateViewPanes newPane model.viewPanes
@@ -942,14 +862,14 @@ view model =
                     , if model.changeCounter == 0 then
                         stravaButton
                             model.stravaAuthentication
-                            wrapAuthMessage
+                            OAuthMessage
 
                       else
                         E.text "Save your work before\nconnecting to Strava"
                     , stravaRouteOption
                         model.stravaAuthentication
                         model.stravaOptions
-                        stravaMessageWrapper
+                        StravaMessage
                     , viewAndEditFilename model
                     , saveButtonIfChanged model
                     ]
@@ -959,11 +879,11 @@ view model =
                             model.viewPanes
                             model.displayOptions
                             ( model.completeScene, model.completeProfile )
-                            viewPaneMessageWrapper
+                            ViewPaneMessage
                     , el [ alignTop ] <|
                         column defaultColumnLayout
-                            [ markerButton model.track markerMessageWrapper
-                            , viewTrackControls markerMessageWrapper model.track
+                            [ markerButton model.track MarkerMessage
+                            , viewTrackControls MarkerMessage model.track
                             , undoRedoButtons model
                             , Accordion.view
                                 (updatedAccordion model model.toolsAccordion toolsAccordion)
@@ -1022,17 +942,17 @@ toolsAccordion model =
       }
     , { label = "Visual styles"
       , state = Contracted
-      , content = DisplayOptions.viewDisplayOptions model.displayOptions displayOptionsMessageWrapper
+      , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info
       }
     , { label = "Loop maker"
       , state = Contracted
-      , content = Loop.viewLoopTools model.observations.loopiness model.track loopMessageWrapper
+      , content = Loop.viewLoopTools model.observations.loopiness model.track LoopMsg
       , info = Loop.info
       }
     , { label = "Bend smoother classic"
       , state = Contracted
-      , content = BendSmoother.viewBendFixerPane model.bendOptions bendSmootherMessageWrapper
+      , content = BendSmoother.viewBendFixerPane model.bendOptions BendSmoothMessage
       , info = BendSmoother.info
       }
     , { label = "Smooth gradient"
@@ -1041,7 +961,7 @@ toolsAccordion model =
             Maybe.map
                 (GradientSmoother.viewGradientFixerPane
                     model.gradientOptions
-                    gradientMessageWrapper
+                    GradientMessage
                 )
                 model.track
                 |> Maybe.withDefault none
@@ -1049,7 +969,7 @@ toolsAccordion model =
       }
     , { label = "Nudge"
       , state = Contracted
-      , content = viewNudgeTools model.nudgeSettings nudgeMessageWrapper
+      , content = viewNudgeTools model.nudgeSettings NudgeMessage
       , info = Nudge.info
       }
     , { label = "Straighten"
@@ -1058,7 +978,7 @@ toolsAccordion model =
             Maybe.map
                 (Straightener.viewStraightenTools
                     model.straightenOptions
-                    straightenMessageWrapper
+                    StraightenMessage
                 )
                 model.track
                 |> Maybe.withDefault none
@@ -1071,7 +991,7 @@ toolsAccordion model =
                 Just _ ->
                     InsertPoints.viewTools
                         model.insertOptions
-                        insertMessageWrapper
+                        InsertMessage
 
                 Nothing ->
                     none
@@ -1079,12 +999,12 @@ toolsAccordion model =
       }
     , { label = "Delete"
       , state = Contracted
-      , content = viewDeleteTools model.track deleteMessageWrapper
+      , content = viewDeleteTools model.track DeleteMessage
       , info = DeletePoints.info
       }
     , { label = "Fly-through"
       , state = Contracted
-      , content = Flythrough.flythroughControls model.flythrough flythroughMessageWrapper
+      , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
       , info = Flythrough.info
       }
     , { label = "Filters"
@@ -1092,7 +1012,7 @@ toolsAccordion model =
       , content =
             Maybe.map
                 (Filters.viewFilterControls model.filterOptions
-                    filterMessageWrapper
+                    FilterMessage
                 )
                 model.track
                 |> Maybe.withDefault none
@@ -1104,7 +1024,7 @@ toolsAccordion model =
             model.track
                 |> Maybe.map .graph
                 |> Maybe.andThen
-                    (Just << viewGraphControls graphMessageWrapper)
+                    (Just << viewGraphControls GraphMessage)
                 |> Maybe.withDefault none
       , info = Graph.info
       }
@@ -1126,7 +1046,7 @@ toolsAccordion model =
             Maybe.map
                 (TrackObservations.viewSteepClimbs
                     model.problemOptions
-                    problemMessageWrapper
+                    ProblemMessage
                 )
                 model.track
                 |> Maybe.withDefault none
@@ -1138,7 +1058,7 @@ toolsAccordion model =
             TrackObservations.viewGradientChanges
                 model.problemOptions
                 model.observations
-                problemMessageWrapper
+                ProblemMessage
       , info = TrackObservations.info
       }
     , { label = "Bend problems"
@@ -1147,14 +1067,14 @@ toolsAccordion model =
             TrackObservations.viewBearingChanges
                 model.problemOptions
                 model.observations
-                problemMessageWrapper
+                ProblemMessage
       , info = TrackObservations.info
       }
     , { label = "Strava"
       , state = Contracted
       , content =
             Maybe.map
-                (StravaTools.viewStravaTab model.stravaOptions stravaMessageWrapper)
+                (StravaTools.viewStravaTab model.stravaOptions StravaMessage)
                 model.track
                 |> Maybe.withDefault none
       , info = StravaTools.info

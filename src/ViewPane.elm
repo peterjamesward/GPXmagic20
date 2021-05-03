@@ -1,11 +1,8 @@
 module ViewPane exposing (..)
 
-import ColourPalette exposing (radioButtonDefault, radioButtonSelected, radioButtonText)
 import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
 import List.Extra
@@ -19,7 +16,6 @@ import ScenePainterMap
 import ScenePainterPlan
 import ScenePainterProfile
 import ScenePainterThird
-import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
