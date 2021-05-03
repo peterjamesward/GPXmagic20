@@ -3,11 +3,8 @@ module TrackPoint exposing (..)
 import Angle exposing (Angle)
 import Area
 import Axis3d exposing (Axis3d)
-import Direction2d exposing (Direction2d)
 import Direction3d exposing (Direction3d)
 import EarthConstants exposing (metresPerDegree)
-import Element exposing (..)
-import Json.Encode as E
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -17,7 +14,6 @@ import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import Triangle3d
-import Utils exposing (bearingToDisplayDegrees, showDecimal2)
 import Vector3d exposing (Vector3d)
 
 

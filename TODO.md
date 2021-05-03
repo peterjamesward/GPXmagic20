@@ -2,13 +2,13 @@
 
 # TODO
 
-**BUG**  Bearings are wrong !! This is fairly obvious. They are from X axis!!
-
-**BUG**  Bend problem at 0 on Mount Coot-tha. (!!)
+**BUG**  Last point bearing of loop should be valid.
 
 **BUG**  Problems update inconsistently. Esp after Autofix.
 
-**Autofix** seems to make the Flythrough look behind -- suspect road vector derivation.
+**BUG** Ugly shaking when changing bend threshold.
+
+**Autofix** seems to make the Flythrough look behind -- suspect road vector derivation. ???
 
 **Graph** - the thing that kicked it all off.
 

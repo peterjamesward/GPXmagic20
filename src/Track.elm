@@ -164,11 +164,6 @@ summaryData track =
                 |> Angle.tan
                 |> (*) 100.0
 
-        bearing =
-            pt.afterDirection
-                |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
-                |> Maybe.withDefault Quantity.zero
-
         ( lon, lat, ele ) =
             pt.xyz
                 |> withoutGhanianTransform track
@@ -190,7 +185,10 @@ summaryData track =
                 ]
             , column [ spacing 10 ]
                 [ text <| showDecimal2 gradient
-                , text <| bearingToDisplayDegrees bearing
+                , text <|
+                    bearingToDisplayDegrees <|
+                        Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy) <|
+                            pt.afterDirection
                 ]
             ]
         , row [ padding 10, centerX, alignTop, spacing 10 ]

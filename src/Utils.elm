@@ -140,18 +140,23 @@ useIcon =
     html << FeatherIcons.toHtml [] << FeatherIcons.withSize 24
 
 
-bearingToDisplayDegrees : Angle -> String
+bearingToDisplayDegrees : Maybe Angle -> String
 bearingToDisplayDegrees angle =
-    angle
-        |> Angle.inDegrees
-        |> (\x ->
-                if x <= 90 then
-                    90 - x
+    case angle of
+        Just isAngle ->
+            isAngle
+                |> Angle.inDegrees
+                |> (\x ->
+                        if x <= 90 then
+                            90 - x
 
-                else if x > 90 then
-                    450 - x
+                        else if x > 90 then
+                            450 - x
 
-                else
-                    90 + abs x
-           )
-        |> showDecimal2
+                        else
+                            90 + abs x
+                   )
+                |> showDecimal2
+
+        Nothing ->
+            "End"
