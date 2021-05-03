@@ -2,10 +2,6 @@
 
 # TODO
 
---TODO: Bring back pan actions for views.
-
-# BACKLOG, being enhancements or just finishing up ...
-
 Tab to highlight gradients over threshold (10, 15, 20, 25). (John Bytheway.)
 
 Use Arc3d point smoother to replace chamfer.

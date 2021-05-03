@@ -48,7 +48,7 @@ withMouseCapture wrap =
     , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick >> wrap)
     , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel event.deltaY))
     , htmlAttribute <| style "touch-action" "none"
-    , onContextMenu (wrap <| ImageNoOpMsg)
+    , onContextMenu (wrap ImageNoOpMsg)
     , width fill
     , pointer
     ]

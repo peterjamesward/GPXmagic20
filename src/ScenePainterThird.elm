@@ -16,6 +16,7 @@ import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
 import Point2d
+import Point3d
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
@@ -25,7 +26,8 @@ import ScenePainterCommon exposing (..)
 import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
-import ViewingContext exposing (ViewingContext, newViewingContext)
+import Vector3d
+import ViewingContext exposing (DragAction(..), ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)
 
@@ -149,6 +151,12 @@ update msg view wrap =
             in
             ( { view
                 | orbiting = Just event.offsetPos
+                , dragAction =
+                    if alternate then
+                        DragRotate
+
+                    else
+                        DragPan
                 , waitingForClickDelay = True
               }
             , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
@@ -164,8 +172,8 @@ update msg view wrap =
                 ( dx, dy ) =
                     event.offsetPos
             in
-            case view.orbiting of
-                Just ( startX, startY ) ->
+            case ( view.dragAction, view.orbiting ) of
+                ( DragRotate, Just ( startX, startY ) ) ->
                     let
                         newAzimuth =
                             Angle.degrees <|
@@ -185,11 +193,31 @@ update msg view wrap =
                     , ActionNoOp
                     )
 
+                ( DragPan, Just ( startX, startY ) ) ->
+                    ( { view
+                        | focalPoint =
+                            view.focalPoint
+                                |> Point3d.translateBy
+                                    (Vector3d.meters
+                                        (0.5 * (startX - dx))
+                                        (0.5 * (dy - startY))
+                                        0.0
+                                    )
+                        , orbiting = Just ( dx, dy)
+                      }
+                    , ActionNoOp
+                    )
+
                 _ ->
                     ( view, ActionNoOp )
 
         ImageRelease _ ->
-            ( { view | orbiting = Nothing }, ActionNoOp )
+            ( { view
+                | orbiting = Nothing
+                , dragAction = DragNone
+              }
+            , ActionNoOp
+            )
 
         ImageMouseWheel deltaY ->
             let
@@ -226,7 +254,7 @@ update msg view wrap =
                     ( { view | orbiting = Nothing }, ActionNoOp )
 
         ImageNoOpMsg ->
-            ( { view | orbiting = Nothing }, ActionNoOp )
+            ( view, ActionNoOp )
 
         ImageZoomIn ->
             ( { view

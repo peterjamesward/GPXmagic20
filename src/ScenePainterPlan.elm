@@ -25,7 +25,7 @@ import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
-import ViewingContext exposing (ViewingContext, defaultViewingContext)
+import ViewingContext exposing (DragAction(..), ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)
 
@@ -100,7 +100,6 @@ deriveViewPointAndCamera view =
                 , eyePoint = eyePoint
                 , upDirection = positiveY
                 }
-
     in
     Camera3d.orthographic
         { viewpoint = viewpoint
@@ -119,11 +118,11 @@ update msg view wrap =
         ImageGrab event ->
             -- Mouse behaviour depends which view is in use...
             -- Right-click or ctrl-click to mean rotate; otherwise pan.
-            let
-                alternate =
-                    event.keys.ctrl || event.button == SecondButton
-            in
-            ( { view | waitingForClickDelay = True }
+            ( { view
+                | orbiting = Just event.offsetPos
+                , dragAction = DragPan
+                , waitingForClickDelay = True
+              }
             , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
             )
 
@@ -137,12 +136,30 @@ update msg view wrap =
                 ( dx, dy ) =
                     event.offsetPos
             in
-            ( view
-            , ActionNoOp
-            )
+            case ( view.dragAction, view.orbiting ) of
+                ( DragPan, Just ( startX, startY ) ) ->
+                    ( { view
+                        | focalPoint =
+                            view.focalPoint
+                                |> Point3d.translateBy
+                                    (Vector3d.meters
+                                        (0.5 * (startX - dx))
+                                        (0.5 * (dy - startY))
+                                        0.0
+                                    )
+                        , orbiting = Just ( dx, dy )
+                      }
+                    , ActionNoOp
+                    )
+
+                _ ->
+                    ( view, ActionNoOp )
 
         ImageRelease _ ->
-            ( view
+            ( { view
+                | orbiting = Nothing
+                , dragAction = DragNone
+              }
             , ActionNoOp
             )
 
