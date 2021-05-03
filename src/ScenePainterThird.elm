@@ -6,6 +6,7 @@ module ScenePainterThird exposing (..)
 import Angle exposing (Angle, inDegrees)
 import Camera3d exposing (Camera3d)
 import Color
+import Delay
 import Direction3d exposing (negativeZ, positiveZ)
 import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel)
@@ -121,9 +122,9 @@ deriveViewPointAndCamera view =
 update :
     ImageMsg
     -> ViewingContext
-    -> Time.Posix
-    -> ( ViewingContext, PostUpdateAction msg )
-update msg view now =
+    -> (ImageMsg -> msg )
+    -> ( ViewingContext, PostUpdateAction (Cmd msg) )
+update msg view wrap =
     -- Second return value indicates whether selection needs to change.
     case msg of
         ImageGrab event ->
@@ -135,8 +136,13 @@ update msg view now =
             in
             ( { view
                 | orbiting = Just event.offsetPos
-                , mouseDownTime = now
+                , waitingForClickDelay = True
               }
+            , ActionStravaFetch <| Delay.after 250 (wrap ClickDelayExpired)
+            )
+
+        ClickDelayExpired ->
+            ( { view | waitingForClickDelay = False }
             , ActionNoOp
             )
 
@@ -182,7 +188,7 @@ update msg view now =
             )
 
         ImageClick event ->
-            if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
+            if view.waitingForClickDelay then
                 case detectHit view event of
                     Just tp ->
                         ( { view | orbiting = Nothing }, ActionPointerMove tp )

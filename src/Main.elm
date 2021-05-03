@@ -645,7 +645,7 @@ processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg model track =
     let
         ( newPane, postUpdateAction ) =
-            ViewPane.update innerMsg model.viewPanes model.time
+            ViewPane.update innerMsg model.viewPanes viewPaneMessageWrapper
 
         updatedViewPanes =
             ViewPane.updateViewPanes newPane model.viewPanes

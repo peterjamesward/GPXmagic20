@@ -36,6 +36,7 @@ type ImageMsg
     | ImageZoomIn
     | ImageZoomOut
     | ImageReset
+    | ClickDelayExpired
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)

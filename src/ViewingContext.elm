@@ -24,12 +24,13 @@ type alias ViewingContext =
     , focalPoint : Point3d Length.Meters LocalCoords
     , clickedPoint : Maybe TrackPoint
     , sceneSearcher : Axis3d Length.Meters LocalCoords -> Maybe TrackPoint
-    , mouseDownTime : Time.Posix
+    --, mouseDownTime : Time.Posix
     , viewingMode : ViewingMode
     , contextId : Int -- ( 0 = Plan, 1 = First Person, 2 = Profile, 3 = Third person)
     , size : (Quantity Int Pixels, Quantity Int Pixels)
     , verticalExaggeration : Float
     , flythrough : Maybe Flythrough
+    , waitingForClickDelay : Bool
     }
 
 
@@ -44,12 +45,13 @@ defaultViewingContext =
     , focalPoint = Point3d.origin
     , clickedPoint = Nothing
     , sceneSearcher = always Nothing
-    , mouseDownTime = Time.millisToPosix 0
+    --, mouseDownTime = Time.millisToPosix 0
     , viewingMode = ViewPlan
     , contextId = 0
     , size = (pixels 800, pixels 600)
     , verticalExaggeration = 1.0
     , flythrough = Nothing
+    , waitingForClickDelay = False
     }
 
 

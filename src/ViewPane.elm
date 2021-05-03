@@ -409,8 +409,12 @@ viewPaneControls pane wrap =
             ]
 
 
-update : ViewPaneMessage -> List ViewPane -> Time.Posix -> ( Maybe ViewPane, ViewPaneAction msg)
-update msg panes now =
+update :
+    ViewPaneMessage
+    -> List ViewPane
+    -> (ViewPaneMessage -> msg)
+    -> ( Maybe ViewPane, ViewPaneAction (Cmd msg) )
+update msg panes wrap =
     case msg of
         ChooseViewMode paneId mode ->
             let
@@ -437,7 +441,10 @@ update msg panes now =
                         ViewThirdPerson ->
                             let
                                 ( newContext, action ) =
-                                    ScenePainterThird.update imageMsg pane.thirdPersonContext now
+                                    ScenePainterThird.update
+                                        imageMsg
+                                        pane.thirdPersonContext
+                                        (wrap << imageMessageWrapper pane.paneId)
                             in
                             ( Just { pane | thirdPersonContext = newContext }
                             , ImageAction action
@@ -447,7 +454,10 @@ update msg panes now =
                             let
                                 ( newContext, action ) =
                                     -- We can safely use the 3rd person update here.
-                                    ScenePainterThird.update imageMsg pane.firstPersonContext now
+                                    ScenePainterThird.update
+                                        imageMsg
+                                        pane.firstPersonContext
+                                        (wrap << imageMessageWrapper pane.paneId)
                             in
                             ( Just { pane | firstPersonContext = newContext }
                             , ImageAction action
@@ -456,7 +466,10 @@ update msg panes now =
                         ViewPlan ->
                             let
                                 ( newContext, action ) =
-                                    ScenePainterPlan.update imageMsg pane.planContext now
+                                    ScenePainterPlan.update
+                                        imageMsg
+                                        pane.planContext
+                                        (wrap << imageMessageWrapper pane.paneId)
                             in
                             ( Just { pane | planContext = newContext }
                             , ImageAction action
@@ -465,7 +478,10 @@ update msg panes now =
                         ViewProfile ->
                             let
                                 ( newContext, action ) =
-                                    ScenePainterProfile.update imageMsg pane.profileContext now
+                                    ScenePainterProfile.update
+                                        imageMsg
+                                        pane.profileContext
+                                        (wrap << imageMessageWrapper pane.paneId)
                             in
                             ( Just { pane | profileContext = newContext }
                             , ImageAction action

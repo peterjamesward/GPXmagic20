@@ -5,6 +5,7 @@ module ScenePainterPlan exposing (..)
 import Angle exposing (Angle)
 import Camera3d exposing (Camera3d)
 import Color
+import Delay
 import Direction3d exposing (negativeZ, positiveY, positiveZ)
 import EarthConstants exposing (metresPerPixel)
 import Element exposing (..)
@@ -105,9 +106,9 @@ deriveViewPointAndCamera view =
 update :
     ImageMsg
     -> ViewingContext
-    -> Time.Posix
-    -> ( ViewingContext, PostUpdateAction msg )
-update msg view now =
+    -> (ImageMsg -> msg)
+    -> ( ViewingContext, PostUpdateAction (Cmd msg) )
+update msg view wrap =
     -- Second return value indicates whether selection needs to change.
     case msg of
         ImageGrab event ->
@@ -117,7 +118,12 @@ update msg view now =
                 alternate =
                     event.keys.ctrl || event.button == SecondButton
             in
-            ( { view | mouseDownTime = now }
+            ( { view | waitingForClickDelay = True }
+            , ActionStravaFetch <| Delay.after 250 (wrap ClickDelayExpired)
+            )
+
+        ClickDelayExpired ->
+            ( { view | waitingForClickDelay = False }
             , ActionNoOp
             )
 
@@ -145,7 +151,7 @@ update msg view now =
             )
 
         ImageClick event ->
-            if Time.posixToMillis now < Time.posixToMillis view.mouseDownTime + 250 then
+            if view.waitingForClickDelay then
                 case detectHit view event of
                     Just tp ->
                         ( view, ActionPointerMove tp )
