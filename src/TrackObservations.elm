@@ -97,12 +97,12 @@ update msg settings observations track =
 
         SetBearingChangeThreshold angle ->
             ( { settings | directionChangeThreshold = angle }
-            , PostUpdateActions.ActionNoOp
+            , PostUpdateActions.ActionRerender
             )
 
         SetGradientChangeThreshold threshold ->
             ( { settings | gradientChangeThreshold = threshold }
-            , PostUpdateActions.ActionNoOp
+            , PostUpdateActions.ActionRerender
             )
 
         SetGradientThreshold threshold ->
@@ -359,7 +359,7 @@ viewGradientChanges options obs wrap =
     column [ spacing 5, padding 10 ]
         [ row [ spacing 10 ]
             [ gradientChangeThresholdSlider options wrap
-            , autosmoothButton
+            , el [ alignRight ] autosmoothButton
             ]
         , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
             List.map linkButton exceedingThreshold
@@ -400,7 +400,7 @@ viewBearingChanges options obs wrap =
     column [ spacing 5, padding 10 ]
         [ row [ spacing 10 ]
             [ bearingChangeThresholdSlider options wrap
-            , autosmoothButton
+            , el [ alignRight ] autosmoothButton
             ]
         , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
             List.map linkButton exceedingThreshold

@@ -2,13 +2,7 @@
 
 # TODO
 
-**BUG**  Last point bearing of loop should be valid.
-
-**BUG**  Problems update inconsistently. Esp after Autofix.
-
-**BUG** Ugly shaking when changing bend threshold.
-
-**Autofix** seems to make the Flythrough look behind -- suspect road vector derivation. ???
+**Splash screen** - Shall we move the About view over?
 
 **Graph** - the thing that kicked it all off.
 
