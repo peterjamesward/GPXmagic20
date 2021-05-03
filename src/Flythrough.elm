@@ -254,9 +254,18 @@ update options msg wrap track =
 
 prepareFlythrough : Track -> Options -> Maybe Flythrough
 prepareFlythrough track options =
-    case List.drop track.currentNode.index track.track of
+    let
+        trackAhead =
+            List.drop track.currentNode.index track.track
+    in
+    case trackAhead of
         pt1 :: pt2 :: rest ->
             let
+                eyePoint =
+                    Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 eyeHeight)
+                        pt1.xyz
+
                 focusPoint =
                     Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 eyeHeight)
@@ -269,12 +278,9 @@ prepareFlythrough track options =
             in
             Just
                 { metresFromRouteStart = inMeters track.currentNode.distanceFromStart
-                , pointsRemaining = pt1 :: pt2 :: rest
+                , pointsRemaining = trackAhead
                 , running = False
-                , cameraPosition =
-                    focusPoint
-                        |> Point3d.translateBy
-                            cameraShift
+                , cameraPosition = eyePoint
                 , focusPoint = focusPoint
                 , lastUpdated = options.modelTime
                 }

@@ -912,7 +912,8 @@ updatedAccordion model currentAccordion referenceAccordion =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.flythrough.flythrough /= Nothing then
+    if Accordion.tabIsOpen "Fly-through" model.toolsAccordion then
+    --if model.flythrough.flythrough /= Nothing then
         Sub.batch
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
