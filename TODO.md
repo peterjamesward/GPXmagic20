@@ -11,13 +11,13 @@
 
 Tab to highlight gradients over threshold (10, 15, 20, 25). (John Bytheway.)
 
+Use Arc3d point smoother to replace chamfer.
+
 New bend smoother filter - four point external centroid (convex only, not 'S').
 
-(Another) New bend smoother - replaces each point with circular arc, but with two variants:
+(Another) New bend smoother - replaces __each point__ with circular arc, but with two variants:
 a: Arc2d (like current) - "constant slope" strategy
-b: Arc3d - "preserve gradients" strategy
-This will be good for autosmooth - insert enough points to bring transitions below user thresholds.
-(It will be better that GPXsmoother).
+b: Arc3d - "preserve gradients" strategy -- the new "chamfer"
 
 --TODO: Graph - the thing that kicked it all off.
 

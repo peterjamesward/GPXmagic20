@@ -227,7 +227,7 @@ flythroughControls options wrapper =
         ]
 
 
-update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction (Cmd msg))
+update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction (Cmd msg) )
 update options msg wrap track =
     case msg of
         SetFlythroughSpeed speed ->
@@ -246,17 +246,13 @@ update options msg wrap track =
             )
 
         ResetFlythrough ->
-            ( { options | flythrough = resetFlythrough track options }
+            ( { options | flythrough = Nothing }
             , PostUpdateActions.ActionNoOp
             )
 
 
-
---TODO: Use track orientation to place camera??
-
-
-resetFlythrough : Track -> Options -> Maybe Flythrough
-resetFlythrough track options =
+prepareFlythrough : Track -> Options -> Maybe Flythrough
+prepareFlythrough track options =
     case List.drop track.currentNode.index track.track of
         pt1 :: pt2 :: rest ->
             let
@@ -266,7 +262,7 @@ resetFlythrough track options =
                         pt2.xyz
 
                 cameraShift =
-                    Vector3d.from pt1.xyz pt2.xyz
+                    pt1.roadVector
                         |> Vector3d.reverse
                         |> Vector3d.scaleTo (meters 10.0)
             in
@@ -289,7 +285,7 @@ resetFlythrough track options =
 
 startFlythrough : Track -> Options -> Options
 startFlythrough track options =
-    case resetFlythrough track options of
+    case prepareFlythrough track options of
         Just flying ->
             { options | flythrough = Just { flying | running = True } }
 

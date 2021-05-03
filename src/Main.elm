@@ -912,11 +912,17 @@ updatedAccordion model currentAccordion referenceAccordion =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ MapController.messageReceiver MapMessage
-        , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-        , Time.every 50 Tick
-        ]
+    if model.flythrough.flythrough /= Nothing then
+        Sub.batch
+            [ MapController.messageReceiver MapMessage
+            , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , Time.every 50 Tick
+            ]
+    else
+        Sub.batch
+            [ MapController.messageReceiver MapMessage
+            , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            ]
 
 
 toolsAccordion : Model -> List (AccordionEntry Msg)
