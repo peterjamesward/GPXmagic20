@@ -34,7 +34,7 @@ gradientColourPastel angle =
             100.0 * Angle.tan angle
 
         x =
-            (clamp -15.0 15.0 slope + 15.0) / 30.0
+            (clamp -25.0 25.0 slope + 25.0) / 50.0
 
         steepestAscentHue =
             (Color.toHsla Color.red).hue
@@ -55,7 +55,7 @@ gradientColourVivid angle =
             100.0 * Angle.tan angle
 
         x =
-            (clamp -15.0 15.0 slope + 15.0) / 30.0
+            (clamp -25.0 25.0 slope + 25.0) / 50.0
 
         steepestAscentHue =
             (Color.toHsla Color.red).hue

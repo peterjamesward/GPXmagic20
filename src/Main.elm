@@ -1122,6 +1122,18 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = "Data about the road at the orange marker."
       }
+    , { label = "Steep climbs"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (TrackObservations.viewSteepClimbs
+                    model.problemOptions
+                    problemMessageWrapper
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = TrackObservations.info
+      }
     , { label = "Gradient problems"
       , state = Contracted
       , content =

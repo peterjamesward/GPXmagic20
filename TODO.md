@@ -2,7 +2,7 @@
 
 # TODO
 
-Tab to highlight gradients over threshold (10, 15, 20, 25). (John Bytheway.)
+BUG  Bend problem at 0 on Mount Coot-tha.
 
 Use Arc3d point smoother to replace chamfer.
 

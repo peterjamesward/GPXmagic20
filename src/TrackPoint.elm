@@ -114,20 +114,20 @@ applyGhanianTransform points =
             , toOrigin
             )
 
+gradientFromPoint : TrackPoint -> Float
+gradientFromPoint pt =
+    pt.roadVector
+        |> Vector3d.direction
+        |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
+        |> Maybe.withDefault Quantity.zero
+        |> Angle.tan
+        |> (*) 100.0
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint
 prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
-        gradient : TrackPoint -> Float
-        gradient pt =
-            pt.roadVector
-                |> Vector3d.direction
-                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-                |> Maybe.withDefault Quantity.zero
-                |> Angle.tan
-                |> (*) 100.0
 
         -- We are blowing the stack and I suspect this is the culprit.
         -- Let's try without the ugly explicit recursion.
@@ -159,7 +159,7 @@ prepareTrackPoints trackPoints =
                 | index = index
                 , beforeDirection = prev.afterDirection
                 , directionChange = changeInBearing prev.afterDirection point.afterDirection
-                , gradientChange = Just <| abs (gradient prev - gradient point)
+                , gradientChange = Just <| abs (gradientFromPoint prev - gradientFromPoint point)
                 , effectiveDirection =
                     Maybe.map2 meanBearing
                         prev.afterDirection

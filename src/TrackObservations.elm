@@ -10,7 +10,7 @@ import Point3d
 import PostUpdateActions
 import Quantity exposing (zero)
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -34,17 +34,20 @@ type Msg
     | Autofix (List TrackPoint)
     | SetBearingChangeThreshold Angle
     | SetGradientChangeThreshold Float
+    | SetGradientThreshold Float
 
 
 type alias Options =
     { gradientChangeThreshold : Float -- In 'slope' units, 100 * tan angle.
     , directionChangeThreshold : Angle -- In range -pi to +pi.
+    , gradientThreshold : Float
     }
 
 
 defaultOptions =
     { gradientChangeThreshold = 10.0
     , directionChangeThreshold = Angle.degrees 90.0
+    , gradientThreshold = 15.0
     }
 
 
@@ -83,7 +86,7 @@ update :
     -> Options
     -> TrackObservations
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg)
+    -> ( Options, PostUpdateActions.PostUpdateAction msg )
 update msg settings observations track =
     case msg of
         LocateProblem trackPoint ->
@@ -98,6 +101,11 @@ update msg settings observations track =
 
         SetGradientChangeThreshold threshold ->
             ( { settings | gradientChangeThreshold = threshold }
+            , PostUpdateActions.ActionNoOp
+            )
+
+        SetGradientThreshold threshold ->
+            ( { settings | gradientThreshold = threshold }
             , PostUpdateActions.ActionNoOp
             )
 
@@ -271,6 +279,34 @@ overviewSummary obs =
         ]
 
 
+viewSteepClimbs : Options -> (Msg -> msg) -> Track -> Element msg
+viewSteepClimbs options wrap track =
+    let
+        exceeds b a =
+            a > b
+
+        exceedingThreshold =
+            track.track
+                |> List.filter
+                    (\pt ->
+                        pt
+                            |> gradientFromPoint
+                            |> exceeds options.gradientThreshold
+                    )
+
+        linkButton point =
+            button prettyButtonStyles
+                { onPress = Just (wrap <| LocateProblem point)
+                , label = text <| showDecimal0 <| inMeters point.distanceFromStart
+                }
+    in
+    column [ spacing 5, padding 10 ]
+        [ gradientThresholdSlider options wrap
+        , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
+            List.map linkButton exceedingThreshold
+        ]
+
+
 viewGradientChanges : Options -> TrackObservations -> (Msg -> msg) -> Element msg
 viewGradientChanges options obs wrap =
     let
@@ -351,6 +387,24 @@ viewBearingChanges options obs wrap =
         , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
             List.map linkButton exceedingThreshold
         ]
+
+
+gradientThresholdSlider : Options -> (Msg -> msg) -> Element msg
+gradientThresholdSlider options wrap =
+    Input.slider
+        commonShortHorizontalSliderStyles
+        { onChange = wrap << SetGradientThreshold
+        , label =
+            Input.labelBelow [] <|
+                text <|
+                    "Show climbs over "
+                        ++ showDecimal0 options.gradientThreshold
+        , min = 10.0
+        , max = 30.0
+        , step = Just 1.0
+        , value = options.gradientThreshold
+        , thumb = Input.defaultThumb
+        }
 
 
 gradientChangeThresholdSlider : Options -> (Msg -> msg) -> Element msg
