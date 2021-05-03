@@ -127,11 +127,28 @@ deriveViewPointAndCamera view =
             Point3d.fromTuple meters ( x, y, z * view.verticalExaggeration )
 
         viewpoint =
-            Viewpoint3d.lookAt
-                { focalPoint = scaledFocus
-                , eyePoint = eyePoint
-                , upDirection = positiveZ
-                }
+            case view.flythrough of
+                Just flying ->
+                    let
+                        riderXYZ =
+                            Point3d.toRecord inMeters flying.cameraPosition
+
+                        inProfile =
+                            Point3d.fromRecord meters
+                                { riderXYZ | x = flying.metresFromRouteStart }
+                    in
+                    Viewpoint3d.lookAt
+                        { eyePoint = eyePoint
+                        , focalPoint = inProfile
+                        , upDirection = Direction3d.positiveZ
+                        }
+
+                Nothing ->
+                    Viewpoint3d.lookAt
+                        { focalPoint = scaledFocus
+                        , eyePoint = eyePoint
+                        , upDirection = positiveZ
+                        }
 
         eyePoint =
             Point3d.translateBy
@@ -165,7 +182,7 @@ update msg view wrap =
                     event.keys.ctrl || event.button == SecondButton
             in
             ( { view | waitingForClickDelay = True }
-            , ActionStravaFetch <| Delay.after 250 (wrap ClickDelayExpired)
+            , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
             )
 
         ClickDelayExpired ->

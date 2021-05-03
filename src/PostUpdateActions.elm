@@ -1,6 +1,9 @@
 module PostUpdateActions exposing (..)
 
+import Length exposing (Meters)
+import LocalCoords exposing (LocalCoords)
 import OAuth.GpxSource exposing (GpxSource)
+import Point3d exposing (Point3d)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 
@@ -18,7 +21,7 @@ type
     | ActionFocusMove TrackPoint
     | ActionRepaintMap
     | ActionNoOp
-    | ActionStravaFetch cmd
+    | ActionCommand cmd
     | ActionNewRoute String GpxSource
 
 

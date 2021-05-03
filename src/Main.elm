@@ -601,7 +601,7 @@ processPostUpdateAction model action =
                 [ MapController.addMarkersToMap track [] [] ]
             )
 
-        ( _, ActionStravaFetch a ) ->
+        ( _, ActionCommand a ) ->
             ( model, a )
 
         ( _, ActionNewRoute content source ) ->
@@ -1022,7 +1022,7 @@ toolsAccordion model =
       , info = Graph.info
       }
     , { label = "Route summary"
-      , state = Expanded False
+      , state = Contracted
       , content = TrackObservations.overviewSummary model.observations
       , info = "Data about the route."
       }

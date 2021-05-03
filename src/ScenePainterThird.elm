@@ -103,15 +103,28 @@ deriveViewPointAndCamera view =
             pointInEarthCoordinates view.focalPoint
 
         viewpoint =
-            Viewpoint3d.orbitZ
-                { focalPoint = view.focalPoint
-                , azimuth = view.azimuth
-                , elevation = view.elevation
-                , distance =
-                    Length.meters <|
-                        1000.0
-                            * metresPerPixel view.zoomLevel (degrees latitude)
-                }
+            case view.flythrough of
+                Just flying ->
+                    Viewpoint3d.orbitZ
+                        { focalPoint = flying.cameraPosition
+                        , azimuth = view.azimuth
+                        , elevation = view.elevation
+                        , distance =
+                            Length.meters <|
+                                1000.0
+                                    * metresPerPixel view.zoomLevel (degrees latitude)
+                        }
+
+                Nothing ->
+                    Viewpoint3d.orbitZ
+                        { focalPoint = view.focalPoint
+                        , azimuth = view.azimuth
+                        , elevation = view.elevation
+                        , distance =
+                            Length.meters <|
+                                1000.0
+                                    * metresPerPixel view.zoomLevel (degrees latitude)
+                        }
     in
     Camera3d.perspective
         { viewpoint = viewpoint
@@ -122,7 +135,7 @@ deriveViewPointAndCamera view =
 update :
     ImageMsg
     -> ViewingContext
-    -> (ImageMsg -> msg )
+    -> (ImageMsg -> msg)
     -> ( ViewingContext, PostUpdateAction (Cmd msg) )
 update msg view wrap =
     -- Second return value indicates whether selection needs to change.
@@ -138,7 +151,7 @@ update msg view wrap =
                 | orbiting = Just event.offsetPos
                 , waitingForClickDelay = True
               }
-            , ActionStravaFetch <| Delay.after 250 (wrap ClickDelayExpired)
+            , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
             )
 
         ClickDelayExpired ->

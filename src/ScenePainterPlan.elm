@@ -86,11 +86,20 @@ deriveViewPointAndCamera view =
             pointInEarthCoordinates view.focalPoint
 
         viewpoint =
-            Viewpoint3d.lookAt
-                { focalPoint = view.focalPoint
-                , eyePoint = eyePoint
-                , upDirection = positiveY
-                }
+            case view.flythrough of
+                Just flying ->
+                    Viewpoint3d.lookAt
+                        { eyePoint = eyePoint
+                        , focalPoint = flying.cameraPosition
+                        , upDirection = Direction3d.positiveZ
+                        }
+
+                Nothing ->
+                    Viewpoint3d.lookAt
+                        { focalPoint = view.focalPoint
+                        , eyePoint = eyePoint
+                        , upDirection = positiveY
+                        }
 
         eyePoint =
             Point3d.translateBy
@@ -119,7 +128,7 @@ update msg view wrap =
                     event.keys.ctrl || event.button == SecondButton
             in
             ( { view | waitingForClickDelay = True }
-            , ActionStravaFetch <| Delay.after 250 (wrap ClickDelayExpired)
+            , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
             )
 
         ClickDelayExpired ->

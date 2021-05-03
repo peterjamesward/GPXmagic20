@@ -104,7 +104,7 @@ update msg settings authentication wrap track =
             case getStravaToken authentication of
                 Just token ->
                     ( { settings | stravaRoute = StravaRouteRequested }
-                    , PostUpdateActions.ActionStravaFetch <|
+                    , PostUpdateActions.ActionCommand <|
                         requestStravaRouteHeader
                             (wrap << HandleRouteData)
                             settings.externalRouteId
@@ -124,7 +124,7 @@ update msg settings authentication wrap track =
                             stravaProcessRoute response
                     in
                     ( { settings | stravaRoute = stravaRoute }
-                    , PostUpdateActions.ActionStravaFetch <|
+                    , PostUpdateActions.ActionCommand <|
                         requestStravaRoute
                             (wrap << GpxDownloaded)
                             settings.externalRouteId
@@ -146,7 +146,7 @@ update msg settings authentication wrap track =
             case getStravaToken authentication of
                 Just token ->
                     ( { settings | externalSegment = SegmentRequested }
-                    , PostUpdateActions.ActionStravaFetch <|
+                    , PostUpdateActions.ActionCommand <|
                         requestStravaSegment
                             (wrap << HandleSegmentData)
                             settings.externalSegmentId
@@ -160,7 +160,7 @@ update msg settings authentication wrap track =
             case getStravaToken authentication of
                 Just token ->
                     ( settings
-                    , PostUpdateActions.ActionStravaFetch <|
+                    , PostUpdateActions.ActionCommand <|
                         requestStravaSegmentStreams
                             (wrap << HandleSegmentStreams)
                             settings.externalSegmentId

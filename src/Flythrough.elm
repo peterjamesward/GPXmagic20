@@ -66,7 +66,7 @@ flythrough :
     Time.Posix
     -> Flythrough
     -> Float
-    -> Flythrough
+    -> Maybe Flythrough
 flythrough newTime flying speed =
     -- Change for V2; we maintain our own track point list,
     -- being the "tail" of the whole track.
@@ -92,7 +92,7 @@ flythrough newTime flying speed =
                     flying.pointsRemaining
     in
     if not flying.running then
-        { flying | lastUpdated = newTime }
+        Just { flying | lastUpdated = newTime }
 
     else
         case remainingPoints of
@@ -142,16 +142,17 @@ flythrough newTime flying speed =
                                     (Vector3d.meters 0.0 0.0 eyeHeight)
                                     pointInFront.xyz
                 in
-                { flying
-                    | metresFromRouteStart = newDistance
-                    , lastUpdated = newTime
-                    , cameraPosition = camera3d
-                    , focusPoint = lookingAt
-                    , pointsRemaining = remainingPoints
-                }
+                Just
+                    { flying
+                        | metresFromRouteStart = newDistance
+                        , lastUpdated = newTime
+                        , cameraPosition = camera3d
+                        , focusPoint = lookingAt
+                        , pointsRemaining = remainingPoints
+                    }
 
             _ ->
-                { flying | running = False }
+                Nothing
 
 
 flythroughControls : Options -> (Msg -> msg) -> Element msg
@@ -315,11 +316,10 @@ advanceFlythrough newTime options =
         Just flying ->
             { options
                 | flythrough =
-                    Just <|
-                        flythrough
-                            newTime
-                            flying
-                            options.flythroughSpeed
+                    flythrough
+                        newTime
+                        flying
+                        options.flythroughSpeed
             }
 
         Nothing ->

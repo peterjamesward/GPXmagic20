@@ -91,7 +91,7 @@ update msg view wrap =
                 | orbiting = Just event.offsetPos
                 , waitingForClickDelay = True
               }
-            , ActionStravaFetch <| Delay.after 250 (wrap ClickDelayExpired)
+            , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
             )
 
         ClickDelayExpired ->
@@ -242,6 +242,13 @@ deriveViewPointAndCamera view =
 
         cameraViewpoint =
             case view.flythrough of
+                Just flying ->
+                    Viewpoint3d.lookAt
+                        { eyePoint = flying.cameraPosition
+                        , focalPoint = flying.focusPoint
+                        , upDirection = Direction3d.positiveZ
+                        }
+
                 Nothing ->
                     Viewpoint3d.orbitZ
                         { focalPoint =
@@ -253,13 +260,6 @@ deriveViewPointAndCamera view =
                             Length.meters <|
                                 50.0
                                     * metresPerPixel view.zoomLevel (degrees latitude)
-                        }
-
-                Just flying ->
-                    Viewpoint3d.lookAt
-                        { eyePoint = flying.cameraPosition
-                        , focalPoint = flying.focusPoint
-                        , upDirection = Direction3d.positiveZ
                         }
     in
     Camera3d.perspective
