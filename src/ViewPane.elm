@@ -453,8 +453,7 @@ update msg panes wrap =
                         ViewFirstPerson ->
                             let
                                 ( newContext, action ) =
-                                    -- We can safely use the 3rd person update here.
-                                    ScenePainterThird.update
+                                    ScenePainterFirst.update
                                         imageMsg
                                         pane.firstPersonContext
                                         (wrap << imageMessageWrapper pane.paneId)
