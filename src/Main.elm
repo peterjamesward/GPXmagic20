@@ -628,6 +628,7 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionRerender ) ->
+            -- Use this after Undo/Redo to avoid pushing change onto stack.
             ( model
                 |> updateTrackInModel track
             , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
@@ -799,13 +800,10 @@ repeatTrackDerivations model =
             let
                 newTrack =
                     { isTrack | track = prepareTrackPoints isTrack.track }
-
-                newObservations =
-                    deriveProblems newTrack model.problemOptions
             in
             { model
                 | track = Just newTrack
-                , observations = newObservations
+                , observations = deriveProblems newTrack model.problemOptions
             }
                 |> renderTrackSceneElements
 

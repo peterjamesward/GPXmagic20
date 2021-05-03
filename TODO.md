@@ -2,15 +2,11 @@
 
 # TODO
 
-BUG  Bend problem at 0 on Mount Coot-tha.
+BUG  Bend problem at 0 on Mount Coot-tha. (!!)
 
-Use Arc3d point smoother to replace chamfer.
+Autofix seems to make the Flythrough look behind -- suspect road vector derivation.
 
 New bend smoother filter - four point external centroid (convex only, not 'S').
-
-(Another) New bend smoother - replaces __each point__ with circular arc, but with two variants:
-a: Arc2d (like current) - "constant slope" strategy
-b: Arc3d - "preserve gradients" strategy -- the new "chamfer"
 
 --TODO: Graph - the thing that kicked it all off.
 
