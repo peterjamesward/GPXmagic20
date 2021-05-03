@@ -4,8 +4,6 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Markdown
-import Msg exposing (Msg)
-import Utils exposing (view3dDimensions, view3dHeight, view3dWidth, viewMapHeight, viewMapWidth)
 
 
 aboutText =
@@ -126,18 +124,18 @@ No cookies are used, though they may not be true for the site as a whole.
 
 viewAboutText : Element msg
 viewAboutText =
-    el [] <|
+    el [ paddingXY 100 20, centerX, scrollbars, scrollbarY] <|
         row
             [ centerX
             , Background.color <| rgb255 220 220 200
             , clipY
             , scrollbarY
             , padding 20
-            , width <| px viewMapWidth
+            , width fill
             ]
             [ paragraph
                 [ width fill
-                , height <| px viewMapHeight
+                , height fill
                 ]
               <|
                 [ html <| Markdown.toHtml [] aboutText ]

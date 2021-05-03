@@ -2,7 +2,9 @@
 
 # TODO
 
-**Splash screen** - Shall we move the About view over?
+BUG: ? Cant type in Strava route ID with no track.
+
+Previews for Nudge and Bend on the map. (Support is in JS already.)
 
 **Graph** - the thing that kicked it all off. 
 a) Applying edits to canonical graph.

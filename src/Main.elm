@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import About
 import Accordion exposing (AccordionEntry, AccordionState(..), view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
@@ -853,46 +854,58 @@ view model =
           <|
             column
                 [ width fill ]
-                [ row [ spacing 10, padding 10 ]
-                    [ button
-                        prettyButtonStyles
-                        { onPress = Just GpxRequested
-                        , label = text "Load GPX from your computer"
-                        }
-                    , if model.changeCounter == 0 then
-                        stravaButton
-                            model.stravaAuthentication
-                            OAuthMessage
+                [ topLoadingBar model
+                , if model.track /= Nothing then
+                    contentArea model
 
-                      else
-                        E.text "Save your work before\nconnecting to Strava"
-                    , stravaRouteOption
-                        model.stravaAuthentication
-                        model.stravaOptions
-                        StravaMessage
-                    , viewAndEditFilename model
-                    , saveButtonIfChanged model
-                    ]
-                , row (width fill :: defaultRowLayout) <|
-                    [ el [ width fill, alignTop ] <|
-                        viewAllPanes
-                            model.viewPanes
-                            model.displayOptions
-                            ( model.completeScene, model.completeProfile )
-                            ViewPaneMessage
-                    , el [ alignTop ] <|
-                        column defaultColumnLayout
-                            [ markerButton model.track MarkerMessage
-                            , viewTrackControls MarkerMessage model.track
-                            , undoRedoButtons model
-                            , Accordion.view
-                                (updatedAccordion model model.toolsAccordion toolsAccordion)
-                                AccordionMessage
-                            ]
-                    ]
+                  else
+                    About.viewAboutText
                 ]
         ]
     }
+
+
+topLoadingBar model =
+    row [ spacing 20, padding 10 ]
+        [ button
+            prettyButtonStyles
+            { onPress = Just GpxRequested
+            , label = text "Load GPX from your computer"
+            }
+        , if model.changeCounter == 0 then
+            stravaButton
+                model.stravaAuthentication
+                OAuthMessage
+
+          else
+            E.text "Save your work before\nconnecting to Strava"
+        , stravaRouteOption
+            model.stravaAuthentication
+            model.stravaOptions
+            StravaMessage
+        , viewAndEditFilename model
+        , saveButtonIfChanged model
+        ]
+
+
+contentArea model =
+    row (width fill :: defaultRowLayout) <|
+        [ el [ width fill, alignTop ] <|
+            viewAllPanes
+                model.viewPanes
+                model.displayOptions
+                ( model.completeScene, model.completeProfile )
+                ViewPaneMessage
+        , el [ alignTop ] <|
+            column defaultColumnLayout
+                [ markerButton model.track MarkerMessage
+                , viewTrackControls MarkerMessage model.track
+                , undoRedoButtons model
+                , Accordion.view
+                    (updatedAccordion model model.toolsAccordion toolsAccordion)
+                    AccordionMessage
+                ]
+        ]
 
 
 viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
