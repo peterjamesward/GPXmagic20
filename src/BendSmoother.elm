@@ -516,7 +516,7 @@ viewBendFixerPane bendOptions wrap =
             button
                 prettyButtonStyles
                 { onPress = Just <| wrap SoftenBend
-                , label = text "Smooth in 3D"
+                , label = text "Smooth current point in 3D"
                 }
     in
     column [ spacing 10, padding 10, alignTop, centerX ]
@@ -556,15 +556,23 @@ bendSmoothnessSlider model wrap =
 
 softenCurrentPoint : Track -> PostUpdateActions.PostUpdateAction cmd
 softenCurrentPoint track =
-    -- Apply the new bend smoother to the current point, if possible.
-    case singlePoint3dArc track of
+    PostUpdateActions.ActionTrackChanged
+        PostUpdateActions.EditPreservesNodePosition
+        (softenSinglePoint track track.currentNode)
+        "Smooth single point"
+
+
+softenSinglePoint : Track -> TrackPoint -> Track
+softenSinglePoint track point =
+    -- Apply the new bend smoother to a single point, if possible.
+    case singlePoint3dArc track point of
         Just arc ->
             let
                 precedingTrack =
-                    List.take track.currentNode.index track.track
+                    List.take point.index track.track
 
                 remainingTrack =
-                    List.drop (track.currentNode.index + 1) track.track
+                    List.drop (point.index + 1) track.track
 
                 newPoints =
                     Arc3d.startPoint arc
@@ -576,26 +584,23 @@ softenCurrentPoint track =
                 newTrackPoints =
                     List.map trackPointFromPoint newPoints
             in
-            PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                { track | track = precedingTrack ++ newTrackPoints ++ remainingTrack }
-                "Smooth single point"
+            { track | track = precedingTrack ++ newTrackPoints ++ remainingTrack }
 
         Nothing ->
-            PostUpdateActions.ActionNoOp
+            track
 
 
-singlePoint3dArc : Track -> Maybe (Arc3d Meters LocalCoords)
-singlePoint3dArc track =
+singlePoint3dArc : Track -> TrackPoint -> Maybe (Arc3d Meters LocalCoords)
+singlePoint3dArc track point =
     let
-        ( a, pb, c ) =
-            ( List.Extra.getAt (track.currentNode.index - 1) track.track
-            , track.currentNode
-            , List.Extra.getAt (track.currentNode.index + 1) track.track
+        ( a, b, c ) =
+            ( List.Extra.getAt (point.index - 1) track.track
+            , List.Extra.getAt (point.index + 0) track.track
+            , List.Extra.getAt (point.index + 1) track.track
             )
     in
-    case ( a, c ) of
-        ( Just pa, Just pc ) ->
+    case ( a, b, c ) of
+        ( Just pa, Just pb, Just pc ) ->
             -- Must have three points to play with!
             let
                 ( splitAB, splitBC ) =

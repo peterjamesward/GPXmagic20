@@ -1,6 +1,7 @@
 module TrackObservations exposing (..)
 
 import Angle exposing (Angle)
+import BendSmoother
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (inMeters, meters)
@@ -110,9 +111,24 @@ update msg settings observations track =
             )
 
         Autofix trackPoints ->
+            -- Apply the new 3D single point smoother.
+            -- Must do this from furthest point first, as points are added!
             let
+                indicesToSmooth =
+                    trackPoints |> List.map .index |> List.reverse
+
+                applyToSinglePointByIndex : Int -> Track -> Track
+                applyToSinglePointByIndex index changingTrack =
+                    Maybe.map
+                        (BendSmoother.softenSinglePoint changingTrack)
+                        (List.Extra.getAt index changingTrack.track)
+                        |> Maybe.withDefault changingTrack
+
                 newTrack =
-                    track
+                    List.foldl
+                        applyToSinglePointByIndex
+                        track
+                        indicesToSmooth
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
@@ -335,7 +351,7 @@ viewGradientChanges options obs wrap =
                 _ ->
                     button prettyButtonStyles
                         { onPress = Just (wrap <| Autofix exceedingThreshold)
-                        , label = text <| "Try AutoFix today"
+                        , label = text "Smooth these points in 3D"
                         }
     in
     column [ spacing 5, padding 10 ]
@@ -376,7 +392,7 @@ viewBearingChanges options obs wrap =
                 _ ->
                     button prettyButtonStyles
                         { onPress = Just (wrap <| Autofix exceedingThreshold)
-                        , label = text <| "Try AutoFix today"
+                        , label = text "Smooth these points in 3D"
                         }
     in
     column [ spacing 5, padding 10 ]

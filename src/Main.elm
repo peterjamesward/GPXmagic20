@@ -629,7 +629,7 @@ processPostUpdateAction model action =
 
         ( Just track, ActionRerender ) ->
             ( model
-                |> renderTrackSceneElements
+                |> updateTrackInModel track
             , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
             )
 
