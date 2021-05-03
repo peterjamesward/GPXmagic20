@@ -67,7 +67,7 @@ trackPointFromGPX lon lat ele =
     in
     { xyz = location
     , profileXZ = location -- Fix when we traverse the track.
-    , costMetric = 0.0
+    , costMetric = 10.0 ^ 10.0
     , index = 0
     , distanceFromStart = meters 0.0
     , beforeDirection = Nothing
@@ -120,168 +120,101 @@ prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
-        gradient pt1 pt2 =
-            Direction3d.from pt1.xyz pt2.xyz
+        gradient : TrackPoint -> Float
+        gradient pt =
+            pt.roadVector
+                |> Vector3d.direction
                 |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
                 |> Maybe.withDefault Quantity.zero
                 |> Angle.tan
                 |> (*) 100.0
 
-        gradientChange prev point next =
-            abs <| gradient prev point - gradient point next
+        -- We are blowing the stack and I suspect this is the culprit.
+        -- Let's try without the ugly explicit recursion.
+        firstPassSetsForwardLooking =
+            List.map2
+                deriveForward
+                trackPoints
+                (List.drop 1 trackPoints)
+                ++ List.drop (List.length trackPoints - 1) trackPoints
 
-        processedPoints =
-            case trackPoints of
-                firstPoint :: secondPoint :: morePoints ->
-                    helper
-                        [ { firstPoint
-                            | index = 0
-                            , costMetric = 10 ^ 10 -- i.e. do not remove me!
-                            , afterDirection = trackPointBearing firstPoint secondPoint
-                            , profileXZ = adjustProfileXZ firstPoint.xyz (meters 0.0)
-                            , roadVector = Vector3d.from firstPoint.xyz secondPoint.xyz
-                          }
-                        ]
-                        1
-                        Quantity.zero
-                        trackPoints
+        deriveForward : TrackPoint -> TrackPoint -> TrackPoint
+        deriveForward point nextPt =
+            { point
+                | afterDirection = trackPointBearing point nextPt
+                , profileXZ = adjustProfileXZ point.xyz (meters 0.0)
+                , roadVector = Vector3d.from point.xyz nextPt.xyz
+            }
 
-                _ ->
-                    []
+        secondPassSetsBackwardLooking =
+            List.map3
+                deriveBackward
+                firstPassSetsForwardLooking
+                (List.drop 1 firstPassSetsForwardLooking)
+                (List.range 1 (List.length trackPoints))
 
-        egregiousDirectionChangesRemoved =
-            -- Recurse (should only be needed once)
-            -- if there are any suspicious backward hops in the track.
-            if List.Extra.find egregiousDirectionChange processedPoints /= Nothing then
-                processedPoints
-                    |> List.filter (not << egregiousDirectionChange)
-                    |> prepareTrackPoints
+        deriveBackward : TrackPoint -> TrackPoint -> Int -> TrackPoint
+        deriveBackward prev point index =
+            { point
+                | index = index
+                , beforeDirection = prev.afterDirection
+                , directionChange = changeInBearing prev.afterDirection point.afterDirection
+                , gradientChange = Just <| abs (gradient prev - gradient point)
+                , effectiveDirection =
+                    Maybe.map2 meanBearing
+                        prev.afterDirection
+                        point.afterDirection
+                , costMetric =
+                    Area.inSquareMeters <|
+                        Triangle3d.area <|
+                            Triangle3d.from
+                                prev.xyz
+                                point.xyz
+                                (point.xyz |> Point3d.translateBy point.roadVector)
+            }
 
-            else
-                processedPoints
+        forwardAndBackward =
+            List.take 1 firstPassSetsForwardLooking
+                ++ secondPassSetsBackwardLooking
 
-        egregiousDirectionChange : TrackPoint -> Bool
-        egregiousDirectionChange point =
-            case point.directionChange of
-                Just change ->
-                    abs (Angle.inRadians change) > pi * 0.9
+        distances =
+            List.Extra.scanl
+                (\pt dist -> pt.roadVector |> Vector3d.length |> Quantity.plus dist)
+                Quantity.zero
+                forwardAndBackward
 
-                Nothing ->
-                    False
+        withDistances =
+            List.map2
+                (\pt dist ->
+                    { pt
+                        | distanceFromStart = dist
+                        , profileXZ = adjustProfileXZ pt.xyz dist
+                    }
+                )
+                forwardAndBackward
+                distances
 
-        helper reversed nextIdx lastDistance points =
-            -- Note the interesting point here is the second one. The first is context.
-            case points of
-                [ previous, penultimate, last ] ->
-                    -- We can wrap things up now'
-                    -- TODO: this special end case needs refactor.
-                    let
-                        beforeDirection =
-                            trackPointBearing previous penultimate
-
-                        afterDirection =
-                            trackPointBearing penultimate last
-
-                        directionChange =
-                            changeInBearing beforeDirection afterDirection
-
-                        penultimateSpan =
-                            Point3d.distanceFrom previous.xyz penultimate.xyz
-
-                        distanceFromStart =
-                            Quantity.plus lastDistance penultimateSpan
-
-                        penultimatePoint =
-                            { penultimate
-                                | index = nextIdx
-                                , beforeDirection = beforeDirection
-                                , afterDirection = afterDirection
-                                , directionChange = directionChange
-                                , gradientChange = Just <| gradientChange previous penultimate last
-                                , effectiveDirection =
-                                    Maybe.map2 meanBearing
-                                        beforeDirection
-                                        afterDirection
-                                , costMetric =
-                                    Area.inSquareMeters <|
-                                        Triangle3d.area <|
-                                            Triangle3d.fromVertices
-                                                ( previous.xyz, penultimate.xyz, last.xyz )
-                                , distanceFromStart = distanceFromStart
-                                , profileXZ = adjustProfileXZ penultimate.xyz distanceFromStart
-                                , roadVector = Vector3d.from penultimate.xyz last.xyz
-                            }
-
-                        lastSpan =
-                            Point3d.distanceFrom penultimate.xyz last.xyz
-
-                        lastPoint =
-                            { last
-                                | index = nextIdx + 1
-                                , costMetric = 10 ^ 10
-                                , beforeDirection = beforeDirection
-                                , distanceFromStart = Quantity.plus lastDistance lastSpan
-                                , profileXZ =
-                                    adjustProfileXZ
-                                        last.xyz
-                                        (Quantity.plus distanceFromStart lastSpan)
-                            }
-                    in
-                    helper
-                        (lastPoint :: penultimatePoint :: reversed)
-                        (nextIdx + 2)
-                        lastPoint.distanceFromStart
-                        [ lastPoint ]
-
-                previous :: point :: next :: rest ->
-                    let
-                        beforeDirection =
-                            trackPointBearing previous point
-
-                        afterDirection =
-                            trackPointBearing point next
-
-                        directionChange =
-                            changeInBearing beforeDirection afterDirection
-
-                        span =
-                            Point3d.distanceFrom previous.xyz point.xyz
-
-                        distanceFromStart =
-                            Quantity.plus lastDistance span
-
-                        updatedPoint =
-                            { point
-                                | index = nextIdx
-                                , beforeDirection = beforeDirection
-                                , afterDirection = afterDirection
-                                , directionChange = directionChange
-                                , gradientChange = Just <| gradientChange previous point next
-                                , effectiveDirection =
-                                    Maybe.map2 meanBearing
-                                        beforeDirection
-                                        afterDirection
-                                , costMetric =
-                                    Area.inSquareMeters <|
-                                        Triangle3d.area <|
-                                            Triangle3d.fromVertices
-                                                ( previous.xyz, point.xyz, next.xyz )
-                                , distanceFromStart = distanceFromStart
-                                , profileXZ = adjustProfileXZ point.xyz distanceFromStart
-                                , roadVector = Vector3d.from point.xyz next.xyz
-                            }
-                    in
-                    helper
-                        (updatedPoint :: reversed)
-                        (nextIdx + 1)
-                        updatedPoint.distanceFromStart
-                        (point :: next :: rest)
-
-                _ ->
-                    -- No more work, just flip the accumulation list.
-                    List.reverse reversed
+        --egregiousDirectionChangesRemoved =
+        --    -- Recurse (should only be needed once)
+        --    -- if there are any suspicious backward hops in the track.
+        --    if List.Extra.find egregiousDirectionChange processedPoints /= Nothing then
+        --        processedPoints
+        --            |> List.filter (not << egregiousDirectionChange)
+        --            |> prepareTrackPoints
+        --
+        --    else
+        --        processedPoints
+        --
+        --egregiousDirectionChange : TrackPoint -> Bool
+        --egregiousDirectionChange point =
+        --    case point.directionChange of
+        --        Just change ->
+        --            abs (Angle.inRadians change) > pi * 0.9
+        --
+        --        Nothing ->
+        --            False
     in
-    egregiousDirectionChangesRemoved
+    withDistances
 
 
 trackPointBearing : TrackPoint -> TrackPoint -> Maybe (Direction3d LocalCoords)
@@ -322,4 +255,3 @@ adjustProfileXZ point distanceFromStart =
         distanceFromStart
         Quantity.zero
         (Point3d.zCoordinate point)
-
