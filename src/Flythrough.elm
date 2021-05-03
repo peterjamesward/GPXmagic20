@@ -330,3 +330,8 @@ advanceFlythrough newTime options =
 
         Nothing ->
             options
+
+
+isActive : Options -> Bool
+isActive options =
+    Maybe.map .running options.flythrough |> Maybe.withDefault False

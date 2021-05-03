@@ -13,9 +13,10 @@ import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import Quantity
 import SketchPlane3d
-import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints, trackPointFromGPX)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints, trackPointFromGPX, trackPointFromPoint)
 import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)
 import Vector3d exposing (..)
+
 
 type alias Track =
     { track : List TrackPoint
@@ -214,8 +215,8 @@ searchTrackPointFromLonLat ( lon, lat ) track =
     let
         searchPoint =
             trackPointFromGPX lon lat 0.0
-            |> .xyz
-            |> Point3d.translateBy track.transform
+                |> .xyz
+                |> Point3d.translateBy track.transform
 
         distance =
             .xyz >> Point3d.distanceFrom searchPoint >> Length.inMeters
@@ -224,6 +225,21 @@ searchTrackPointFromLonLat ( lon, lat ) track =
             List.Extra.minimumBy distance track.track
     in
     nearest
+
+
+updateTrackPointLonLat : ( Float, Float ) -> Track -> TrackPoint -> TrackPoint
+updateTrackPointLonLat ( lon, lat ) track tp =
+    let
+        ele =
+            Point3d.zCoordinate tp.xyz |> inMeters
+
+        newPoint =
+            trackPointFromGPX lon lat ele
+                |> .xyz
+                |> Point3d.translateBy track.transform
+                |> trackPointFromPoint
+    in
+    newPoint
 
 
 trackBoundingBox : Track -> BoundingBox3d Meters LocalCoords

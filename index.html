@@ -103,7 +103,7 @@ function startDraggingPoint(e) {
 function onMove(e) {
     var coords = e.lngLat;
 
-    console.log(e);
+//    console.log(e);
 
     // Set a UI indicator for dragging.
     canvas.style.cursor = 'grabbing';
@@ -156,8 +156,9 @@ function incomingMessageHandler(msg) {
         case 'Track':
             if (isMapCreated) {
                 addLineToMap(msg.data, msg.points);
-//                map.setCenter([msg.lon, msg.lat]);
-//                map.setZoom(msg.zoom)
+                setClickMode('true', msg.points);
+                map.setCenter([msg.lon, msg.lat]);
+                map.setZoom(msg.zoom)
             }
             break;
 

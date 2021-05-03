@@ -2,8 +2,6 @@
 
 # TODO
 
---TODO: First run of Flythourgh does not initialise view well.
---TODO: Make "click to drag" normal mode for Map.
 --TODO: Bring back pan actions for views.
 
 # BACKLOG, being enhancements or just finishing up ...

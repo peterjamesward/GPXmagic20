@@ -18,7 +18,9 @@ import Flythrough exposing (Flythrough)
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import InsertPoints
+import Json.Decode as E exposing (at, decodeValue, field, float)
 import Json.Encode
+import List.Extra
 import Loop
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
@@ -27,7 +29,7 @@ import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, vi
 import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
-import PostUpdateActions exposing (PostUpdateAction(..))
+import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..))
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
@@ -37,7 +39,7 @@ import StravaTools exposing (stravaRouteOption)
 import Task
 import Time
 import TipJar
-import Track exposing (Track, summaryData)
+import Track exposing (Track, searchTrackPointFromLonLat, summaryData, updateTrackPointLonLat)
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
@@ -377,8 +379,53 @@ update msg model =
             , Cmd.map OAuthMessage authCmd
             )
 
-        MapMessage _ ->
-            ( model, Cmd.none )
+        MapMessage json ->
+            -- So we don't need to keep going to the MapController.
+            -- These will be Model-domain messages.
+            let
+                jsonMsg =
+                    decodeValue msgDecoder json
+
+                ( lat, lon ) =
+                    ( decodeValue (field "lat" float) json
+                    , decodeValue (field "lon" float) json
+                    )
+            in
+            case ( jsonMsg, model.track ) of
+                ( Ok "click", Just track ) ->
+                    --{ 'msg' : 'click'
+                    --, 'lat' : e.lat()
+                    --, 'lon' : e.lon()
+                    --} );
+                    case ( lat, lon ) of
+                        ( Ok lat1, Ok lon1 ) ->
+                            case searchTrackPointFromLonLat ( lon1, lat1 ) track of
+                                Just point ->
+                                    processPostUpdateAction
+                                        model
+                                        (PostUpdateActions.ActionFocusMove point)
+
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                ( Ok "drag", Just track ) ->
+                    let
+                        newTrack =
+                            draggedOnMap json track
+                    in
+                    processPostUpdateAction
+                        model
+                        (PostUpdateActions.ActionTrackChanged
+                            EditPreservesIndex
+                            newTrack
+                            "Dragged on map"
+                        )
+
+                _ ->
+                    ( model, Cmd.none )
 
         DisplayOptionsMessage dispMsg ->
             let
@@ -528,6 +575,44 @@ update msg model =
             processPostUpdateAction
                 { model | stravaOptions = newOptions }
                 action
+
+
+draggedOnMap : E.Value -> Track -> Track
+draggedOnMap json track =
+    -- Map has told us the old and new coordinates of a trackpoint.
+    let
+        lon1 =
+            E.decodeValue (at [ "start", "lng" ] float) json
+
+        lat1 =
+            E.decodeValue (at [ "start", "lat" ] float) json
+
+        lon2 =
+            E.decodeValue (at [ "end", "lng" ] float) json
+
+        lat2 =
+            E.decodeValue (at [ "end", "lat" ] float) json
+    in
+    case ( ( lon1, lat1 ), ( lon2, lat2 ) ) of
+        ( ( Ok startLon, Ok startLat ), ( Ok endLon, Ok endLat ) ) ->
+            let
+                maybetp =
+                    searchTrackPointFromLonLat ( startLon, startLat ) track
+            in
+            case maybetp of
+                Just tp ->
+                    { track
+                        | track =
+                            List.Extra.updateAt tp.index
+                                (updateTrackPointLonLat ( endLon, endLat ) track)
+                                track.track
+                    }
+
+                Nothing ->
+                    track
+
+        _ ->
+            track
 
 
 processPostUpdateAction : Model -> PostUpdateAction (Cmd Msg) -> ( Model, Cmd Msg )
@@ -913,12 +998,13 @@ updatedAccordion model currentAccordion referenceAccordion =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     if Accordion.tabIsOpen "Fly-through" model.toolsAccordion then
-    --if model.flythrough.flythrough /= Nothing then
+        --if model.flythrough.flythrough /= Nothing then
         Sub.batch
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
             ]
+
     else
         Sub.batch
             [ MapController.messageReceiver MapMessage
