@@ -11,7 +11,7 @@ import Point3d
 import PostUpdateActions
 import Quantity exposing (zero)
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, gradientFromPoint)
+import TrackPoint exposing (TrackPoint, gradientFromPoint, prepareTrackPoints)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -119,10 +119,12 @@ update msg settings observations track =
 
                 applyToSinglePointByIndex : Int -> Track -> Track
                 applyToSinglePointByIndex index changingTrack =
+                    -- repeated use of prepareTrackPoints looks costly but check logic first.
                     Maybe.map
                         (BendSmoother.softenSinglePoint changingTrack)
                         (List.Extra.getAt index changingTrack.track)
                         |> Maybe.withDefault changingTrack
+                        |> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
 
                 newTrack =
                     List.foldl

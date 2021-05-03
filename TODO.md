@@ -2,15 +2,19 @@
 
 # TODO
 
-BUG  Bend problem at 0 on Mount Coot-tha. (!!)
+**BUG**  Bearings are wrong !! This is fairly obvious. They are from X axis!!
 
-Autofix seems to make the Flythrough look behind -- suspect road vector derivation.
+**BUG**  Bend problem at 0 on Mount Coot-tha. (!!)
 
-New bend smoother filter - four point external centroid (convex only, not 'S').
+**BUG**  Problems update inconsistently. Esp after Autofix.
 
---TODO: Graph - the thing that kicked it all off.
+**Autofix** seems to make the Flythrough look behind -- suspect road vector derivation.
 
-DSL for navigating the graph ("tulips" for directions, heading?)
+**Graph** - the thing that kicked it all off.
+
+**New bend smoother filter** - four point external centroid (convex only, not 'S').
+
+**DSL** for navigating the graph ("tulips" for directions, heading?)
 Convert from Graph is snafu'd.
 
 Option to limit gradients (range or whole track), retaining elevation of marked points.
