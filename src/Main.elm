@@ -1056,16 +1056,16 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Filters.info
       }
-    , { label = "The Labyrinth"
-      , state = Contracted
-      , content =
-            model.track
-                |> Maybe.map .graph
-                |> Maybe.andThen
-                    (Just << viewGraphControls GraphMessage)
-                |> Maybe.withDefault none
-      , info = Graph.info
-      }
+    --, { label = "Graph Theory"
+    --  , state = Contracted
+    --  , content =
+    --        model.track
+    --            |> Maybe.map .graph
+    --            |> Maybe.andThen
+    --                (Just << viewGraphControls GraphMessage)
+    --            |> Maybe.withDefault none
+    --  , info = Graph.info
+    --  }
     , { label = "Route summary"
       , state = Contracted
       , content = TrackObservations.overviewSummary model.observations
