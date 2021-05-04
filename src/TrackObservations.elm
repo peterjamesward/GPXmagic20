@@ -124,7 +124,7 @@ update msg settings observations track =
                         (BendSmoother.softenSinglePoint changingTrack)
                         (List.Extra.getAt index changingTrack.track)
                         |> Maybe.withDefault changingTrack
-                        |> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
+                        --|> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
 
                 newTrack =
                     List.foldl

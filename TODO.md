@@ -4,6 +4,8 @@
 
 BUG: ? Cant type in Strava route ID with no track.
 
+TODO: Update About text for V2.
+
 TODO: Usage logging calls.
 
 TODO: Previews for Nudge and Bend on the map. (Support is in JS already.)
@@ -13,7 +15,7 @@ a) Applying edits to canonical graph.
 b) Turning it back into a route.
 c) DSL for re-routing (including turn-arounds).
 
--- V2 ships here --
+-- 2.0.0 ships here --
 
 A: **New bend smoother filter** - four point external centroid (convex only, not 'S').
 
