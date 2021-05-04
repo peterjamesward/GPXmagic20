@@ -16,8 +16,10 @@ import File.Download as Download
 import File.Select as Select
 import Filters
 import Flythrough exposing (Flythrough)
+import GeoCodeDecoders exposing (IpInfo)
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
+import Http
 import InsertPoints
 import Json.Decode as E exposing (at, decodeValue, field, float)
 import Json.Encode
@@ -26,6 +28,7 @@ import Loop
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra
+import MyIP
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
@@ -78,6 +81,9 @@ type Msg
     | UserChangedFilename String
     | OutputGPX
     | StravaMessage StravaTools.Msg
+    | AdjustTimeZone Time.Zone
+    | ReceivedIpDetails (Result Http.Error IpInfo)
+    | IpInfoAcknowledged (Result Http.Error ())
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -126,6 +132,7 @@ type alias Model =
     , insertOptions : InsertPoints.Options
     , stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
+    , ipInfo : Maybe IpInfo
     }
 
 
@@ -168,9 +175,12 @@ init mflags origin navigationKey =
       , insertOptions = InsertPoints.defaultOptions
       , stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
+      , ipInfo = Nothing
       }
     , Cmd.batch
         [ authCmd
+        , Task.perform AdjustTimeZone Time.here
+        , Task.perform Tick Time.now
         , MapController.createMap MapController.defaultMapInfo
         ]
     )
@@ -184,6 +194,24 @@ passFlythroughToContext flight context =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        AdjustTimeZone newZone ->
+            ( { model | zone = newZone }
+            , MyIP.requestIpInformation ReceivedIpDetails
+            )
+
+        ReceivedIpDetails response ->
+            let
+                ipInfo =
+                    MyIP.processIpInfo response
+            in
+            ( { model | ipInfo = ipInfo }
+            , MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
+            )
+
+        IpInfoAcknowledged _ ->
+            ( model, Cmd.none )
+
+
         Tick newTime ->
             let
                 flythrough =

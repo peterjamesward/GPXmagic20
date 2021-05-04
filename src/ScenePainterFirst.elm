@@ -51,9 +51,6 @@ initialiseView viewSize track =
         viewContext =
             newViewingContext ViewFirstPerson
 
-        _ =
-            Debug.log "Azimuth" trackAzimuth
-
         trackAzimuth =
             track.track
                 |> List.head

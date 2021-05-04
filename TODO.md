@@ -2,18 +2,18 @@
 
 # TODO
 
-TODO: Update About text for V2.
-
 TODO: Usage logging calls.
 
 TODO: Previews for Nudge and Bend on the map. (Support is in JS already.)
+
+-- 2.0.0 ships here --
 
 **Graph** - the thing that kicked it all off. 
 a) Applying edits to canonical graph.
 b) Turning it back into a route.
 c) DSL for re-routing (including turn-arounds).
 
--- 2.0.0 ships here --
+-- 2.1.0 ships here --
 
 A: **New bend smoother filter** - four point external centroid (convex only, not 'S').
 
