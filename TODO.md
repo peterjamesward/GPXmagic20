@@ -2,11 +2,7 @@
 
 # TODO
 
-TODO: Usage logging calls.
-
 TODO: Previews for Nudge and Bend on the map. (Support is in JS already.)
-
--- 2.0.0 ships here --
 
 **Graph** - the thing that kicked it all off. 
 a) Applying edits to canonical graph.

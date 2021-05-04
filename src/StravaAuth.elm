@@ -304,13 +304,12 @@ defaultHttpsUrl =
 
 stravaButton : Model -> (OAuthMsg -> msg) -> Element msg
 stravaButton model msgWrapper =
-    --TODO: Strava logo.
     let
         styles =
             []
 
         imgUrl =
-            Builder.relative ["images", "btn_strava_connectwith_orange.svg" ] []
+            Builder.relative ["images", "btn_strava_connectwith_orange.png" ] []
     in
     case model.flow of
         Done userInfo _ ->
@@ -326,6 +325,7 @@ stravaButton model msgWrapper =
                 , label =
                     image
                         [ mouseOver [ alpha 0.7 ]
+                        , width <| px 193
                         ]
                         { src = imgUrl
                         , description = "Connect to Strava"
