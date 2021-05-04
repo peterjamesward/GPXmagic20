@@ -69,7 +69,7 @@ update :
     -> Options
     -> O.Model
     -> (Msg -> msg)
-    -> Track
+    -> Maybe Track
     -> ( Options, PostUpdateActions.PostUpdateAction (Cmd msg) )
 update msg settings authentication wrap track =
     case msg of
@@ -171,26 +171,31 @@ update msg settings authentication wrap track =
                     ( settings, PostUpdateActions.ActionNoOp )
 
         HandleSegmentData response ->
-            ( { settings
-                | externalSegment =
-                    stravaProcessSegment
-                        response
-                        (trackBoundingBox track)
-              }
-            , PostUpdateActions.ActionNoOp
-            )
+            case track of
+                Just isTrack ->
+                    ( { settings
+                        | externalSegment =
+                            stravaProcessSegment
+                                response
+                                (trackBoundingBox isTrack)
+                      }
+                    , PostUpdateActions.ActionNoOp
+                    )
+
+                Nothing ->
+                    ( settings, PostUpdateActions.ActionNoOp )
 
         HandleSegmentStreams response ->
-            case ( response, settings.externalSegment ) of
-                ( Ok streams, SegmentOk segment ) ->
+            case ( track, response, settings.externalSegment ) of
+                ( Just isTrack, Ok streams, SegmentOk segment ) ->
                     ( settings
                     , PostUpdateActions.ActionTrackChanged
                         PostUpdateActions.EditPreservesIndex
-                        { track | track = pasteStreams track segment streams }
+                        { isTrack | track = pasteStreams isTrack segment streams }
                         "Paste Strava segment"
                     )
 
-                ( Err err, _ ) ->
+                ( _, Err err, _ ) ->
                     ( { settings | lastHttpError = Just err }
                     , PostUpdateActions.ActionNoOp
                     )

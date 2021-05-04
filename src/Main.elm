@@ -483,15 +483,12 @@ update msg model =
         StravaMessage stravaMsg ->
             let
                 ( newOptions, action ) =
-                    Maybe.map
-                        (StravaTools.update
-                            stravaMsg
-                            model.stravaOptions
-                            model.stravaAuthentication
-                            StravaMessage
-                        )
+                    StravaTools.update
+                        stravaMsg
+                        model.stravaOptions
+                        model.stravaAuthentication
+                        StravaMessage
                         model.track
-                        |> Maybe.withDefault ( model.stravaOptions, ActionNoOp )
             in
             processPostUpdateAction
                 { model | stravaOptions = newOptions }

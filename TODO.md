@@ -2,8 +2,6 @@
 
 # TODO
 
-BUG: ? Cant type in Strava route ID with no track.
-
 TODO: Update About text for V2.
 
 TODO: Usage logging calls.
