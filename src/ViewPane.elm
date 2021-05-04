@@ -1,5 +1,6 @@
 module ViewPane exposing (..)
 
+import About
 import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Border as Border
@@ -69,8 +70,9 @@ defaultViewPane =
     }
 
 
+defaultViewPanes : List ViewPane
 defaultViewPanes =
-    [ defaultViewPane
+    [ { defaultViewPane | activeContext = ViewAbout }
     , { defaultViewPane | paneId = 1, visible = False }
     , { defaultViewPane | paneId = 2, visible = False }
     , { defaultViewPane | paneId = 3, visible = False }
@@ -233,6 +235,9 @@ refreshSceneSearcher track context =
         ViewMap ->
             context
 
+        ViewAbout ->
+            context
+
 
 getActiveContext : ViewPane -> ViewingContext
 getActiveContext pane =
@@ -252,6 +257,9 @@ getActiveContext pane =
         ViewMap ->
             pane.mapContext
 
+        ViewAbout ->
+            pane.thirdPersonContext
+
 
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
 imageMessageWrapper paneId m =
@@ -267,6 +275,7 @@ viewModeChoices pane wrapper =
             , Input.optionWith ViewPlan <| radioButton "Plan"
             , Input.optionWith ViewProfile <| radioButton "Profile"
             , Input.optionWith ViewMap <| radioButton "Map"
+            , Input.optionWith ViewAbout <| radioButton "About"
             ]
     in
     Input.radioRow
@@ -333,7 +342,9 @@ view ( scene, profile ) options wrapper pane =
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     _ ->
-                        none
+                        About.viewAboutText
+                            pane.thirdPersonContext
+
 
             -- We leave the Map DIV intact, as destroying and creating is APITA.
             , conditionallyVisible (pane.activeContext == ViewMap) <|

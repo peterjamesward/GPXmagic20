@@ -7,3 +7,4 @@ type ViewingMode
     | ViewProfile
     | ViewPlan
     | ViewMap
+    | ViewAbout

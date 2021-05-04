@@ -4,7 +4,6 @@ module ScenePainterMap exposing (..)
 -- Works with Map Controller to talk to nasty JS stuff..
 
 import ColourPalette exposing (white)
-import Delay exposing (after)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -17,7 +16,6 @@ import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))

@@ -254,6 +254,13 @@ processMapMessage info json =
                 _ ->
                     Just ( info, Cmd.none )
 
+        Ok "no node" ->
+            Just
+                ( info
+                , createMap info
+                )
+
+
         _ ->
             Nothing
 

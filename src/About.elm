@@ -4,6 +4,8 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Markdown
+import Pixels exposing (inPixels)
+import ViewingContext exposing (ViewingContext)
 
 
 aboutText =
@@ -75,21 +77,25 @@ No cookies are used, though they may not be true for the site as a whole.
 """
 
 
-viewAboutText : Element msg
-viewAboutText =
-    el [ paddingXY 100 20, centerX, scrollbars, scrollbarY] <|
-        row
-            [ centerX
-            , Background.color <| rgb255 220 220 200
-            , clipY
-            , scrollbarY
-            , padding 20
-            , width fill
+viewAboutText : ViewingContext -> Element msg
+viewAboutText view =
+    let
+        ( w, h ) =
+            view.size
+    in
+    row
+        [ centerX
+        , Background.color <| rgb255 220 220 200
+        , clipY
+        , scrollbarY
+        , padding 20
+        , width <| px (inPixels w)
+        , height <| px (inPixels h)
+        ]
+        [ paragraph
+            [ width <| px (inPixels w)
+            , height <| px (inPixels h)
             ]
-            [ paragraph
-                [ width fill
-                , height fill
-                ]
-              <|
-                [ html <| Markdown.toHtml [] aboutText ]
-            ]
+          <|
+            [ html <| Markdown.toHtml [] aboutText ]
+        ]

@@ -211,7 +211,6 @@ update msg model =
         IpInfoAcknowledged _ ->
             ( model, Cmd.none )
 
-
         Tick newTime ->
             let
                 flythrough =
@@ -372,6 +371,12 @@ update msg model =
                             newTrack
                             "Dragged on map"
                         )
+
+                ( Ok "no node", _ ) ->
+                    ( model
+                    , Cmd.none
+                      --, Delay.after 100 <| MapController.createMap MapController.defaultMapInfo
+                    )
 
                 _ ->
                     ( model, Cmd.none )
@@ -880,11 +885,7 @@ view model =
             column
                 [ width fill ]
                 [ topLoadingBar model
-                , if model.track /= Nothing then
-                    contentArea model
-
-                  else
-                    About.viewAboutText
+                , contentArea model
                 ]
         ]
     }
@@ -1056,6 +1057,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Filters.info
       }
+
     --, { label = "Graph Theory"
     --  , state = Contracted
     --  , content =
