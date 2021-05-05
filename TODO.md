@@ -3,7 +3,6 @@
 # TODO
 
 BUG: Not enough space for tabs on pane 0. (what to do?)
-BUG: 1st view is wrong initially.
 TODO: Previews for Nudge and Bend on the map. (Support is in JS already.)
 
 **Graph** - the thing that kicked it all off. 

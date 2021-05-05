@@ -38,35 +38,25 @@ initialiseView :
 initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
-        firstPointOnTrack =
-            track.track
-                |> List.head
-                |> Maybe.map .xyz
-                |> Maybe.withDefault centralPoint
-                |> Point3d.translateBy (Vector3d.meters 0 0 1)
-
-        ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track.track
-
         viewContext =
             newViewingContext ViewFirstPerson
-
-        trackAzimuth =
-            track.track
-                |> List.head
-                |> Maybe.andThen .afterDirection
-                |> Maybe.withDefault Direction3d.x
-                |> Direction3d.reverse
-                |> Direction3d.azimuthIn SketchPlane3d.xy
     in
-    { viewContext
-        | focalPoint = firstPointOnTrack
-        , azimuth = trackAzimuth
-        , elevation = Angle.degrees 10
-        , sceneSearcher = trackPointNearestRay track.track
-        , zoomLevel = 14.0
-        , defaultZoomLevel = 14.0
-    }
+    case track.track of
+        p0 :: p1 :: _ ->
+            { viewContext
+                | focalPoint = p1.xyz |> Point3d.translateBy (Vector3d.meters 0 0 eyeHeight)
+                , azimuth = p0.afterDirection
+                    |> Maybe.map Direction3d.reverse
+                    |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
+                    |> Maybe.withDefault (Quantity.zero)
+                , elevation = Angle.degrees 0
+                , sceneSearcher = trackPointNearestRay track.track
+                , zoomLevel = 14.0
+                , defaultZoomLevel = 14.0
+            }
+
+        _ ->
+            viewContext
 
 
 update :
@@ -253,10 +243,8 @@ deriveViewPointAndCamera view =
                                 |> Point3d.translateBy (Vector3d.meters 0 0 1)
                         , azimuth = view.azimuth
                         , elevation = view.elevation
-                        , distance =
-                            Length.meters <|
-                                50.0
-                                    * metresPerPixel view.zoomLevel (degrees latitude)
+                        , distance = Length.meters 50.0
+                                    --* metresPerPixel view.zoomLevel (degrees latitude)
                         }
     in
     Camera3d.perspective
