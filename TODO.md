@@ -2,8 +2,12 @@
 
 # TODO
 
+BUG: NUdge preview still show when Tab closed.
+BUG: Can't undo graph create.
+
 **Graph** - the thing that kicked it all off. 
-a) Applying edits to canonical graph.
+DONE a) Applying edits to canonical graph.
+
 b) Turning it back into a route.
 c) DSL for re-routing (including turn-arounds).
 

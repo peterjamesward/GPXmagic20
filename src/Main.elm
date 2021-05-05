@@ -805,6 +805,7 @@ updateTrackInModel newTrack editType model =
         Just oldTrack ->
             let
                 purple =
+                    -- Need to get edit region to help the graph assess the changes.
                     Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
                 editRegion =
@@ -814,7 +815,7 @@ updateTrackInModel newTrack editType model =
 
                 newGraph =
                     Graph.updateWithNewTrack
-                        oldTrack.graph
+                        newTrack.graph
                         oldTrack.trackPoints
                         editRegion
                         newTrack.trackPoints
@@ -822,7 +823,7 @@ updateTrackInModel newTrack editType model =
 
                 newPointFromGraph =
                     Maybe.map Graph.walkTheRoute newGraph
-                        |> Maybe.withDefault oldTrack.trackPoints
+                        |> Maybe.withDefault newTrack.trackPoints
 
                 trackWithNewRoute =
                     { oldTrack | trackPoints = newPointFromGraph, graph = newGraph }
