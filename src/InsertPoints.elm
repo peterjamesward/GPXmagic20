@@ -142,10 +142,10 @@ insertPoints options track =
                 (List.range 1 trackPointsNeeded)
 
         totalTrackPointsBefore =
-            List.length track.track
+            List.length track.trackPoints
 
         pointsToInterpolate =
-            track.track
+            track.trackPoints
                 |> List.take endPoint.index
                 |> List.drop startPoint.index
 
@@ -158,10 +158,10 @@ insertPoints options track =
                 |> List.map trackPointFromPoint
 
         precedingTrackPoints =
-            List.take (startPoint.index + 1) track.track
+            List.take (startPoint.index + 1) track.trackPoints
 
         subsequentTrackPoints =
-            List.drop (endPoint.index + 1) track.track
+            List.drop (endPoint.index + 1) track.trackPoints
 
         newTrackPointList =
             precedingTrackPoints ++ allNewTrackPoints ++ subsequentTrackPoints
@@ -173,7 +173,7 @@ insertPoints options track =
                         + List.length newTrackPointList
                         - totalTrackPointsBefore
                     )
-                    track.track
+                    track.trackPoints
                     |> Maybe.withDefault track.currentNode
 
             else
@@ -186,7 +186,7 @@ insertPoints options track =
                         + List.length newTrackPointList
                         - totalTrackPointsBefore
                     )
-                    track.track
+                    track.trackPoints
                     |> Maybe.withDefault endPoint
                     |> Just
 
@@ -194,7 +194,7 @@ insertPoints options track =
                 track.markedNode
     in
     ( { track
-        | track = newTrackPointList
+        | trackPoints = newTrackPointList
         , currentNode = currentNode
         , markedNode = markedNode
       }

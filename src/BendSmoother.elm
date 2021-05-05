@@ -153,12 +153,12 @@ smoothBend track options =
                         marker
 
                 newTrackPoints =
-                    List.take bend.startIndex track.track
+                    List.take bend.startIndex track.trackPoints
                         ++ bend.nodes
-                        ++ List.drop (bend.endIndex + 1) track.track
+                        ++ List.drop (bend.endIndex + 1) track.trackPoints
             in
             { track
-                | track = newTrackPoints
+                | trackPoints = newTrackPoints
                 , currentNode = newCurrent
                 , markedNode = Just newMark
             }
@@ -570,10 +570,10 @@ softenSinglePoint track point =
         Just arc ->
             let
                 precedingTrack =
-                    List.take point.index track.track
+                    List.take point.index track.trackPoints
 
                 remainingTrack =
-                    List.drop (point.index + 1) track.track
+                    List.drop (point.index + 1) track.trackPoints
 
                 newPoints =
                     Arc3d.startPoint arc
@@ -585,7 +585,7 @@ softenSinglePoint track point =
                 newTrackPoints =
                     List.map trackPointFromPoint newPoints
             in
-            { track | track = precedingTrack ++ newTrackPoints ++ remainingTrack }
+            { track | trackPoints = precedingTrack ++ newTrackPoints ++ remainingTrack }
 
         Nothing ->
             track
@@ -595,9 +595,9 @@ singlePoint3dArc : Track -> TrackPoint -> Maybe (Arc3d Meters LocalCoords)
 singlePoint3dArc track point =
     let
         ( a, b, c ) =
-            ( List.Extra.getAt (point.index - 1) track.track
-            , List.Extra.getAt (point.index + 0) track.track
-            , List.Extra.getAt (point.index + 1) track.track
+            ( List.Extra.getAt (point.index - 1) track.trackPoints
+            , List.Extra.getAt (point.index + 0) track.trackPoints
+            , List.Extra.getAt (point.index + 1) track.trackPoints
             )
     in
     case ( a, b, c ) of

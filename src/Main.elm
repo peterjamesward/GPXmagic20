@@ -556,10 +556,10 @@ draggedOnMap json track =
             case maybetp of
                 Just tp ->
                     { track
-                        | track =
+                        | trackPoints =
                             List.Extra.updateAt tp.index
                                 (updateTrackPointLonLat ( endLon, endLat ) track)
-                                track.track
+                                track.trackPoints
                     }
 
                 Nothing ->
@@ -596,13 +596,14 @@ processPostUpdateAction model action =
                         |> Maybe.withDefault []
 
                 newTrack =
-                    { track | track = newTrackPoints }
+                    { track | trackPoints = newTrackPoints }
 
                 newModel =
                     { model | track = Just newTrack }
             in
             ( newModel
-            , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
+                |> updateTrackInModel track EditNoOp
+            , Cmd.batch <| ViewPane.makeMapCommands newTrack newModel.viewPanes
             )
 
         ( Just track, ActionPointerMove tp ) ->
@@ -613,13 +614,13 @@ processPostUpdateAction model action =
 
                 bendPreview =
                     { track
-                        | track =
+                        | trackPoints =
                             Maybe.map .nodes model.bendOptions.smoothedBend
                                 |> Maybe.withDefault []
                     }
 
                 nudgePreview =
-                    { track | track = model.nudgeSettings.preview }
+                    { track | trackPoints = model.nudgeSettings.preview }
             in
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
@@ -634,13 +635,13 @@ processPostUpdateAction model action =
 
                 bendPreview =
                     { track
-                        | track =
+                        | trackPoints =
                             Maybe.map .nodes model.bendOptions.smoothedBend
                                 |> Maybe.withDefault []
                     }
 
                 nudgePreview =
-                    { track | track = model.nudgeSettings.preview }
+                    { track | trackPoints = model.nudgeSettings.preview }
             in
             ( { model
                 | track = Just updatedTrack
@@ -664,13 +665,13 @@ processPostUpdateAction model action =
 
                 bendPreview =
                     { track
-                        | track =
+                        | trackPoints =
                             Maybe.map .nodes model.bendOptions.smoothedBend
                                 |> Maybe.withDefault []
                     }
 
                 nudgePreview =
-                    { track | track = model.nudgeSettings.preview }
+                    { track | trackPoints = model.nudgeSettings.preview }
             in
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
@@ -687,13 +688,13 @@ processPostUpdateAction model action =
             let
                 bendPreview =
                     { track
-                        | track =
+                        | trackPoints =
                             Maybe.map .nodes model.bendOptions.smoothedBend
                                 |> Maybe.withDefault []
                     }
 
                 nudgePreview =
-                    { track | track = model.nudgeSettings.preview }
+                    { track | trackPoints = model.nudgeSettings.preview }
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
@@ -773,19 +774,13 @@ processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.
 processGraphMessage innerMsg model isTrack =
     let
         ( newGraph, action ) =
-            Graph.update innerMsg isTrack.track isTrack.graph
+            Graph.update innerMsg isTrack.trackPoints isTrack.graph
 
         newTrack =
             { isTrack | graph = newGraph }
 
         newModel =
             { model | track = Just newTrack }
-
-        _ =
-            Debug.log "action" action
-
-        _ =
-            Debug.log "graph" newGraph
     in
     case action of
         GraphCreated ->
@@ -820,17 +815,17 @@ updateTrackInModel newTrack editType model =
                 newGraph =
                     Graph.updateWithNewTrack
                         oldTrack.graph
-                        oldTrack.track
+                        oldTrack.trackPoints
                         editRegion
-                        newTrack.track
+                        newTrack.trackPoints
                         editType
 
                 newPointFromGraph =
                     Maybe.map Graph.walkTheRoute newGraph
-                        |> Maybe.withDefault oldTrack.track
+                        |> Maybe.withDefault oldTrack.trackPoints
 
                 trackWithNewRoute =
-                    { oldTrack | track = newPointFromGraph, graph = newGraph }
+                    { oldTrack | trackPoints = newPointFromGraph, graph = newGraph }
             in
             { model | track = Just trackWithNewRoute }
                 |> repeatTrackDerivations
@@ -845,7 +840,7 @@ repeatTrackDerivations model =
         Just isTrack ->
             let
                 newTrack =
-                    { isTrack | track = prepareTrackPoints isTrack.track }
+                    { isTrack | trackPoints = prepareTrackPoints isTrack.trackPoints }
             in
             { model
                 | track = Just newTrack

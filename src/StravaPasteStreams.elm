@@ -53,16 +53,16 @@ pasteStreams track segment streams =
                                 List.reverse pointsFromStreams
 
                         precedingPoints =
-                            List.take (min start finish) track.track
+                            List.take (min start finish) track.trackPoints
 
                         remainingPoints =
-                            List.drop (max start finish + 1) track.track
+                            List.drop (max start finish + 1) track.trackPoints
                     in
                     precedingPoints
                         ++ orientedSegment
                         ++ remainingPoints
 
                 _ ->
-                    track.track
+                    track.trackPoints
     in
     newRoute

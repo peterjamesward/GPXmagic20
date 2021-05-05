@@ -223,16 +223,16 @@ refreshSceneSearcher track context =
     -- the latest version of Track available for searching.
     case context.viewingMode of
         ViewThirdPerson ->
-            { context | sceneSearcher = trackPointNearestRay track.track }
+            { context | sceneSearcher = trackPointNearestRay track.trackPoints }
 
         ViewFirstPerson ->
-            { context | sceneSearcher = trackPointNearestRay track.track }
+            { context | sceneSearcher = trackPointNearestRay track.trackPoints }
 
         ViewProfile ->
-            { context | sceneSearcher = ScenePainterProfile.profilePointNearestRay track.track }
+            { context | sceneSearcher = ScenePainterProfile.profilePointNearestRay track.trackPoints }
 
         ViewPlan ->
-            { context | sceneSearcher = trackPointNearestRay track.track }
+            { context | sceneSearcher = trackPointNearestRay track.trackPoints }
 
         ViewMap ->
             context

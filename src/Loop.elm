@@ -132,7 +132,7 @@ update msg settings track =
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
-                { track | track = List.reverse track.track }
+                { track | trackPoints = List.reverse track.trackPoints }
                 "reverse track"
             )
 
@@ -155,7 +155,7 @@ closeTheLoop : Track -> Loopiness -> Track
 closeTheLoop track loopiness =
     let
         maybeFirstPoint =
-            List.head track.track
+            List.head track.trackPoints
 
         backOneMeter : TrackPoint -> TrackPoint
         backOneMeter startPoint =
@@ -178,20 +178,20 @@ closeTheLoop track loopiness =
         newTrack gap =
             if gap |> Quantity.lessThanOrEqualTo (meters 1.0) then
                 -- Replace last trackpoint with the first as we are so close.
-                List.take (List.length track.track - 1) track.track
-                    ++ List.take 1 track.track
+                List.take (List.length track.trackPoints - 1) track.trackPoints
+                    ++ List.take 1 track.trackPoints
 
             else
                 -- A nicer solution here is to put a new trackpoint slightly "behind"
                 -- the existing start, and then join the current last trackpoint to
                 -- this new one. Existing tools can then be used to smooth as required.
-                track.track
-                    ++ List.map backOneMeter (List.take 1 track.track)
-                    ++ List.take 1 track.track
+                track.trackPoints
+                    ++ List.map backOneMeter (List.take 1 track.trackPoints)
+                    ++ List.take 1 track.trackPoints
     in
     case loopiness of
         AlmostLoop gap ->
-            { track | track = newTrack gap }
+            { track | trackPoints = newTrack gap }
 
         _ ->
             track
@@ -204,9 +204,9 @@ changeLoopStart track =
             track.currentNode.index
 
         ( startToCurrent, currentToEnd ) =
-            List.Extra.splitAt n track.track
+            List.Extra.splitAt n track.trackPoints
 
         newStart =
             List.take 1 currentToEnd
     in
-    { track | track = currentToEnd ++ startToCurrent ++ newStart }
+    { track | trackPoints = currentToEnd ++ startToCurrent ++ newStart }

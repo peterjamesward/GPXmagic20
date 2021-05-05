@@ -55,7 +55,7 @@ renderTrack options track =
     --TODO: Implement selective detail (optimisation!) = simpleSelectiveDetail context track
     let
         reducedTrack =
-            track.track
+            track.trackPoints
 
         trackShifted =
             List.drop 1 reducedTrack
@@ -300,13 +300,13 @@ simpleSelectiveDetail context track =
                    )
 
         precedingTrack =
-            List.Extra.takeWhile (not << isCentral) track.track
+            List.Extra.takeWhile (not << isCentral) track.trackPoints
 
         tailSection =
-            List.Extra.takeWhileRight (not << isCentral) track.track
+            List.Extra.takeWhileRight (not << isCentral) track.trackPoints
 
         detailSection =
-            track.track
+            track.trackPoints
                 |> List.Extra.dropWhile (not << isCentral)
                 |> List.Extra.takeWhile isCentral
 

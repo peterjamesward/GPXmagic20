@@ -29,7 +29,7 @@ initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track.track
+            zoomLevelFromBoundingBox viewSize track.trackPoints
     in
     { defaultViewingContext
         | focalPoint = centralPoint
@@ -41,7 +41,7 @@ initialiseView viewSize track =
 
 emptyPreviewCopy : Track -> Track
 emptyPreviewCopy track =
-    { track | track = [] }
+    { track | trackPoints = [] }
 
 initialiseMap : ViewingContext -> Track -> List (Cmd msg)
 initialiseMap context track =

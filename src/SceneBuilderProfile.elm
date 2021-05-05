@@ -46,10 +46,10 @@ renderTrack : DisplayOptions -> Track -> Scene
 renderTrack options track =
     let
         mapOverPairs f =
-            List.map2 f track.track (List.drop 1 track.track)
+            List.map2 f track.trackPoints (List.drop 1 track.trackPoints)
 
         mapOverPoints f =
-            List.map f track.track
+            List.map f track.trackPoints
 
         gradientFunction =
             case options.curtainStyle of
@@ -185,13 +185,13 @@ simpleSelectiveDetail context track =
                    )
 
         precedingTrack =
-            List.Extra.takeWhile (not << isCentral) track.track
+            List.Extra.takeWhile (not << isCentral) track.trackPoints
 
         tailSection =
-            List.Extra.takeWhileRight (not << isCentral) track.track
+            List.Extra.takeWhileRight (not << isCentral) track.trackPoints
 
         detailSection =
-            track.track
+            track.trackPoints
                 |> List.Extra.dropWhile (not << isCentral)
                 |> List.Extra.takeWhile isCentral
 

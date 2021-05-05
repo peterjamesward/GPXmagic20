@@ -98,7 +98,7 @@ deletePoints track =
             )
 
         remainingTrackPoints =
-            track.track
+            track.trackPoints
                 |> List.Extra.removeIfIndex (\i -> i >= start && i <= finish)
 
         newGraph =
@@ -121,7 +121,7 @@ deletePoints track =
             Nothing
     in
     { track
-        | track = newRoute
+        | trackPoints = newRoute
         , graph = newGraph
         , currentNode = newCurrent |> Maybe.withDefault track.currentNode
         , markedNode = newMarker

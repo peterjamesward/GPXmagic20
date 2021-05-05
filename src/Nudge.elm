@@ -96,7 +96,7 @@ nudgeNodes track settings =
             )
 
         nudgedTrackPoints =
-            nudgeNodeRange track.track from to settings
+            nudgeNodeRange track.trackPoints from to settings
 
         newGraph =
             Maybe.map (applyIndexPreservingEditsToGraph ( from, to ) nudgedTrackPoints) track.graph
@@ -121,7 +121,7 @@ nudgeNodes track settings =
                     Nothing
     in
     { track
-        | track = newRoute
+        | trackPoints = newRoute
         , graph = newGraph
         , currentNode = newCurrent |> Maybe.withDefault track.currentNode
         , markedNode = newMarker
@@ -190,7 +190,7 @@ previewNudgeNodes settings track =
             )
 
         ( beforeLastPoint, afterLastPoint ) =
-            List.Extra.splitAt (to + 1) track.track
+            List.Extra.splitAt (to + 1) track.trackPoints
 
         ( beforeFirstPoint, targetTPs ) =
             List.Extra.splitAt from beforeLastPoint
@@ -201,8 +201,8 @@ previewNudgeNodes settings track =
                 targetTPs
 
         ( prevNode, postNode ) =
-            ( List.Extra.getAt (from - 1) track.track
-            , List.Extra.getAt (to + 1) track.track
+            ( List.Extra.getAt (from - 1) track.trackPoints
+            , List.Extra.getAt (to + 1) track.trackPoints
             )
 
         nudgedListForVisuals =

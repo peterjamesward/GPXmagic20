@@ -91,7 +91,7 @@ update msg settings observations track =
             let
                 newTrack =
                     { track
-                        | track =
+                        | trackPoints =
                             applyWeightedAverageFilter
                                 track
                                 settings.filterBias
@@ -109,12 +109,12 @@ update msg settings observations track =
             let
                 newTrack =
                     { track
-                        | track =
+                        | trackPoints =
                             bezierSplines
                                 (observations.loopiness == IsALoop)
                                 settings.bezierTension
                                 settings.bezierTolerance
-                                track.track
+                                track.trackPoints
                     }
             in
             ( settings
@@ -218,7 +218,7 @@ applyWeightedAverageFilter :
 applyWeightedAverageFilter track filterBias loopiness =
     let
         points =
-            track.track
+            track.trackPoints
 
         ( startPoint, endPoint ) =
             case track.markedNode of

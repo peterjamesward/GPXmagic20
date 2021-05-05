@@ -38,11 +38,11 @@ initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track.track
+            zoomLevelFromBoundingBox viewSize track.trackPoints
     in
     { defaultViewingContext
         | focalPoint = centralPoint
-        , sceneSearcher = trackPointNearestRay track.track
+        , sceneSearcher = trackPointNearestRay track.trackPoints
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewPlan

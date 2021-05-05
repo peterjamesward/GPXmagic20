@@ -40,20 +40,20 @@ initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         firstPointOnTrack =
-            track.track
+            track.trackPoints
                 |> List.head
                 |> Maybe.map .xyz
                 |> Maybe.withDefault centralPoint
 
         ( zoom, centralPoint ) =
-            zoomLevelFromBoundingBox viewSize track.track
+            zoomLevelFromBoundingBox viewSize track.trackPoints
 
         viewContext =
             newViewingContext ViewThirdPerson
     in
     { viewContext
         | focalPoint = centralPoint
-        , sceneSearcher = trackPointNearestRay track.track
+        , sceneSearcher = trackPointNearestRay track.trackPoints
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
     }

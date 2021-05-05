@@ -120,10 +120,10 @@ lookForSimplifications : Options -> Track -> Options
 lookForSimplifications options track =
     let
         numberOfNodes =
-            List.length track.track
+            List.length track.trackPoints
 
         sortedByMetric =
-            List.sortBy .costMetric track.track
+            List.sortBy .costMetric track.trackPoints
 
         fraction =
             --TODO: Expose this parameter to the user.
@@ -205,7 +205,7 @@ straightenStraight track =
             )
 
         straightenWithinRegion =
-            List.map applyAdjustment track.track
+            List.map applyAdjustment track.trackPoints
 
         applyAdjustment : TrackPoint -> TrackPoint
         applyAdjustment pt =
@@ -228,7 +228,7 @@ straightenStraight track =
             else
                 pt
     in
-    ( { track | track = straightenWithinRegion }
+    ( { track | trackPoints = straightenWithinRegion }
     , undoMessage
     )
 
@@ -248,7 +248,7 @@ simplifyTrack options track =
               else
                 marker.index
             , if track.markedNode == Nothing then
-                List.length track.track
+                List.length track.trackPoints
 
               else if track.currentNode.index > marker.index then
                 track.currentNode.index
@@ -267,7 +267,7 @@ simplifyTrack options track =
                 (\n -> n >= startPoint && n <= endPoint)
                 options.metricFilteredPoints
     in
-    ( { track | track = removeByIndexNumbers nodesToRemove track.track }
+    ( { track | trackPoints = removeByIndexNumbers nodesToRemove track.trackPoints }
     , undoMessage
     )
 

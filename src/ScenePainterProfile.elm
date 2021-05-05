@@ -40,7 +40,7 @@ initialiseView viewSize track =
     -- This is just a simple default so we can see something!
     let
         profileTrack =
-            track.track
+            track.trackPoints
 
         ( zoom, centralPoint ) =
             profileZoomLevelFromBoundingBox viewSize profileTrack

@@ -125,7 +125,7 @@ positionSlider wrap track =
         , label =
             Input.labelHidden "Drag slider or use arrow buttons"
         , min = 0.0
-        , max = toFloat <| List.length track.track - 1
+        , max = toFloat <| List.length track.trackPoints - 1
         , step = Just 1
         , value = toFloat track.currentNode.index
         , thumb = Input.defaultThumb
@@ -136,7 +136,7 @@ update : Msg -> Track -> PostUpdateActions.PostUpdateAction msg
 update msg track =
     let
         safeNewNode newIndex =
-            case List.Extra.getAt newIndex track.track of
+            case List.Extra.getAt newIndex track.trackPoints of
                 Just tp ->
                     ActionFocusMove tp
 
@@ -162,16 +162,16 @@ update msg track =
         ( MarkerForwardOne, Just mark ) ->
             let
                 wrapped =
-                    (mark.index + 1) |> modBy (List.length track.track)
+                    (mark.index + 1) |> modBy (List.length track.trackPoints)
             in
-            ActionMarkerMove <| List.Extra.getAt wrapped track.track
+            ActionMarkerMove <| List.Extra.getAt wrapped track.trackPoints
 
         ( MarkerBackOne, Just mark ) ->
             let
                 wrapped =
-                    (mark.index - 1) |> modBy (List.length track.track)
+                    (mark.index - 1) |> modBy (List.length track.trackPoints)
             in
-            ActionMarkerMove <| List.Extra.getAt wrapped track.track
+            ActionMarkerMove <| List.Extra.getAt wrapped track.trackPoints
 
         _ ->
             ActionNoOp

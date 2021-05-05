@@ -128,7 +128,7 @@ smoothGradient track bumpiness =
             )
 
         applyAverageWithinRegion =
-            List.map applyAdjustment track.track
+            List.map applyAdjustment track.trackPoints
 
         applyAdjustment : TrackPoint -> TrackPoint
         applyAdjustment pt =
@@ -155,7 +155,7 @@ smoothGradient track bumpiness =
             else
                 pt
     in
-    ( { track | track = applyAverageWithinRegion }
+    ( { track | trackPoints = applyAverageWithinRegion }
     , undoMessage
     )
 

@@ -41,7 +41,7 @@ initialiseView viewSize track =
         viewContext =
             newViewingContext ViewFirstPerson
     in
-    case track.track of
+    case track.trackPoints of
         p0 :: p1 :: _ ->
             { viewContext
                 | focalPoint = p1.xyz |> Point3d.translateBy (Vector3d.meters 0 0 eyeHeight)
@@ -50,7 +50,7 @@ initialiseView viewSize track =
                     |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
                     |> Maybe.withDefault (Quantity.zero)
                 , elevation = Angle.degrees 0
-                , sceneSearcher = trackPointNearestRay track.track
+                , sceneSearcher = trackPointNearestRay track.trackPoints
                 , zoomLevel = 14.0
                 , defaultZoomLevel = 14.0
             }

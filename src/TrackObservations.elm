@@ -123,7 +123,7 @@ update msg settings observations track =
                     -- repeated use of prepareTrackPoints looks costly but check logic first.
                     Maybe.map
                         (BendSmoother.softenSinglePoint changingTrack)
-                        (List.Extra.getAt index changingTrack.track)
+                        (List.Extra.getAt index changingTrack.trackPoints)
                         |> Maybe.withDefault changingTrack
                         --|> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
 
@@ -153,7 +153,7 @@ deriveProblems track options =
                     >> Maybe.withDefault 0.0
                     >> (\x -> x > options.gradientChangeThreshold)
                 )
-                track.track
+                track.trackPoints
 
         suddenBearingChanges =
             List.filter
@@ -162,7 +162,7 @@ deriveProblems track options =
                     >> Quantity.abs
                     >> Quantity.greaterThan options.directionChangeThreshold
                 )
-                track.track
+                track.trackPoints
 
         zeroLengths =
             List.map2
@@ -173,12 +173,12 @@ deriveProblems track options =
                     else
                         Nothing
                 )
-                track.track
-                (List.drop 1 track.track)
+                track.trackPoints
+                (List.drop 1 track.trackPoints)
                 |> List.filterMap identity
 
         ( firstPoint, lastPoint ) =
-            ( List.head track.track, List.Extra.last track.track )
+            ( List.head track.trackPoints, List.Extra.last track.trackPoints )
 
         loopy =
             case ( firstPoint, lastPoint ) of
@@ -208,7 +208,7 @@ deriveProblems track options =
                     NotALoop <| meters 0.0
 
         trackLength =
-            track.track
+            track.trackPoints
                 |> List.Extra.last
                 |> Maybe.map .distanceFromStart
                 |> Maybe.withDefault (Length.meters 0.0)
@@ -227,17 +227,17 @@ deriveProblems track options =
                 |> Maybe.withDefault 0.0
 
         justXYZ =
-            List.map .xyz track.track
+            List.map .xyz track.trackPoints
 
         upVectors =
             List.filter
                 (.roadVector >> Vector3d.zComponent >> Quantity.greaterThan zero)
-                track.track
+                track.trackPoints
 
         downVectors =
             List.filter
                 (.roadVector >> Vector3d.zComponent >> Quantity.lessThan zero)
-                track.track
+                track.trackPoints
 
         ascent =
             upVectors
@@ -305,7 +305,7 @@ viewSteepClimbs options wrap track =
             a > b
 
         exceedingThreshold =
-            track.track
+            track.trackPoints
                 |> List.filter
                     (\pt ->
                         pt

@@ -256,7 +256,7 @@ prepareFlythrough : Track -> Options -> Maybe Flythrough
 prepareFlythrough track options =
     let
         trackAhead =
-            List.drop track.currentNode.index track.track
+            List.drop track.currentNode.index track.trackPoints
     in
     case trackAhead of
         pt1 :: pt2 :: rest ->

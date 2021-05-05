@@ -19,7 +19,7 @@ import Vector3d exposing (..)
 
 
 type alias Track =
-    { track : List TrackPoint
+    { trackPoints : List TrackPoint
     , trackName : Maybe String
     , currentNode : TrackPoint
     , markedNode : Maybe TrackPoint
@@ -46,7 +46,7 @@ trackFromGpx content =
         n1 :: _ ->
             Just
                 { trackName = GpxParser.parseTrackName content
-                , track = prepareTrackPoints centredPoints
+                , trackPoints = prepareTrackPoints centredPoints
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
@@ -65,7 +65,7 @@ removeGhanianTransform track =
     in
     List.map
         (.xyz >> reverseTransform)
-        track.track
+        track.trackPoints
 
 
 withoutGhanianTransform : Track -> Point3d Meters LocalCoords -> Point3d Meters LocalCoords
@@ -140,13 +140,13 @@ trackToJSON track =
 
 nextPointOn : Track -> TrackPoint -> TrackPoint
 nextPointOn track from =
-    List.Extra.getAt (from.index + 1) track.track
+    List.Extra.getAt (from.index + 1) track.trackPoints
         |> Maybe.withDefault from
 
 
 prevPointOn : Track -> TrackPoint -> TrackPoint
 prevPointOn track from =
-    List.Extra.getAt (from.index - 1) track.track
+    List.Extra.getAt (from.index - 1) track.trackPoints
         |> Maybe.withDefault from
 
 
@@ -220,7 +220,7 @@ searchTrackPointFromLonLat ( lon, lat ) track =
             .xyz >> Point3d.distanceFrom searchPoint >> Length.inMeters
 
         nearest =
-            List.Extra.minimumBy distance track.track
+            List.Extra.minimumBy distance track.trackPoints
     in
     nearest
 
@@ -242,5 +242,5 @@ updateTrackPointLonLat ( lon, lat ) track tp =
 
 trackBoundingBox : Track -> BoundingBox3d Meters LocalCoords
 trackBoundingBox track =
-    BoundingBox3d.hullOfN .xyz track.track
+    BoundingBox3d.hullOfN .xyz track.trackPoints
         |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
