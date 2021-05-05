@@ -141,40 +141,42 @@ mapOverPaneContexts f pane =
     }
 
 
+setSize size context =
+    { context | size = size }
+
+
 enlargePane : ViewPane -> ViewPane
 enlargePane pane =
     let
-        enlargeContext context =
-            let
-                ( width, height ) =
-                    context.size
-            in
-            { context
-                | size =
-                    ( width |> Quantity.plus (pixels 80)
-                    , height |> Quantity.plus (pixels 60)
-                    )
-            }
+        ( width, height ) =
+            pane.viewPixels
+
+        newSize =
+            ( width |> Quantity.plus (pixels 80)
+            , height |> Quantity.plus (pixels 60)
+            )
     in
-    pane |> mapOverPaneContexts enlargeContext
+    { pane
+        | viewPixels = newSize
+    }
+        |> mapOverPaneContexts (setSize newSize)
 
 
 diminishPane : ViewPane -> ViewPane
 diminishPane pane =
     let
-        diminishContext context =
-            let
-                ( width, height ) =
-                    context.size
-            in
-            { context
-                | size =
-                    ( width |> Quantity.minus (pixels 80)
-                    , height |> Quantity.minus (pixels 60)
-                    )
-            }
+        ( width, height ) =
+            pane.viewPixels
+
+        newSize =
+            ( width |> Quantity.minus (pixels 80)
+            , height |> Quantity.minus (pixels 60)
+            )
     in
-    pane |> mapOverPaneContexts diminishContext
+    { pane
+        | viewPixels = newSize
+    }
+        |> mapOverPaneContexts (setSize newSize)
 
 
 resetAllViews :
@@ -269,14 +271,30 @@ imageMessageWrapper paneId m =
 viewModeChoices : ViewPane -> (ViewPaneMessage -> msg) -> Element msg
 viewModeChoices pane wrapper =
     let
+        ( w, h ) =
+            pane.viewPixels
+
+        _ =
+            Debug.log "w" w
+
         fullOptionList =
-            [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
-            , Input.optionWith ViewFirstPerson <| radioButton "First person"
-            , Input.optionWith ViewPlan <| radioButton "Plan"
-            , Input.optionWith ViewProfile <| radioButton "Profile"
-            , Input.optionWith ViewMap <| radioButton "Map"
-            , Input.optionWith ViewAbout <| radioButton "About"
-            ]
+            if w |> Quantity.lessThan (pixels 720) then
+                [ Input.optionWith ViewThirdPerson <| radioButton "3rd"
+                , Input.optionWith ViewFirstPerson <| radioButton "1st"
+                , Input.optionWith ViewPlan <| radioButton "Plan"
+                , Input.optionWith ViewProfile <| radioButton "Prof."
+                , Input.optionWith ViewMap <| radioButton "Map"
+                , Input.optionWith ViewAbout <| radioButton "?"
+                ]
+
+            else
+                [ Input.optionWith ViewThirdPerson <| radioButton "Third person"
+                , Input.optionWith ViewFirstPerson <| radioButton "First person"
+                , Input.optionWith ViewPlan <| radioButton "Plan"
+                , Input.optionWith ViewProfile <| radioButton "Profile"
+                , Input.optionWith ViewMap <| radioButton "Map"
+                , Input.optionWith ViewAbout <| radioButton "About"
+                ]
     in
     Input.radioRow
         [ Border.rounded 6 ]
@@ -344,7 +362,6 @@ view ( scene, profile ) options wrapper pane =
                     _ ->
                         About.viewAboutText
                             pane.thirdPersonContext
-
 
             -- We leave the Map DIV intact, as destroying and creating is APITA.
             , conditionallyVisible (pane.activeContext == ViewMap) <|
