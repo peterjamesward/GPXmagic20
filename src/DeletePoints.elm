@@ -8,6 +8,7 @@ import List.Extra
 import PostUpdateActions exposing (PostUpdateAction)
 import Quantity
 import Track exposing (Track)
+import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (defaultColumnLayout, prettyButtonStyles)

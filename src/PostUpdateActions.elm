@@ -1,10 +1,8 @@
 module PostUpdateActions exposing (..)
 
-import Length exposing (Meters)
-import LocalCoords exposing (LocalCoords)
 import OAuth.GpxSource exposing (GpxSource)
-import Point3d exposing (Point3d)
 import Track exposing (Track)
+import TrackEditType exposing (TrackEditType)
 import TrackPoint exposing (TrackPoint)
 
 
@@ -23,8 +21,6 @@ type
     | ActionNoOp
     | ActionCommand cmd
     | ActionNewRoute String GpxSource
+    | ActionWalkGraph
 
 
-type TrackEditType
-    = EditPreservesIndex
-    | EditPreservesNodePosition

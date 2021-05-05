@@ -7,6 +7,7 @@ import LineSegment3d
 import Point3d
 import PostUpdateActions
 import Track exposing (Track)
+import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0)
 import ViewPureStyles exposing (prettyButtonStyles)

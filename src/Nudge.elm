@@ -12,6 +12,7 @@ import Point3d
 import PostUpdateActions
 import Quantity
 import Track exposing (Track)
+import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d

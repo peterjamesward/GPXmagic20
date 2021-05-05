@@ -33,7 +33,7 @@ import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, vi
 import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
-import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..))
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
@@ -44,6 +44,7 @@ import Task
 import Time
 import TipJar
 import Track exposing (Track, searchTrackPointFromLonLat, summaryData, updateTrackPointLonLat)
+import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, prepareTrackPoints)
 import Url exposing (Url)
@@ -261,10 +262,12 @@ update msg model =
             ( model, refreshMap )
 
         GraphMessage innerMsg ->
-            ( Maybe.map (processGraphMessage innerMsg model) model.track
-                |> Maybe.withDefault model
-            , Cmd.none
-            )
+            let
+                ( newModel, action ) =
+                    Maybe.map (processGraphMessage innerMsg model) model.track
+                        |> Maybe.withDefault ( model, ActionNoOp )
+            in
+            processPostUpdateAction newModel action
 
         AccordionMessage accordionMsg ->
             processPostUpdateAction
@@ -574,18 +577,36 @@ processPostUpdateAction model action =
         ( Just track, ActionTrackChanged editType newTrack undoMsg ) ->
             ( model
                 |> addToUndoStack undoMsg
-                |> updateTrackInModel newTrack
+                |> updateTrackInModel newTrack editType
             , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
             )
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
             ( model
-                |> updateTrackInModel track
+                |> updateTrackInModel track EditNoOp
+            , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
+            )
+
+        ( Just track, ActionWalkGraph ) ->
+            -- Graph settings ghave changed. We must get the new route.
+            let
+                newTrackPoints =
+                    Maybe.map Graph.walkTheRoute track.graph
+                        |> Maybe.withDefault []
+
+                newTrack =
+                    { track | track = newTrackPoints }
+
+                newModel =
+                    { model | track = Just newTrack }
+            in
+            ( newModel
             , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
             )
 
         ( Just track, ActionPointerMove tp ) ->
+            --TODO: Remove duplication from following cases.
             let
                 updatedTrack =
                     { track | currentNode = tp }
@@ -748,41 +769,74 @@ processViewPaneMessage innerMsg model track =
             ( updatedModel, Cmd.none )
 
 
-processGraphMessage : Graph.Msg -> Model -> Track -> Model
+processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.PostUpdateAction msg )
 processGraphMessage innerMsg model isTrack =
     let
         ( newGraph, action ) =
             Graph.update innerMsg isTrack.track isTrack.graph
 
-        newTrackPoints =
-            Maybe.map Graph.walkTheRoute newGraph
-                |> Maybe.withDefault []
-
         newTrack =
-            { isTrack
-                | graph = newGraph
-                , track = newTrackPoints
-            }
+            { isTrack | graph = newGraph }
 
-        newModel : Model -> Model
-        newModel m =
-            { m | track = Just newTrack }
+        newModel =
+            { model | track = Just newTrack }
+
+        _ =
+            Debug.log "action" action
+
+        _ =
+            Debug.log "graph" newGraph
     in
     case action of
-        GraphChanged undoMsg ->
-            model |> addToUndoStack undoMsg |> newModel
+        GraphCreated ->
+            ( newModel, PostUpdateActions.ActionWalkGraph )
 
-        GraphSettingsChanged ->
-            model |> newModel
+        GraphOffsetChange ->
+            ( newModel, ActionNoOp )
 
-        _ ->
+        GraphOffsetApplied ->
+            ( newModel, PostUpdateActions.ActionWalkGraph )
+
+        GraphNoAction ->
+            ( newModel, ActionNoOp )
+
+        GraphRemoved ->
+            ( newModel, ActionNoOp )
+
+
+updateTrackInModel : Track -> TrackEditType -> Model -> Model
+updateTrackInModel newTrack editType model =
+    case model.track of
+        Just oldTrack ->
+            let
+                purple =
+                    Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
+
+                editRegion =
+                    ( min oldTrack.currentNode.index purple.index
+                    , max oldTrack.currentNode.index purple.index
+                    )
+
+                newGraph =
+                    Graph.updateWithNewTrack
+                        oldTrack.graph
+                        oldTrack.track
+                        editRegion
+                        newTrack.track
+                        editType
+
+                newPointFromGraph =
+                    Maybe.map Graph.walkTheRoute newGraph
+                        |> Maybe.withDefault oldTrack.track
+
+                trackWithNewRoute =
+                    { oldTrack | track = newPointFromGraph, graph = newGraph }
+            in
+            { model | track = Just trackWithNewRoute }
+                |> repeatTrackDerivations
+
+        Nothing ->
             model
-
-
-updateTrackInModel : Track -> Model -> Model
-updateTrackInModel track model =
-    { model | track = Just track }
-        |> repeatTrackDerivations
 
 
 repeatTrackDerivations : Model -> Model
@@ -1099,17 +1153,16 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Filters.info
       }
-
-    --, { label = "Graph Theory"
-    --  , state = Contracted
-    --  , content =
-    --        model.track
-    --            |> Maybe.map .graph
-    --            |> Maybe.andThen
-    --                (Just << viewGraphControls GraphMessage)
-    --            |> Maybe.withDefault none
-    --  , info = Graph.info
-    --  }
+    , { label = "Graph Theory"
+      , state = Contracted
+      , content =
+            model.track
+                |> Maybe.map .graph
+                |> Maybe.andThen
+                    (Just << viewGraphControls GraphMessage)
+                |> Maybe.withDefault none
+      , info = Graph.info
+      }
     , { label = "Route summary"
       , state = Contracted
       , content = TrackObservations.overviewSummary model.observations

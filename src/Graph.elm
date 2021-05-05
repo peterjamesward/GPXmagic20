@@ -10,13 +10,14 @@ import Dict exposing (Dict)
 import Direction3d
 import Element as E exposing (..)
 import Element.Input as I
-import Length exposing (Length, Meters, inMeters, meters)
+import Length exposing (Length, inMeters, meters)
 import List.Extra as List
 import LocalCoords exposing (LocalCoords)
 import Point2d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Set exposing (Set)
+import TrackEditType exposing (..)
 import TrackPoint exposing (..)
 import Utils exposing (showDecimal2)
 import Vector3d
@@ -53,6 +54,7 @@ type
     | EdgePoint EdgeKey -- Canonical index of edge, canonical index of node
 
 
+emptyGraph : Graph
 emptyGraph =
     { nodes = Dict.empty
     , edges = Dict.empty
@@ -71,9 +73,11 @@ type Msg
 
 
 type GraphActionImpact
-    = GraphChanged String
-    | GraphSettingsChanged
+    = GraphCreated
+    | GraphOffsetChange
+    | GraphOffsetApplied
     | GraphNoAction
+    | GraphRemoved
 
 
 type alias Traversal =
@@ -89,17 +93,17 @@ type alias Route =
 info =
     """## Graph
 
-This is a whole new mode of working r=with routes. It divides the track
-into "Edges" (which can be traversed more than once, in either direction),
-and "Nodes" (which are where Edges join).
+This is a whole new mode of working with routes. It divides the track
+into "Edges" (these can be traversed more than once, in either direction),
+and "Nodes" (these are where Edges join).
 
 In the process, elevation differences resulting from route planning tools
-are removed, so there is a "canonical" form for each Edge. All your future
-work will use these canonical edges, for consistent elevation.
+are removed, so there is a _canonical_ form for each Edge. All your future
+work will use these canonical edges for consistent elevation.
 
 Once this is done, you can apply up to 5m horizontal separation between
 different edge traversal directions. Choose left or right to suit your
-local roads (usually).
+local traffic convention (usually).
 
 More to follow ...
 """
@@ -109,9 +113,8 @@ viewGraphControls : (Msg -> msg) -> Maybe Graph -> Element msg
 viewGraphControls wrapper graph =
     let
         offset =
-            Maybe.map
-                (.centreLineOffset >> Length.inMeters)
-                graph
+            Maybe.map .centreLineOffset graph
+                |> Maybe.map inMeters
                 |> Maybe.withDefault 0.0
 
         analyseButton =
@@ -179,14 +182,14 @@ update msg trackPoints graph =
     case msg of
         GraphAnalyse ->
             ( Just <| deriveTrackPointGraph trackPoints
-            , GraphChanged "Canonicalised edges"
+            , GraphCreated
             )
 
         CentreLineOffset offset ->
             case graph of
                 Just isGraph ->
                     ( Just { isGraph | centreLineOffset = meters offset }
-                    , GraphSettingsChanged
+                    , GraphOffsetChange
                     )
 
                 Nothing ->
@@ -194,10 +197,10 @@ update msg trackPoints graph =
 
         ApplyOffset ->
             -- The route is pre-computed; it's the Undo message that puts it into effect.
-            ( graph, GraphChanged "Apply offset" )
+            ( graph, GraphOffsetApplied )
 
         ConvertFromGraph ->
-            ( Nothing, GraphChanged "Graph removed" )
+            ( Nothing, GraphRemoved )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph
@@ -570,8 +573,6 @@ addCanonical edge dict =
 
                 reverseEntryFound =
                     Dict.member reverseKey dict
-
-                --_ = Debug.log "Found" (forwardEntryFound, reverseEntryFound)
             in
             if
                 -- We may have encountered in either direction.
@@ -658,17 +659,9 @@ useCanonicalEdges edges canonicalEdges =
                             Just ( ( compN, comp1, compM ), Backwards )
 
                         _ ->
-                            --let
-                            --    _ =
-                            --        Debug.log "Not found in Dict" ( isStart.index, isFinish.index )
-                            --in
                             Nothing
 
                 _ ->
-                    --let
-                    --    _ =
-                    --        Debug.log "Where is Edge" edge
-                    --in
                     Nothing
     in
     List.map replaceEdge edges |> List.filterMap identity
@@ -836,3 +829,35 @@ applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
 
         Nothing ->
             graph
+
+
+updateWithNewTrack :
+    Maybe Graph
+    -> List TrackPoint
+    -> ( Int, Int )
+    -> List TrackPoint
+    -> TrackEditType
+    -> Maybe Graph
+updateWithNewTrack oldGraph oldTrack editRegion newTrack editType =
+    case oldGraph of
+        Nothing ->
+            -- Dispense with trivial case first.
+            oldGraph
+
+        Just graph ->
+            let
+                newGraph =
+                    case editType of
+                        EditPreservesIndex ->
+                            -- E.g. Nudge, may span multiple Edges and can update Nodes.
+                            applyIndexPreservingEditsToGraph editRegion newTrack graph
+
+                        EditPreservesNodePosition ->
+                            -- E.g. Insert/Delete, can only work on one edge excluding nodes.
+                            applyNodePreservingEditsToGraph editRegion newTrack graph
+
+                        _ ->
+                            -- Used only by Undo/Redo; no graph change.
+                            graph
+            in
+            Just graph

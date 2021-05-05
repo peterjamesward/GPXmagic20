@@ -12,6 +12,7 @@ import PostUpdateActions
 import Quantity
 import SketchPlane3d
 import Track exposing (Track)
+import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)

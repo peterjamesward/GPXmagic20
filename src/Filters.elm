@@ -13,6 +13,7 @@ import Polyline3d exposing (Polyline3d)
 import PostUpdateActions
 import TabCommonElements exposing (wholeTrackTextHelper)
 import Track exposing (Track)
+import TrackEditType as PostUpdateActions
 import TrackObservations exposing (TrackObservations)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Triangle3d exposing (Triangle3d)
