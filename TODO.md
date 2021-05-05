@@ -2,9 +2,9 @@
 
 # TODO
 
-**BUG**: Point needs to move after Delete single point.
+**BUG**: Current point needs to move after Delete single point.
 
-**BUG**: NUdge preview still shows when Tab closed.
+**BUG**: Nudge preview still shows when Tab closed.
 
 **BUG**: Can't Undo graph create.
 
@@ -12,9 +12,12 @@
 _DONE_ a) Applying edits to canonical graph.
 _DONE_ b) Turning it back into a route.
 
-c) DSL for re-routing (including turn-arounds).
+c) DSL for re-routing (including turn-arounds ??).
 Try re-purposing the Plan view with a column that lists Traversals.
+(More likely a derivation of ScenePainterPlan.)
 Button to delete from end. Click on Plan to add Edge.
+Needs some human-readable edge labelling. 
+(Length might do as a stand-in. "Forward 383m to point 57", say.)
 
 -- 2.1.0 ships here --
 

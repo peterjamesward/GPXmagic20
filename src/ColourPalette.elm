@@ -11,7 +11,10 @@ stravaOrange =
 white =
     rgb255 0xFF 0xFF 0xFF
 
-warningColor = sunFlower
+
+warningColor =
+    sunFlower
+
 
 buttonBackground =
     belizeHole
@@ -42,17 +45,19 @@ expandedTabShadow =
 
 
 expandedTabBackground =
-    nephritis
+    rgb255 0 148 50
+
 
 pinnedTabBackground =
     sunFlower
+
 
 accordionContentBackground =
     clouds
 
 
 collapsedTabBackground =
-    concrete
+    rgb255 0 98 102
 
 
 radioButtonShadow =
@@ -64,7 +69,7 @@ radioButtonSelected =
 
 
 radioButtonDefault =
-    concrete
+    rgb255 0 98 102
 
 
 radioButtonText =
