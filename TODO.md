@@ -2,8 +2,6 @@
 
 # TODO
 
-TODO: Previews for Nudge and Bend on the map. (Support is in JS already.)
-
 **Graph** - the thing that kicked it all off. 
 a) Applying edits to canonical graph.
 b) Turning it back into a route.

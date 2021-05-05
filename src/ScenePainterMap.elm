@@ -39,11 +39,14 @@ initialiseView viewSize track =
         , viewingMode = ViewMap
     }
 
+emptyPreviewCopy : Track -> Track
+emptyPreviewCopy track =
+    { track | track = [] }
 
 initialiseMap : ViewingContext -> Track -> List (Cmd msg)
 initialiseMap context track =
     [ MapController.addTrackToMap context track
-    , MapController.addMarkersToMap track [] []
+    , MapController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
     , MapController.centreMap context track
     , MapController.zoomMap context
     ]
@@ -52,7 +55,7 @@ initialiseMap context track =
 mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)
 mapTrackHasChanged context track =
     [ MapController.addTrackToMap context track
-    , MapController.addMarkersToMap track [] []
+    , MapController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
     ]
 
 

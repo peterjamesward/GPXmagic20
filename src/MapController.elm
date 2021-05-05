@@ -154,8 +154,8 @@ addTrackToMap context track =
 
 addMarkersToMap :
     Track
-    -> List TrackPoint -- bend smoothing suggestion
-    -> List TrackPoint -- node nudging preview
+    -> Track -- bend smoothing suggestion
+    -> Track -- node nudging preview
     -> Cmd msg
 addMarkersToMap track smoothBend nudged =
     let
@@ -176,18 +176,16 @@ addMarkersToMap track smoothBend nudged =
                     [ ( "Cmd", E.string "Mark" )
                     , ( "orange", encodePos <| realWorldPosition track.currentNode )
                     , ( "purple", encodePos <| realWorldPosition mark )
-
-                    --, ( "bend", trackToJSON smoothBend )
-                    --, ( "nudge", trackToJSON nudged )
+                    , ( "bend", trackToJSON smoothBend )
+                    , ( "nudge", trackToJSON nudged )
                     ]
 
             Nothing ->
                 E.object
                     [ ( "Cmd", E.string "Mark" )
                     , ( "orange", encodePos <| realWorldPosition track.currentNode )
-
-                    --, ( "bend", trackToJSON smoothBend )
-                    --, ( "nudge", trackToJSON nudged )
+                    , ( "bend", trackToJSON smoothBend )
+                    , ( "nudge", trackToJSON nudged )
                     ]
 
 
@@ -259,7 +257,6 @@ processMapMessage info json =
                 ( info
                 , createMap info
                 )
-
 
         _ ->
             Nothing

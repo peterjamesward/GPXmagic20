@@ -33,6 +33,7 @@ type NudgeEffects
 type alias NudgeSettings =
     { horizontal : Length.Length
     , vertical : Length.Length
+    , preview : List TrackPoint
     }
 
 
@@ -40,6 +41,7 @@ defaultNudgeSettings : NudgeSettings
 defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero
+    , preview = []
     }
 
 
@@ -63,7 +65,8 @@ makeUndoMessage track =
 
         ( dist1, dist2 ) =
             ( Length.inMeters track.currentNode.distanceFromStart
-            , Length.inMeters markerPosition.distanceFromStart)
+            , Length.inMeters markerPosition.distanceFromStart
+            )
 
         ( from, to ) =
             ( min dist1 dist2
@@ -171,7 +174,7 @@ nudgeTrackPoint trackpoint settings =
     { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
-previewNudgeNodes : NudgeSettings -> Track -> List TrackPoint
+previewNudgeNodes : NudgeSettings -> Track -> NudgeSettings
 previewNudgeNodes settings track =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
@@ -215,7 +218,7 @@ previewNudgeNodes settings track =
                 ( Nothing, Nothing ) ->
                     nudgedPoints
     in
-    nudgedListForVisuals
+    { settings | preview = nudgedListForVisuals }
 
 
 viewNudgeTools : NudgeSettings -> (NudgeMsg -> msg) -> Element msg
@@ -288,7 +291,7 @@ update :
     NudgeMsg
     -> NudgeSettings
     -> Track
-    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction msg)
+    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction msg )
 update msg settings track =
     case msg of
         SetHorizontalNudgeFactor length ->
@@ -315,7 +318,11 @@ update msg settings track =
             )
 
         NudgeNode _ ->
-            ( settings
+            let
+                nudgedPoints =
+                    nudgeNodes track settings
+            in
+            ( { settings | preview = [] }
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
                 (nudgeNodes track settings)

@@ -9,17 +9,19 @@ import ViewingContext exposing (ViewingContext)
 
 
 aboutText =
-    """## Thank you for trying GPXmagic. It is freely provided without warranty.
+    """## Thank you for trying GPXmagic.
+    GPXmagic is freely provided without warranty.
 
-## Changes
+## 2.0.1 update 2021-05-05
 
-- 2021-05-04 **Version 2 has arrived**
+- Profile view respects view options for track point cones and pillars.
+- First person view is initialised properly.
+- View mode labels abbreviated when pane size is reduced.
+- Nudge and Bend smoother previews appear on Map view.
 
-```
 Version 2 is a 90% re-write.
 The code base, whilst imperfect, is a much better base for further work.
 I've tried to keep the overall look consistent, but with some fairly obvious and major changes.
-```
 
 * You can have up to four view panes open
 * Views can be re-sized (but they're all the same size)

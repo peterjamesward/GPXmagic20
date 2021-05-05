@@ -589,17 +589,37 @@ processPostUpdateAction model action =
             let
                 updatedTrack =
                     { track | currentNode = tp }
+
+                bendPreview =
+                    { track
+                        | track =
+                            Maybe.map .nodes model.bendOptions.smoothedBend
+                                |> Maybe.withDefault []
+                    }
+
+                nudgePreview =
+                    { track | track = model.nudgeSettings.preview }
             in
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack [] [] ]
+                [ MapController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
             )
 
         ( Just track, ActionFocusMove tp ) ->
             let
                 updatedTrack =
                     { track | currentNode = tp }
+
+                bendPreview =
+                    { track
+                        | track =
+                            Maybe.map .nodes model.bendOptions.smoothedBend
+                                |> Maybe.withDefault []
+                    }
+
+                nudgePreview =
+                    { track | track = model.nudgeSettings.preview }
             in
             ( { model
                 | track = Just updatedTrack
@@ -607,7 +627,7 @@ processPostUpdateAction model action =
               }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack [] []
+                [ MapController.addMarkersToMap updatedTrack bendPreview nudgePreview
                 , if ViewPane.mapPaneIsLinked model.viewPanes then
                     MapController.centreMapOnCurrent updatedTrack
 
@@ -620,11 +640,21 @@ processPostUpdateAction model action =
             let
                 updatedTrack =
                     { track | markedNode = maybeTp }
+
+                bendPreview =
+                    { track
+                        | track =
+                            Maybe.map .nodes model.bendOptions.smoothedBend
+                                |> Maybe.withDefault []
+                    }
+
+                nudgePreview =
+                    { track | track = model.nudgeSettings.preview }
             in
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack [] [] ]
+                [ MapController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
             )
 
         ( Just track, ActionRepaintMap ) ->
@@ -633,9 +663,20 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionPreview ) ->
+            let
+                bendPreview =
+                    { track
+                        | track =
+                            Maybe.map .nodes model.bendOptions.smoothedBend
+                                |> Maybe.withDefault []
+                    }
+
+                nudgePreview =
+                    { track | track = model.nudgeSettings.preview }
+            in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap track [] [] ]
+                [ MapController.addMarkersToMap track bendPreview nudgePreview ]
             )
 
         ( _, ActionCommand a ) ->
@@ -788,16 +829,16 @@ renderVaryingSceneElements model =
             Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
                 |> Maybe.withDefault []
 
-        updatedNudgePreview =
+        updatedNudgeSettings =
             if
                 Accordion.tabIsOpen "Nudge" model.toolsAccordion
                     && Nudge.settingNotZero model.nudgeSettings
             then
                 Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
-                    |> Maybe.withDefault []
+                    |> Maybe.withDefault model.nudgeSettings
 
             else
-                []
+                model.nudgeSettings
 
         updatedBendOptions =
             let
@@ -826,7 +867,8 @@ renderVaryingSceneElements model =
     { model
         | visibleMarkers = updatedMarkers
         , profileMarkers = updatedProfileMarkers
-        , nudgePreview = SceneBuilder.previewNudge updatedNudgePreview
+        , nudgeSettings = updatedNudgeSettings
+        , nudgePreview = SceneBuilder.previewNudge updatedNudgeSettings.preview
         , bendOptions = updatedBendOptions
         , bendPreview =
             Maybe.map
@@ -836,7 +878,7 @@ renderVaryingSceneElements model =
         , nudgeProfilePreview =
             SceneBuilderProfile.previewNudge
                 model.displayOptions
-                updatedNudgePreview
+                updatedNudgeSettings.preview
         , straightenOptions = updatedStraightenOptions
     }
         |> composeScene
