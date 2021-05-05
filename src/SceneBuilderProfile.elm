@@ -1,11 +1,11 @@
 module SceneBuilderProfile exposing (..)
 
-import Angle
+import Angle exposing (Angle)
 import Axis3d
-import Color
+import Color exposing (Color, black, brown)
 import Cone3d
 import Direction3d exposing (negativeZ)
-import DisplayOptions exposing (DisplayOptions)
+import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
 import Length exposing (Length, Meters, meters)
 import LineSegment3d
@@ -16,10 +16,12 @@ import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
+import SceneBuilder exposing (when)
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (gradientColourPastel)
+import Triangle3d
+import Utils exposing (gradientColourPastel, gradientColourVivid)
 import Vector3d
 
 
@@ -42,14 +44,34 @@ defaultRenderingContext =
 
 renderTrack : DisplayOptions -> Track -> Scene
 renderTrack options track =
-    List.map2
-        (paintCurtainBetween options.verticalExaggeration)
-        track.track
-        (List.drop 1 track.track)
+    let
+        mapOverPairs f =
+            List.map2 f track.track (List.drop 1 track.track)
+
+        mapOverPoints f =
+            List.map f track.track
+
+        gradientFunction =
+            case options.curtainStyle of
+                NoCurtain ->
+                    always Color.lightGray
+
+                PlainCurtain ->
+                    always <| Color.rgb255 0 100 0
+
+                RainbowCurtain ->
+                    gradientColourVivid
+
+                PastelCurtain ->
+                    gradientColourPastel
+    in
+    mapOverPairs (paintCurtainBetween options.verticalExaggeration gradientFunction)
+        ++ when options.roadPillars (mapOverPoints (roadSupportPillar options.verticalExaggeration))
+        ++ when options.roadCones (mapOverPoints (trackPointCone options.verticalExaggeration))
 
 
-paintCurtainBetween : Float -> TrackPoint -> TrackPoint -> Entity LocalCoords
-paintCurtainBetween scale pt1 pt2 =
+paintCurtainBetween : Float -> (Angle -> Color) -> TrackPoint -> TrackPoint -> Entity LocalCoords
+paintCurtainBetween scale colouring pt1 pt2 =
     let
         scaledXZ : TrackPoint -> Point3d Meters LocalCoords
         scaledXZ p =
@@ -64,7 +86,7 @@ paintCurtainBetween scale pt1 pt2 =
                 |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
                 |> Maybe.withDefault Quantity.zero
     in
-    Scene3d.quad (Material.color <| gradientColourPastel gradient)
+    Scene3d.quad (Material.color <| colouring gradient)
         (scaledXZ pt1)
         (scaledXZ pt2)
         (Point3d.projectOnto Plane3d.xy pt2.profileXZ)
@@ -112,7 +134,6 @@ renderMarkers options track =
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
 
 
-
 paintSomethingBetween scale width material pt1 pt2 =
     let
         scaledXZ : TrackPoint -> Point3d Meters LocalCoords
@@ -129,8 +150,8 @@ paintSomethingBetween scale width material pt1 pt2 =
                 (scaledXZ pt2)
 
         ( topEdgeVector, bottomEdgeVector ) =
-            ( Vector3d.fromTuple meters (0.0, 0.0, width)
-            , Vector3d.fromTuple meters (0.0, 0.0, -1 * width)
+            ( Vector3d.fromTuple meters ( 0.0, 0.0, width )
+            , Vector3d.fromTuple meters ( 0.0, 0.0, -1 * width )
             )
 
         ( topEdge, bottomEdge ) =
@@ -235,3 +256,54 @@ previewNudge options points =
             nudgeElement
             points
             (List.drop 1 points)
+
+
+roadSupportPillar : Float -> TrackPoint -> Entity LocalCoords
+roadSupportPillar scale pt =
+    let
+        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
+        scaledXZ p =
+            let
+                { x, y, z } =
+                    Point3d.toMeters p.profileXZ
+            in
+            Point3d.fromTuple meters ( x, y, z * scale )
+
+        centre =
+            LineSegment3d.from
+                (scaledXZ pt |> Point3d.translateBy (Vector3d.meters 0.0 -1.0 -1.0))
+                (scaledXZ pt |> Point3d.projectOnto Plane3d.xy)
+
+        eastSide =
+            centre |> LineSegment3d.translateBy (Vector3d.meters -1.0 0.0 0.0)
+
+        westSide =
+            centre |> LineSegment3d.translateBy (Vector3d.meters 1.0 0.0 0.0)
+    in
+    Scene3d.quad (Material.color brown)
+        (LineSegment3d.startPoint eastSide)
+        (LineSegment3d.endPoint eastSide)
+        (LineSegment3d.endPoint westSide)
+        (LineSegment3d.startPoint westSide)
+
+
+trackPointCone : Float -> TrackPoint -> Entity LocalCoords
+trackPointCone scale pt =
+    -- V2.0 just uses crossed triangle.
+    let
+        scaledXZ :  Point3d Meters LocalCoords
+        scaledXZ  =
+            let
+                { x, y, z } =
+                    Point3d.toMeters pt.profileXZ
+            in
+            Point3d.fromTuple meters ( x, y - 1.0, z * scale )
+
+        eastSide =
+            scaledXZ |> Point3d.translateBy (Vector3d.meters 1.0 -1.0 -1.0)
+
+        westSide =
+            scaledXZ |> Point3d.translateBy (Vector3d.meters -1.0 -1.0 -1.0)
+    in
+    Scene3d.triangle (Material.color black)
+        (Triangle3d.fromVertices ( eastSide, scaledXZ, westSide ))
