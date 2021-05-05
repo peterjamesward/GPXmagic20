@@ -65,7 +65,7 @@ defaultViewPane =
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
     , mapContext = newViewingContext ViewMap
-    , viewPixels = ( pixels 800, pixels 600 )
+    , viewPixels = ( pixels 800, pixels 500 )
     , paneLinked = True
     }
 
@@ -153,7 +153,7 @@ enlargePane pane =
 
         newSize =
             ( width |> Quantity.plus (pixels 80)
-            , height |> Quantity.plus (pixels 60)
+            , height |> Quantity.plus (pixels 50)
             )
     in
     { pane
@@ -170,7 +170,7 @@ diminishPane pane =
 
         newSize =
             ( width |> Quantity.minus (pixels 80)
-            , height |> Quantity.minus (pixels 60)
+            , height |> Quantity.minus (pixels 50)
             )
     in
     { pane
