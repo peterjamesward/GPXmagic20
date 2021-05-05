@@ -274,9 +274,6 @@ viewModeChoices pane wrapper =
         ( w, h ) =
             pane.viewPixels
 
-        _ =
-            Debug.log "w" w
-
         fullOptionList =
             if w |> Quantity.lessThan (pixels 720) then
                 [ Input.optionWith ViewThirdPerson <| radioButton "3rd"
