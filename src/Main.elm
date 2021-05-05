@@ -796,7 +796,12 @@ processGraphMessage innerMsg model isTrack =
             ( newModel, ActionNoOp )
 
         GraphRemoved ->
-            ( newModel, ActionNoOp )
+            ( newModel
+            , PostUpdateActions.ActionTrackChanged
+                EditNoOp
+                newTrack
+                "Leave Graph mode"
+            )
 
 
 updateTrackInModel : Track -> TrackEditType -> Model -> Model

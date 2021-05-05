@@ -2,26 +2,33 @@
 
 # TODO
 
-BUG: NUdge preview still show when Tab closed.
-BUG: Can't undo graph create.
+**BUG**: Point needs to move after Delete single point.
+
+**BUG**: NUdge preview still shows when Tab closed.
+
+**BUG**: Can't Undo graph create.
 
 **Graph** - the thing that kicked it all off. 
-DONE a) Applying edits to canonical graph.
+_DONE_ a) Applying edits to canonical graph.
+_DONE_ b) Turning it back into a route.
 
-b) Turning it back into a route.
 c) DSL for re-routing (including turn-arounds).
+Try re-purposing the Plan view with a column that lists Traversals.
+Button to delete from end. Click on Plan to add Edge.
 
 -- 2.1.0 ships here --
 
-A: **New bend smoother filter** - four point external centroid (convex only, not 'S').
+Flythrough respects any azimuth & elevation applied when stationery.
 
-B: New tool to **limit gradients** (range or whole track), retaining elevation of marked points.
+Terrain. Perhaps with quadtree.
+
+**New bend smoother filter** - four point external centroid (convex only, not 'S').
+
+New tool to **limit gradients** (range or whole track), retaining elevation of marked points.
 (There are options. None are perfect, but we can be easier to use than competition.)
 
-E: One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
+One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 
-F: Terrain. Perhaps with quadtree.
+Working offline?
 
-C: Working offline?
-
-D: Beware bounding box on tracks crossing the international date line !!
+Beware bounding box on tracks crossing the international date line !!

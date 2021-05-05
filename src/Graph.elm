@@ -161,16 +161,17 @@ viewGraphControls wrapper graph =
                 , label = E.text "Apply offset"
                 }
     in
-    E.row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
-        [ E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
-            [ analyseButton
+    if graph == Nothing then
+        E.el [ width fill, paddingXY 20 10 ] analyseButton
+
+    else
+        E.row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+            [ E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+                [ offsetSlider
+                , applyOffsetButton
+                ]
             , finishButton
             ]
-        , E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
-            [ offsetSlider
-            , applyOffsetButton
-            ]
-        ]
 
 
 update :
