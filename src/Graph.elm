@@ -312,7 +312,7 @@ update msg trackPoints current graph =
             )
 
         ( ConvertFromGraph, _ ) ->
-            ( Nothing, GraphRemoved )
+            ( graph, GraphRemoved )
 
         ( HighlightTraversal t, Just isGraph ) ->
             ( Just { isGraph | selectedTraversal = Just t }
@@ -1088,3 +1088,10 @@ addTraversalFromCurrent graph current =
 
         _ ->
             ( Just graph, GraphNoAction )
+
+
+publishUserRoute : Graph -> List TrackPoint
+publishUserRoute graph =
+    walkTheRouteInternal graph graph.userRoute
+        |> List.unzip
+        |> Tuple.first

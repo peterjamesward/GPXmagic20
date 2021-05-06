@@ -12,12 +12,11 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.0.1 update 2021-05-05
+## 2.1.0 update 2021-05-05
 
-- Profile view respects view options for track point cones and pillars.
-- First person view is initialised properly.
-- View mode labels abbreviated when pane size is reduced.
-- Nudge and Bend smoother previews appear on Map view.
+- Ability for user to modify route using Graph tools.
+- Enhanced contrast on tab labels.
+- Viewaspect ratio now 8:5 (was 8:6).
 
 Version 2 is a 90% re-write.
 The code base, whilst imperfect, is a much better base for further work.

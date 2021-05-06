@@ -824,10 +824,22 @@ processGraphMessage innerMsg model isTrack =
 
         GraphRemoved ->
             -- Now we can walk the route safely, applying offset.
-            ( model
+            let
+                trackFromGraph =
+                    { isTrack
+                        | trackPoints =
+                            Maybe.map Graph.publishUserRoute newGraph
+                                |> Maybe.withDefault []
+                        , graph = Nothing
+                    }
+
+                modelFromGraph =
+                    { model | track = Just trackFromGraph }
+            in
+            ( modelFromGraph
             , PostUpdateActions.ActionTrackChanged
                 EditNoOp
-                newTrack
+                trackFromGraph
                 "Leave Graph mode"
             )
 
