@@ -6,9 +6,11 @@ module Graph exposing (..)
 
 import Angle
 import Axis3d
+import ColourPalette
 import Dict exposing (Dict)
 import Direction3d
-import Element as E exposing (..)
+import Element exposing (..)
+import Element.Border as Border
 import Element.Input as I
 import Length exposing (Length, inMeters, meters)
 import List.Extra as List
@@ -70,6 +72,7 @@ type Msg
     | CentreLineOffset Float
     | ApplyOffset
     | ConvertFromGraph
+    | HighlightTraversal Traversal
 
 
 type GraphActionImpact
@@ -120,13 +123,13 @@ viewGraphControls wrapper graph =
         analyseButton =
             I.button prettyButtonStyles
                 { onPress = Just (wrapper GraphAnalyse)
-                , label = E.text "Convert to Graph"
+                , label = text "Convert to Graph"
                 }
 
         finishButton =
             I.button prettyButtonStyles
                 { onPress = Just (wrapper ConvertFromGraph)
-                , label = E.text "Convert from Graph"
+                , label = text "Convert from Graph"
                 }
 
         offsetSlider =
@@ -135,7 +138,7 @@ viewGraphControls wrapper graph =
                 { onChange = wrapper << CentreLineOffset
                 , label =
                     I.labelBelow [] <|
-                        E.text <|
+                        text <|
                             "Offset = "
                                 ++ (showDecimal2 <| abs offset)
                                 ++ "m "
@@ -158,20 +161,112 @@ viewGraphControls wrapper graph =
         applyOffsetButton =
             I.button prettyButtonStyles
                 { onPress = Just (wrapper ApplyOffset)
-                , label = E.text "Apply offset"
+                , label = text "Apply offset"
                 }
     in
-    if graph == Nothing then
-        E.el [ width fill, paddingXY 20 10 ] analyseButton
+    case graph of
+        Nothing ->
+            el [ width fill, paddingXY 20 10 ] analyseButton
 
-    else
-        E.row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
-            [ E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
-                [ offsetSlider
-                --, applyOffsetButton
+        Just g ->
+            column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+                [ row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+                    [ offsetSlider
+                    , finishButton
+                    ]
+                , showTheRoute g wrapper
                 ]
-            , finishButton
+
+
+showTheRoute : Graph -> (Msg -> msg) -> Element msg
+showTheRoute graph wrap =
+    let
+        traversalData =
+            List.filterMap showTraversal graph.route
+
+        showTraversal t =
+            let
+                ( from, to, via ) =
+                    t.edge
+
+                ( node1, node2 ) =
+                    ( Dict.get from graph.nodes, Dict.get to graph.nodes )
+            in
+            case ( node1, node2 ) of
+                ( Just n1, Just n2 ) ->
+                    Just
+                        { direction =
+                            case t.direction of
+                                Forwards ->
+                                    "Forwards "
+
+                                Backwards ->
+                                    "Backwards "
+                        , from = n1.index
+                        , to = n2.index
+                        , link = t
+                        }
+
+                _ ->
+                    Nothing
+
+        headerAttrs =
+            [ Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
             ]
+
+        makeShowButton : Traversal -> Element msg
+        makeShowButton t =
+            I.button []
+                { onPress = Just (wrap <| HighlightTraversal t)
+                , label = text "Show"
+                }
+    in
+    column
+        [ width <| maximum 500 fill
+        , height <| px 250
+        , spacing 10
+        , padding 5
+        , Border.width 2
+        , Border.rounded 6
+        , Border.color ColourPalette.expandedTabBorder
+        ]
+        [ row [ width fill ]
+            [ el ((width <| fillPortion 2) :: headerAttrs) <| text "Direction"
+            , el ((width <| fillPortion 1) :: headerAttrs) <| text "From"
+            , el ((width <| fillPortion 1) :: headerAttrs) <| text "To"
+            , el ((width <| fillPortion 1) :: headerAttrs) <| text "Show"
+            ]
+
+        -- workaround for a bug: it's necessary to wrap `table` in an `el`
+        -- to get table height attribute to apply
+        , el [ width fill ] <|
+            table
+                [ width fill
+                , height <| px 200
+                , scrollbarY
+                , spacing 10
+                ]
+                { data = traversalData
+                , columns =
+                    [ { header = none
+                      , width = fillPortion 2
+                      , view = .direction >> text >> el [ centerY ]
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = .from >> String.fromInt >> text
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = .to >> String.fromInt >> text
+                      }
+                    , { header = none
+                      , width = fillPortion 1
+                      , view = .link >> makeShowButton
+                      }
+                    ]
+                }
+        ]
 
 
 update :
@@ -201,6 +296,9 @@ update msg trackPoints graph =
 
         ConvertFromGraph ->
             ( Nothing, GraphRemoved )
+
+        HighlightTraversal t ->
+            ( Nothing, GraphNoAction )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph
