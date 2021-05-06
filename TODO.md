@@ -2,16 +2,18 @@
 
 # TODO
 
-**Graph** - the thing that kicked it all off. 
+**Graph**
 _DONE_ a) Applying edits to canonical graph.
 _DONE_ b) Turning it back into a route.
 
 c) DSL for re-routing (including turn-arounds ??).
+
+Note that route editing means we can't use the route to decode edit intent.
+Think now we should have a different route for editing!!
+
 d) Radius bends at nodes using 3D smoother.
 
 -- 2.1.0 ships here --
-
-Flythrough respects any azimuth & elevation applied when stationery.
 
 Terrain. Perhaps with quadtree.
 
@@ -19,6 +21,8 @@ Terrain. Perhaps with quadtree.
 
 New tool to **limit gradients** (range or whole track), retaining elevation of marked points.
 (There are options. None are perfect, but we can be easier to use than competition.)
+
+Flythrough respects any azimuth & elevation applied when stationery.
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 

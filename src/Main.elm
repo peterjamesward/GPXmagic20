@@ -785,12 +785,16 @@ processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.
 processGraphMessage innerMsg model isTrack =
     let
         ( newGraph, action ) =
-            Graph.update innerMsg isTrack.trackPoints isTrack.graph
+            Graph.update innerMsg
+                isTrack.trackPoints
+                isTrack.currentNode
+                isTrack.graph
 
         newTrack =
             { isTrack | graph = newGraph }
 
-        modelWithUpdatedGraph = { model | track = Just newTrack }
+        modelWithUpdatedGraph =
+            { model | track = Just newTrack }
     in
     case action of
         GraphCreated ->

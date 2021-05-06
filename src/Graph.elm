@@ -43,7 +43,8 @@ type alias EdgeKey =
 type alias Graph =
     { nodes : Dict XY TrackPoint
     , edges : Dict EdgeKey (List TrackPoint)
-    , route : List Traversal
+    , userRoute : List Traversal
+    , canonicalRoute : List Traversal
     , centreLineOffset : Length
     , trackPointToCanonical : Dict XY PointType
     , nodePairsInRoute : List ( Int, Int )
@@ -62,7 +63,8 @@ emptyGraph : Graph
 emptyGraph =
     { nodes = Dict.empty
     , edges = Dict.empty
-    , route = []
+    , userRoute = []
+    , canonicalRoute = []
     , centreLineOffset = Length.meters 0.0
     , trackPointToCanonical = Dict.empty
     , nodePairsInRoute = []
@@ -73,7 +75,6 @@ emptyGraph =
 type Msg
     = GraphAnalyse
     | CentreLineOffset Float
-    | ApplyOffset
     | ConvertFromGraph
     | HighlightTraversal Traversal
     | RemoveLastTraversal
@@ -198,7 +199,7 @@ showTheRoute : Graph -> (Msg -> msg) -> Element msg
 showTheRoute graph wrap =
     let
         traversalData =
-            List.filterMap showTraversal graph.route
+            List.filterMap showTraversal graph.userRoute
 
         showTraversal t =
             let
@@ -293,9 +294,10 @@ showTheRoute graph wrap =
 update :
     Msg
     -> List TrackPoint
+    -> TrackPoint -- orange marker needed to add traversal.
     -> Maybe Graph
     -> ( Maybe Graph, GraphActionImpact )
-update msg trackPoints graph =
+update msg trackPoints current graph =
     case ( msg, graph ) of
         ( GraphAnalyse, _ ) ->
             ( Just <| deriveTrackPointGraph trackPoints
@@ -318,20 +320,20 @@ update msg trackPoints graph =
         ( RemoveLastTraversal, Just isGraph ) ->
             let
                 entries =
-                    List.length isGraph.route
+                    List.length isGraph.userRoute
 
                 selectedIndex =
                     Maybe.withDefault 0 <|
                         case isGraph.selectedTraversal of
                             Just selected ->
-                                List.findIndex ((==) selected) isGraph.route
+                                List.findIndex ((==) selected) isGraph.userRoute
 
                             Nothing ->
                                 Just 0
             in
             ( Just
                 { isGraph
-                    | route = List.take (entries - 1) isGraph.route
+                    | userRoute = List.take (entries - 1) isGraph.userRoute
                     , selectedTraversal =
                         if selectedIndex == entries - 1 then
                             Nothing
@@ -437,7 +439,8 @@ deriveTrackPointGraph trackPoints =
             { emptyGraph
                 | nodes = rawNodes
                 , edges = canonicalEdges
-                , route = canonicalRoute
+                , userRoute = canonicalRoute
+                , canonicalRoute = canonicalRoute
                 , nodePairsInRoute = nodePairs
             }
     in
@@ -449,8 +452,8 @@ deriveTrackPointGraph trackPoints =
             deriveTrackPointGraph removeAnnoyingPoints
 
 
-walkTheRouteInternal : Graph -> List ( TrackPoint, PointType )
-walkTheRouteInternal graph =
+walkTheRouteInternal : Graph -> List Traversal -> List ( TrackPoint, PointType )
+walkTheRouteInternal graph route =
     -- This will convert the original route into a route made from canonical edges.
     let
         addToTrail { edge, direction } accumulator =
@@ -498,7 +501,7 @@ walkTheRouteInternal graph =
     List.foldr
         addToTrail
         { points = [], nextIdx = 0 }
-        graph.route
+        route
         |> .points
 
 
@@ -815,14 +818,13 @@ useCanonicalEdges edges canonicalEdges =
 
 walkTheRoute : Graph -> List TrackPoint
 walkTheRoute graph =
-    let
-        walkedRoute =
-            walkTheRouteInternal graph
-    in
-    walkedRoute
+    walkTheRouteInternal graph graph.canonicalRoute
         |> List.map Tuple.first
-        |> prepareTrackPoints
-        |> List.map (applyCentreLineOffset graph.centreLineOffset)
+
+
+
+--|> prepareTrackPoints
+--|> List.map (applyCentreLineOffset graph.centreLineOffset)
 
 
 applyCentreLineOffset : Length -> TrackPoint -> TrackPoint
@@ -859,7 +861,7 @@ applyIndexPreservingEditsToGraph ( editStart, editEnd ) newTrackPoints graph =
     -- we can apply posution-only changes to our canonical nodes and edges.
     let
         routeInfoPairs =
-            List.zip graph.nodePairsInRoute graph.route
+            List.zip graph.nodePairsInRoute graph.canonicalRoute
 
         edgesOverlappingRange =
             routeInfoPairs
@@ -918,7 +920,7 @@ applyNodePreservingEditsToGraph : ( Int, Int ) -> List TrackPoint -> Graph -> Gr
 applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
     let
         routeInfoPairs =
-            List.zip graph.nodePairsInRoute graph.route
+            List.zip graph.nodePairsInRoute graph.canonicalRoute
 
         edgeContainingingRange =
             -- Our rules state there must be only one edge for this type of edit.
