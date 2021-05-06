@@ -8,6 +8,7 @@ import Angle
 import Axis3d
 import ColourPalette
 import Dict exposing (Dict)
+import Dict.Extra
 import Direction3d
 import Element exposing (..)
 import Element.Background as Background
@@ -16,6 +17,7 @@ import Element.Input as I
 import Length exposing (Length, inMeters, meters)
 import List.Extra as List
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra
 import Point2d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
@@ -345,7 +347,7 @@ update msg trackPoints current graph =
             )
 
         ( AddTraversalFromCurrent, Just isGraph ) ->
-            ( Nothing, GraphNoAction )
+            addTraversalFromCurrent isGraph current
 
         _ ->
             ( graph, GraphNoAction )
@@ -1038,3 +1040,60 @@ previewTraversal graph =
 
         Nothing ->
             []
+
+
+addTraversalFromCurrent : Graph -> TrackPoint -> ( Maybe Graph, GraphActionImpact )
+addTraversalFromCurrent graph current =
+    -- Figure out which edge the current track point is on.
+    -- If it's accessible from the end of the current route, add it to the route.
+    let
+        edgeContainingCurrent =
+            graph.edges
+                |> Dict.Extra.find
+                    (\edgeKey points -> List.member current points)
+
+        lastTraversalOfRoute =
+            List.last graph.userRoute
+
+        _ =
+            Debug.log "Edge" <| Maybe.map Tuple.first edgeContainingCurrent
+
+        _ =
+            Debug.log "Last" lastTraversalOfRoute
+    in
+    case ( edgeContainingCurrent, lastTraversalOfRoute ) of
+        ( Just ( newEdgeKey, _ ), Just lastTraversal ) ->
+            let
+                _ =
+                    Debug.log "New" newSegment
+
+                ( lastStart, lastEnd, _ ) =
+                    lastTraversal.edge
+
+                lastNode =
+                    if lastTraversal.direction == Forwards then
+                        lastEnd
+
+                    else
+                        lastStart
+
+                ( newStart, newEnd, _ ) =
+                    newEdgeKey
+
+                newSegment =
+                    if newStart == lastNode then
+                        Just { edge = newEdgeKey, direction = Forwards }
+
+                    else if newEnd == lastNode then
+                        Just { edge = newEdgeKey, direction = Backwards }
+
+                    else
+                        Nothing
+
+                newRoute =
+                    graph.userRoute ++ Maybe.Extra.toList newSegment
+            in
+            ( Just { graph | userRoute = newRoute }, GraphRouteChanged )
+
+        _ ->
+            ( Just graph, GraphNoAction )
