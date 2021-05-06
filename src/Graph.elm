@@ -83,7 +83,7 @@ type Msg
 type GraphActionImpact
     = GraphCreated
     | GraphOffsetChange
-    | GraphOffsetApplied
+    | GraphRouteChanged
     | GraphNoAction
     | GraphRemoved
     | GraphShowTraversal
@@ -296,43 +296,57 @@ update :
     -> Maybe Graph
     -> ( Maybe Graph, GraphActionImpact )
 update msg trackPoints graph =
-    case msg of
-        GraphAnalyse ->
+    case ( msg, graph ) of
+        ( GraphAnalyse, _ ) ->
             ( Just <| deriveTrackPointGraph trackPoints
             , GraphCreated
             )
 
-        CentreLineOffset offset ->
-            case graph of
-                Just isGraph ->
-                    ( Just { isGraph | centreLineOffset = meters offset }
-                    , GraphOffsetChange
-                    )
+        ( CentreLineOffset offset, Just isGraph ) ->
+            ( Just { isGraph | centreLineOffset = meters offset }
+            , GraphOffsetChange
+            )
 
-                Nothing ->
-                    ( Nothing, GraphNoAction )
-
-        ApplyOffset ->
-            ( graph, GraphOffsetApplied )
-
-        ConvertFromGraph ->
+        ( ConvertFromGraph, _ ) ->
             ( Nothing, GraphRemoved )
 
-        HighlightTraversal t ->
-            case graph of
-                Just isGraph ->
-                    ( Just { isGraph | selectedTraversal = Just t }
-                    , GraphShowTraversal
-                    )
+        ( HighlightTraversal t, Just isGraph ) ->
+            ( Just { isGraph | selectedTraversal = Just t }
+            , GraphShowTraversal
+            )
 
-                Nothing ->
-                    ( Nothing, GraphNoAction )
+        ( RemoveLastTraversal, Just isGraph ) ->
+            let
+                entries =
+                    List.length isGraph.route
 
-        RemoveLastTraversal ->
+                selectedIndex =
+                    Maybe.withDefault 0 <|
+                        case isGraph.selectedTraversal of
+                            Just selected ->
+                                List.findIndex ((==) selected) isGraph.route
+
+                            Nothing ->
+                                Just 0
+            in
+            ( Just
+                { isGraph
+                    | route = List.take (entries - 1) isGraph.route
+                    , selectedTraversal =
+                        if selectedIndex == entries - 1 then
+                            Nothing
+
+                        else
+                            isGraph.selectedTraversal
+                }
+            , GraphRouteChanged
+            )
+
+        ( AddTraversalFromCurrent, Just isGraph ) ->
             ( Nothing, GraphNoAction )
 
-        AddTraversalFromCurrent ->
-            ( Nothing, GraphNoAction )
+        _ ->
+            ( graph, GraphNoAction )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph

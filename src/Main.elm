@@ -789,6 +789,8 @@ processGraphMessage innerMsg model isTrack =
 
         newTrack =
             { isTrack | graph = newGraph }
+
+        modelWithUpdatedGraph = { model | track = Just newTrack }
     in
     case action of
         GraphCreated ->
@@ -800,20 +802,24 @@ processGraphMessage innerMsg model isTrack =
             )
 
         GraphOffsetChange ->
-            ( model
-            , PostUpdateActions.ActionTrackChanged
-                EditNoOp
-                newTrack
-                "Offset changed"
+            ( modelWithUpdatedGraph
+            , PostUpdateActions.ActionNoOp
             )
 
-        GraphOffsetApplied ->
-            ( model, PostUpdateActions.ActionWalkGraph )
+        GraphRouteChanged ->
+            -- Note we must not walk the route as that would remove track points
+            -- that we will want to use for alternative routes.
+            -- SO we MUST NOT walk the route until we exit graph mode.
+            -- That implies that setting the offset should also not walk the route.
+            ( modelWithUpdatedGraph
+            , PostUpdateActions.ActionPreview
+            )
 
         GraphNoAction ->
             ( model, ActionNoOp )
 
         GraphRemoved ->
+            -- Now we can walk the route safely, applying offset.
             ( model
             , PostUpdateActions.ActionTrackChanged
                 EditNoOp
@@ -822,10 +828,6 @@ processGraphMessage innerMsg model isTrack =
             )
 
         GraphShowTraversal ->
-            let
-                modelWithUpdatedGraph =
-                    { model | track = Just newTrack }
-            in
             ( modelWithUpdatedGraph
             , PostUpdateActions.ActionPreview
             )
