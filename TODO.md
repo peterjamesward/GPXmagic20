@@ -2,8 +2,6 @@
 
 # TODO
 
-**BUG**: Nudge preview still shows when Tab closed.
-
 **BUG**: Can't Undo graph create.
 
 **Graph** - the thing that kicked it all off. 

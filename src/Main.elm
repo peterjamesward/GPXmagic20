@@ -685,16 +685,25 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionPreview ) ->
+            -- We make dummy "Tracks" here for the Map.
             let
                 bendPreview =
-                    { track
-                        | trackPoints =
-                            Maybe.map .nodes model.bendOptions.smoothedBend
-                                |> Maybe.withDefault []
-                    }
+                    if Accordion.tabIsOpen "Bend smoother classic" model.toolsAccordion then
+                        { track
+                            | trackPoints =
+                                Maybe.map .nodes model.bendOptions.smoothedBend
+                                    |> Maybe.withDefault []
+                        }
+
+                    else
+                        { track | trackPoints = [] }
 
                 nudgePreview =
-                    { track | trackPoints = model.nudgeSettings.preview }
+                    if Accordion.tabIsOpen "Nudge" model.toolsAccordion then
+                        { track | trackPoints = model.nudgeSettings.preview }
+
+                    else
+                        { track | trackPoints = [] }
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
@@ -885,15 +894,17 @@ renderVaryingSceneElements model =
                 |> Maybe.withDefault []
 
         updatedNudgeSettings =
+            let settings = model.nudgeSettings
+            in
             if
                 Accordion.tabIsOpen "Nudge" model.toolsAccordion
-                    && Nudge.settingNotZero model.nudgeSettings
+                    && Nudge.settingNotZero settings
             then
                 Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
-                    |> Maybe.withDefault model.nudgeSettings
+                    |> Maybe.withDefault settings
 
             else
-                model.nudgeSettings
+                { settings | preview = [] }
 
         updatedBendOptions =
             let
