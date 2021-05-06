@@ -2,8 +2,6 @@
 
 # TODO
 
-**BUG**: Current point needs to move after Delete single point.
-
 **BUG**: Nudge preview still shows when Tab closed.
 
 **BUG**: Can't Undo graph create.

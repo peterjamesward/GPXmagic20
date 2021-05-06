@@ -831,7 +831,7 @@ updateTrackInModel newTrack editType model =
                         |> Maybe.withDefault newTrack.trackPoints
 
                 trackWithNewRoute =
-                    { oldTrack | trackPoints = newPointFromGraph, graph = newGraph }
+                    { newTrack | trackPoints = newPointFromGraph, graph = newGraph }
             in
             { model | track = Just trackWithNewRoute }
                 |> repeatTrackDerivations

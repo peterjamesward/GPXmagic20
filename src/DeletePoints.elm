@@ -97,32 +97,15 @@ deletePoints track =
             , max track.currentNode.index marker.index
             )
 
-        remainingTrackPoints =
+        newRoute =
             track.trackPoints
                 |> List.Extra.removeIfIndex (\i -> i >= start && i <= finish)
 
-        newGraph =
-            Maybe.map
-                (applyNodePreservingEditsToGraph ( start, finish ) remainingTrackPoints)
-                track.graph
-
-        newRoute =
-            case newGraph of
-                Just isGraph ->
-                    Graph.walkTheRoute isGraph
-
-                Nothing ->
-                    remainingTrackPoints
-
         newCurrent =
-            List.Extra.getAt track.currentNode.index remainingTrackPoints
-
-        newMarker =
-            Nothing
+            List.Extra.getAt track.currentNode.index newRoute
     in
     { track
         | trackPoints = newRoute
-        , graph = newGraph
         , currentNode = newCurrent |> Maybe.withDefault track.currentNode
-        , markedNode = newMarker
+        , markedNode = Nothing
     }
