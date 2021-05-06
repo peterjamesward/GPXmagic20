@@ -824,11 +824,6 @@ walkTheRoute graph =
         |> List.map Tuple.first
 
 
-
---|> prepareTrackPoints
---|> List.map (applyCentreLineOffset graph.centreLineOffset)
-
-
 applyCentreLineOffset : Length -> TrackPoint -> TrackPoint
 applyCentreLineOffset offset trackpoint =
     let
@@ -1095,3 +1090,5 @@ publishUserRoute graph =
     walkTheRouteInternal graph graph.userRoute
         |> List.unzip
         |> Tuple.first
+        |> prepareTrackPoints
+        |> List.map (applyCentreLineOffset graph.centreLineOffset)
