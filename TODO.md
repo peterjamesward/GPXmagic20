@@ -5,13 +5,10 @@
 **Graph**
 _DONE_ a) Applying edits to canonical graph.
 _DONE_ b) Turning it back into a route.
+_DONE_ c) DSL for re-routing
 
-c) DSL for re-routing (including turn-arounds ??).
-
-Note that route editing means we can't use the route to decode edit intent.
-Think now we should have a different route for editing!!
-
-d) Radius bends at nodes using 3D smoother.
+d) Convert back to track using offset and adding U-turns as needed.
+e) Radius bends at nodes using 3D smoother.
 
 -- 2.1.0 ships here --
 

@@ -1054,19 +1054,10 @@ addTraversalFromCurrent graph current =
 
         lastTraversalOfRoute =
             List.last graph.userRoute
-
-        _ =
-            Debug.log "Edge" <| Maybe.map Tuple.first edgeContainingCurrent
-
-        _ =
-            Debug.log "Last" lastTraversalOfRoute
     in
     case ( edgeContainingCurrent, lastTraversalOfRoute ) of
         ( Just ( newEdgeKey, _ ), Just lastTraversal ) ->
             let
-                _ =
-                    Debug.log "New" newSegment
-
                 ( lastStart, lastEnd, _ ) =
                     lastTraversal.edge
 
