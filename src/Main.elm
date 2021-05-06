@@ -134,6 +134,7 @@ type alias Model =
     , stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
+    , highlightedGraphEdge : Scene
     }
 
 
@@ -177,6 +178,7 @@ init mflags origin navigationKey =
       , stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
+      , highlightedGraphEdge = []
       }
     , Cmd.batch
         [ authCmd
@@ -263,11 +265,11 @@ update msg model =
 
         GraphMessage innerMsg ->
             let
-                action =
+                ( newModel, action ) =
                     Maybe.map (processGraphMessage innerMsg model) model.track
-                        |> Maybe.withDefault ActionNoOp
+                        |> Maybe.withDefault ( model, ActionNoOp )
             in
-            processPostUpdateAction model action
+            processPostUpdateAction newModel action
 
         AccordionMessage accordionMsg ->
             processPostUpdateAction
@@ -779,7 +781,7 @@ processViewPaneMessage innerMsg model track =
             ( updatedModel, Cmd.none )
 
 
-processGraphMessage : Graph.Msg -> Model -> Track -> PostUpdateActions.PostUpdateAction msg
+processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.PostUpdateAction msg )
 processGraphMessage innerMsg model isTrack =
     let
         ( newGraph, action ) =
@@ -790,28 +792,43 @@ processGraphMessage innerMsg model isTrack =
     in
     case action of
         GraphCreated ->
-            PostUpdateActions.ActionTrackChanged
+            ( model
+            , PostUpdateActions.ActionTrackChanged
                 EditNoOp
                 newTrack
                 "Create Graph"
+            )
 
         GraphOffsetChange ->
-            PostUpdateActions.ActionTrackChanged
+            ( model
+            , PostUpdateActions.ActionTrackChanged
                 EditNoOp
                 newTrack
                 "Offset changed"
+            )
 
         GraphOffsetApplied ->
-            PostUpdateActions.ActionWalkGraph
+            ( model, PostUpdateActions.ActionWalkGraph )
 
         GraphNoAction ->
-            ActionNoOp
+            ( model, ActionNoOp )
 
         GraphRemoved ->
-            PostUpdateActions.ActionTrackChanged
+            ( model
+            , PostUpdateActions.ActionTrackChanged
                 EditNoOp
                 newTrack
                 "Leave Graph mode"
+            )
+
+        GraphShowTraversal ->
+            let
+                modelWithUpdatedGraph =
+                    { model | track = Just newTrack }
+            in
+            ( modelWithUpdatedGraph
+            , PostUpdateActions.ActionPreview
+            )
 
 
 updateTrackInModel : Track -> TrackEditType -> Model -> Model
@@ -875,6 +892,7 @@ composeScene model =
             model.visibleMarkers
                 ++ model.nudgePreview
                 ++ model.bendPreview
+                ++ model.highlightedGraphEdge
                 ++ model.staticScene
         , completeProfile =
             model.profileMarkers
@@ -932,6 +950,19 @@ renderVaryingSceneElements model =
 
             else
                 options
+
+        graphEdge =
+            case model.track of
+                Just isTrack ->
+                    if Accordion.tabIsOpen "Graph Theory" model.toolsAccordion then
+                        Maybe.map Graph.previewTraversal isTrack.graph
+                            |> Maybe.withDefault []
+
+                    else
+                        []
+
+                Nothing ->
+                    []
     in
     { model
         | visibleMarkers = updatedMarkers
@@ -949,6 +980,7 @@ renderVaryingSceneElements model =
                 model.displayOptions
                 updatedNudgeSettings.preview
         , straightenOptions = updatedStraightenOptions
+        , highlightedGraphEdge = SceneBuilder.showGraphEdge graphEdge
     }
         |> composeScene
 

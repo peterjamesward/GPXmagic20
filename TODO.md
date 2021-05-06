@@ -2,8 +2,6 @@
 
 # TODO
 
-BUG? Route may have spurious empty edges at start and end.
-
 **Graph** - the thing that kicked it all off. 
 _DONE_ a) Applying edits to canonical graph.
 _DONE_ b) Turning it back into a route.

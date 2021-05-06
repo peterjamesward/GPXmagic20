@@ -46,6 +46,7 @@ type alias Graph =
     , centreLineOffset : Length
     , trackPointToCanonical : Dict XY PointType
     , nodePairsInRoute : List ( Int, Int )
+    , selectedTraversal : Maybe Traversal
     }
 
 
@@ -64,6 +65,7 @@ emptyGraph =
     , centreLineOffset = Length.meters 0.0
     , trackPointToCanonical = Dict.empty
     , nodePairsInRoute = []
+    , selectedTraversal = Nothing
     }
 
 
@@ -81,6 +83,7 @@ type GraphActionImpact
     | GraphOffsetApplied
     | GraphNoAction
     | GraphRemoved
+    | GraphShowTraversal
 
 
 type alias Traversal =
@@ -186,11 +189,13 @@ showTheRoute graph wrap =
 
         showTraversal t =
             let
-                ( from, to, via ) =
+                ( from, to, ( viaX, viaY ) ) =
                     t.edge
 
                 ( node1, node2 ) =
-                    ( Dict.get from graph.nodes, Dict.get to graph.nodes )
+                    ( Dict.get from graph.nodes
+                    , Dict.get to graph.nodes
+                    )
             in
             case ( node1, node2 ) of
                 ( Just n1, Just n2 ) ->
@@ -231,10 +236,10 @@ showTheRoute graph wrap =
         , Border.color ColourPalette.expandedTabBorder
         ]
         [ row [ width fill ]
-            [ el ((width <| fillPortion 2) :: headerAttrs) <| text "Direction"
+            [ el ((width <| fillPortion 3) :: headerAttrs) <| text "Direction"
             , el ((width <| fillPortion 1) :: headerAttrs) <| text "From"
             , el ((width <| fillPortion 1) :: headerAttrs) <| text "To"
-            , el ((width <| fillPortion 1) :: headerAttrs) <| text "Show"
+            , el ((width <| fillPortion 2) :: headerAttrs) <| text "Show"
             ]
 
         -- workaround for a bug: it's necessary to wrap `table` in an `el`
@@ -249,7 +254,7 @@ showTheRoute graph wrap =
                 { data = traversalData
                 , columns =
                     [ { header = none
-                      , width = fillPortion 2
+                      , width = fillPortion 3
                       , view = .direction >> text >> el [ centerY ]
                       }
                     , { header = none
@@ -261,7 +266,7 @@ showTheRoute graph wrap =
                       , view = .to >> String.fromInt >> text
                       }
                     , { header = none
-                      , width = fillPortion 1
+                      , width = fillPortion 2
                       , view = .link >> makeShowButton
                       }
                     ]
@@ -298,7 +303,14 @@ update msg trackPoints graph =
             ( Nothing, GraphRemoved )
 
         HighlightTraversal t ->
-            ( Nothing, GraphNoAction )
+            case graph of
+                Just isGraph ->
+                    ( Just { isGraph | selectedTraversal = Just t }
+                    , GraphShowTraversal
+                    )
+
+                Nothing ->
+                    ( Nothing, GraphNoAction )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph
@@ -959,3 +971,32 @@ updateWithNewTrack oldGraph oldTrack editRegion newTrack editType =
                             graph
             in
             Just graph
+
+
+previewTraversal : Graph -> List TrackPoint
+previewTraversal graph =
+    case graph.selectedTraversal of
+        Just traversal ->
+            let
+                ( start, end, via ) =
+                    traversal.edge
+
+                ( startTP, endTP ) =
+                    ( Dict.get start graph.nodes, Dict.get end graph.nodes )
+
+                edge =
+                    Dict.get traversal.edge graph.edges |> Maybe.withDefault []
+            in
+            case ( startTP, endTP ) of
+                ( Just node1, Just node2 ) ->
+                    if traversal.direction == Forwards then
+                        node1 :: edge ++ [ node2 ]
+
+                    else
+                        List.reverse <| node1 :: edge ++ [ node2 ]
+
+                _ ->
+                    []
+
+        Nothing ->
+            []
