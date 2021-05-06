@@ -168,7 +168,7 @@ viewGraphControls wrapper graph =
         E.row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
             [ E.column [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
                 [ offsetSlider
-                , applyOffsetButton
+                --, applyOffsetButton
                 ]
             , finishButton
             ]
@@ -197,7 +197,6 @@ update msg trackPoints graph =
                     ( Nothing, GraphNoAction )
 
         ApplyOffset ->
-            -- The route is pre-computed; it's the Undo message that puts it into effect.
             ( graph, GraphOffsetApplied )
 
         ConvertFromGraph ->
@@ -857,7 +856,7 @@ updateWithNewTrack oldGraph oldTrack editRegion newTrack editType =
                             -- E.g. Insert/Delete, can only work on one edge excluding nodes.
                             applyNodePreservingEditsToGraph editRegion newTrack graph
 
-                        _ ->
+                        EditNoOp ->
                             -- Used only by Undo/Redo; no graph change.
                             graph
             in

@@ -263,11 +263,11 @@ update msg model =
 
         GraphMessage innerMsg ->
             let
-                ( newModel, action ) =
+                action =
                     Maybe.map (processGraphMessage innerMsg model) model.track
-                        |> Maybe.withDefault ( model, ActionNoOp )
+                        |> Maybe.withDefault ActionNoOp
             in
-            processPostUpdateAction newModel action
+            processPostUpdateAction model action
 
         AccordionMessage accordionMsg ->
             processPostUpdateAction
@@ -779,7 +779,7 @@ processViewPaneMessage innerMsg model track =
             ( updatedModel, Cmd.none )
 
 
-processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.PostUpdateAction msg )
+processGraphMessage : Graph.Msg -> Model -> Track -> PostUpdateActions.PostUpdateAction msg
 processGraphMessage innerMsg model isTrack =
     let
         ( newGraph, action ) =
@@ -787,30 +787,31 @@ processGraphMessage innerMsg model isTrack =
 
         newTrack =
             { isTrack | graph = newGraph }
-
-        newModel =
-            { model | track = Just newTrack }
     in
     case action of
         GraphCreated ->
-            ( newModel, PostUpdateActions.ActionWalkGraph )
+            PostUpdateActions.ActionTrackChanged
+                EditNoOp
+                newTrack
+                "Create Graph"
 
         GraphOffsetChange ->
-            ( newModel, ActionNoOp )
+            PostUpdateActions.ActionTrackChanged
+                EditNoOp
+                newTrack
+                "Offset changed"
 
         GraphOffsetApplied ->
-            ( newModel, PostUpdateActions.ActionWalkGraph )
+            PostUpdateActions.ActionWalkGraph
 
         GraphNoAction ->
-            ( newModel, ActionNoOp )
+            ActionNoOp
 
         GraphRemoved ->
-            ( newModel
-            , PostUpdateActions.ActionTrackChanged
+            PostUpdateActions.ActionTrackChanged
                 EditNoOp
                 newTrack
                 "Leave Graph mode"
-            )
 
 
 updateTrackInModel : Track -> TrackEditType -> Model -> Model
@@ -835,12 +836,12 @@ updateTrackInModel newTrack editType model =
                         newTrack.trackPoints
                         editType
 
-                newPointFromGraph =
+                newPointsFromGraph =
                     Maybe.map Graph.walkTheRoute newGraph
                         |> Maybe.withDefault newTrack.trackPoints
 
                 trackWithNewRoute =
-                    { newTrack | trackPoints = newPointFromGraph, graph = newGraph }
+                    { newTrack | trackPoints = newPointsFromGraph, graph = newGraph }
             in
             { model | track = Just trackWithNewRoute }
                 |> repeatTrackDerivations
@@ -894,7 +895,9 @@ renderVaryingSceneElements model =
                 |> Maybe.withDefault []
 
         updatedNudgeSettings =
-            let settings = model.nudgeSettings
+            let
+                settings =
+                    model.nudgeSettings
             in
             if
                 Accordion.tabIsOpen "Nudge" model.toolsAccordion
