@@ -10,6 +10,7 @@ import ColourPalette
 import Dict exposing (Dict)
 import Direction3d
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Input as I
 import Length exposing (Length, inMeters, meters)
@@ -75,6 +76,8 @@ type Msg
     | ApplyOffset
     | ConvertFromGraph
     | HighlightTraversal Traversal
+    | RemoveLastTraversal
+    | AddTraversalFromCurrent
 
 
 type GraphActionImpact
@@ -161,10 +164,16 @@ viewGraphControls wrapper graph =
                 , thumb = I.defaultThumb
                 }
 
-        applyOffsetButton =
+        removeButton =
             I.button prettyButtonStyles
-                { onPress = Just (wrapper ApplyOffset)
-                , label = text "Apply offset"
+                { onPress = Just (wrapper RemoveLastTraversal)
+                , label = text "Remove traversal\nlast in list"
+                }
+
+        addButton =
+            I.button prettyButtonStyles
+                { onPress = Just (wrapper AddTraversalFromCurrent)
+                , label = text "Add traversal\nat Orange marker"
                 }
     in
     case graph of
@@ -178,6 +187,10 @@ viewGraphControls wrapper graph =
                     , finishButton
                     ]
                 , showTheRoute g wrapper
+                , row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+                    [ removeButton
+                    , addButton
+                    ]
                 ]
 
 
@@ -221,7 +234,10 @@ showTheRoute graph wrap =
 
         makeShowButton : Traversal -> Element msg
         makeShowButton t =
-            I.button []
+            I.button
+                [ focused
+                    [ Background.color ColourPalette.radioButtonSelected ]
+                ]
                 { onPress = Just (wrap <| HighlightTraversal t)
                 , label = text "Show"
                 }
@@ -311,6 +327,12 @@ update msg trackPoints graph =
 
                 Nothing ->
                     ( Nothing, GraphNoAction )
+
+        RemoveLastTraversal ->
+            ( Nothing, GraphNoAction )
+
+        AddTraversalFromCurrent ->
+            ( Nothing, GraphNoAction )
 
 
 deriveTrackPointGraph : List TrackPoint -> Graph
