@@ -2,8 +2,6 @@
 
 # TODO
 
-**BUG**: Can't Undo graph create.
-
 **Graph** - the thing that kicked it all off. 
 _DONE_ a) Applying edits to canonical graph.
 _DONE_ b) Turning it back into a route.
