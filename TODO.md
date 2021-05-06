@@ -23,6 +23,9 @@ Flythrough respects any azimuth & elevation applied when stationery.
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 
+Nudge with a variable size brush, with damping. Don't know how we'd show this.
+Possibly only visible by the preview, where we see a "fade" back to the normal track.
+
 Working offline?
 
 Beware bounding box on tracks crossing the international date line !!

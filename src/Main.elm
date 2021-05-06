@@ -836,7 +836,7 @@ processGraphMessage innerMsg model isTrack =
                 modelFromGraph =
                     { model | track = Just trackFromGraph }
             in
-            ( modelFromGraph
+            ( model
             , PostUpdateActions.ActionTrackChanged
                 EditNoOp
                 trackFromGraph
