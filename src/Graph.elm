@@ -1008,7 +1008,7 @@ updateWithNewTrack oldGraph oldTrack editRegion newTrack editType =
                             -- Used only by Undo/Redo; no graph change.
                             graph
             in
-            Just graph
+            Just newGraph
 
 
 previewTraversal : Graph -> List TrackPoint
