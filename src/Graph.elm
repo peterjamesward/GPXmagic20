@@ -51,7 +51,7 @@ type alias Graph =
     , edges : Dict EdgeKey (List TrackPoint)
     , userRoute : List Traversal
     , canonicalRoute : List Traversal
-    , centreLineOffset : Length
+    , centreLineOffset : Length.Length
     , trackPointToCanonical : Dict XY PointType
     , nodePairsInRoute : List ( Int, Int )
     , selectedTraversal : Maybe Traversal
@@ -1091,12 +1091,28 @@ addTraversalFromCurrent graph current =
 
 publishUserRoute : Graph -> List TrackPoint
 publishUserRoute graph =
-    -- This is the trivial version with no corrections at node transitions.
-    walkTheRouteInternal graph graph.userRoute
-        |> List.unzip
-        |> Tuple.first
-        |> prepareTrackPoints
-        |> List.map (applyCentreLineOffset graph.centreLineOffset)
+    let
+        _ =
+            Debug.log "skeleton" skeleton
+
+        skeleton =
+            skeletalRoute graph
+    in
+    List.concat <|
+        List.map3
+            (routeStepRenderer <| inMeters graph.centreLineOffset)
+            skeleton
+            (List.drop 1 skeleton)
+            (List.drop 2 skeleton)
+
+
+
+-- This is the trivial version with no corrections at node transitions.
+--walkTheRouteInternal graph graph.userRoute
+--    |> List.unzip
+--    |> Tuple.first
+--    |> prepareTrackPoints
+--    |> List.map (applyCentreLineOffset graph.centreLineOffset)
 
 
 type RouteRenderingHint
@@ -1227,8 +1243,8 @@ routeStepRenderer offset prev current next =
                     )
 
                 ( shiftedPriorPoint, shiftedNextPoint ) =
-                    ( applyOffsetToFirstPoint precedingPoint node
-                    , applyOffsetToSecondPoint node followingPoint
+                    ( applyOffsetToFirstPoint offset precedingPoint node
+                    , applyOffsetToSecondPoint offset node followingPoint
                     )
 
                 amountOfTurn =
@@ -1236,22 +1252,25 @@ routeStepRenderer offset prev current next =
 
                 mitreAngle =
                     -- This might not be true on both sides!
-                    (Angle.degrees 180) - amountOfTurn |> Quantity.divideBy 2.0
+                    Angle.degrees 180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
 
                 ( insideMitreDirection, outsideMitreDirection ) =
-                    ( inDirection |> Direction2d.rotateBy
-                        (amountOfTurn |> Quantity.plus mitreAngle)
+                    ( inDirection
+                        |> Direction2d.rotateBy
+                            (amountOfTurn |> Quantity.plus mitreAngle)
                     , inDirection |> Direction2d.rotateBy mitreAngle
                     )
 
                 ( insideMitreVector, outsideMitreVector ) =
-                    ( Vector2d.withLength offset insideMitreDirection |> Vector3d.on SketchPlane3d.xy
-                    , Vector2d.withLength offset outsideMitreDirection |> Vector3d.on SketchPlane3d.xy
+                    ( Vector2d.withLength (meters offset) insideMitreDirection
+                        |> Vector3d.on SketchPlane3d.xy
+                    , Vector2d.withLength (meters offset) outsideMitreDirection
+                        |> Vector3d.on SketchPlane3d.xy
                     )
 
                 ( insideMitrePoint, outsideMitrePoint ) =
-                    ( node.xyz |> Point3d.translateBy insideMitreVector
-                    , node.xyz |> Point3d.translateBy outsideMitreVector
+                    ( node.xyz |> Point3d.translateBy insideMitreVector |> trackPointFromPoint
+                    , node.xyz |> Point3d.translateBy outsideMitreVector |> trackPointFromPoint
                     )
             in
             -- I think (but will check) that turn is +ve ccw, and our offset is -ve on the left.
@@ -1259,39 +1278,88 @@ routeStepRenderer offset prev current next =
             -- If we're on the outside edge, it's always a planar arc.
             -- This also covers the U-turn case.
             -- If we're on the inside edge, it's either a single node or a 3d-smoothed bend.
-            if amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero
-            && offset >= 0.0 then
+            --TODO: Simplify these conditionals.
+            if
+                (amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero)
+                    && offset
+                    >= 0.0
+            then
                 -- Turning left, offset right => outside
                 if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
                     -- Small deviation, just use the mitre point
-                    [ insideMitrePoint ]
+                    let
+                        _ =
+                            Debug.log "Turning left, offset right, small" outsideMitrePoint
+                    in
+                    [ outsideMitrePoint ]
+
                 else
+                    let
+                        _ =
+                            Debug.log "Turning left, offset right, large" Nothing
+                    in
                     generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
 
-            else if amountOfTurn |> Quantity.lessThan Quantity.zero
-            && offset <= 0.0 then
+            else if
+                (amountOfTurn |> Quantity.lessThan Quantity.zero)
+                    && offset
+                    <= 0.0
+            then
                 -- Turning right, offset left => outside
                 if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
                     -- Small deviation, just use the mitre point
-                    [ insideMitrePoint ]
+                    let
+                        _ =
+                            Debug.log "Turning right, offset left => outside, small" Nothing
+                    in
+                    [ outsideMitrePoint ]
+
                 else
+                    let
+                        _ =
+                            Debug.log "Turning right, offset left => outside, small" Nothing
+                    in
                     generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
 
-            else if amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero
-            && offset < 0.0 then
+            else if
+                (amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero)
+                    && offset
+                    < 0.0
+            then
                 --Turning left, offset left => inside
                 if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
                     -- Small deviation, just use the mitre point
+                    let
+                        _ =
+                            Debug.log "Turning left, offset left => inside, small" Nothing
+                    in
+                    [ insideMitrePoint ]
+
                 else
+                    let
+                        _ =
+                            Debug.log "Turning left, offset left => inside" Nothing
+                    in
                     generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
 
             else
-                --Turning right, offset left => inside
-                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
-                    -- Small deviation, just use the mitre point
-                else
-                    generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+            --Turning right, offset left => inside
+            if
+                Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10)
+            then
+                -- Small deviation, just use the mitre point
+                let
+                    _ =
+                        Debug.log "Turning right, offset left => inside, small" Nothing
+                in
+                [ insideMitrePoint ]
 
+            else
+                let
+                    _ =
+                        Debug.log "Turning right, offset left => inside" Nothing
+                in
+                generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
 
         ( RouteEdge incoming, RouteNode node, RouteEnd ) ->
             -- Just emit the final node offset from vector of final segment
@@ -1308,6 +1376,16 @@ routeStepRenderer offset prev current next =
         _ ->
             -- Anything else means something has gone wrong
             []
+
+
+generateArc : TrackPoint -> TrackPoint -> TrackPoint -> List TrackPoint
+generateArc entry middle exit =
+    []
+
+
+generateSmoothedTurn : TrackPoint -> TrackPoint -> TrackPoint -> List TrackPoint
+generateSmoothedTurn entry middle exit =
+    []
 
 
 applyOffsetToFirstPoint : Float -> TrackPoint -> TrackPoint -> TrackPoint
