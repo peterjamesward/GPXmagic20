@@ -1087,8 +1087,19 @@ addTraversalFromCurrent graph current =
 
 publishUserRoute : Graph -> List TrackPoint
 publishUserRoute graph =
+    -- This is the trivial version with no corrections at node transitions.
     walkTheRouteInternal graph graph.userRoute
         |> List.unzip
         |> Tuple.first
         |> prepareTrackPoints
         |> List.map (applyCentreLineOffset graph.centreLineOffset)
+
+
+type RouteRenderingHint
+    = RouteStart
+    | RouteNode TrackPoint
+    | RouteEdge (List TrackPoint)
+
+skeletalRoute : List Traversal -> List RouteRenderingHint
+
+routeStepRenderer : RouteRenderingHint -> RouteRenderingHint -> RouteRenderingHint -> List TrackPoint
