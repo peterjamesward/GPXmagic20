@@ -5,6 +5,7 @@ module Graph exposing (..)
 -- of track points multiple times and in each direction.
 
 import Angle
+import Arc3d
 import Axis3d
 import ColourPalette
 import Dict exposing (Dict)
@@ -15,13 +16,16 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as I
+import GeometryShared exposing (arc3dFromThreePoints)
 import Length exposing (Length, Meters, inMeters, meters)
+import LineSegment3d
 import List.Extra as List
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra
 import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
+import Polyline3d
 import Quantity exposing (Quantity)
 import Set exposing (Set)
 import SketchPlane3d
@@ -1092,9 +1096,6 @@ addTraversalFromCurrent graph current =
 publishUserRoute : Graph -> List TrackPoint
 publishUserRoute graph =
     let
-        _ =
-            Debug.log "skeleton" skeleton
-
         skeleton =
             skeletalRoute graph
     in
@@ -1211,7 +1212,7 @@ routeStepRenderer offset prev current next =
                     Maybe.map (applyOffsetToFirstPoint offset node) firstPointOnEdge
                         |> Maybe.withDefault node
             in
-            [ node ]
+            [ shifted ]
 
         ( RouteNode start, RouteEdge edge, RouteNode end ) ->
             -- The edge itself is easy
@@ -1250,6 +1251,10 @@ routeStepRenderer offset prev current next =
                 amountOfTurn =
                     Direction2d.angleFrom inDirection outDirection
 
+                _ = Debug.log "Turn" amountOfTurn
+
+                _ = Debug.log "Offset" offset
+
                 mitreAngle =
                     -- This might not be true on both sides!
                     Angle.degrees 180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
@@ -1280,7 +1285,7 @@ routeStepRenderer offset prev current next =
             -- If we're on the inside edge, it's either a single node or a 3d-smoothed bend.
             --TODO: Simplify these conditionals.
             if
-                (amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero)
+                (amountOfTurn |> Quantity.lessThanOrEqualTo Quantity.zero)
                     && offset
                     >= 0.0
             then
@@ -1301,7 +1306,7 @@ routeStepRenderer offset prev current next =
                     generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
 
             else if
-                (amountOfTurn |> Quantity.lessThan Quantity.zero)
+                (amountOfTurn |> Quantity.greaterThan Quantity.zero)
                     && offset
                     <= 0.0
             then
@@ -1310,19 +1315,19 @@ routeStepRenderer offset prev current next =
                     -- Small deviation, just use the mitre point
                     let
                         _ =
-                            Debug.log "Turning right, offset left => outside, small" Nothing
+                            Debug.log "Turning right, offset right => outside, small" Nothing
                     in
                     [ outsideMitrePoint ]
 
                 else
                     let
                         _ =
-                            Debug.log "Turning right, offset left => outside, small" Nothing
+                            Debug.log "Turning right, offset right => outside, large" Nothing
                     in
                     generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
 
             else if
-                (amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero)
+                (amountOfTurn |> Quantity.lessThanOrEqualTo Quantity.zero)
                     && offset
                     < 0.0
             then
@@ -1357,21 +1362,25 @@ routeStepRenderer offset prev current next =
             else
                 let
                     _ =
-                        Debug.log "Turning right, offset left => inside" Nothing
+                        Debug.log "Turning right, offset left => inside, large" Nothing
                 in
                 generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
 
         ( RouteEdge incoming, RouteNode node, RouteEnd ) ->
             -- Just emit the final node offset from vector of final segment
             let
-                firstPointOnEdge =
+                lastPointOnEdge =
                     List.last incoming
 
                 shifted =
-                    Maybe.map (applyOffsetToSecondPoint offset node) firstPointOnEdge
-                        |> Maybe.withDefault node
+                    case lastPointOnEdge of
+                        Just penultimate ->
+                            applyOffsetToSecondPoint offset penultimate node
+
+                        Nothing ->
+                            node
             in
-            [ node ]
+            [ shifted ]
 
         _ ->
             -- Anything else means something has gone wrong
@@ -1380,12 +1389,32 @@ routeStepRenderer offset prev current next =
 
 generateArc : TrackPoint -> TrackPoint -> TrackPoint -> List TrackPoint
 generateArc entry middle exit =
-    []
+    case Arc3d.throughPoints entry.xyz middle.xyz exit.xyz of
+        Just arc ->
+            arc
+                |> Arc3d.segments 6
+                |> Polyline3d.segments
+                |> List.map LineSegment3d.startPoint
+                |> List.drop 1
+                |> List.map trackPointFromPoint
+
+        Nothing ->
+            []
 
 
 generateSmoothedTurn : TrackPoint -> TrackPoint -> TrackPoint -> List TrackPoint
 generateSmoothedTurn entry middle exit =
-    []
+    case arc3dFromThreePoints entry middle exit of
+        Just arc ->
+            Arc3d.startPoint arc
+                :: (Arc3d.segments 5 arc
+                        |> Polyline3d.segments
+                        |> List.map LineSegment3d.endPoint
+                   )
+                |> List.map trackPointFromPoint
+
+        Nothing ->
+            []
 
 
 applyOffsetToFirstPoint : Float -> TrackPoint -> TrackPoint -> TrackPoint
