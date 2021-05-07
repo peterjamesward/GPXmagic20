@@ -9,22 +9,26 @@ import Axis3d
 import ColourPalette
 import Dict exposing (Dict)
 import Dict.Extra
+import Direction2d
 import Direction3d
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as I
-import Length exposing (Length, inMeters, meters)
+import Length exposing (Length, Meters, inMeters, meters)
 import List.Extra as List
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra
+import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Set exposing (Set)
+import SketchPlane3d
 import TrackEditType exposing (..)
 import TrackPoint exposing (..)
 import Utils exposing (showDecimal2)
+import Vector2d
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -1099,7 +1103,250 @@ type RouteRenderingHint
     = RouteStart
     | RouteNode TrackPoint
     | RouteEdge (List TrackPoint)
+    | RouteEnd
+    | RouteError -- Something not in its Dictionary. Bad.
 
-skeletalRoute : List Traversal -> List RouteRenderingHint
 
-routeStepRenderer : RouteRenderingHint -> RouteRenderingHint -> RouteRenderingHint -> List TrackPoint
+skeletalRoute : Graph -> List RouteRenderingHint
+skeletalRoute graph =
+    -- First of two phases. Here we simplify the structure by de-referencing all the dict lookups.
+    let
+        startNodeFromFirstTraversal : RouteRenderingHint
+        startNodeFromFirstTraversal =
+            graph.userRoute
+                |> List.head
+                |> Maybe.map startNodeFromTraversal
+                |> Maybe.withDefault RouteError
+
+        startNodeFromTraversal : Traversal -> RouteRenderingHint
+        startNodeFromTraversal { edge, direction } =
+            let
+                ( start, end, _ ) =
+                    edge
+            in
+            graph.nodes
+                |> Dict.get
+                    (if direction == Forwards then
+                        start
+
+                     else
+                        end
+                    )
+                |> Maybe.map RouteNode
+                |> Maybe.withDefault RouteError
+
+        endNodeFromTraversal : Traversal -> RouteRenderingHint
+        endNodeFromTraversal { edge, direction } =
+            let
+                ( start1, end1, _ ) =
+                    edge
+            in
+            graph.nodes
+                |> Dict.get
+                    (if direction == Forwards then
+                        end1
+
+                     else
+                        start1
+                    )
+                |> Maybe.map RouteNode
+                |> Maybe.withDefault RouteError
+
+        orientEdge : Traversal -> List TrackPoint -> List TrackPoint
+        orientEdge t e =
+            if t.direction == Forwards then
+                e
+
+            else
+                List.reverse e
+
+        edgeAndEndNode : Traversal -> List RouteRenderingHint
+        edgeAndEndNode t =
+            let
+                ( start, end, via ) =
+                    t.edge
+
+                edgePoints =
+                    Dict.get t.edge graph.edges
+            in
+            [ edgePoints |> Maybe.map (orientEdge t) |> Maybe.withDefault [] |> RouteEdge
+            , endNodeFromTraversal t
+            ]
+    in
+    List.concat
+        [ [ RouteStart ]
+        , [ startNodeFromFirstTraversal ]
+        , List.concatMap edgeAndEndNode graph.userRoute
+        , [ RouteEnd ]
+        ]
+
+
+routeStepRenderer : Float -> RouteRenderingHint -> RouteRenderingHint -> RouteRenderingHint -> List TrackPoint
+routeStepRenderer offset prev current next =
+    -- Second phase. We consume the list "three at a time" so we always have context for the nodes.
+    case ( prev, current, next ) of
+        ( RouteStart, RouteNode node, RouteEdge outgoing ) ->
+            -- Just emit the start node, offset from vector of first road segment
+            let
+                firstPointOnEdge =
+                    List.head outgoing
+
+                shifted =
+                    Maybe.map (applyOffsetToFirstPoint offset node) firstPointOnEdge
+                        |> Maybe.withDefault node
+            in
+            [ node ]
+
+        ( RouteNode start, RouteEdge edge, RouteNode end ) ->
+            -- The edge itself is easy
+            List.map2
+                (applyOffsetToFirstPoint offset)
+                edge
+                (List.drop 1 edge ++ [ end ])
+
+        ( RouteEdge incoming, RouteNode node, RouteEdge outgoing ) ->
+            -- All depends on the angles and the offset
+            let
+                ( precedingPoint, followingPoint ) =
+                    ( List.last incoming |> Maybe.withDefault node
+                    , List.head outgoing |> Maybe.withDefault node
+                    )
+
+                ( inVector, outVector ) =
+                    ( Vector3d.from precedingPoint.xyz node.xyz
+                    , Vector3d.from node.xyz followingPoint.xyz
+                    )
+
+                ( inDirection, outDirection ) =
+                    ( Vector3d.projectInto SketchPlane3d.xy inVector
+                        |> Vector2d.direction
+                        |> Maybe.withDefault Direction2d.positiveX
+                    , Vector3d.projectInto SketchPlane3d.xy outVector
+                        |> Vector2d.direction
+                        |> Maybe.withDefault Direction2d.positiveX
+                    )
+
+                ( shiftedPriorPoint, shiftedNextPoint ) =
+                    ( applyOffsetToFirstPoint precedingPoint node
+                    , applyOffsetToSecondPoint node followingPoint
+                    )
+
+                amountOfTurn =
+                    Direction2d.angleFrom inDirection outDirection
+
+                mitreAngle =
+                    -- This might not be true on both sides!
+                    (Angle.degrees 180) - amountOfTurn |> Quantity.divideBy 2.0
+
+                ( insideMitreDirection, outsideMitreDirection ) =
+                    ( inDirection |> Direction2d.rotateBy
+                        (amountOfTurn |> Quantity.plus mitreAngle)
+                    , inDirection |> Direction2d.rotateBy mitreAngle
+                    )
+
+                ( insideMitreVector, outsideMitreVector ) =
+                    ( Vector2d.withLength offset insideMitreDirection |> Vector3d.on SketchPlane3d.xy
+                    , Vector2d.withLength offset outsideMitreDirection |> Vector3d.on SketchPlane3d.xy
+                    )
+
+                ( insideMitrePoint, outsideMitrePoint ) =
+                    ( node.xyz |> Point3d.translateBy insideMitreVector
+                    , node.xyz |> Point3d.translateBy outsideMitreVector
+                    )
+            in
+            -- I think (but will check) that turn is +ve ccw, and our offset is -ve on the left.
+            -- That would mean that our strategy is governed by the sign of the product first.
+            -- If we're on the outside edge, it's always a planar arc.
+            -- This also covers the U-turn case.
+            -- If we're on the inside edge, it's either a single node or a 3d-smoothed bend.
+            if amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero
+            && offset >= 0.0 then
+                -- Turning left, offset right => outside
+                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
+                    -- Small deviation, just use the mitre point
+                    [ insideMitrePoint ]
+                else
+                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+
+            else if amountOfTurn |> Quantity.lessThan Quantity.zero
+            && offset <= 0.0 then
+                -- Turning right, offset left => outside
+                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
+                    -- Small deviation, just use the mitre point
+                    [ insideMitrePoint ]
+                else
+                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+
+            else if amountOfTurn |> Quantity.greaterThanOrEqualTo Quantity.zero
+            && offset < 0.0 then
+                --Turning left, offset left => inside
+                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
+                    -- Small deviation, just use the mitre point
+                else
+                    generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+
+            else
+                --Turning right, offset left => inside
+                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
+                    -- Small deviation, just use the mitre point
+                else
+                    generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+
+
+        ( RouteEdge incoming, RouteNode node, RouteEnd ) ->
+            -- Just emit the final node offset from vector of final segment
+            let
+                firstPointOnEdge =
+                    List.last incoming
+
+                shifted =
+                    Maybe.map (applyOffsetToSecondPoint offset node) firstPointOnEdge
+                        |> Maybe.withDefault node
+            in
+            [ node ]
+
+        _ ->
+            -- Anything else means something has gone wrong
+            []
+
+
+applyOffsetToFirstPoint : Float -> TrackPoint -> TrackPoint -> TrackPoint
+applyOffsetToFirstPoint offset pointToOffset nextPoint =
+    let
+        offsetDirection =
+            Vector3d.from pointToOffset.xyz nextPoint.xyz
+                |> Vector3d.projectOnto Plane3d.xy
+                |> Vector3d.direction
+                |> Maybe.withDefault Direction3d.x
+                |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
+
+        offsetVector =
+            Vector3d.withLength (meters offset) offsetDirection
+
+        newXYZ =
+            Point3d.translateBy offsetVector pointToOffset.xyz
+    in
+    { pointToOffset | xyz = newXYZ }
+
+
+applyOffsetToSecondPoint : Float -> TrackPoint -> TrackPoint -> TrackPoint
+applyOffsetToSecondPoint offset prevPoint pointToOffset =
+    let
+        offsetDirection =
+            Vector3d.from prevPoint.xyz pointToOffset.xyz
+                |> Vector3d.projectOnto Plane3d.xy
+                |> Vector3d.direction
+                |> Maybe.withDefault Direction3d.x
+                |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
+
+        offsetVector =
+            Vector3d.withLength (meters offset) offsetDirection
+
+        newXYZ =
+            Point3d.translateBy offsetVector pointToOffset.xyz
+    in
+    { pointToOffset | xyz = newXYZ }
+
+
+
+-- END

@@ -9,6 +9,7 @@ _DONE_ c) DSL for re-routing
 
 d) Convert back to track using offset and adding U-turns as needed.
 e) Radius bends at nodes using 3D smoother.
+f) Always highlight route section just added (need logic for highlighting in list).
 
 -- 2.1.0 ships here --
 
