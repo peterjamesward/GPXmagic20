@@ -26,7 +26,7 @@ import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
 import Polyline3d
-import Quantity exposing (Quantity)
+import Quantity exposing (Quantity, zero)
 import Set exposing (Set)
 import SketchPlane3d
 import TrackEditType exposing (..)
@@ -1223,10 +1223,22 @@ routeStepRenderer offset prev current next =
 
         ( RouteEdge incoming, RouteNode node, RouteEdge outgoing ) ->
             -- All depends on the angles and the offset
+            -- We should now be able to discard any points closer than the offset.
+            -- This will give more predicatability.
             let
+                closerThan distance point1 point2 =
+                    Vector3d.from point1.xyz point2.xyz
+                        |> Vector3d.length
+                        |> Quantity.lessThanOrEqualTo (meters distance)
+
+                ( incomingBeyondOffset, outgoingBeyondOffset ) =
+                    ( incoming |> List.reverse |> List.dropWhile (closerThan offset node)
+                    , outgoing |> List.dropWhile (closerThan offset node)
+                    )
+
                 ( precedingPoint, followingPoint ) =
-                    ( List.last incoming |> Maybe.withDefault node
-                    , List.head outgoing |> Maybe.withDefault node
+                    ( List.head incomingBeyondOffset |> Maybe.withDefault node
+                    , List.head outgoingBeyondOffset |> Maybe.withDefault node
                     )
 
                 ( inVector, outVector ) =
@@ -1251,20 +1263,24 @@ routeStepRenderer offset prev current next =
                 amountOfTurn =
                     Direction2d.angleFrom inDirection outDirection
 
-                _ = Debug.log "Turn" amountOfTurn
+                _ =
+                    Debug.log "Turn" amountOfTurn
 
-                _ = Debug.log "Offset" offset
+                _ =
+                    Debug.log "Offset" offset
 
                 mitreAngle =
-                    -- This might not be true on both sides!
-                    Angle.degrees 180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
+                    if amountOfTurn |> Quantity.greaterThanOrEqualTo zero then
+                        Angle.degrees 180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
 
-                ( insideMitreDirection, outsideMitreDirection ) =
-                    ( inDirection
-                        |> Direction2d.rotateBy
-                            (amountOfTurn |> Quantity.plus mitreAngle)
-                    , inDirection |> Direction2d.rotateBy mitreAngle
-                    )
+                    else
+                        Angle.degrees -180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
+
+                insideMitreDirection =
+                    outDirection |> Direction2d.rotateBy mitreAngle
+
+                outsideMitreDirection =
+                    Direction2d.reverse insideMitreDirection
 
                 ( insideMitreVector, outsideMitreVector ) =
                     ( Vector2d.withLength (meters offset) insideMitreDirection
@@ -1283,89 +1299,64 @@ routeStepRenderer offset prev current next =
             -- If we're on the outside edge, it's always a planar arc.
             -- This also covers the U-turn case.
             -- If we're on the inside edge, it's either a single node or a 3d-smoothed bend.
-            --TODO: Simplify these conditionals.
-            if
-                (amountOfTurn |> Quantity.lessThanOrEqualTo Quantity.zero)
-                    && offset
-                    >= 0.0
-            then
-                -- Turning left, offset right => outside
-                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
-                    -- Small deviation, just use the mitre point
-                    let
-                        _ =
-                            Debug.log "Turning left, offset right, small" outsideMitrePoint
-                    in
-                    [ outsideMitrePoint ]
-
-                else
-                    let
-                        _ =
-                            Debug.log "Turning left, offset right, large" Nothing
-                    in
-                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+            -- Offset right is +ve.
+            -- Left turn is +ve.
+            -- U-turn is +pi (but would not rule out -pi).
+            if offset == 0.0 then
+                [ node ]
 
             else if
-                (amountOfTurn |> Quantity.greaterThan Quantity.zero)
-                    && offset
-                    <= 0.0
+                (amountOfTurn |> Quantity.greaterThanOrEqualTo zero)
+                    && (amountOfTurn |> Quantity.lessThanOrEqualTo) (Angle.degrees 10)
             then
-                -- Turning right, offset left => outside
-                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
-                    -- Small deviation, just use the mitre point
-                    let
-                        _ =
-                            Debug.log "Turning right, offset right => outside, small" Nothing
-                    in
-                    [ outsideMitrePoint ]
-
-                else
-                    let
-                        _ =
-                            Debug.log "Turning right, offset right => outside, large" Nothing
-                    in
-                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
-
-            else if
-                (amountOfTurn |> Quantity.lessThanOrEqualTo Quantity.zero)
-                    && offset
-                    < 0.0
-            then
-                --Turning left, offset left => inside
-                if Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10) then
-                    -- Small deviation, just use the mitre point
-                    let
-                        _ =
-                            Debug.log "Turning left, offset left => inside, small" Nothing
-                    in
+                -- Small turn to the left, use the appropriate mitre point
+                if offset < 0.0 then
                     [ insideMitrePoint ]
 
                 else
-                    let
-                        _ =
-                            Debug.log "Turning left, offset left => inside" Nothing
-                    in
+                    [ outsideMitrePoint ]
+
+            else if
+                (amountOfTurn |> Quantity.greaterThan (Angle.degrees 10))
+                    && (amountOfTurn |> Quantity.lessThan (Angle.degrees 170))
+            then
+                -- Large turn to left
+                if offset < 0.0 then
                     generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
 
-            else
-            --Turning right, offset left => inside
-            if
-                Quantity.abs amountOfTurn |> Quantity.lessThan (Angle.degrees 10)
+                else
+                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+
+            else if
+                (amountOfTurn |> Quantity.lessThan zero)
+                    && (amountOfTurn |> Quantity.greaterThanOrEqualTo (Angle.degrees -10))
             then
-                -- Small deviation, just use the mitre point
-                let
-                    _ =
-                        Debug.log "Turning right, offset left => inside, small" Nothing
-                in
-                [ insideMitrePoint ]
+                -- Small turn to the right, use the appropriate mitre point
+                if offset > 0.0 then
+                    [ insideMitrePoint ]
+
+                else
+                    [ outsideMitrePoint ]
+
+            else if
+                (amountOfTurn |> Quantity.lessThan (Angle.degrees -10))
+                    && (amountOfTurn |> Quantity.greaterThan (Angle.degrees -170))
+            then
+                -- Large turn to the right
+                if offset > 0.0 then
+                    generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+
+                else
+                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
 
             else
-                let
-                    _ =
-                        Debug.log "Turning right, offset left => inside, large" Nothing
-                in
-                generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+                -- it's a U-turn
+                generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
 
+        --generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+        --generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+        --[ insideMitrePoint ]
+        --[ outsideMitrePoint ]
         ( RouteEdge incoming, RouteNode node, RouteEnd ) ->
             -- Just emit the final node offset from vector of final segment
             let
