@@ -23,7 +23,7 @@ parseTrackName xml =
                     n
 
 
-parseTrackPoints : String -> List TrackPoint
+parseTrackPoints : String -> List (Float, Float, Float)
 parseTrackPoints xml =
     let
         trkpts =
@@ -38,11 +38,10 @@ parseTrackPoints xml =
         elevation trkpt =
             Regex.find (asRegex "<ele>([\\d\\.-]*)<\\/ele>") trkpt |> matches
 
-        trackPoint : String -> Maybe TrackPoint
         trackPoint trkpt =
             case ( latitude trkpt, longitude trkpt, elevation trkpt ) of
                 ( (Just lat) :: _, (Just lon) :: _, (Just ele) :: _ ) ->
-                    Just <| trackPointFromGPX lon lat ele
+                    Just (lon, lat, ele) --<| trackPointFromGPX lon lat ele
 
                 _ ->
                     Nothing

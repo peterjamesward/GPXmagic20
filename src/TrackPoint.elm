@@ -10,7 +10,7 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra as Maybe
 import Plane3d
-import Point3d exposing (Point3d, distanceFromAxis)
+import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import Triangle3d
@@ -91,24 +91,28 @@ pointInEarthCoordinates point =
     ( longitude, latitude, elevation )
 
 
-applyGhanianTransform : List TrackPoint -> ( List TrackPoint, Vector3d Meters LocalCoords )
+applyGhanianTransform : List ( Float, Float, Float ) -> ( List TrackPoint, ( Float, Float, Float ) )
 applyGhanianTransform points =
+    -- Note we use the first entry as a fairly arbirary notional point from
+    -- which to calculate offsets.
     case List.head points of
         Nothing ->
-            ( [], Vector3d.zero )
+            ( [], ( 0, 0, 0 ) )
 
-        Just base ->
+        Just ( baseLon, baseLat, _ ) ->
             let
-                toOrigin =
-                    base.xyz
-                        |> Point3d.projectOnto Plane3d.xy
-                        |> Vector3d.from Point3d.origin
-                        |> Vector3d.reverse
+                toLocalSpace ( lon, lat, ele ) =
+                    ( metresPerDegree * (lon - baseLon) * cos (degrees baseLat)
+                    , metresPerDegree * (lat - baseLat)
+                    , ele
+                    )
+                        |> Point3d.fromTuple meters
+                        |> trackPointFromPoint
             in
             ( List.map
-                (\p -> { p | xyz = Point3d.translateBy toOrigin p.xyz })
+                toLocalSpace
                 points
-            , toOrigin
+            , ( baseLon, baseLat, 0.0 )
             )
 
 
@@ -221,18 +225,6 @@ prepareTrackPoints trackPoints =
         --            False
     in
     withDistances
-
-
-trackPointBearing : TrackPoint -> TrackPoint -> Maybe (Direction3d LocalCoords)
-trackPointBearing from to =
-    let
-        fromXY =
-            Point3d.projectOnto Plane3d.xy from.xyz
-
-        toXY =
-            Point3d.projectOnto Plane3d.xy to.xyz
-    in
-    Direction3d.from fromXY toXY
 
 
 changeInBearing : Maybe (Direction3d LocalCoords) -> Maybe (Direction3d LocalCoords) -> Maybe Angle

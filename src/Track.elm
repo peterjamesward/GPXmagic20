@@ -3,6 +3,7 @@ module Track exposing (..)
 import Angle
 import BoundingBox3d exposing (BoundingBox3d)
 import Direction3d
+import EarthConstants exposing (metresPerDegree)
 import Element exposing (..)
 import GpxParser
 import Graph exposing (Graph)
@@ -24,7 +25,7 @@ type alias Track =
     , currentNode : TrackPoint
     , markedNode : Maybe TrackPoint
     , graph : Maybe Graph
-    , transform : Vector3d Meters LocalCoords
+    , earthReferenceCoordinates : ( Float, Float, Float ) -- (lon, lat, ele)
     , box : BoundingBox3d Meters LocalCoords
     }
 
@@ -35,7 +36,7 @@ trackFromGpx content =
         trackPoints =
             GpxParser.parseTrackPoints content
 
-        ( centredPoints, transform ) =
+        ( centredPoints, basePoint ) =
             -- Move to near (0,0) to maintain precision in geometry -> clip space
             applyGhanianTransform trackPoints
     in
@@ -50,34 +51,37 @@ trackFromGpx content =
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
-                , transform = transform
+                , earthReferenceCoordinates = basePoint
                 , box =
                     BoundingBox3d.hullOfN .xyz centredPoints
                         |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
                 }
 
 
-removeGhanianTransform : Track -> List (Point3d Meters LocalCoords)
+removeGhanianTransform : Track -> List ( Float, Float, Float )
 removeGhanianTransform track =
-    let
-        reverseTransform =
-            track.transform |> Vector3d.reverse >> Point3d.translateBy
-    in
     List.map
-        (.xyz >> reverseTransform)
+        (.xyz >> withoutGhanianTransform track)
         track.trackPoints
 
 
-withoutGhanianTransform : Track -> Point3d Meters LocalCoords -> Point3d Meters LocalCoords
+withoutGhanianTransform : Track -> Point3d Meters LocalCoords -> ( Float, Float, Float )
 withoutGhanianTransform track point =
-    Point3d.translateBy (track.transform |> Vector3d.reverse) point
-
-
-latLonPair tp =
     let
-        ( lon, lat, ele ) =
-            pointInEarthCoordinates tp
+        ( baseLon, baseLat, baseEle ) =
+            -- Local points are angular distances scaled by latitude of base point
+            track.earthReferenceCoordinates
+
+        ( x, y, z ) =
+            Point3d.toTuple inMeters point
     in
+    ( x / metresPerDegree / cos (degrees baseLat) + baseLon
+    , y / metresPerDegree + baseLat
+    , z
+    )
+
+
+latLonPair ( lon, lat, ele ) =
     E.list E.float [ lon, lat ]
 
 
@@ -167,7 +171,6 @@ summaryData track =
         ( lon, lat, ele ) =
             pt.xyz
                 |> withoutGhanianTransform track
-                |> pointInEarthCoordinates
     in
     column [ centerX ]
         [ row [ padding 20, centerX, spacing 10 ]
@@ -211,33 +214,46 @@ summaryData track =
 searchTrackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
 searchTrackPointFromLonLat ( lon, lat ) track =
     let
-        searchPoint =
-            trackPointFromGPX lon lat 0.0
-                |> .xyz
-                |> Point3d.translateBy track.transform
-
-        distance =
-            .xyz >> Point3d.distanceFrom searchPoint >> Length.inMeters
-
-        nearest =
-            List.Extra.minimumBy distance track.trackPoints
+        ( transformedLonLats, _ ) =
+            -- Sneaky. Not tidy.
+            applyGhanianTransform [ track.earthReferenceCoordinates, ( lon, lat, 0.0 ) ]
     in
-    nearest
+    case transformedLonLats of
+        dummy :: searchPoint :: _ ->
+            let
+                distance =
+                    .xyz >> Point3d.distanceFrom searchPoint.xyz >> Length.inMeters
+
+                nearest =
+                    List.Extra.minimumBy distance track.trackPoints
+            in
+            nearest
+
+        _ ->
+            Nothing
 
 
 updateTrackPointLonLat : ( Float, Float ) -> Track -> TrackPoint -> TrackPoint
 updateTrackPointLonLat ( lon, lat ) track tp =
     let
-        ele =
-            Point3d.zCoordinate tp.xyz |> inMeters
-
-        newPoint =
-            trackPointFromGPX lon lat ele
-                |> .xyz
-                |> Point3d.translateBy track.transform
-                |> trackPointFromPoint
+        ( transformedLonLats, _ ) =
+            -- Sneaky. Not tidy.
+            applyGhanianTransform [ track.earthReferenceCoordinates, ( lon, lat, 0.0 ) ]
     in
-    newPoint
+    case transformedLonLats of
+        dummy :: newLocation :: _ ->
+            let
+                ele =
+                    Point3d.zCoordinate tp.xyz |> inMeters
+
+                (x, y, z) = Point3d.toTuple inMeters newLocation.xyz
+
+                newXYZ = Point3d.fromTuple Length.meters (x,y, ele)
+            in
+            { tp | xyz = newXYZ }
+
+        _ ->
+            tp
 
 
 trackBoundingBox : Track -> BoundingBox3d Meters LocalCoords

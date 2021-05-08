@@ -10,9 +10,10 @@ BUG - Recalculate edge node pair list in graph after node preserving edit
 (which looks like just bad list splicing)
 
 BUG - Initial view still in 8:6 ratio.
+
 BUG - Track load should not change view pane layout at all.
 
-    + Probably should disable Loop tools completely
+TODO - Probably should disable Loop tools completely in Graph mode. 
 
 > 2.1.0 ships here
 

@@ -22,15 +22,15 @@ pasteStreams track segment streams =
                 track
 
         pointsFromStreams =
+                -- We need to apply the base point shift but using the original base point.
+                -- We can fudge this by prependng it to the track.
             List.map2
-                (\latLon ele ->
-                    trackPointFromGPX latLon.lng latLon.lat ele
-                        |> .xyz
-                        |> Point3d.translateBy track.transform
-                        |> trackPointFromPoint
-                )
+                (\latLon ele -> ( latLon.lng, latLon.lat, ele))
                 streams.latLngs.data
                 streams.altitude.data
+                |> applyGhanianTransform
+                |> Tuple.first
+                |> List.drop 1
 
         newRoute =
             case ( pStartingTrackPoint, pEndingTrackPoint ) of

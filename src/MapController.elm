@@ -79,7 +79,6 @@ centreMap context track =
         ( lon, lat, _ ) =
             context.focalPoint
                 |> withoutGhanianTransform track
-                |> pointInEarthCoordinates
     in
     mapPort <|
         E.object
@@ -106,7 +105,6 @@ centreMapOnCurrent track =
         ( lon, lat, _ ) =
             track.currentNode.xyz
                 |> withoutGhanianTransform track
-                |> pointInEarthCoordinates
     in
     mapPort <|
         E.object
@@ -138,7 +136,6 @@ addTrackToMap context track =
         ( x, y, z ) =
             context.focalPoint
                 |> withoutGhanianTransform track
-                |> pointInEarthCoordinates
     in
     mapPort <|
         E.object
@@ -161,7 +158,6 @@ addMarkersToMap track smoothBend nudged =
     let
         realWorldPosition tp =
             Track.withoutGhanianTransform track tp.xyz
-                |> TrackPoint.pointInEarthCoordinates
 
         encodePos ( lon, lat, ele ) =
             E.object

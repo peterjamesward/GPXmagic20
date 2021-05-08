@@ -67,7 +67,6 @@ writeGPX track =
     let
         points =
             removeGhanianTransform track
-                |> List.map pointInEarthCoordinates
 
         useName =
             case track.trackName of
