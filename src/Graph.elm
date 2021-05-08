@@ -977,6 +977,9 @@ applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
                 ( regionBeforeEditEnd, regionAfterEditEnd ) =
                     List.splitAt editEnd newPoints
 
+                ( regionBeforeEditStart, editedRegion ) =
+                    List.splitAt editStart regionBeforeEditEnd
+
                 ( startXY, endXY, _ ) =
                     edge
 
@@ -987,13 +990,13 @@ applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
                         /= endXY
 
                 leadingPartOfNewEdge =
-                    regionBeforeEditEnd |> List.takeWhileRight isNotNode
+                    regionBeforeEditStart |> List.takeWhileRight isNotNode
 
                 trailingPartOfNewEdge =
                     regionAfterEditEnd |> List.takeWhile isNotNode
 
                 resultingNewEdgePoints =
-                    leadingPartOfNewEdge ++ trailingPartOfNewEdge
+                    leadingPartOfNewEdge ++ editedRegion ++ trailingPartOfNewEdge
 
                 orientedEdge =
                     if direction == Forwards then

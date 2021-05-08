@@ -104,12 +104,11 @@ update msg settings observations track =
             let
                 newTrack =
                     { track
-                        | trackPoints =
-                            bezierSplines
-                                (observations.loopiness == IsALoop)
-                                settings.bezierTension
-                                settings.bezierTolerance
-                                track.trackPoints
+                        | trackPoints = bezierSplineHelper
+                            track
+                            settings.bezierTension
+                            settings.bezierTolerance
+                            observations.loopiness
                     }
             in
             ( settings
@@ -266,6 +265,74 @@ applyWeightedAverageFilter track filterBias loopiness =
         fixedFirst
             ++ withinRange filtered
             ++ fixedLast
+
+bezierSplineHelper :
+    Track
+    -> Float
+    -> Float
+    -> Loopiness
+    -> List TrackPoint
+bezierSplineHelper track tension tolerance loopiness =
+    let
+        points =
+            track.trackPoints
+
+        ( startPoint, endPoint ) =
+            case track.markedNode of
+                Just marker ->
+                    if track.currentNode.index <= marker.index then
+                        ( Just track.currentNode, track.markedNode )
+
+                    else
+                        ( track.markedNode, Just track.currentNode )
+
+                Nothing ->
+                    ( List.head points, List.Extra.last points )
+
+        ( start, finish ) =
+            ( Maybe.map .index startPoint |> Maybe.withDefault 0
+            , Maybe.map .index endPoint |> Maybe.withDefault (List.length points - 1)
+            )
+
+        ( firstPoint, lastPoint ) =
+            -- This is used for wrap-around on loop, in which case use second point
+            -- Yes, this is expensive code. Might improve one day.
+            if loopiness == IsALoop && track.markedNode == Nothing then
+                ( List.take 1 <| List.drop 1 points
+                , List.take 1 <| List.drop 1 <| List.reverse points
+                )
+
+            else
+                ( List.take 1 points
+                , List.take 1 <| List.reverse points
+                )
+
+        withinRange =
+            List.take finish >> List.drop start
+
+        ( fixedFirst, fixedLast ) =
+            ( List.take (start + 1) points, List.drop finish points )
+
+        splinedSection =
+            if track.markedNode == Nothing && loopiness == IsALoop then
+                bezierSplines
+                    (loopiness == IsALoop)
+                    tension
+                    tolerance
+                    ( points)
+
+            else
+                bezierSplines
+                    (loopiness == IsALoop)
+                    tension
+                    tolerance
+                    (withinRange points)
+    in
+
+        fixedFirst
+            ++ splinedSection
+            ++ fixedLast
+
 
 
 weightedAverage :

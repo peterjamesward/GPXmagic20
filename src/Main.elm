@@ -867,9 +867,9 @@ updateTrackInModel newTrack editType model =
                 newGraph =
                     Graph.updateWithNewTrack
                         newTrack.graph
-                        oldTrack.trackPoints
-                        editRegion
-                        newTrack.trackPoints
+                        oldTrack.trackPoints -- Pre-edit baseline points.
+                        editRegion -- Where the markers were.
+                        newTrack.trackPoints -- Post-edit track points.
                         editType
 
                 newPointsFromGraph =

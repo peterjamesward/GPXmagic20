@@ -4,19 +4,17 @@
 
 **Graph**
 
+BUG - Nudge on round and round is moving a nearby node.
+
+BUG - Recalculate edge node pair list in graph after node preserving edit
+(which looks like just bad list splicing)
+
 BUG - Initial view still in 8:6 ratio.
+BUG - Track load should not change view pane layout at all.
 
-BUGS - some edits are breaking the route.
-Testing with Hillingdon (a trivial graph)
-    + Bend smoother barfs
-    + Gradient smoother loses the first or last point of the route?
-    + Ditto centroid filter
-    + Bezier splines not confined to selected range
     + Probably should disable Loop tools completely
-    + Nudge (even!) messes with points outside selected range
 
-
--- 2.1.0 ships here --
+> 2.1.0 ships here
 
 **Terrain**. Perhaps with quadtree.
 
