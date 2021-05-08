@@ -12,7 +12,7 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.0 update 2021-05-05
+## 2.1.0 update 2021-05-08
 
 - Ability for user to modify route using Graph tools.
 - Enhanced contrast on tab labels.

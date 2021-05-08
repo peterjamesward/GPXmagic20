@@ -124,11 +124,17 @@ In the process, elevation differences resulting from route planning tools
 are removed, so there is a _canonical_ form for each Edge. All your future
 work will use these canonical edges for consistent elevation.
 
+Click "Show" on any segment to highlight. Click "Remove ..." to take segments off
+the **end** of the list. Click "Add ..." to add an adjacent edge where the Orange
+pointer is.
+
 Once this is done, you can apply up to 5m horizontal separation between
 different edge traversal directions. Choose left or right to suit your
 local traffic convention (usually).
 
-More to follow ...
+Click "Convert from..." to render your new route for a final polish.
+
+**NOTE** This will not work well, if at all, with recorded rides.
 """
 
 
@@ -1393,8 +1399,8 @@ routeStepRenderer offset prev current next =
                         |> Triangle3d.centroid
                         |> trackPointFromPoint
 
-                _ =
-                    Debug.log "Mitre vector" insideMitreVector
+                --_ =
+                --    Debug.log "Mitre vector" insideMitreVector
             in
             -- Offset right is +ve.
             -- Left turn is +ve.
@@ -1402,17 +1408,17 @@ routeStepRenderer offset prev current next =
             if offset == 0.0 then
                 -- No need to apply offset but still worth applying some smoothing,
                 if Quantity.abs amountOfTurn |> Quantity.lessThanOrEqualTo (Angle.degrees 10) then
-                    let
-                        _ =
-                            Debug.log "Branch A" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch A" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     [ node ]
 
                 else
-                    let
-                        _ =
-                            Debug.log "Branch B" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch B" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     generateSmoothedTurn shiftedPriorPoint node shiftedNextPoint
 
             else if
@@ -1421,17 +1427,17 @@ routeStepRenderer offset prev current next =
             then
                 -- Small turn to the left, use the appropriate mitre point
                 if offset < 0.0 then
-                    let
-                        _ =
-                            Debug.log "Branch C" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch C" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     [ insideMitrePoint ]
 
                 else
-                    let
-                        _ =
-                            Debug.log "Branch D" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch D" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     [ outsideMitrePoint ]
 
             else if
@@ -1441,10 +1447,10 @@ routeStepRenderer offset prev current next =
                 -- Large turn to left
                 if offset < 0.0 then
                     -- Offset is on inside of turn
-                    let
-                        _ =
-                            Debug.log "Branch E" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch E" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     --generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
                     -- Empiricall, this Bezier through the centroid looks nice. IMHO.
                     bezierSplines
@@ -1455,10 +1461,10 @@ routeStepRenderer offset prev current next =
 
                 else
                     -- Insert an arc around the offset zone.
-                    let
-                        _ =
-                            Debug.log "Branch F" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch F" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
             else if
@@ -1467,17 +1473,17 @@ routeStepRenderer offset prev current next =
             then
                 -- Small turn to the right, use the appropriate mitre point
                 if offset > 0.0 then
-                    let
-                        _ =
-                            Debug.log "Branch G" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch G" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     [ insideMitrePoint ]
 
                 else
-                    let
-                        _ =
-                            Debug.log "Branch H" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch H" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     [ outsideMitrePoint ]
 
             else if
@@ -1487,10 +1493,10 @@ routeStepRenderer offset prev current next =
                 -- Large turn to the right
                 if offset > 0.0 then
                     -- Offset is on inside of turn
-                    let
-                        _ =
-                            Debug.log "Branch I" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch I" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     bezierSplines
                         False
                         0.5
@@ -1499,18 +1505,18 @@ routeStepRenderer offset prev current next =
 
                 else
                     -- Insert an arc around the offset zone.
-                    let
-                        _ =
-                            Debug.log "Branch J" ( Angle.inDegrees amountOfTurn, offset )
-                    in
+                    --let
+                    --    _ =
+                    --        Debug.log "Branch J" ( Angle.inDegrees amountOfTurn, offset )
+                    --in
                     generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
             else
                 -- it's a U-turn
-                let
-                    _ =
-                        Debug.log "Branch K" ( Angle.inDegrees amountOfTurn, offset )
-                in
+                --let
+                --    _ =
+                --        Debug.log "Branch K" ( Angle.inDegrees amountOfTurn, offset )
+                --in
                 generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
         ( RouteEdge incoming, RouteNode node, RouteEnd ) ->

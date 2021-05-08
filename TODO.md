@@ -3,17 +3,27 @@
 # TODO
 
 **Graph**
-_DONE_ a) Applying edits to canonical graph.
-_DONE_ b) Turning it back into a route.
-_DONE_ c) DSL for re-routing
-_DONE_ d) Convert back to track using offset and adding U-turns as needed.
-_DONE_ e) Radius bends at nodes using 3D smoother. (Used Bezier)
-_DONE_ f) Always highlight route section just added (need logic for highlighting in list).
-_DONE_ g) Select first edge, with direction, cued by both markers.
+
+BUG - Initial view still in 8:6 ratio.
+
+BUGS - some edits are breaking the route.
+Testing with Hillingdon (a trivial graph)
+    + Bend smoother barfs
+    + Gradient smoother loses the first or last point of the route?
+    + Ditto centroid filter
+    + Bezier splines not confined to selected range
+    + Probably should disable Loop tools completely
+    + Nudge (even!) messes with points outside selected range
+
 
 -- 2.1.0 ships here --
 
-Terrain. Perhaps with quadtree.
+**Terrain**. Perhaps with quadtree.
+
+With Quadtree, **LIDAR** may be possible.
+
+**Nudge** with a variable size brush, with damping. 
+Visible by the preview, where we see a "fade" back to the normal track.
 
 **New bend smoother filter** - four point external centroid (convex only, not 'S').
 
@@ -23,9 +33,6 @@ New tool to **limit gradients** (range or whole track), retaining elevation of m
 Flythrough respects any azimuth & elevation applied when stationery.
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
-
-Nudge with a variable size brush, with damping. Don't know how we'd show this.
-Possibly only visible by the preview, where we see a "fade" back to the normal track.
 
 Working offline?
 
