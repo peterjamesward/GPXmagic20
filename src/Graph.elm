@@ -7,6 +7,7 @@ module Graph exposing (..)
 import Angle
 import Arc3d
 import Axis3d
+import BezierSplines exposing (bezierSplines)
 import ColourPalette
 import Dict exposing (Dict)
 import Dict.Extra
@@ -31,6 +32,7 @@ import Set exposing (Set)
 import SketchPlane3d
 import TrackEditType exposing (..)
 import TrackPoint exposing (..)
+import Triangle3d
 import Utils exposing (showDecimal2)
 import Vector2d
 import Vector3d
@@ -1200,6 +1202,11 @@ skeletalRoute graph =
 
 routeStepRenderer : Float -> RouteRenderingHint -> RouteRenderingHint -> RouteRenderingHint -> List TrackPoint
 routeStepRenderer offset prev current next =
+    let
+        closerThan distance point1 point2 =
+            Point3d.distanceFrom point1.xyz point2.xyz
+                |> Quantity.lessThanOrEqualTo (meters <| abs distance)
+    in
     -- Second phase. We consume the list "three at a time" so we always have context for the nodes.
     case ( prev, current, next ) of
         ( RouteStart, RouteNode node, RouteEdge outgoing ) ->
@@ -1215,29 +1222,31 @@ routeStepRenderer offset prev current next =
             [ shifted ]
 
         ( RouteNode start, RouteEdge edge, RouteNode end ) ->
+            --Edge render must exclude points within offset zones11
+            let
+                properPoints =
+                    edge
+                        |> List.dropWhileRight (closerThan offset end)
+                        |> List.dropWhile (closerThan offset start)
+            in
             -- The edge itself is easy
             List.map2
                 (applyOffsetToFirstPoint offset)
-                edge
-                (List.drop 1 edge ++ [ end ])
+                properPoints
+                (List.drop 1 properPoints ++ [ end ])
 
         ( RouteEdge incoming, RouteNode node, RouteEdge outgoing ) ->
             -- All depends on the angles and the offset
             -- We should now be able to discard any points closer than the offset.
             -- This will give more predicatability.
             let
-                closerThan distance point1 point2 =
-                    Vector3d.from point1.xyz point2.xyz
-                        |> Vector3d.length
-                        |> Quantity.lessThanOrEqualTo (meters distance)
-
                 ( incomingBeyondOffset, outgoingBeyondOffset ) =
-                    ( incoming |> List.reverse |> List.dropWhile (closerThan offset node)
+                    ( incoming |> List.dropWhileRight (closerThan offset node)
                     , outgoing |> List.dropWhile (closerThan offset node)
                     )
 
                 ( precedingPoint, followingPoint ) =
-                    ( List.head incomingBeyondOffset |> Maybe.withDefault node
+                    ( List.last incomingBeyondOffset |> Maybe.withDefault node
                     , List.head outgoingBeyondOffset |> Maybe.withDefault node
                     )
 
@@ -1260,21 +1269,21 @@ routeStepRenderer offset prev current next =
                     , applyOffsetToSecondPoint offset node followingPoint
                     )
 
+                ( shiftedNodeIncoming, shiftedNodeOutgoing ) =
+                    -- Only for U-turn.
+                    ( applyOffsetToSecondPoint offset precedingPoint node
+                    , applyOffsetToFirstPoint offset node followingPoint
+                    )
+
                 amountOfTurn =
                     Direction2d.angleFrom inDirection outDirection
 
-                _ =
-                    Debug.log "Turn" amountOfTurn
-
-                _ =
-                    Debug.log "Offset" offset
-
                 mitreAngle =
                     if amountOfTurn |> Quantity.greaterThanOrEqualTo zero then
-                        Angle.degrees 180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
+                        Angle.degrees 180 |> (Quantity.minus amountOfTurn) |> Quantity.divideBy 2.0
 
                     else
-                        Angle.degrees -180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
+                        Angle.degrees -180 |> (Quantity.minus amountOfTurn) |> Quantity.divideBy 2.0
 
                 insideMitreDirection =
                     outDirection |> Direction2d.rotateBy mitreAngle
@@ -1283,9 +1292,9 @@ routeStepRenderer offset prev current next =
                     Direction2d.reverse insideMitreDirection
 
                 ( insideMitreVector, outsideMitreVector ) =
-                    ( Vector2d.withLength (meters offset) insideMitreDirection
+                    ( Vector2d.withLength (meters <| abs offset) insideMitreDirection
                         |> Vector3d.on SketchPlane3d.xy
-                    , Vector2d.withLength (meters offset) outsideMitreDirection
+                    , Vector2d.withLength (meters <| abs offset) outsideMitreDirection
                         |> Vector3d.on SketchPlane3d.xy
                     )
 
@@ -1293,27 +1302,39 @@ routeStepRenderer offset prev current next =
                     ( node.xyz |> Point3d.translateBy insideMitreVector |> trackPointFromPoint
                     , node.xyz |> Point3d.translateBy outsideMitreVector |> trackPointFromPoint
                     )
+
+                centroidWithMitrePoint =
+                    Triangle3d.fromVertices (shiftedPriorPoint.xyz, insideMitrePoint.xyz, shiftedNextPoint.xyz)
+                    |> Triangle3d.centroid
+                    |> trackPointFromPoint
+
+                _ =
+                    Debug.log "Mitre vector" insideMitreVector
             in
-            -- I think (but will check) that turn is +ve ccw, and our offset is -ve on the left.
-            -- That would mean that our strategy is governed by the sign of the product first.
-            -- If we're on the outside edge, it's always a planar arc.
-            -- This also covers the U-turn case.
-            -- If we're on the inside edge, it's either a single node or a 3d-smoothed bend.
             -- Offset right is +ve.
             -- Left turn is +ve.
             -- U-turn is +pi (but would not rule out -pi).
             if offset == 0.0 then
-                [ node ]
+                -- No need to apply offset but still worth applying some smoothing,
+                if Quantity.abs amountOfTurn |> Quantity.lessThanOrEqualTo (Angle.degrees 10) then
+                    let _ = Debug.log "Branch A" (Angle.inDegrees amountOfTurn, offset) in
+                    [ node ]
+
+                else
+                    let _ = Debug.log "Branch B" (Angle.inDegrees amountOfTurn, offset) in
+                    generateSmoothedTurn shiftedPriorPoint node shiftedNextPoint
 
             else if
                 (amountOfTurn |> Quantity.greaterThanOrEqualTo zero)
-                    && (amountOfTurn |> Quantity.lessThanOrEqualTo) (Angle.degrees 10)
+                    && (amountOfTurn |> Quantity.lessThanOrEqualTo (Angle.degrees 10))
             then
                 -- Small turn to the left, use the appropriate mitre point
                 if offset < 0.0 then
+                    let _ = Debug.log "Branch C" (Angle.inDegrees amountOfTurn, offset) in
                     [ insideMitrePoint ]
 
                 else
+                    let _ = Debug.log "Branch D" (Angle.inDegrees amountOfTurn, offset) in
                     [ outsideMitrePoint ]
 
             else if
@@ -1322,10 +1343,19 @@ routeStepRenderer offset prev current next =
             then
                 -- Large turn to left
                 if offset < 0.0 then
-                    generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
-
+                    -- Offset is on inside of turn
+                    let _ = Debug.log "Branch E" (Angle.inDegrees amountOfTurn, offset) in
+                    --generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+                    -- Empiricall, this Bezier through the centroid looks nice. IMHO.
+                    bezierSplines
+                        False
+                        0.5
+                        1.0
+                        [ shiftedPriorPoint, centroidWithMitrePoint, shiftedNextPoint ]
                 else
-                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+                    -- Insert an arc around the offset zone.
+                    let _ = Debug.log "Branch F" (Angle.inDegrees amountOfTurn, offset) in
+                    generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
             else if
                 (amountOfTurn |> Quantity.lessThan zero)
@@ -1333,9 +1363,11 @@ routeStepRenderer offset prev current next =
             then
                 -- Small turn to the right, use the appropriate mitre point
                 if offset > 0.0 then
+                    let _ = Debug.log "Branch G" (Angle.inDegrees amountOfTurn, offset) in
                     [ insideMitrePoint ]
 
                 else
+                    let _ = Debug.log "Branch H" (Angle.inDegrees amountOfTurn, offset) in
                     [ outsideMitrePoint ]
 
             else if
@@ -1344,19 +1376,20 @@ routeStepRenderer offset prev current next =
             then
                 -- Large turn to the right
                 if offset > 0.0 then
+                    -- Offset is on inside of turn
+                    let _ = Debug.log "Branch I" (Angle.inDegrees amountOfTurn, offset) in
                     generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
 
                 else
-                    generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+                    -- Insert an arc around the offset zone.
+                    let _ = Debug.log "Branch J" (Angle.inDegrees amountOfTurn, offset) in
+                    generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
             else
                 -- it's a U-turn
-                generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
+                    let _ = Debug.log "Branch K" (Angle.inDegrees amountOfTurn, offset) in
+                generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
-        --generateArc shiftedPriorPoint outsideMitrePoint shiftedNextPoint
-        --generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
-        --[ insideMitrePoint ]
-        --[ outsideMitrePoint ]
         ( RouteEdge incoming, RouteNode node, RouteEnd ) ->
             -- Just emit the final node offset from vector of final segment
             let
@@ -1380,6 +1413,8 @@ routeStepRenderer offset prev current next =
 
 generateArc : TrackPoint -> TrackPoint -> TrackPoint -> List TrackPoint
 generateArc entry middle exit =
+    -- Quick and simple "rounding" effect on midpoint
+    -- Can only use when curve is passing through these points, hence OUTSIDE bend.
     case Arc3d.throughPoints entry.xyz middle.xyz exit.xyz of
         Just arc ->
             arc
@@ -1395,6 +1430,8 @@ generateArc entry middle exit =
 
 generateSmoothedTurn : TrackPoint -> TrackPoint -> TrackPoint -> List TrackPoint
 generateSmoothedTurn entry middle exit =
+    -- Re-purpose the 3D smoother; not required to pass through all three points,
+    -- they provide the envelope.
     case arc3dFromThreePoints entry middle exit of
         Just arc ->
             Arc3d.startPoint arc

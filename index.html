@@ -82,7 +82,7 @@ function startDraggingPoint(e) {
         'data': drag
         });
 
-    console.log('adding drag layer');
+ //   console.log('adding drag layer');
     map.addLayer({
         'id': 'drag',
         'type': 'circle',
@@ -164,7 +164,7 @@ function incomingMessageHandler(msg) {
 
         case 'Mark':
             if (isMapCreated) {
-                console.log('adding marker');
+                //console.log('adding marker');
                 addOptionals(msg);
             }
             break;
@@ -190,13 +190,13 @@ function incomingMessageHandler(msg) {
 };
 
 function makeTheMap(msg) {
-    console.log('create the map');
+    //console.log('create the map');
 
     mapboxgl.accessToken = msg.token;
     var element = document.getElementById("map");
     if(typeof(element) != 'undefined' && element != null && !isMapCreated)
     {
-        console.log('making the map now');
+        //console.log('making the map now');
 
         map = new mapboxgl.Map({
             container: 'map',
@@ -206,7 +206,7 @@ function makeTheMap(msg) {
         });
 
         map.on('load', function () {
-                console.log('tell Elm the map is ready');
+                //console.log('tell Elm the map is ready');
                 isMapCreated = true;
                 canvas  = map.getCanvasContainer();
                 // Add zoom and rotation controls to the map.
@@ -216,7 +216,7 @@ function makeTheMap(msg) {
 
     } else {
         //No 'map' node, we have to keep checking.
-        console.log('no map node');
+        //console.log('no map node');
         app.ports.messageReceiver.send({ 'msg' : 'no node' });
     }
 };
@@ -226,22 +226,22 @@ function centreMap(lon, lat) {
 };
 
 function addLineToMap(data, points) {
-    console.log('add line to map');
+    //console.log('add line to map');
 
     if (trackAdded) {
-        console.log('removing existing track');
+        //console.log('removing existing track');
         map.removeLayer('route');
         map.removeSource('route');
         trackAdded = false;
     }
 
-    console.log('adding geojson data');
+    //console.log('adding geojson data');
     map.addSource('route', {
         'type': 'geojson',
         'data': data
         });
 
-    console.log('adding route layer');
+    //console.log('adding route layer');
     map.addLayer({
         'id': 'route',
         'type': 'line',
@@ -333,7 +333,7 @@ function addOptionals(msg) {
             'data': msg.bend
             });
 
-        console.log('adding bend');
+        //console.log('adding bend');
         map.addLayer({
             'id': 'bend',
             'type': 'line',
@@ -358,7 +358,7 @@ function addOptionals(msg) {
             'data': msg.nudge
             });
 
-        console.log('adding nudge');
+        //console.log('adding nudge');
         map.addLayer({
             'id': 'nudge',
             'type': 'line',
