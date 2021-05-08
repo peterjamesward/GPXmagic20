@@ -1378,7 +1378,11 @@ routeStepRenderer offset prev current next =
                 if offset > 0.0 then
                     -- Offset is on inside of turn
                     let _ = Debug.log "Branch I" (Angle.inDegrees amountOfTurn, offset) in
-                    generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
+                    bezierSplines
+                        False
+                        0.5
+                        1.0
+                        [ shiftedPriorPoint, centroidWithMitrePoint, shiftedNextPoint ]
 
                 else
                     -- Insert an arc around the offset zone.
