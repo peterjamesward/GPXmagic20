@@ -6,11 +6,10 @@
 _DONE_ a) Applying edits to canonical graph.
 _DONE_ b) Turning it back into a route.
 _DONE_ c) DSL for re-routing
-
-d) Convert back to track using offset and adding U-turns as needed.
-e) Radius bends at nodes using 3D smoother.
-f) Always highlight route section just added (need logic for highlighting in list).
-g) Select first edge, with direction
+_DONE_ d) Convert back to track using offset and adding U-turns as needed.
+_DONE_ e) Radius bends at nodes using 3D smoother. (Used Bezier)
+_DONE_ f) Always highlight route section just added (need logic for highlighting in list).
+_DONE_ g) Select first edge, with direction, cued by both markers.
 
 -- 2.1.0 ships here --
 

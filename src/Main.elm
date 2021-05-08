@@ -788,6 +788,7 @@ processGraphMessage innerMsg model isTrack =
             Graph.update innerMsg
                 isTrack.trackPoints
                 isTrack.currentNode
+                isTrack.markedNode
                 isTrack.graph
 
         newTrack =

@@ -91,6 +91,7 @@ type Msg
     | HighlightTraversal Traversal
     | RemoveLastTraversal
     | AddTraversalFromCurrent
+    | AddFirstTraversal
 
 
 type GraphActionImpact
@@ -188,6 +189,12 @@ viewGraphControls wrapper graph =
                 { onPress = Just (wrapper AddTraversalFromCurrent)
                 , label = text "Add traversal\nat Orange marker"
                 }
+
+        addFirstButton =
+            I.button prettyButtonStyles
+                { onPress = Just (wrapper AddFirstTraversal)
+                , label = text "Add traversal using\nPurple and Orange markers"
+                }
     in
     case graph of
         Nothing ->
@@ -200,10 +207,14 @@ viewGraphControls wrapper graph =
                     , finishButton
                     ]
                 , showTheRoute g wrapper
-                , row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
-                    [ removeButton
-                    , addButton
-                    ]
+                , row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ] <|
+                    if List.length g.userRoute > 0 then
+                        [ removeButton
+                        , addButton
+                        ]
+
+                    else
+                        [ addFirstButton ]
                 ]
 
 
@@ -248,8 +259,12 @@ showTheRoute graph wrap =
         makeShowButton : Traversal -> Element msg
         makeShowButton t =
             I.button
-                [ focused
-                    [ Background.color ColourPalette.radioButtonSelected ]
+                [ Background.color <|
+                    if Just t == graph.selectedTraversal then
+                        ColourPalette.radioButtonSelected
+
+                    else
+                        ColourPalette.accordionContentBackground
                 ]
                 { onPress = Just (wrap <| HighlightTraversal t)
                 , label = text "Show"
@@ -307,9 +322,10 @@ update :
     Msg
     -> List TrackPoint
     -> TrackPoint -- orange marker needed to add traversal.
+    -> Maybe TrackPoint -- purple marker needed for first traversal only
     -> Maybe Graph
     -> ( Maybe Graph, GraphActionImpact )
-update msg trackPoints current graph =
+update msg trackPoints current purple graph =
     case ( msg, graph ) of
         ( GraphAnalyse, _ ) ->
             ( Just <| deriveTrackPointGraph trackPoints
@@ -358,6 +374,9 @@ update msg trackPoints current graph =
 
         ( AddTraversalFromCurrent, Just isGraph ) ->
             addTraversalFromCurrent isGraph current
+
+        ( AddFirstTraversal, Just isGraph ) ->
+            addFirstTraversal isGraph current purple
 
         _ ->
             ( graph, GraphNoAction )
@@ -1089,7 +1108,73 @@ addTraversalFromCurrent graph current =
                 newRoute =
                     graph.userRoute ++ Maybe.Extra.toList newSegment
             in
-            ( Just { graph | userRoute = newRoute }, GraphRouteChanged )
+            ( Just
+                { graph
+                    | userRoute = newRoute
+                    , selectedTraversal = newSegment
+                }
+            , GraphRouteChanged
+            )
+
+        _ ->
+            ( Just graph, GraphNoAction )
+
+
+addFirstTraversal : Graph -> TrackPoint -> Maybe TrackPoint -> ( Maybe Graph, GraphActionImpact )
+addFirstTraversal graph orange purple =
+    -- For the first section, we use the Purple as an "anchor" and Orange to
+    -- indicate the direction of travel.
+    let
+        edgeContainingOrange =
+            graph.edges
+                |> Dict.Extra.find
+                    (\edgeKey points -> List.member orange points)
+
+        edgeContainingPurple =
+            case purple of
+                Just isPurple ->
+                    graph.edges
+                        |> Dict.Extra.find
+                            (\edgeKey points -> List.member isPurple points)
+
+                Nothing ->
+                    Nothing
+    in
+    case ( edgeContainingOrange, edgeContainingPurple, purple ) of
+        ( Just ( newEdgeKey, pointsOnEdge ), Just ( purpleEdgeKey, _ ), Just isPurple ) ->
+            if newEdgeKey == purpleEdgeKey then
+                let
+                    ( orangeIndex, purpleIndex ) =
+                        ( List.findIndex
+                            (.xyz >> Point3d.equalWithin (meters 0.01) orange.xyz)
+                            pointsOnEdge
+                        , List.findIndex
+                            (.xyz >> Point3d.equalWithin (meters 0.01) isPurple.xyz)
+                            pointsOnEdge
+                        )
+
+                    newSegment =
+                        case ( orangeIndex, purpleIndex ) of
+                            ( Just fromHere, Just toHere ) ->
+                                if toHere >= fromHere then
+                                    Just { edge = newEdgeKey, direction = Forwards }
+
+                                else
+                                    Just { edge = newEdgeKey, direction = Backwards }
+
+                            _ ->
+                                Nothing
+                in
+                ( Just
+                    { graph
+                        | userRoute = Maybe.Extra.toList newSegment
+                        , selectedTraversal = newSegment
+                    }
+                , GraphRouteChanged
+                )
+
+            else
+                ( Just graph, GraphNoAction )
 
         _ ->
             ( Just graph, GraphNoAction )
@@ -1280,10 +1365,10 @@ routeStepRenderer offset prev current next =
 
                 mitreAngle =
                     if amountOfTurn |> Quantity.greaterThanOrEqualTo zero then
-                        Angle.degrees 180 |> (Quantity.minus amountOfTurn) |> Quantity.divideBy 2.0
+                        Angle.degrees 180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
 
                     else
-                        Angle.degrees -180 |> (Quantity.minus amountOfTurn) |> Quantity.divideBy 2.0
+                        Angle.degrees -180 |> Quantity.minus amountOfTurn |> Quantity.divideBy 2.0
 
                 insideMitreDirection =
                     outDirection |> Direction2d.rotateBy mitreAngle
@@ -1304,9 +1389,9 @@ routeStepRenderer offset prev current next =
                     )
 
                 centroidWithMitrePoint =
-                    Triangle3d.fromVertices (shiftedPriorPoint.xyz, insideMitrePoint.xyz, shiftedNextPoint.xyz)
-                    |> Triangle3d.centroid
-                    |> trackPointFromPoint
+                    Triangle3d.fromVertices ( shiftedPriorPoint.xyz, insideMitrePoint.xyz, shiftedNextPoint.xyz )
+                        |> Triangle3d.centroid
+                        |> trackPointFromPoint
 
                 _ =
                     Debug.log "Mitre vector" insideMitreVector
@@ -1317,11 +1402,17 @@ routeStepRenderer offset prev current next =
             if offset == 0.0 then
                 -- No need to apply offset but still worth applying some smoothing,
                 if Quantity.abs amountOfTurn |> Quantity.lessThanOrEqualTo (Angle.degrees 10) then
-                    let _ = Debug.log "Branch A" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch A" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     [ node ]
 
                 else
-                    let _ = Debug.log "Branch B" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch B" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     generateSmoothedTurn shiftedPriorPoint node shiftedNextPoint
 
             else if
@@ -1330,11 +1421,17 @@ routeStepRenderer offset prev current next =
             then
                 -- Small turn to the left, use the appropriate mitre point
                 if offset < 0.0 then
-                    let _ = Debug.log "Branch C" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch C" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     [ insideMitrePoint ]
 
                 else
-                    let _ = Debug.log "Branch D" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch D" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     [ outsideMitrePoint ]
 
             else if
@@ -1344,7 +1441,10 @@ routeStepRenderer offset prev current next =
                 -- Large turn to left
                 if offset < 0.0 then
                     -- Offset is on inside of turn
-                    let _ = Debug.log "Branch E" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch E" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     --generateSmoothedTurn shiftedPriorPoint insideMitrePoint shiftedNextPoint
                     -- Empiricall, this Bezier through the centroid looks nice. IMHO.
                     bezierSplines
@@ -1352,9 +1452,13 @@ routeStepRenderer offset prev current next =
                         0.5
                         1.0
                         [ shiftedPriorPoint, centroidWithMitrePoint, shiftedNextPoint ]
+
                 else
                     -- Insert an arc around the offset zone.
-                    let _ = Debug.log "Branch F" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch F" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
             else if
@@ -1363,11 +1467,17 @@ routeStepRenderer offset prev current next =
             then
                 -- Small turn to the right, use the appropriate mitre point
                 if offset > 0.0 then
-                    let _ = Debug.log "Branch G" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch G" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     [ insideMitrePoint ]
 
                 else
-                    let _ = Debug.log "Branch H" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch H" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     [ outsideMitrePoint ]
 
             else if
@@ -1377,7 +1487,10 @@ routeStepRenderer offset prev current next =
                 -- Large turn to the right
                 if offset > 0.0 then
                     -- Offset is on inside of turn
-                    let _ = Debug.log "Branch I" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch I" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     bezierSplines
                         False
                         0.5
@@ -1386,12 +1499,18 @@ routeStepRenderer offset prev current next =
 
                 else
                     -- Insert an arc around the offset zone.
-                    let _ = Debug.log "Branch J" (Angle.inDegrees amountOfTurn, offset) in
+                    let
+                        _ =
+                            Debug.log "Branch J" ( Angle.inDegrees amountOfTurn, offset )
+                    in
                     generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
             else
                 -- it's a U-turn
-                    let _ = Debug.log "Branch K" (Angle.inDegrees amountOfTurn, offset) in
+                let
+                    _ =
+                        Debug.log "Branch K" ( Angle.inDegrees amountOfTurn, offset )
+                in
                 generateArc shiftedNodeIncoming outsideMitrePoint shiftedNodeOutgoing
 
         ( RouteEdge incoming, RouteNode node, RouteEnd ) ->
