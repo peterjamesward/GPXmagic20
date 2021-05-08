@@ -4,12 +4,11 @@
 
 **Graph**
 
-BUG - Nudge on round and round is moving a nearby node.
+BUG - Nudge on round and round is moving a nearby node. 
+Probably the 'applyIndexPreservingEdit'!
 
 BUG - Recalculate edge node pair list in graph after node preserving edit
 (which looks like just bad list splicing)
-
-BUG - Initial view still in 8:6 ratio.
 
 BUG - Track load should not change view pane layout at all.
 
