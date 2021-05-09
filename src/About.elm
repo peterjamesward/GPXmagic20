@@ -2,7 +2,6 @@ module About exposing (..)
 
 import Element exposing (..)
 import Element.Background as Background
-import Element.Border as Border
 import Markdown
 import Pixels exposing (inPixels)
 import ViewingContext exposing (ViewingContext)
@@ -12,16 +11,20 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.0 update 2021-05-08
+## 2.1.1 update 2021-05-08
 
 - Ability for user to modify route using Graph tools.
 - Enhanced contrast on tab labels.
-- Viewaspect ratio now 8:5 (was 8:6).
+- View aspect ratio now 8:5 (was 8:6).
+- Loading new route does not affect pane layout
+- Grevious error in projection corrected
+- Tools will work in Graph mode and update the canonical edges
 
 Version 2 is a 90% re-write.
 The code base, whilst imperfect, is a much better base for further work.
 I've tried to keep the overall look consistent, but with some fairly obvious and major changes.
 
+* Convert to canonical form and make up your own route (Graph Theory)
 * You can have up to four view panes open
 * Views can be re-sized (but they're all the same size)
 * Double clicking a point will centre all views, but you can detach a view by clicking the padlock
