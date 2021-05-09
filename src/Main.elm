@@ -289,11 +289,10 @@ update msg model =
                 ( newSetttings, action ) =
                     Maybe.map (Nudge.update nudgeMsg model.nudgeSettings) model.track
                         |> Maybe.withDefault ( model.nudgeSettings, ActionNoOp )
-
-                updateSettings m =
-                    { m | nudgeSettings = newSetttings }
             in
-            processPostUpdateAction (updateSettings model) action
+            processPostUpdateAction
+                { model | nudgeSettings = newSetttings }
+                action
 
         InsertMessage insertMsg ->
             let

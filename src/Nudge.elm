@@ -98,17 +98,6 @@ nudgeNodes track settings =
         nudgedTrackPoints =
             nudgeNodeRange track.trackPoints from to settings
 
-        newGraph =
-            Maybe.map (applyIndexPreservingEditsToGraph ( from, to ) nudgedTrackPoints) track.graph
-
-        newRoute =
-            case newGraph of
-                Just isGraph ->
-                    Graph.walkTheRoute isGraph
-
-                Nothing ->
-                    nudgedTrackPoints
-
         newCurrent =
             List.Extra.getAt track.currentNode.index nudgedTrackPoints
 
@@ -121,8 +110,7 @@ nudgeNodes track settings =
                     Nothing
     in
     { track
-        | trackPoints = newRoute
-        , graph = newGraph
+        | trackPoints = nudgedTrackPoints
         , currentNode = newCurrent |> Maybe.withDefault track.currentNode
         , markedNode = newMarker
     }
@@ -296,20 +284,12 @@ update :
 update msg settings track =
     case msg of
         SetHorizontalNudgeFactor length ->
-            let
-                newSettings =
-                    { settings | horizontal = length }
-            in
-            ( newSettings
+            ( { settings | horizontal = length }
             , PostUpdateActions.ActionPreview
             )
 
         SetVerticalNudgeFactor length ->
-            let
-                newSettings =
-                    { settings | vertical = length }
-            in
-            ( newSettings
+            ( { settings | vertical = length }
             , PostUpdateActions.ActionPreview
             )
 
@@ -319,10 +299,6 @@ update msg settings track =
             )
 
         NudgeNode _ ->
-            let
-                nudgedPoints =
-                    nudgeNodes track settings
-            in
             ( { settings | preview = [] }
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex

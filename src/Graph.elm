@@ -59,7 +59,7 @@ type alias Graph =
     , canonicalRoute : List Traversal
     , centreLineOffset : Length.Length
     , trackPointToCanonical : Dict XY PointType
-    , nodePairsInRoute : List ( Int, Int )
+    --, nodePairsInRoute : List ( Int, Int )
     , selectedTraversal : Maybe Traversal
     }
 
@@ -79,7 +79,7 @@ emptyGraph =
     , canonicalRoute = []
     , centreLineOffset = Length.meters 0.0
     , trackPointToCanonical = Dict.empty
-    , nodePairsInRoute = []
+    --, nodePairsInRoute = []
     , selectedTraversal = Nothing
     }
 
@@ -400,18 +400,19 @@ deriveTrackPointGraph trackPoints =
         rawEdges =
             findDistinctEdges rawNodes trackPoints
 
-        nodePairs : List ( Int, Int )
-        nodePairs =
-            rawEdges
-                |> List.map
-                    (\raw ->
-                        let
-                            ( fst, lst ) =
-                                ( List.head raw, List.last raw )
-                        in
-                        Maybe.map2 (\n1 n2 -> ( n1.index, n2.index )) fst lst
-                    )
-                |> List.filterMap identity
+        --nodePairs : List ( Int, Int )
+        --nodePairs =
+        --    --TODO: Make this an external function and do not cache the results.
+        --    rawEdges
+        --        |> List.map
+        --            (\raw ->
+        --                let
+        --                    ( fst, lst ) =
+        --                        ( List.head raw, List.last raw )
+        --                in
+        --                Maybe.map2 (\n1 n2 -> ( n1.index, n2.index )) fst lst
+        --            )
+        --        |> List.filterMap identity
 
         canonicalEdges =
             findCanonicalEdges rawEdges
@@ -478,7 +479,7 @@ deriveTrackPointGraph trackPoints =
                 , edges = canonicalEdges
                 , userRoute = canonicalRoute
                 , canonicalRoute = canonicalRoute
-                , nodePairsInRoute = nodePairs
+                --, nodePairsInRoute = nodePairs
             }
     in
     case annoyingTrackPoints of
@@ -541,6 +542,30 @@ walkTheRouteInternal graph route =
         route
         |> .points
 
+
+nodePairsFromRoute : Graph -> List (Int, Int)
+nodePairsFromRoute graph =
+    -- This list is used to locate an edited track section by comparing the track point indices
+    -- with the addresses of edge start and end pairs.
+    -- Whilst it makes sense to keep the node pair list in the graph, we then have
+    -- the burden of ensuring it is up to date. But it's quite cheap to derive so
+    -- that feels (in retrospect) like premature optimisation.
+    let
+        endNodes =
+            List.scanl
+                (\traversal ->
+                    case Dict.get traversal.edge graph.edges of
+                        Just edge ->
+                            ((+) (1 + List.length edge))
+
+                        Nothing ->
+                            ((+) 0)
+
+                )
+                0
+                graph.canonicalRoute
+    in
+    List.zip (endNodes) (List.drop 1 endNodes)
 
 trackPointComparable : TrackPoint -> XY
 trackPointComparable tp =
@@ -893,7 +918,7 @@ applyIndexPreservingEditsToGraph ( editStart, editEnd ) newTrackPoints graph =
     -- we can apply posution-only changes to our canonical nodes and edges.
     let
         routeInfoPairs =
-            List.zip graph.nodePairsInRoute graph.canonicalRoute
+            List.zip (nodePairsFromRoute graph) graph.canonicalRoute
 
         edgesOverlappingRange =
             routeInfoPairs
@@ -914,7 +939,7 @@ applyIndexPreservingEditsToGraph ( editStart, editEnd ) newTrackPoints graph =
                     edge
 
                 trackpointsOnEdgeIncludingNodes =
-                    newTrackPoints |> List.take edgeEnd |> List.drop edgeStart
+                    newTrackPoints |> List.take (edgeEnd + 1) |> List.drop edgeStart
 
                 trackpointsOnEdge =
                     trackpointsOnEdgeIncludingNodes
@@ -952,7 +977,7 @@ applyNodePreservingEditsToGraph : ( Int, Int ) -> List TrackPoint -> Graph -> Gr
 applyNodePreservingEditsToGraph ( editStart, editEnd ) newPoints graph =
     let
         routeInfoPairs =
-            List.zip graph.nodePairsInRoute graph.canonicalRoute
+            List.zip (nodePairsFromRoute graph) graph.canonicalRoute
 
         edgeContainingingRange =
             -- Our rules state there must be only one edge for this type of edit.
