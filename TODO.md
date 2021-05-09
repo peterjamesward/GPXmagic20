@@ -2,8 +2,6 @@
 
 # TODO
 
-TODO: - Disable Loop tools completely in Graph mode. 
-
 > 2.1.0 ships here?
 
 **Nudge** with a variable size brush, with damping.
