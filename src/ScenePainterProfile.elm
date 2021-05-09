@@ -36,7 +36,8 @@ initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
     -> Track
     -> ViewingContext
-initialiseView viewSize track =
+    -> ViewingContext
+initialiseView viewSize track oldContext=
     -- This is just a simple default so we can see something!
     let
         profileTrack =
@@ -45,7 +46,7 @@ initialiseView viewSize track =
         ( zoom, centralPoint ) =
             profileZoomLevelFromBoundingBox viewSize profileTrack
     in
-    { defaultViewingContext
+    { oldContext
         | focalPoint = centralPoint
         , sceneSearcher = profilePointNearestRay profileTrack
         , zoomLevel = zoom

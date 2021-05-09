@@ -35,15 +35,12 @@ initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
     -> Track
     -> ViewingContext
-initialiseView viewSize track =
+    -> ViewingContext
+initialiseView viewSize track oldContext =
     -- This is just a simple default so we can see something!
-    let
-        viewContext =
-            newViewingContext ViewFirstPerson
-    in
     case track.trackPoints of
         p0 :: p1 :: _ ->
-            { viewContext
+            { oldContext
                 | focalPoint = p1.xyz |> Point3d.translateBy (Vector3d.meters 0 0 eyeHeight)
                 , azimuth = p0.afterDirection
                     |> Maybe.map Direction3d.reverse
@@ -56,7 +53,7 @@ initialiseView viewSize track =
             }
 
         _ ->
-            viewContext
+            oldContext
 
 
 update :

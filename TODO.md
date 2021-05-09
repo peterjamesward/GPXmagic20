@@ -2,10 +2,6 @@
 
 # TODO
 
-**Graph**
-
-TODO: **BUG** - Track load should not change view pane layout at all.
-
 TODO: - Disable Loop tools completely in Graph mode. 
 
 > 2.1.0 ships here?

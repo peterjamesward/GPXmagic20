@@ -184,17 +184,13 @@ resetAllViews :
     -> ViewPane
     -> ViewPane
 resetAllViews track pane =
-    let
-        newPane =
-            { pane
-                | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track
-                , firstPersonContext = ScenePainterFirst.initialiseView pane.viewPixels track
-                , planContext = ScenePainterPlan.initialiseView pane.viewPixels track
-                , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track
-                , mapContext = ScenePainterMap.initialiseView pane.viewPixels track
-            }
-    in
-    newPane
+    { pane
+        | thirdPersonContext = ScenePainterThird.initialiseView pane.viewPixels track pane.thirdPersonContext
+        , firstPersonContext = ScenePainterFirst.initialiseView pane.viewPixels track pane.firstPersonContext
+        , planContext = ScenePainterPlan.initialiseView pane.viewPixels track pane.planContext
+        , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track pane.profileContext
+        , mapContext = ScenePainterMap.initialiseView pane.viewPixels track pane.mapContext
+    }
 
 
 makeMapCommands : Track -> List ViewPane -> List (Cmd msg)

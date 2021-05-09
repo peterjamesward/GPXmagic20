@@ -25,13 +25,14 @@ initialiseView :
     ( Quantity Int Pixels, Quantity Int Pixels )
     -> Track
     -> ViewingContext
-initialiseView viewSize track =
+    -> ViewingContext
+initialiseView viewSize track oldContext =
     -- This is just a simple default so we can see something!
     let
         ( zoom, centralPoint ) =
             zoomLevelFromBoundingBox viewSize track.trackPoints
     in
-    { defaultViewingContext
+    { oldContext
         | focalPoint = centralPoint
         , sceneSearcher = always Nothing
         , zoomLevel = zoom
