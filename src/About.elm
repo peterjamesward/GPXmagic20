@@ -13,6 +13,7 @@ aboutText =
 
 ## 2.2.0 update 2021-05-10
 
+- Centroid average filter can be applied to Position, Elevation, both or neither (!).
 - Nudge tool has extra fader control to provide smoother transitions
 - Ability for user to modify route using Graph tools.
 - Enhanced contrast on tab labels.

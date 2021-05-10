@@ -4,8 +4,6 @@
 
 > 2.1.0 ships here?
 
-**Centroid filter** option to _apply_ (not calculate) in position or elevation only.
-
 **Terrain**. Perhaps with quadtree.
 
 **New bend smoother filter** - four point external centroid (convex only, not 'S').

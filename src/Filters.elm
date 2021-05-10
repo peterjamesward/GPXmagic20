@@ -14,7 +14,7 @@ import TrackObservations exposing (TrackObservations)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Triangle3d exposing (Triangle3d)
 import Utils exposing (showDecimal2)
-import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
 info =
@@ -43,19 +43,26 @@ type Msg
     | SetBezierTension Float
     | SetBezierTolerance Float
     | BezierSplines
+    | SetPositionFlag Bool
+    | SetElevationFlag Bool
 
 
 type alias Options =
     { filterBias : Float
     , bezierTension : Float
     , bezierTolerance : Float
+    , applyToPosition : Bool
+    , applyToElevation : Bool
     }
 
 
+defaultOptions : Options
 defaultOptions =
     { filterBias = 50.0
     , bezierTension = 0.5
     , bezierTolerance = 5.0
+    , applyToPosition = True
+    , applyToElevation = True
     }
 
 
@@ -82,15 +89,25 @@ update msg settings observations track =
             , PostUpdateActions.ActionNoOp
             )
 
+        SetPositionFlag position ->
+            ( { settings | applyToPosition = position }
+            , PostUpdateActions.ActionNoOp
+            )
+
+        SetElevationFlag elevation ->
+            ( { settings | applyToElevation = elevation }
+            , PostUpdateActions.ActionNoOp
+            )
+
         FilterWeightedAverage ->
             let
                 newTrack =
                     { track
                         | trackPoints =
                             applyWeightedAverageFilter
-                                track
-                                settings.filterBias
+                                settings
                                 observations.loopiness
+                                track
                     }
             in
             ( settings
@@ -104,11 +121,12 @@ update msg settings observations track =
             let
                 newTrack =
                     { track
-                        | trackPoints = bezierSplineHelper
-                            track
-                            settings.bezierTension
-                            settings.bezierTolerance
-                            observations.loopiness
+                        | trackPoints =
+                            bezierSplineHelper
+                                track
+                                settings.bezierTension
+                                settings.bezierTolerance
+                                observations.loopiness
                     }
             in
             ( settings
@@ -141,6 +159,18 @@ viewFilterControls options wrap track =
                 prettyButtonStyles
                 { onPress = Just <| wrap FilterWeightedAverage
                 , label = text <| "Centroid averaging"
+                }
+            , Input.checkbox [ moveRight 40 ]
+                { onChange = wrap << SetPositionFlag
+                , icon = checkboxIcon
+                , checked = options.applyToPosition
+                , label = Input.labelRight [ centerY ] (text "Position")
+                }
+            , Input.checkbox [ moveRight 40 ]
+                { onChange = wrap << SetElevationFlag
+                , icon = checkboxIcon
+                , checked = options.applyToElevation
+                , label = Input.labelRight [ centerY ] (text "Elevation")
                 }
             ]
 
@@ -201,15 +231,14 @@ type alias FilterFunction =
 
 
 applyWeightedAverageFilter :
-    Track
-    -> Float
+    Options
     -> Loopiness
+    -> Track
     -> List TrackPoint
-applyWeightedAverageFilter track filterBias loopiness =
+applyWeightedAverageFilter settings loopiness track =
     let
         points =
             track.trackPoints
-
         ( startPoint, endPoint ) =
             case track.markedNode of
                 Just marker ->
@@ -248,7 +277,7 @@ applyWeightedAverageFilter track filterBias loopiness =
     in
     if track.markedNode == Nothing && loopiness == IsALoop then
         List.map3
-            (weightedAverage (filterBias / 100.0))
+            (weightedAverage settings)
             (lastPoint ++ points)
             points
             (List.drop 1 points ++ firstPoint)
@@ -257,7 +286,7 @@ applyWeightedAverageFilter track filterBias loopiness =
         let
             filtered =
                 List.map3
-                    (weightedAverage (filterBias / 100.0))
+                    (weightedAverage settings)
                     (firstPoint ++ points)
                     points
                     (List.drop 1 points ++ lastPoint)
@@ -265,6 +294,7 @@ applyWeightedAverageFilter track filterBias loopiness =
         fixedFirst
             ++ withinRange filtered
             ++ fixedLast
+
 
 bezierSplineHelper :
     Track
@@ -319,7 +349,7 @@ bezierSplineHelper track tension tolerance loopiness =
                     (loopiness == IsALoop)
                     tension
                     tolerance
-                    ( points)
+                    points
 
             else
                 bezierSplines
@@ -328,21 +358,26 @@ bezierSplineHelper track tension tolerance loopiness =
                     tolerance
                     (withinRange points)
     in
-
-        fixedFirst
-            ++ splinedSection
-            ++ fixedLast
-
+    fixedFirst
+        ++ splinedSection
+        ++ fixedLast
 
 
 weightedAverage :
-    Float
+    Options
     -> TrackPoint
     -> TrackPoint
     -> TrackPoint
     -> TrackPoint
-weightedAverage bias p0 p1 p2 =
+weightedAverage settings p0 p1 p2 =
     let
+        mergePositionWithElevation pXY pZ =
+            let
+                sourceXY = Point3d.toMeters pXY
+                sourceZ = Point3d.toMeters pZ
+            in
+            { sourceXY | z = sourceZ.z } |> Point3d.fromMeters
+
         triangle =
             Triangle3d.fromVertices ( p0.xyz, p1.xyz, p2.xyz )
 
@@ -350,8 +385,26 @@ weightedAverage bias p0 p1 p2 =
             Triangle3d.centroid triangle
 
         newP1 =
-            Point3d.interpolateFrom p1.xyz centroid bias
+            Point3d.interpolateFrom p1.xyz centroid (settings.filterBias / 100.0)
+
+        withFlags =
+            case ( settings.applyToPosition, settings.applyToElevation ) of
+                ( True, True ) ->
+                    newP1
+
+                ( False, False ) ->
+                    p1.xyz
+
+                ( True, False ) ->
+                    -- Use new position, old elevation
+                    mergePositionWithElevation newP1 p1.xyz
+
+                ( False, True ) ->
+                    mergePositionWithElevation p1.xyz newP1
+
     in
-    trackPointFromPoint newP1
+    trackPointFromPoint withFlags
 
 
+
+-- END
