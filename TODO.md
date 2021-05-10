@@ -2,6 +2,8 @@
 
 # TODO
 
+**BUG** Track lengths are too short, by quite a lot. Hillingdon should be about 1512m not 1078.
+
 **Terrain**
 
 Try making triangles from box edges on XY sloping up to lowest point.
