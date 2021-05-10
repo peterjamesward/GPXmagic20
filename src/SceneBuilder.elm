@@ -3,17 +3,17 @@ module SceneBuilder exposing (..)
 import Angle exposing (Angle)
 import Axis3d
 import BoundingBox3d exposing (BoundingBox3d)
-import Color exposing (Color, black, brown, green)
+import Color exposing (Color, black, brown, darkGreen, green)
 import Cone3d
 import Direction3d exposing (negativeZ)
 import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
-import Length exposing (Length, Meters, meters)
+import Length exposing (Length, Meters, inMeters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Plane3d
-import Point3d
+import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import Scene3d exposing (Entity, cone)
@@ -54,6 +54,19 @@ renderTrack options track =
     -- Adding in extra options ...
     --TODO: Implement selective detail (optimisation!) = simpleSelectiveDetail context track
     let
+        box =
+            BoundingBox3d.hullOfN .xyz track.trackPoints
+
+        terrain =
+            case ( box, options.terrainOn ) of
+                ( Just isBox, True ) ->
+                    makeTerrain
+                        (BoundingBox3d.expandBy (meters 100) isBox)
+                        (List.map .xyz track.trackPoints)
+
+                _ ->
+                    []
+
         reducedTrack =
             track.trackPoints
 
@@ -84,14 +97,36 @@ renderTrack options track =
                     gradientColourPastel
 
         scene =
-            graphNodes
-                ++ when options.centreLine (mapOverPairs (centreLineBetween gradientColourPastel))
-                ++ when options.roadTrack (mapOverPairs paintSurfaceBetween)
-                ++ when (options.curtainStyle /= NoCurtain)
-                    (mapOverPairs (curtainBetween gradientFunction))
-                ++ when options.roadPillars (mapOverPoints roadSupportPillar)
-                ++ when options.roadCones (mapOverPoints trackPointCone)
-                ++ seaLevel options.seaLevel track.box
+            List.concat
+                [ graphNodes
+                , if options.centreLine then
+                    mapOverPairs (centreLineBetween gradientColourPastel)
+
+                  else
+                    []
+                , if options.roadTrack then
+                    mapOverPairs paintSurfaceBetween
+
+                  else
+                    []
+                , if options.curtainStyle /= NoCurtain then
+                    mapOverPairs (curtainBetween gradientFunction)
+
+                  else
+                    []
+                , if options.roadPillars then
+                    mapOverPoints roadSupportPillar
+
+                  else
+                    []
+                , if options.roadCones then
+                    mapOverPoints trackPointCone
+
+                  else
+                    []
+                , seaLevel options.seaLevel track.box
+                , terrain
+                ]
     in
     scene
 
@@ -409,3 +444,108 @@ showGraphEdge points =
         arrowhead
         points
         (List.drop 1 points)
+
+
+makeTerrain :
+    BoundingBox3d Length.Meters LocalCoords
+    -> List (Point3d Length.Meters LocalCoords)
+    -> List (Entity LocalCoords)
+makeTerrain box points =
+    -- Define boxes that fit underneath the track, recursively.
+    -- Tediously written out "long hand".
+    let
+        extrema =
+            BoundingBox3d.extrema box
+
+        elevation =
+            points
+                |> List.map Point3d.zCoordinate
+                |> Quantity.minimum
+                |> Maybe.withDefault (meters 0.0)
+                |> Quantity.minus (meters 1.0)
+
+        -- so we can see the road!
+        ( midX, midY, midZ ) =
+            BoundingBox3d.centerPoint box |> Point3d.coordinates
+
+        neBox =
+            BoundingBox3d.fromExtrema { extrema | minX = midX, minY = midY }
+
+        nwBox =
+            BoundingBox3d.fromExtrema { extrema | maxX = midX, minY = midY }
+
+        seBox =
+            BoundingBox3d.fromExtrema { extrema | minX = midX, maxY = midY }
+
+        swBox =
+            BoundingBox3d.fromExtrema { extrema | maxX = midX, maxY = midY }
+
+        nePoints =
+            List.filter (\p -> BoundingBox3d.contains p neBox) points
+
+        nwPoints =
+            List.filter (\p -> BoundingBox3d.contains p nwBox) points
+
+        sePoints =
+            List.filter (\p -> BoundingBox3d.contains p seBox) points
+
+        swPoints =
+            List.filter (\p -> BoundingBox3d.contains p swBox) points
+
+        notTiny quad =
+            let
+                ( x, y, z ) =
+                    BoundingBox3d.dimensions quad
+            in
+            (x |> Quantity.greaterThan (meters 2.0))
+                && (y |> Quantity.greaterThan (meters 2.0))
+
+        siblings children =
+            List.length children > 1
+
+        recurse quad contents =
+            if notTiny quad && siblings contents then
+                makeTerrain quad contents
+
+            else
+                []
+
+        ground = meters 0.0
+
+    in
+    List.concat
+        [ [ Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.minY elevation)
+                (Point3d.xyz extrema.minX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.minY elevation)
+          , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.minY elevation)
+                (Point3d.xyz extrema.minX extrema.maxY elevation)
+                (Point3d.xyz extrema.minX extrema.maxY (ground))
+                (Point3d.xyz extrema.minX extrema.minY ground)
+          , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.maxX extrema.minY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY (ground))
+                (Point3d.xyz extrema.maxX extrema.minY ground)
+          , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.minY elevation)
+                (Point3d.xyz extrema.maxX extrema.minY elevation)
+                (Point3d.xyz extrema.maxX extrema.minY (ground))
+                (Point3d.xyz extrema.minX extrema.minY ground)
+          , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY (ground))
+                (Point3d.xyz extrema.minX extrema.maxY ground)
+          ]
+        , recurse neBox nePoints
+        , recurse nwBox nwPoints
+        , recurse seBox sePoints
+        , recurse swBox swPoints
+        ]
+
+
+
+-- END

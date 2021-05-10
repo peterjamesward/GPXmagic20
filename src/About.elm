@@ -11,16 +11,12 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.0 update 2021-05-10
+## 2.1.2 update 2021-05-10
 
 - Centroid average filter can be applied to Position, Elevation, both or neither (!).
 - Nudge tool has extra fader control to provide smoother transitions
-- Ability for user to modify route using Graph tools.
-- Enhanced contrast on tab labels.
-- View aspect ratio now 8:5 (was 8:6).
-- Loading new route does not affect pane layout
-- Grevious error in projection corrected
-- Tools will work in Graph mode and update the canonical edges
+
+## About Version 2
 
 Version 2 is a 90% re-write.
 The code base, whilst imperfect, is a much better base for further work.
@@ -45,15 +41,10 @@ I've tried to keep the overall look consistent, but with some fairly obvious and
 * Possible energy saving by not doing the same thing twenty times a second
 * Short help text for each tool, accessed by the (i) button
 
-v2.1 is slated for a few weeks with some new and exciting tools and (inevitably) bug-fixes.
-
 ## Donations
 
 A few users have asked if I would accept some payment.
-Thank you kindly, but I do this for fun and challenge; like cycling.
-In case you feel the urge, I have added a Tip Jar QR that allows you
-to contribute towards a fund that will go to our local hospice.
-Or you can just give a gift to any cause; it's the spirit that counts.
+**YES, PLEASE!!** Donations will be passed on to our local hospice.
 
 ## Guidance on use
 

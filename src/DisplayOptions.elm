@@ -1,9 +1,9 @@
 module DisplayOptions exposing (..)
 
 import Element exposing (..)
-import Element.Input as Input
+import Element.Input as Input exposing (button)
 import Utils exposing (showDecimal2)
-import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, radioButton)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, radioButton)
 
 
 info =
@@ -32,6 +32,7 @@ type Msg
     | ToggleCentreLine Bool
     | SetCurtainStyle CurtainStyle
     | SetVerticalExaggeration Float
+    | Terrain Bool
 
 
 type Action
@@ -46,7 +47,7 @@ type alias DisplayOptions =
     , curtainStyle : CurtainStyle
     , problems : Bool
     , centreLine : Bool
-    , terrain : Bool
+    , terrainOn : Bool
     , seaLevel : Bool
     , withLighting : Bool
     , verticalExaggeration : Float
@@ -61,7 +62,7 @@ defaultDisplayOptions =
     , curtainStyle = PastelCurtain
     , problems = False
     , centreLine = False
-    , terrain = False
+    , terrainOn = False
     , seaLevel = True
     , withLighting = True
     , verticalExaggeration = 1.0
@@ -142,6 +143,11 @@ viewDisplayOptions options wrap =
                 , Input.optionWith RainbowCurtain <| radioButton "Vivid"
                 ]
             }
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrap (Terrain True)
+            , label = text "Make Terrain"
+            }
         ]
 
 
@@ -186,4 +192,9 @@ update options dispMsg wrap =
         SetVerticalExaggeration value ->
             ( { options | verticalExaggeration = value }
             , ProfileChange value
+            )
+
+        Terrain on ->
+            ( { options | terrainOn = on }
+            , NoOp
             )

@@ -388,7 +388,8 @@ update msg model =
         DisplayOptionsMessage dispMsg ->
             let
                 ( newOptions, action ) =
-                    DisplayOptions.update model.displayOptions
+                    DisplayOptions.update
+                        model.displayOptions
                         dispMsg
                         DisplayOptionsMessage
 
@@ -866,9 +867,12 @@ updateTrackInModel newTrack editType model =
                 newGraph =
                     Graph.updateWithNewTrack
                         newTrack.graph
-                        oldTrack.trackPoints -- Pre-edit baseline points.
-                        editRegion -- Where the markers were.
-                        newTrack.trackPoints -- Post-edit track points.
+                        oldTrack.trackPoints
+                        -- Pre-edit baseline points.
+                        editRegion
+                        -- Where the markers were.
+                        newTrack.trackPoints
+                        -- Post-edit track points.
                         editType
 
                 newPointsFromGraph =

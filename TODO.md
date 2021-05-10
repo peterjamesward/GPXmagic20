@@ -2,9 +2,9 @@
 
 # TODO
 
-> 2.1.0 ships here?
-
 **Terrain**. Perhaps with quadtree.
+
+> 2.1.0 ships here?
 
 **New bend smoother filter** - four point external centroid (convex only, not 'S').
 

@@ -237,8 +237,6 @@ previewNudgeNodes settings track =
         nudgedPoints =
             computeNudgedPoints settings track
 
-        _ = Debug.log "Preview" (previewStartIndex, previewEndIndex)
-
         previewStartIndex =
             List.Extra.findIndex
                 (\p -> p.distanceFromStart |> Quantity.greaterThanOrEqualTo fadeInStart)
