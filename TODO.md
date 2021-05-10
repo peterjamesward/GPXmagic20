@@ -2,7 +2,7 @@
 
 # TODO
 
-**BUG** Track lengths are too short, by quite a lot. Hillingdon should be about 1512m not 1078.
+--TODO: Use the track length when working out gradient, not the vector unless we can trust it.
 
 **Terrain**
 

@@ -13,6 +13,7 @@ import Plane3d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import SketchPlane3d
+import Spherical
 import Triangle3d
 import Vector3d exposing (Vector3d)
 
@@ -21,6 +22,7 @@ type alias TrackPoint =
     -- See if we can manage with just the one system.
     -- Only use lat, lon for I/O!
     { xyz : Point3d Length.Meters LocalCoords
+    , latLon : ( Angle, Angle )
     , profileXZ : Point3d Length.Meters LocalCoords
     , costMetric : Float
     , index : Int
@@ -31,6 +33,7 @@ type alias TrackPoint =
     , directionChange : Maybe Angle
     , gradientChange : Maybe Float
     , roadVector : Vector3d Length.Meters LocalCoords
+    , length : Length.Length
     }
 
 
@@ -38,6 +41,7 @@ trackPointFromPoint : Point3d Meters LocalCoords -> TrackPoint
 trackPointFromPoint point =
     -- For some compatibility bringing v1.0 stuff over.
     { xyz = point
+    , latLon = ( Quantity.zero, Quantity.zero )
     , profileXZ = Point3d.origin
     , costMetric = 0.0
     , index = 0
@@ -48,31 +52,7 @@ trackPointFromPoint point =
     , directionChange = Nothing
     , gradientChange = Nothing
     , roadVector = Vector3d.zero
-    }
-
-
-trackPointFromGPX : Float -> Float -> Float -> TrackPoint
-trackPointFromGPX lon lat ele =
-    let
-        location =
-            Point3d.fromTuple
-                Length.meters
-                ( metresPerDegree * lon * cos (degrees lat)
-                , metresPerDegree * lat
-                , ele
-                )
-    in
-    { xyz = location
-    , profileXZ = location -- Fix when we traverse the track.
-    , costMetric = 10.0 ^ 10.0
-    , index = 0
-    , distanceFromStart = meters 0.0
-    , beforeDirection = Nothing
-    , afterDirection = Nothing
-    , effectiveDirection = Nothing
-    , directionChange = Nothing
-    , gradientChange = Nothing
-    , roadVector = Vector3d.zero
+    , length = Length.meters 0.0
     }
 
 
@@ -108,6 +88,7 @@ applyGhanianTransform points =
                     )
                         |> Point3d.fromTuple meters
                         |> trackPointFromPoint
+                        |> (\tp -> { tp | latLon = ( Angle.degrees lat, Angle.degrees lon ) })
             in
             ( List.map
                 toLocalSpace
@@ -154,6 +135,9 @@ prepareTrackPoints trackPoints =
                         |> Maybe.join
                 , profileXZ = adjustProfileXZ point.xyz (meters 0.0)
                 , roadVector = vector
+                , length =
+                    meters <|
+                        Spherical.range point.latLon nextPt.latLon
             }
 
         secondPassSetsBackwardLooking =
@@ -189,9 +173,9 @@ prepareTrackPoints trackPoints =
 
         distances =
             List.Extra.scanl
-                (\pt dist -> pt.roadVector |> Vector3d.length |> Quantity.plus dist)
+                (\pt dist -> pt.length |> Quantity.plus dist)
                 Quantity.zero
-                forwardAndBackward
+                firstPassSetsForwardLooking
 
         withDistances =
             List.map2

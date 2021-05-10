@@ -14,7 +14,7 @@ import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import Quantity
 import SketchPlane3d
-import TrackPoint exposing (TrackPoint, applyGhanianTransform, pointInEarthCoordinates, prepareTrackPoints, trackPointFromGPX, trackPointFromPoint)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)
 import Vector3d exposing (..)
 
@@ -168,9 +168,8 @@ summaryData track =
                 |> Angle.tan
                 |> (*) 100.0
 
-        ( lon, lat, ele ) =
-            pt.xyz
-                |> withoutGhanianTransform track
+        ( lat, lon ) =
+            pt.latLon
     in
     column [ centerX ]
         [ row [ padding 20, centerX, spacing 10 ]
@@ -180,7 +179,7 @@ summaryData track =
                 ]
             , column [ spacing 10 ]
                 [ text <| String.fromInt pt.index
-                , text <| showDecimal2 <| inMeters <| Vector3d.length pt.roadVector
+                , text <| showDecimal2 <| inMeters <| pt.length
                 ]
             , column [ spacing 10 ]
                 [ text "Gradient "
@@ -202,8 +201,8 @@ summaryData track =
                 , text "Distance "
                 ]
             , column [ spacing 10 ]
-                [ text <| showDecimal6 lat
-                , text <| showDecimal6 lon
+                [ text <| showDecimal6 <| Angle.inDegrees lat
+                , text <| showDecimal6 <| Angle.inDegrees lon
                 , text <| showDecimal2 <| inMeters <| Point3d.zCoordinate pt.xyz
                 , text <| showDecimal2 <| inMeters pt.distanceFromStart
                 ]
@@ -246,9 +245,11 @@ updateTrackPointLonLat ( lon, lat ) track tp =
                 ele =
                     Point3d.zCoordinate tp.xyz |> inMeters
 
-                (x, y, z) = Point3d.toTuple inMeters newLocation.xyz
+                ( x, y, z ) =
+                    Point3d.toTuple inMeters newLocation.xyz
 
-                newXYZ = Point3d.fromTuple Length.meters (x,y, ele)
+                newXYZ =
+                    Point3d.fromTuple Length.meters ( x, y, ele )
             in
             { tp | xyz = newXYZ }
 

@@ -1,7 +1,6 @@
 module GpxParser exposing (..)
 
 import Regex
-import TrackPoint exposing (TrackPoint, trackPointFromGPX)
 
 
 asRegex t =
@@ -23,7 +22,7 @@ parseTrackName xml =
                     n
 
 
-parseTrackPoints : String -> List (Float, Float, Float)
+parseTrackPoints : String -> List ( Float, Float, Float )
 parseTrackPoints xml =
     let
         trkpts =
@@ -41,8 +40,9 @@ parseTrackPoints xml =
         trackPoint trkpt =
             case ( latitude trkpt, longitude trkpt, elevation trkpt ) of
                 ( (Just lat) :: _, (Just lon) :: _, (Just ele) :: _ ) ->
-                    Just (lon, lat, ele) --<| trackPointFromGPX lon lat ele
+                    Just ( lon, lat, ele )
 
+                --<| trackPointFromGPX lon lat ele
                 _ ->
                     Nothing
 
