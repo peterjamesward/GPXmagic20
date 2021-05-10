@@ -4,14 +4,11 @@
 
 > 2.1.0 ships here?
 
-**Nudge** with a variable size brush, with damping.
-Visible by the preview, where we see a "fade" back to the normal track.
-
 **Centroid filter** option to _apply_ (not calculate) in position or elevation only.
 
-**New bend smoother filter** - four point external centroid (convex only, not 'S').
-
 **Terrain**. Perhaps with quadtree.
+
+**New bend smoother filter** - four point external centroid (convex only, not 'S').
 
 With Quadtree, **LIDAR** may be possible. 
 (Assuming we leave the data acquisition to the user?)

@@ -11,8 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.1 update 2021-05-08
+## 2.2.0 update 2021-05-10
 
+- Nudge tool has extra fader control to provide smoother transitions
 - Ability for user to modify route using Graph tools.
 - Enhanced contrast on tab labels.
 - View aspect ratio now 8:5 (was 8:6).
@@ -34,7 +35,7 @@ I've tried to keep the overall look consistent, but with some fairly obvious and
 * You can have more than one tool open. Click to close. Open tools float to the top.
 * Problems are labelled by distance in meters, not point number
 * Positions of both pointers are shown in meters
-* There's a new single "3D" point smoother that replces the v1 "chamfer" and works for bends and gradients
+* There's a new single "3D" point smoother that replaces the v1 "chamfer" and works for bends and gradients
 * Autofix on Bend and Gradient problem tools uses the new 3D bend smoother
 * "Zero sliders" button on Nudge tool
 * Bend and Nudge previews are shown only when the tools are open

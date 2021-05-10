@@ -400,20 +400,6 @@ deriveTrackPointGraph trackPoints =
         rawEdges =
             findDistinctEdges rawNodes trackPoints
 
-        --nodePairs : List ( Int, Int )
-        --nodePairs =
-        --    --TODO: Make this an external function and do not cache the results.
-        --    rawEdges
-        --        |> List.map
-        --            (\raw ->
-        --                let
-        --                    ( fst, lst ) =
-        --                        ( List.head raw, List.last raw )
-        --                in
-        --                Maybe.map2 (\n1 n2 -> ( n1.index, n2.index )) fst lst
-        --            )
-        --        |> List.filterMap identity
-
         canonicalEdges =
             findCanonicalEdges rawEdges
 

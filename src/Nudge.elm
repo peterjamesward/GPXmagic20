@@ -5,8 +5,7 @@ import Axis3d
 import Direction3d
 import Element exposing (..)
 import Element.Input as Input exposing (button)
-import Graph exposing (applyIndexPreservingEditsToGraph)
-import Length exposing (Length)
+import Length exposing (Length, inMeters)
 import List.Extra
 import Point3d
 import PostUpdateActions
@@ -20,10 +19,11 @@ import ViewPureStyles exposing (..)
 
 
 type NudgeMsg
-    = SetHorizontalNudgeFactor Length
-    | SetVerticalNudgeFactor Length
+    = SetHorizontalNudgeFactor Length.Length
+    | SetVerticalNudgeFactor Length.Length
     | ZeroNudgeFactors
     | NudgeNode NudgeSettings
+    | SetFadeExtent Length.Length
 
 
 type NudgeEffects
@@ -35,6 +35,7 @@ type alias NudgeSettings =
     { horizontal : Length.Length
     , vertical : Length.Length
     , preview : List TrackPoint
+    , fadeExtent : Length.Length
     }
 
 
@@ -42,6 +43,7 @@ defaultNudgeSettings : NudgeSettings
 defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero
+    , fadeExtent = Quantity.zero
     , preview = []
     }
 
@@ -96,7 +98,7 @@ nudgeNodes track settings =
             )
 
         nudgedTrackPoints =
-            nudgeNodeRange track.trackPoints from to settings
+            computeNudgedPoints settings track
 
         newCurrent =
             List.Extra.getAt track.currentNode.index nudgedTrackPoints
@@ -116,58 +118,40 @@ nudgeNodes track settings =
     }
 
 
-nudgeNodeRange : List TrackPoint -> Int -> Int -> NudgeSettings -> List TrackPoint
-nudgeNodeRange trackPoints node1 nodeN settings =
-    -- Apply the nudge factor permanently.
-    let
-        ( beforeLastPoint, afterLastPoint ) =
-            List.Extra.splitAt (nodeN + 1) trackPoints
+nudgeTrackPoint : NudgeSettings -> Float -> TrackPoint -> TrackPoint
+nudgeTrackPoint settings fade trackpoint =
+    if fade == 0 then
+        trackpoint
 
-        ( beforeFirstPoint, targetTPs ) =
-            List.Extra.splitAt node1 beforeLastPoint
+    else
+        let
+            horizontalDirection =
+                trackpoint.effectiveDirection
+                    |> Maybe.withDefault Direction3d.x
+                    |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
 
-        nudgedPoints =
-            List.map
-                (\tp -> nudgeTrackPoint tp settings)
-                targetTPs
+            horizontalVector =
+                Vector3d.withLength settings.horizontal horizontalDirection
+                    |> Vector3d.scaleBy fade
 
-        newTrackPoints =
-            beforeFirstPoint ++ nudgedPoints ++ afterLastPoint
-    in
-    newTrackPoints
+            verticalVector =
+                Vector3d.xyz Quantity.zero Quantity.zero settings.vertical
+                    |> Vector3d.scaleBy fade
 
+            newXYZ =
+                trackpoint.xyz
+                    |> Point3d.translateBy horizontalVector
+                    |> Point3d.translateBy verticalVector
 
-nudgeTrackPoint : TrackPoint -> NudgeSettings -> TrackPoint
-nudgeTrackPoint trackpoint settings =
-    let
-        horizontalDirection =
-            trackpoint.effectiveDirection
-                |> Maybe.withDefault Direction3d.x
-                |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
-
-        horizontalVector =
-            Vector3d.withLength settings.horizontal horizontalDirection
-
-        verticalVector =
-            Vector3d.xyz Quantity.zero Quantity.zero settings.vertical
-
-        newXYZ =
-            trackpoint.xyz
-                |> Point3d.translateBy horizontalVector
-                |> Point3d.translateBy verticalVector
-
-        newProfileXZ =
-            trackpoint.profileXZ
-                |> Point3d.translateBy verticalVector
-    in
-    { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
+            newProfileXZ =
+                trackpoint.profileXZ
+                    |> Point3d.translateBy verticalVector
+        in
+        { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
-previewNudgeNodes : NudgeSettings -> Track -> NudgeSettings
-previewNudgeNodes settings track =
-    -- Change the locations of the track points within the closed interval between
-    -- markers, or just the current node if no purple cone.
-    -- For a Graph, this must update canonical nodes and edges.
+computeNudgedPoints : NudgeSettings -> Track -> List TrackPoint
+computeNudgedPoints settings track =
     let
         markerPosition =
             track.markedNode |> Maybe.withDefault track.currentNode
@@ -177,47 +161,119 @@ previewNudgeNodes settings track =
             , max track.currentNode.index markerPosition.index
             )
 
-        ( beforeLastPoint, afterLastPoint ) =
-            List.Extra.splitAt (to + 1) track.trackPoints
+        ( fromNode, toNode ) =
+            if track.currentNode.index <= markerPosition.index then
+                ( track.currentNode, markerPosition )
 
-        ( beforeFirstPoint, targetTPs ) =
-            List.Extra.splitAt from beforeLastPoint
+            else
+                ( markerPosition, track.currentNode )
 
-        nudgedPoints =
-            List.map
-                (\tp -> nudgeTrackPoint tp settings)
-                targetTPs
+        fadeInStart =
+            fromNode.distanceFromStart |> Quantity.minus settings.fadeExtent
 
-        ( prevNode, postNode ) =
-            ( List.Extra.getAt (from - 1) track.trackPoints
-            , List.Extra.getAt (to + 1) track.trackPoints
+        fadeOutEnd =
+            toNode.distanceFromStart |> Quantity.plus settings.fadeExtent
+
+        fader pointDistance referenceDistance =
+            let
+                ( place, base ) =
+                    ( inMeters pointDistance, inMeters referenceDistance )
+
+                x =
+                    pi * (place - base) / (inMeters settings.fadeExtent)
+            in
+            (1.0 + cos x) / 2.0
+
+        liesWithin ( lo, hi ) point =
+            (point.distanceFromStart |> Quantity.greaterThanOrEqualTo lo)
+                && (point.distanceFromStart |> Quantity.lessThanOrEqualTo hi)
+
+        nudge point =
+            let
+                fade =
+                    if liesWithin ( fromNode.distanceFromStart, toNode.distanceFromStart ) point then
+                        1.0
+
+                    else if liesWithin ( fadeInStart, fromNode.distanceFromStart ) point then
+                        fader point.distanceFromStart fromNode.distanceFromStart
+
+                    else if liesWithin ( toNode.distanceFromStart, fadeOutEnd ) point then
+                        fader point.distanceFromStart toNode.distanceFromStart
+
+                    else
+                        0.0
+            in
+            nudgeTrackPoint settings fade point
+    in
+    List.map nudge track.trackPoints
+
+
+previewNudgeNodes : NudgeSettings -> Track -> NudgeSettings
+previewNudgeNodes settings track =
+    -- Change the locations of the track points within the closed interval between
+    -- markers, or just the current node if no purple cone.
+    let
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
             )
 
-        nudgedListForVisuals =
-            case ( prevNode, postNode ) of
-                ( Just prev, Just post ) ->
-                    [ prev ] ++ nudgedPoints ++ [ post ]
+        ( fromNode, toNode ) =
+            if track.currentNode.index <= markerPosition.index then
+                ( track.currentNode, markerPosition )
 
-                ( Just prev, Nothing ) ->
-                    [ prev ] ++ nudgedPoints
+            else
+                ( markerPosition, track.currentNode )
 
-                ( Nothing, Just post ) ->
-                    nudgedPoints ++ [ post ]
+        fadeInStart =
+            fromNode.distanceFromStart |> Quantity.minus settings.fadeExtent
 
-                ( Nothing, Nothing ) ->
-                    nudgedPoints
+        fadeOutEnd =
+            toNode.distanceFromStart |> Quantity.plus settings.fadeExtent
+
+        nudgedPoints =
+            computeNudgedPoints settings track
+
+        _ = Debug.log "Preview" (previewStartIndex, previewEndIndex)
+
+        previewStartIndex =
+            List.Extra.findIndex
+                (\p -> p.distanceFromStart |> Quantity.greaterThanOrEqualTo fadeInStart)
+                track.trackPoints
+                |> Maybe.withDefault from
+
+        previewEndIndex =
+            List.Extra.findIndex
+                (\p -> p.distanceFromStart |> Quantity.greaterThanOrEqualTo fadeOutEnd)
+                track.trackPoints
+                |> Maybe.withDefault to
+
+        ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
+            List.Extra.splitAt (previewEndIndex + 2) nudgedPoints
+
+        ( trackBeforePreviewStart, previewZone ) =
+            List.Extra.splitAt (previewStartIndex - 1) trackBeforePreviewEnd
     in
-    { settings | preview = nudgedListForVisuals }
+    { settings | preview = previewZone }
 
 
 viewNudgeTools : NudgeSettings -> (NudgeMsg -> msg) -> Element msg
 viewNudgeTools settings msgWrapper =
-    row [ width fill, spaceEvenly, paddingXY 20 10, spacingXY 20 10 ]
+    row [ width fill, spaceEvenly, paddingXY 10 10, spacingXY 10 10 ]
         [ verticalNudgeSlider settings.vertical msgWrapper
-        , column [ width fill, spaceEvenly, centerX, paddingXY 20 10, spacingXY 20 10 ]
+        , column [ width fill, spaceEvenly, centerX, paddingXY 10 10, spacingXY 10 10 ]
             [ horizontalNudgeSlider settings.horizontal msgWrapper
-            , nudgeButton settings msgWrapper
-            , zeroButton msgWrapper
+            , row [ paddingXY 10 10, spacingXY 10 10 ]
+                [ nudgeButton settings msgWrapper
+                , zeroButton msgWrapper
+                ]
+            , row [ paddingXY 10 10, spacingXY 10 10 ]
+                [ text "Fade in/out"
+                , fadeSlider settings.fadeExtent msgWrapper
+                ]
             ]
         ]
 
@@ -234,6 +290,23 @@ horizontalNudgeSlider value wrap =
         , min = -5.0
         , max = 5.0
         , step = Nothing
+        , value = Length.inMeters value
+        , thumb = Input.defaultThumb
+        }
+
+
+fadeSlider : Length -> (NudgeMsg -> msg) -> Element msg
+fadeSlider value wrap =
+    Input.slider
+        commonShortHorizontalSliderStyles
+        { onChange = Length.meters >> SetFadeExtent >> wrap
+        , label =
+            Input.labelBelow [ centerX ] <|
+                text <|
+                    (showDecimal2 <| Length.inMeters value)
+        , min = 0.0
+        , max = 50.0
+        , step = Just 5.0
         , value = Length.inMeters value
         , thumb = Input.defaultThumb
         }
@@ -290,6 +363,11 @@ update msg settings track =
 
         SetVerticalNudgeFactor length ->
             ( { settings | vertical = length }
+            , PostUpdateActions.ActionPreview
+            )
+
+        SetFadeExtent fade ->
+            ( { settings | fadeExtent = fade }
             , PostUpdateActions.ActionPreview
             )
 
