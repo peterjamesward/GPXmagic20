@@ -457,6 +457,12 @@ makeTerrain box points =
         extrema =
             BoundingBox3d.extrema box
 
+        lowestPoint =
+            points
+                |> List.Extra.minimumBy (Point3d.zCoordinate >> inMeters)
+                |> Maybe.withDefault Point3d.origin
+                |> Point3d.translateBy (Vector3d.meters 0.0 0.0 -0.2)
+
         elevation =
             points
                 |> List.map Point3d.zCoordinate
@@ -510,36 +516,62 @@ makeTerrain box points =
             else
                 []
 
-        ground = meters 0.0
+        ground =
+            meters 0.0
 
+        --drawPyramid =
+        --    [ Scene3d.triangle (Material.color darkGreen) <|
+        --        Triangle3d.from
+        --            (Point3d.xyz extrema.minX extrema.maxY ground)
+        --            (Point3d.xyz extrema.minX extrema.minY ground)
+        --            lowestPoint
+        --    , Scene3d.triangle (Material.color darkGreen) <|
+        --        Triangle3d.from
+        --            (Point3d.xyz extrema.maxX extrema.maxY ground)
+        --            (Point3d.xyz extrema.maxX extrema.minY ground)
+        --            lowestPoint
+        --    , Scene3d.triangle (Material.color darkGreen) <|
+        --        Triangle3d.from
+        --            (Point3d.xyz extrema.minX extrema.minY elevation)
+        --            (Point3d.xyz extrema.maxX extrema.minY elevation)
+        --            lowestPoint
+        --    , Scene3d.triangle (Material.color darkGreen) <|
+        --        Triangle3d.from
+        --            (Point3d.xyz extrema.minX extrema.maxY elevation)
+        --            (Point3d.xyz extrema.maxX extrema.maxY elevation)
+        --            lowestPoint
+        --    ]
+
+        drawThisBox =
+            [ Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.minY elevation)
+                (Point3d.xyz extrema.minX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.minY elevation)
+            , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.minY elevation)
+                (Point3d.xyz extrema.minX extrema.maxY elevation)
+                (Point3d.xyz extrema.minX extrema.maxY ground)
+                (Point3d.xyz extrema.minX extrema.minY ground)
+            , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.maxX extrema.minY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY ground)
+                (Point3d.xyz extrema.maxX extrema.minY ground)
+            , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.minY elevation)
+                (Point3d.xyz extrema.maxX extrema.minY elevation)
+                (Point3d.xyz extrema.maxX extrema.minY ground)
+                (Point3d.xyz extrema.minX extrema.minY ground)
+            , Scene3d.quad (Material.matte darkGreen)
+                (Point3d.xyz extrema.minX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY elevation)
+                (Point3d.xyz extrema.maxX extrema.maxY ground)
+                (Point3d.xyz extrema.minX extrema.maxY ground)
+            ]
     in
     List.concat
-        [ [ Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.minY elevation)
-                (Point3d.xyz extrema.minX extrema.maxY elevation)
-                (Point3d.xyz extrema.maxX extrema.maxY elevation)
-                (Point3d.xyz extrema.maxX extrema.minY elevation)
-          , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.minY elevation)
-                (Point3d.xyz extrema.minX extrema.maxY elevation)
-                (Point3d.xyz extrema.minX extrema.maxY (ground))
-                (Point3d.xyz extrema.minX extrema.minY ground)
-          , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.maxX extrema.minY elevation)
-                (Point3d.xyz extrema.maxX extrema.maxY elevation)
-                (Point3d.xyz extrema.maxX extrema.maxY (ground))
-                (Point3d.xyz extrema.maxX extrema.minY ground)
-          , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.minY elevation)
-                (Point3d.xyz extrema.maxX extrema.minY elevation)
-                (Point3d.xyz extrema.maxX extrema.minY (ground))
-                (Point3d.xyz extrema.minX extrema.minY ground)
-          , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.maxY elevation)
-                (Point3d.xyz extrema.maxX extrema.maxY elevation)
-                (Point3d.xyz extrema.maxX extrema.maxY (ground))
-                (Point3d.xyz extrema.minX extrema.maxY ground)
-          ]
+        [ drawThisBox
         , recurse neBox nePoints
         , recurse nwBox nwPoints
         , recurse seBox sePoints

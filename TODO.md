@@ -2,11 +2,11 @@
 
 # TODO
 
---TODO: Use the track length when working out gradient, not the vector unless we can trust it.
-
 **Terrain**
 
 Try making triangles from box edges on XY sloping up to lowest point.
+Probably need to pass in the parent elevation...
+
 Drop road curtains along road edges when terrain enabled.
 
 > 2.1.0 ships here?
