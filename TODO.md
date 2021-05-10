@@ -2,7 +2,10 @@
 
 # TODO
 
-**Terrain**. Perhaps with quadtree.
+**Terrain**
+
+Try making triangles from box edges on XY sloping up to lowest point.
+Drop road curtains along road edges when terrain enabled.
 
 > 2.1.0 ships here?
 

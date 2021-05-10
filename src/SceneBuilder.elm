@@ -497,8 +497,8 @@ makeTerrain box points =
                 ( x, y, z ) =
                     BoundingBox3d.dimensions quad
             in
-            (x |> Quantity.greaterThan (meters 2.0))
-                && (y |> Quantity.greaterThan (meters 2.0))
+            (x |> Quantity.greaterThan (meters 0.5))
+                && (y |> Quantity.greaterThan (meters 0.5))
 
         siblings children =
             List.length children > 1
