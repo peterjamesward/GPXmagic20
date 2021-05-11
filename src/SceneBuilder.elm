@@ -22,7 +22,7 @@ import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
-import Utils exposing (gradientColourPastel, gradientColourVivid)
+import Utils exposing (gradientColourPastel, gradientColourVivid, terrainColourFromHeight)
 import Vector3d
 
 
@@ -33,19 +33,14 @@ type alias RenderingContext =
     }
 
 
+roadWidth =
+    Length.meters 4.0
+
+
 defaultRenderingContext =
     { detailLevel = 1.0
     , trackDistanceInFocus = Quantity.zero
     }
-
-
-when : Bool -> Scene -> Scene
-when predicate scene =
-    if predicate then
-        scene
-
-    else
-        []
 
 
 renderTrack : DisplayOptions -> Track -> Scene
@@ -110,17 +105,20 @@ renderTrack options track =
 
                   else
                     []
-                , if options.curtainStyle /= NoCurtain then
+                , if options.curtainStyle /= NoCurtain && not options.terrainOn then
                     mapOverPairs (curtainBetween gradientFunction)
+
+                  else if options.terrainOn then
+                    mapOverPairs sidewall
 
                   else
                     []
-                , if options.roadPillars then
+                , if options.roadPillars && not options.terrainOn then
                     mapOverPoints roadSupportPillar
 
                   else
                     []
-                , if options.roadCones then
+                , if options.roadCones && not options.terrainOn then
                     mapOverPoints trackPointCone
 
                   else
@@ -167,7 +165,7 @@ renderMarkers track =
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
 paintSurfaceBetween pt1 pt2 =
-    paintSomethingBetween (Length.meters 3.0) (Material.matte Color.grey) pt1 pt2
+    paintSomethingBetween roadWidth (Material.matte Color.grey) pt1 pt2
 
 
 centreLineBetween : (Float -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
@@ -204,6 +202,48 @@ curtainBetween colouring pt1 pt2 =
         (LineSegment3d.endPoint roadAsSegment)
         (LineSegment3d.endPoint curtainHem)
         (LineSegment3d.startPoint curtainHem)
+    ]
+
+
+sidewall : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
+sidewall pt1 pt2 =
+    let
+        roadAsSegment =
+            LineSegment3d.from pt1.xyz pt2.xyz
+
+        halfWidth =
+            Vector3d.from pt1.xyz pt2.xyz
+                |> Vector3d.projectOnto Plane3d.xy
+                |> Vector3d.scaleTo roadWidth
+
+        ( leftKerbVector, rightKerbVector ) =
+            ( Vector3d.rotateAround Axis3d.z (Angle.degrees 90) halfWidth
+            , Vector3d.rotateAround Axis3d.z (Angle.degrees -90) halfWidth
+            )
+
+        ( leftKerb, rightKerb ) =
+            ( LineSegment3d.translateBy leftKerbVector roadAsSegment
+            , LineSegment3d.translateBy rightKerbVector roadAsSegment
+            )
+
+        ( leftFooting, rightFooting ) =
+            ( leftKerb |> LineSegment3d.projectOnto Plane3d.xy
+            , rightKerb |> LineSegment3d.projectOnto Plane3d.xy
+            )
+
+        colour =
+            terrainColourFromHeight <| inMeters <| Point3d.zCoordinate <| pt1.xyz
+    in
+    [ Scene3d.quad (Material.matte colour)
+        (LineSegment3d.startPoint leftKerb)
+        (LineSegment3d.endPoint leftKerb)
+        (LineSegment3d.endPoint leftFooting)
+        (LineSegment3d.startPoint leftFooting)
+    , Scene3d.quad (Material.matte colour)
+        (LineSegment3d.startPoint rightKerb)
+        (LineSegment3d.endPoint rightKerb)
+        (LineSegment3d.endPoint rightFooting)
+        (LineSegment3d.startPoint rightFooting)
     ]
 
 
@@ -459,14 +499,15 @@ makeTerrain options box points =
 
         actualBox =
             -- This box encloses our points. It defines the top of the frustrum and the base for the next level.
-            points |> BoundingBox3d.hullN
-            |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+            points
+                |> BoundingBox3d.hullN
+                |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
 
-        actualExtrema =
+        innerExtrema =
             BoundingBox3d.extrema actualBox
 
-        ( base, top) =
-            ( extrema.minZ, actualExtrema.minZ)
+        ( base, top ) =
+            ( extrema.minZ, innerExtrema.minZ )
 
         ( midX, midY, midZ ) =
             BoundingBox3d.centerPoint box |> Point3d.coordinates
@@ -500,44 +541,54 @@ makeTerrain options box points =
                 ( x, y, z ) =
                     BoundingBox3d.dimensions quad
             in
-            (x |> Quantity.greaterThan (meters 0.5))
+            x |> Quantity.greaterThan (meters 0.5)
 
         siblings children =
             List.length children > 1
 
         recurse quad contents =
             --if notTiny quad && siblings contents then
-            if List.length contents > 2 ^ options.terrainFineness
-             && notTiny quad then
+            if
+                List.length contents
+                    > 2
+                    ^ options.terrainFineness
+                    && notTiny quad
+            then
                 makeTerrain options quad contents
 
             else
                 []
 
+        topColour =
+            terrainColourFromHeight <| inMeters top
+
+        sideColour =
+            terrainColourFromHeight <| 0.5 * (inMeters top + inMeters base)
+
         drawThisBox =
-            [ Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.minY top)
-                (Point3d.xyz extrema.minX extrema.maxY top)
-                (Point3d.xyz extrema.maxX extrema.maxY top)
-                (Point3d.xyz extrema.maxX extrema.minY top)
-            , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.minY top)
-                (Point3d.xyz extrema.minX extrema.maxY top)
+            [ Scene3d.quad (Material.matte topColour)
+                (Point3d.xyz innerExtrema.minX innerExtrema.minY top)
+                (Point3d.xyz innerExtrema.minX innerExtrema.maxY top)
+                (Point3d.xyz innerExtrema.maxX innerExtrema.maxY top)
+                (Point3d.xyz innerExtrema.maxX innerExtrema.minY top)
+            , Scene3d.quad (Material.matte sideColour)
+                (Point3d.xyz innerExtrema.minX innerExtrema.minY top)
+                (Point3d.xyz innerExtrema.minX innerExtrema.maxY top)
                 (Point3d.xyz extrema.minX extrema.maxY base)
                 (Point3d.xyz extrema.minX extrema.minY base)
-            , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.maxX extrema.minY top)
-                (Point3d.xyz extrema.maxX extrema.maxY top)
-                (Point3d.xyz extrema.maxX extrema.maxY base)
+            , Scene3d.quad (Material.matte sideColour)
+                (Point3d.xyz innerExtrema.maxX innerExtrema.minY top)
+                (Point3d.xyz innerExtrema.maxX extrema.maxY top)
+                (Point3d.xyz extrema.maxX innerExtrema.maxY base)
                 (Point3d.xyz extrema.maxX extrema.minY base)
-            , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.minY top)
-                (Point3d.xyz extrema.maxX extrema.minY top)
+            , Scene3d.quad (Material.matte sideColour)
+                (Point3d.xyz innerExtrema.minX innerExtrema.minY top)
+                (Point3d.xyz innerExtrema.maxX innerExtrema.minY top)
                 (Point3d.xyz extrema.maxX extrema.minY base)
                 (Point3d.xyz extrema.minX extrema.minY base)
-            , Scene3d.quad (Material.matte darkGreen)
-                (Point3d.xyz extrema.minX extrema.maxY top)
-                (Point3d.xyz extrema.maxX extrema.maxY top)
+            , Scene3d.quad (Material.matte sideColour)
+                (Point3d.xyz innerExtrema.minX innerExtrema.maxY top)
+                (Point3d.xyz innerExtrema.maxX innerExtrema.maxY top)
                 (Point3d.xyz extrema.maxX extrema.maxY base)
                 (Point3d.xyz extrema.minX extrema.maxY base)
             ]

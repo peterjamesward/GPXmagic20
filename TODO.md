@@ -2,12 +2,7 @@
 
 # TODO
 
-**Terrain**
-
-
-Does not play well with gradients. Need to think about the road.
-
-Drop road curtains along road edges when terrain enabled.
+**BUG** - stops centering after a while
 
 > 2.1.0 ships here?
 

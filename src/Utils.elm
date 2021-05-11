@@ -62,6 +62,26 @@ gradientColourVivid slope =
     Color.hsl hue 1.0 0.4
 
 
+terrainColourFromHeight : Float -> Color
+terrainColourFromHeight height =
+    let
+        x =
+            clamp 0.0 2000.0 height / 2000.0
+
+        fullColour = Color.toHsla Color.green
+
+        maxHeightSat =
+            (Color.toHsla Color.white).saturation
+
+        minHeightSat =
+            fullColour.saturation
+
+        saturation =
+            x * maxHeightSat + (1.0 - x) * minHeightSat
+    in
+    Color.fromHsla { fullColour | saturation = saturation, lightness = sqrt x }
+
+
 scrollbarThickness =
     20
 

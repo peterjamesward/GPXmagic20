@@ -16,8 +16,6 @@ import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
-import SceneBuilder exposing (when)
-import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
@@ -65,9 +63,19 @@ renderTrack options track =
                 PastelCurtain ->
                     gradientColourPastel
     in
-    mapOverPairs (paintCurtainBetween options.verticalExaggeration gradientFunction)
-        ++ when options.roadPillars (mapOverPoints (roadSupportPillar options.verticalExaggeration))
-        ++ when options.roadCones (mapOverPoints (trackPointCone options.verticalExaggeration))
+    List.concat
+        [ mapOverPairs (paintCurtainBetween options.verticalExaggeration gradientFunction)
+        , if options.roadPillars then
+            mapOverPoints (roadSupportPillar options.verticalExaggeration)
+
+          else
+            []
+        , if options.roadCones then
+            mapOverPoints (trackPointCone options.verticalExaggeration)
+
+          else
+            []
+        ]
 
 
 paintCurtainBetween : Float -> (Float -> Color) -> TrackPoint -> TrackPoint -> Entity LocalCoords
@@ -289,8 +297,8 @@ trackPointCone : Float -> TrackPoint -> Entity LocalCoords
 trackPointCone scale pt =
     -- V2.0 just uses crossed triangle.
     let
-        scaledXZ :  Point3d Meters LocalCoords
-        scaledXZ  =
+        scaledXZ : Point3d Meters LocalCoords
+        scaledXZ =
             let
                 { x, y, z } =
                     Point3d.toMeters pt.profileXZ
