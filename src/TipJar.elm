@@ -1,8 +1,10 @@
-module TipJar exposing (tipJar, info)
+module TipJar exposing (info, tipJar)
 
 import Element exposing (..)
 
-info = """## Tip Jar
+
+info =
+    """## Tip Jar
 
 GPXmagic is provided free for personal use.
 
@@ -15,10 +17,15 @@ little if any government funding.
 PayPal deducts a small handling fee, but there you go.
 """
 
+
 tipJar =
     row [ padding 10, spaceEvenly, centerX, centerY ]
-        [ image [ width <| px 200 ]
-            { src = "images/tipjar.jpeg"
-            , description = "Tip jar QR"
+        [ newTabLink []
+            { url = "http://paypal.me/peterjamesward"
+            , label =
+                image [ width <| px 200 ]
+                    { src = "images/tipjar.jpeg"
+                    , description = "Tip jar QR"
+                    }
             }
         ]

@@ -113,7 +113,7 @@ flythrough newTime flying speed =
 
                     headTurnFraction =
                         -- Allow for POV rotation as we near segment end.
-                        clamp 0.0 1.0 (10.0 - segRemaining) / 10.0
+                        clamp 0.0 1.0 <| (10.0 - segRemaining) / 10.0
 
                     camera3d =
                         -- The camera is where the bike is!

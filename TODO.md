@@ -2,10 +2,6 @@
 
 # TODO
 
-**BUG** - stops centering after a while
-
-> 2.1.0 ships here?
-
 **New bend smoother filter** - four point external centroid (convex only, not 'S').
 
 With Quadtree, **LIDAR** may be possible. 
@@ -14,7 +10,7 @@ With Quadtree, **LIDAR** may be possible.
 New tool to **limit gradients** (range or whole track), retaining elevation of marked points.
 (There are options. None are perfect, but we can be easier to use than competition.)
 
-Flythrough respects any azimuth & elevation applied when stationery.
+Flythrough to respect any azimuth & elevation applied when stationery.
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 
