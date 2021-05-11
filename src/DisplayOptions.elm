@@ -33,6 +33,7 @@ type Msg
     | SetCurtainStyle CurtainStyle
     | SetVerticalExaggeration Float
     | Terrain Bool
+    | TerrainFineness Int
 
 
 type Action
@@ -51,6 +52,7 @@ type alias DisplayOptions =
     , seaLevel : Bool
     , withLighting : Bool
     , verticalExaggeration : Float
+    , terrainFineness : Int
     }
 
 
@@ -66,6 +68,7 @@ defaultDisplayOptions =
     , seaLevel = True
     , withLighting = True
     , verticalExaggeration = 1.0
+    , terrainFineness = 4
     }
 
 
@@ -92,6 +95,12 @@ viewDisplayOptions options wrap =
                     , checked = options.seaLevel
                     , label = Input.labelRight [ centerY ] (text "Sea level")
                     }
+                , Input.checkbox []
+                    { onChange = wrap << Terrain
+                    , icon = checkboxIcon
+                    , checked = options.terrainOn
+                    , label = Input.labelRight [ centerY ] (text "Terrain")
+                    }
                 ]
             , column [ spacing 5 ]
                 [ Input.checkbox []
@@ -111,6 +120,16 @@ viewDisplayOptions options wrap =
                     , icon = checkboxIcon
                     , checked = options.withLighting
                     , label = Input.labelRight [ centerY ] (text "Lighting")
+                    }
+                , Input.slider commonShortHorizontalSliderStyles
+                    { onChange = wrap << TerrainFineness << round
+                    , label =
+                        Input.labelBelow [] <| text "Fineness "
+                    , min = 0.0
+                    , max = 7.0
+                    , step = Just 1.0
+                    , value = toFloat options.terrainFineness
+                    , thumb = Input.defaultThumb
                     }
                 ]
             ]
@@ -142,11 +161,6 @@ viewDisplayOptions options wrap =
                 , Input.optionWith PastelCurtain <| radioButton "Pastel"
                 , Input.optionWith RainbowCurtain <| radioButton "Vivid"
                 ]
-            }
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrap (Terrain True)
-            , label = text "Make Terrain"
             }
         ]
 
@@ -198,3 +212,9 @@ update options dispMsg wrap =
             ( { options | terrainOn = on }
             , NoOp
             )
+
+        TerrainFineness fine ->
+            ( { options | terrainFineness = fine }
+            , NoOp
+            )
+

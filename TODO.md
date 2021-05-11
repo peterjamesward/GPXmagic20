@@ -4,8 +4,8 @@
 
 **Terrain**
 
-Try making triangles from box edges on XY sloping up to lowest point.
-Probably need to pass in the parent elevation...
+
+Does not play well with gradients. Need to think about the road.
 
 Drop road curtains along road edges when terrain enabled.
 
