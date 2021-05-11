@@ -11,9 +11,12 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.3 update 2021-05-10
+## 2.1.4 update 2021-05-11
 
-- Calculate lengths properly using Earth coordinates not local metrics.
+- Use corrected lengths in gradient calculation.
+- Minor change to gradient colour palettes to align with above.
+- Terrain is back. It's blocky and imperfect but much quicker.
+
 
 ## About Version 2
 
