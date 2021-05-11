@@ -161,12 +161,9 @@ summaryData track =
             track.currentNode
 
         gradient =
-            pt.roadVector
-                |> Vector3d.direction
-                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-                |> Maybe.withDefault Quantity.zero
-                |> Angle.tan
-                |> (*) 100.0
+            100.0 *
+            (Vector3d.zComponent pt.roadVector |> inMeters)
+             /  (pt.length |> inMeters)
 
         ( lat, lon ) =
             pt.latLon

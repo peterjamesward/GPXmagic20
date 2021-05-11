@@ -26,15 +26,11 @@ showMaybe mi =
             "----"
 
 
-gradientColourPastel : Angle -> Color
-gradientColourPastel angle =
-    --TODO: Unify these two very similar functions.
+gradientColourPastel : Float -> Color
+gradientColourPastel slope =
     let
-        slope =
-            100.0 * Angle.tan angle
-
         x =
-            (clamp -25.0 25.0 slope + 25.0) / 50.0
+            (clamp -20.0 20.0 slope + 20.0) / 40.0
 
         steepestAscentHue =
             (Color.toHsla Color.red).hue
@@ -48,14 +44,11 @@ gradientColourPastel angle =
     Color.hsl hue 0.6 0.7
 
 
-gradientColourVivid : Angle -> Color
-gradientColourVivid angle =
+gradientColourVivid : Float -> Color
+gradientColourVivid slope =
     let
-        slope =
-            100.0 * Angle.tan angle
-
         x =
-            (clamp -25.0 25.0 slope + 25.0) / 50.0
+            (clamp -20.0 20.0 slope + 20.0) / 40.0
 
         steepestAscentHue =
             (Color.toHsla Color.red).hue

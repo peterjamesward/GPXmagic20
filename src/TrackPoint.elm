@@ -99,12 +99,9 @@ applyGhanianTransform points =
 
 gradientFromPoint : TrackPoint -> Float
 gradientFromPoint pt =
-    pt.roadVector
-        |> Vector3d.direction
-        |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-        |> Maybe.withDefault Quantity.zero
-        |> Angle.tan
-        |> (*) 100.0
+    100.0
+        * (Vector3d.zComponent pt.roadVector |> inMeters)
+        / (pt.length |> inMeters)
 
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint

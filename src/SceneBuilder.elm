@@ -20,7 +20,7 @@ import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
 import SketchPlane3d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
 import Utils exposing (gradientColourPastel, gradientColourVivid)
 import Vector3d
@@ -170,13 +170,11 @@ paintSurfaceBetween pt1 pt2 =
     paintSomethingBetween (Length.meters 3.0) (Material.matte Color.grey) pt1 pt2
 
 
-centreLineBetween : (Angle -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
+centreLineBetween : (Float -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
 centreLineBetween colouring pt1 pt2 =
     let
         gradient =
-            Direction3d.from pt1.xyz pt2.xyz
-                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-                |> Maybe.withDefault Quantity.zero
+            gradientFromPoint pt1
 
         smallUpshiftTo pt =
             -- To make line stand slightly proud of the road
@@ -189,13 +187,11 @@ centreLineBetween colouring pt1 pt2 =
         (smallUpshiftTo pt2)
 
 
-curtainBetween : (Angle -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
+curtainBetween : (Float -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
 curtainBetween colouring pt1 pt2 =
     let
         gradient =
-            Direction3d.from pt1.xyz pt2.xyz
-                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-                |> Maybe.withDefault Quantity.zero
+            gradientFromPoint pt1
 
         roadAsSegment =
             LineSegment3d.from pt1.xyz pt2.xyz

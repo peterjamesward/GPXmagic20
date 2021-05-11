@@ -19,7 +19,7 @@ import Scene3d.Material as Material exposing (Material)
 import SceneBuilder exposing (when)
 import SketchPlane3d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
 import Utils exposing (gradientColourPastel, gradientColourVivid)
 import Vector3d
@@ -70,7 +70,7 @@ renderTrack options track =
         ++ when options.roadCones (mapOverPoints (trackPointCone options.verticalExaggeration))
 
 
-paintCurtainBetween : Float -> (Angle -> Color) -> TrackPoint -> TrackPoint -> Entity LocalCoords
+paintCurtainBetween : Float -> (Float -> Color) -> TrackPoint -> TrackPoint -> Entity LocalCoords
 paintCurtainBetween scale colouring pt1 pt2 =
     let
         scaledXZ : TrackPoint -> Point3d Meters LocalCoords
@@ -82,9 +82,7 @@ paintCurtainBetween scale colouring pt1 pt2 =
             Point3d.fromTuple meters ( x, y, z * scale )
 
         gradient =
-            Direction3d.from pt1.profileXZ pt2.profileXZ
-                |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-                |> Maybe.withDefault Quantity.zero
+            gradientFromPoint pt1
     in
     Scene3d.quad (Material.color <| colouring gradient)
         (scaledXZ pt1)
