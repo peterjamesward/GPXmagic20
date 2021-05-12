@@ -239,6 +239,7 @@ applyWeightedAverageFilter settings loopiness track =
     let
         points =
             track.trackPoints
+
         ( startPoint, endPoint ) =
             case track.markedNode of
                 Just marker ->
@@ -273,7 +274,7 @@ applyWeightedAverageFilter settings loopiness track =
             List.take finish >> List.drop start
 
         ( fixedFirst, fixedLast ) =
-            ( List.take (start + 1) points, List.drop finish points )
+            ( List.take start points, List.drop finish points )
     in
     if track.markedNode == Nothing && loopiness == IsALoop then
         List.map3
@@ -373,8 +374,11 @@ weightedAverage settings p0 p1 p2 =
     let
         mergePositionWithElevation pXY pZ =
             let
-                sourceXY = Point3d.toMeters pXY
-                sourceZ = Point3d.toMeters pZ
+                sourceXY =
+                    Point3d.toMeters pXY
+
+                sourceZ =
+                    Point3d.toMeters pZ
             in
             { sourceXY | z = sourceZ.z } |> Point3d.fromMeters
 
@@ -401,7 +405,6 @@ weightedAverage settings p0 p1 p2 =
 
                 ( False, True ) ->
                     mergePositionWithElevation p1.xyz newP1
-
     in
     trackPointFromPoint withFlags
 

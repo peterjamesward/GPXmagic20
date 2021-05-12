@@ -11,8 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.7 update 2021-05-12
+## 2.1.8 update 2021-05-12
 
+- Centroid average was adding a point in error at the start of the range.
 - Uses centroid of earth points as focal point of projectio, which avoids the weird effect of reversing a long route.
 - New tool to Limit Gradients. Feedback welcome!
 - Sorry, last big fix was more of a bug creation fest.

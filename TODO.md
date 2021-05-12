@@ -1,5 +1,9 @@
 
 
+# BUGS
+
+Possible splicing error centroid average filter. Adding at the start??
+
 # TODO
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
