@@ -17,6 +17,7 @@ import File.Select as Select
 import Filters
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
+import GradientLimiter
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Http
@@ -74,6 +75,7 @@ type Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg Loop.Msg
     | GradientMessage GradientSmoother.Msg
+    | GradientLimiter GradientLimiter.Msg
     | StraightenMessage Straightener.Msg
     | FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
@@ -135,6 +137,7 @@ type alias Model =
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
     , highlightedGraphEdge : Scene
+    , gradientLimiter : GradientLimiter.Options
     }
 
 
@@ -179,6 +182,7 @@ init mflags origin navigationKey =
       , stravaAuthentication = authData
       , ipInfo = Nothing
       , highlightedGraphEdge = []
+      , gradientLimiter = GradientLimiter.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -435,6 +439,17 @@ update msg model =
             in
             processPostUpdateAction
                 { model | observations = newObs }
+                action
+
+        GradientLimiter limitMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (GradientLimiter.update limitMsg model.gradientLimiter)
+                        model.track
+                        |> Maybe.withDefault ( model.gradientLimiter, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | gradientLimiter = newOptions }
                 action
 
         GradientMessage gradMsg ->
@@ -1158,6 +1173,18 @@ toolsAccordion model =
       , state = Contracted
       , content = BendSmoother.viewBendFixerPane model.bendOptions BendSmoothMessage
       , info = BendSmoother.info
+      }
+    , { label = "Limit gradients"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (GradientLimiter.viewGradientLimitPane
+                    model.gradientLimiter
+                    GradientLimiter
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = GradientSmoother.info
       }
     , { label = "Smooth gradient"
       , state = Contracted
