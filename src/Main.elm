@@ -47,7 +47,7 @@ import TipJar
 import Track exposing (Track, searchTrackPointFromLonLat, summaryData, updateTrackPointLonLat)
 import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
-import TrackPoint exposing (TrackPoint, prepareTrackPoints)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
@@ -909,8 +909,15 @@ repeatTrackDerivations model =
     case model.track of
         Just isTrack ->
             let
+                earthTrack =
+                    -- Damn, need to make sure all new point have lat & lon.
+                    isTrack
+                        |> Track.removeGhanianTransform
+                        |> applyGhanianTransform
+                        |> Tuple.first
+
                 newTrack =
-                    { isTrack | trackPoints = prepareTrackPoints isTrack.trackPoints }
+                    { isTrack | trackPoints = prepareTrackPoints earthTrack }
             in
             { model
                 | track = Just newTrack

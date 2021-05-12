@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (Meters, inMeters, meters)
 import LineSegment3d exposing (LineSegment3d)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
 import PostUpdateActions
@@ -15,6 +16,7 @@ import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2)
+import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
@@ -109,6 +111,11 @@ limitGradient settings track =
                 marker
             )
 
+        ( targetLength, targetElevationChangeAA ) =
+            ( endPoint.distanceFromStart |> Quantity.minus startPoint.distanceFromStart
+            , endPoint.xyz |> Point3d.zCoordinate |> Quantity.minus (startPoint.xyz |> Point3d.zCoordinate)
+            )
+
         undoMessage =
             "limit gradient\nfrom "
                 ++ showDecimal0 (inMeters startPoint.distanceFromStart)
@@ -116,16 +123,130 @@ limitGradient settings track =
                 ++ showDecimal0 (inMeters endPoint.distanceFromStart)
                 ++ "."
 
-        ( xAtStart, xLength ) =
-            ( inMeters startPoint.distanceFromStart
-            , inMeters endPoint.distanceFromStart
-                - inMeters startPoint.distanceFromStart
-            )
+        ( beforeEnd, afterEnd ) =
+            List.Extra.splitAt (1 + endPoint.index) track.trackPoints
+
+        ( beforeStart, targetZone ) =
+            List.Extra.splitAt startPoint.index beforeEnd
+
+        unclampedXYDeltas : List ( Length.Length, Length.Length )
+        unclampedXYDeltas =
+            List.map2
+                (\pt1 pt2 ->
+                    ( pt1.length
+                    , Point3d.zCoordinate pt2.xyz |> Quantity.minus (Point3d.zCoordinate pt1.xyz)
+                    )
+                )
+                targetZone
+                (List.drop 1 targetZone)
+
+        clampedXYDeltas : List ( Length.Length, Length.Length )
+        clampedXYDeltas =
+            List.map
+                (\( x, y ) ->
+                    ( x
+                    , Quantity.clamp
+                        (x |> Quantity.multiplyBy (negate settings.maximumDescent / 100.0))
+                        (x |> Quantity.multiplyBy (settings.maximumAscent / 100.0))
+                        y
+                    )
+                )
+                unclampedXYDeltas
+
+        targetElevationChange =
+            Quantity.sum <| List.map Tuple.second unclampedXYDeltas
+
+        clampedElevationChange =
+            Quantity.sum <| List.map Tuple.second clampedXYDeltas
+
+        elevationCorrection =
+            targetElevationChange |> Quantity.minus clampedElevationChange
+
+        offeredCorrections =
+            -- "Ask" each segment how much leeway they have from the limit (up or down)
+            if elevationCorrection |> Quantity.greaterThan Quantity.zero then
+                List.map
+                    (\( x, y ) ->
+                        (x |> Quantity.multiplyBy (settings.maximumAscent / 100.0))
+                            |> Quantity.minus y
+                    )
+                    clampedXYDeltas
+
+            else if elevationCorrection |> Quantity.lessThan Quantity.zero then
+                List.map
+                    (\( x, y ) ->
+                        (x |> Quantity.multiplyBy (settings.maximumDescent / 100.0))
+                            |> Quantity.minus y
+                    )
+                    clampedXYDeltas
+
+            else
+                List.map (always Quantity.zero) clampedXYDeltas
+
+        _ =
+            Debug.log "unclamped" unclampedXYDeltas
+
+        _ =
+            Debug.log "clamped" clampedXYDeltas
+
+        _ =
+            Debug.log "offered" offeredCorrections
+
+        totalOffered =
+            Quantity.sum offeredCorrections
+
+        proprtionNeeded =
+            -- Assuming less than one for now, or button should have been disabled.
+            if Quantity.abs elevationCorrection |> Quantity.lessThan (meters 0.1) then
+                0
+
+            else
+                Quantity.ratio elevationCorrection totalOffered
+                    |> clamp 0.0 1.0
+
+        _ =
+            Debug.log "needed, offered, ask" ( elevationCorrection, totalOffered, proprtionNeeded )
+
+        proRataCorrections =
+            -- Empirical test.
+            List.map
+                (Quantity.multiplyBy proprtionNeeded)
+                offeredCorrections
+
+        finalYDeltas =
+            List.map2
+                (\( x, y ) adjust -> y |> Quantity.plus adjust)
+                clampedXYDeltas
+                proRataCorrections
+
+        resultingElevations =
+            List.Extra.scanl
+                Quantity.plus
+                (Point3d.zCoordinate startPoint.xyz)
+                finalYDeltas
+
+        _ =
+            Debug.log "starting els" <| List.map (.xyz >> Point3d.zCoordinate >> inMeters) targetZone
+
+        _ =
+            Debug.log "elevations" resultingElevations
 
         applyLimitsWithinRegion =
-            track.trackPoints
+            List.map2
+                (\pt ele ->
+                    let
+                        ( oldX, oldY, oldZ ) =
+                            pt.xyz |> Point3d.coordinates
+
+                        newXYZ =
+                            Point3d.xyz oldX oldY ele
+                    in
+                    { pt | xyz = newXYZ }
+                )
+                targetZone
+                resultingElevations
     in
-    ( { track | trackPoints = applyLimitsWithinRegion }
+    ( { track | trackPoints = beforeStart ++ applyLimitsWithinRegion ++ afterEnd }
     , undoMessage
     )
 
@@ -141,7 +262,8 @@ viewGradientLimitPane options wrapper track =
                     Input.labelBelow [] <|
                         text <|
                             "Uphill: "
-                                ++ showDecimal2 options.maximumAscent
+                                ++ showDecimal0 options.maximumAscent
+                                ++ "%"
                 , min = 10.0
                 , max = 25.0
                 , step = Just 1.0
@@ -157,7 +279,8 @@ viewGradientLimitPane options wrapper track =
                     Input.labelBelow [] <|
                         text <|
                             "Downhill: "
-                                ++ showDecimal2 options.maximumDescent
+                                ++ showDecimal0 options.maximumDescent
+                                ++ "%"
                 , min = 10.0
                 , max = 25.0
                 , step = Just 1.0

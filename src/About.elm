@@ -11,11 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.4 update 2021-05-11
+## 2.1.5 update 2021-05-12
 
-- Use corrected lengths in gradient calculation.
-- Minor change to gradient colour palettes to align with above.
-- Terrain is back. It's blocky and imperfect but much quicker.
+- Sorry, last big fix was more of a bug creation fest.
+- Edit operations that add track points should not mess up the track.
 
 
 ## About Version 2

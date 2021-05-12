@@ -5,14 +5,13 @@ import Area
 import Axis3d exposing (Axis3d)
 import Direction3d exposing (Direction3d)
 import EarthConstants exposing (metresPerDegree)
-import Length exposing (Meters, inMeters, meters)
+import Length exposing (Length, Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra as Maybe
 import Plane3d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
-import SketchPlane3d
 import Spherical
 import Triangle3d
 import Vector3d exposing (Vector3d)
@@ -32,8 +31,8 @@ type alias TrackPoint =
     , effectiveDirection : Maybe (Direction3d LocalCoords)
     , directionChange : Maybe Angle
     , gradientChange : Maybe Float
-    , roadVector : Vector3d Length.Meters LocalCoords
-    , length : Length.Length
+    , roadVector : Vector3d Meters LocalCoords
+    , length : Length
     }
 
 
@@ -105,12 +104,11 @@ gradientFromPoint pt =
 
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint
-prepareTrackPoints trackPoints =
+prepareTrackPoints trackPoints  =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
-        -- We are blowing the stack and I suspect this is the culprit.
-        -- Let's try without the ugly explicit recursion.
+
         firstPassSetsForwardLooking =
             List.map2
                 deriveForward
