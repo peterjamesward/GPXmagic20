@@ -183,15 +183,6 @@ limitGradient settings track =
             else
                 List.map (always Quantity.zero) clampedXYDeltas
 
-        _ =
-            Debug.log "unclamped" unclampedXYDeltas
-
-        _ =
-            Debug.log "clamped" clampedXYDeltas
-
-        _ =
-            Debug.log "offered" offeredCorrections
-
         totalOffered =
             Quantity.sum offeredCorrections
 
@@ -203,9 +194,6 @@ limitGradient settings track =
             else
                 Quantity.ratio elevationCorrection totalOffered
                     |> clamp 0.0 1.0
-
-        _ =
-            Debug.log "needed, offered, ask" ( elevationCorrection, totalOffered, proprtionNeeded )
 
         proRataCorrections =
             -- Empirical test.
@@ -224,12 +212,6 @@ limitGradient settings track =
                 Quantity.plus
                 (Point3d.zCoordinate startPoint.xyz)
                 finalYDeltas
-
-        _ =
-            Debug.log "starting els" <| List.map (.xyz >> Point3d.zCoordinate >> inMeters) targetZone
-
-        _ =
-            Debug.log "elevations" resultingElevations
 
         applyLimitsWithinRegion =
             List.map2

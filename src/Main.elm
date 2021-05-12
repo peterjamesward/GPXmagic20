@@ -1191,7 +1191,7 @@ toolsAccordion model =
                 )
                 model.track
                 |> Maybe.withDefault none
-      , info = GradientSmoother.info
+      , info = GradientLimiter.info
       }
     , { label = "Smooth gradient"
       , state = Contracted
