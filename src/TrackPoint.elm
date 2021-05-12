@@ -74,12 +74,36 @@ applyGhanianTransform : List ( Float, Float, Float ) -> ( List TrackPoint, ( Flo
 applyGhanianTransform points =
     -- Note we use the first entry as a fairly arbirary notional point from
     -- which to calculate offsets.
-    case List.head points of
-        Nothing ->
+    case points of
+        [] ->
             ( [], ( 0, 0, 0 ) )
 
-        Just ( baseLon, baseLat, _ ) ->
+        _ ->
             let
+                ( lons, lats ) =
+                    List.map (\( lon, lat, _ ) -> ( lon, lat )) points |> List.unzip
+
+                lonExtrema =
+                    ( List.minimum lons, List.maximum lons )
+
+                latExtrema =
+                    ( List.minimum lats, List.maximum lats )
+
+                ( baseLon, baseLat ) =
+                    ( case lonExtrema of
+                        ( Just minLon, Just maxLon ) ->
+                            (minLon + maxLon) / 2.0
+
+                        _ ->
+                            0.0
+                    , case latExtrema of
+                        ( Just minLat, Just maxLat ) ->
+                            (minLat + maxLat) / 2.0
+
+                        _ ->
+                            0.0
+                    )
+
                 toLocalSpace ( lon, lat, ele ) =
                     ( metresPerDegree * (lon - baseLon) * cos (degrees baseLat)
                     , metresPerDegree * (lat - baseLat)
@@ -104,11 +128,10 @@ gradientFromPoint pt =
 
 
 prepareTrackPoints : List TrackPoint -> List TrackPoint
-prepareTrackPoints trackPoints  =
+prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
-
         firstPassSetsForwardLooking =
             List.map2
                 deriveForward
