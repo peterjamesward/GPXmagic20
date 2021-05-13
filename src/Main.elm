@@ -928,8 +928,7 @@ repeatTrackDerivations model =
                     -- Damn, need to make sure all new point have lat & lon.
                     isTrack
                         |> Track.removeGhanianTransform
-                        |> applyGhanianTransform
-                        |> Tuple.first
+                        |> (applyGhanianTransform isTrack.earthReferenceCoordinates)
 
                 newTrack =
                     { isTrack | trackPoints = prepareTrackPoints earthTrack }

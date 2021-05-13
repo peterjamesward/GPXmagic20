@@ -13,7 +13,7 @@ import StravaAuth exposing (getStravaToken)
 import StravaDataLoad exposing (..)
 import StravaPasteStreams exposing (pasteStreams)
 import StravaTypes exposing (..)
-import Track exposing (Track, trackBoundingBox, searchTrackPointFromLonLat)
+import Track exposing (Track, trackBoundingBox)
 import TrackEditType as PostUpdateActions
 import Url
 import Url.Builder as Builder

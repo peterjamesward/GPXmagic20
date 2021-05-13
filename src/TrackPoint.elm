@@ -70,54 +70,26 @@ pointInEarthCoordinates point =
     ( longitude, latitude, elevation )
 
 
-applyGhanianTransform : List ( Float, Float, Float ) -> ( List TrackPoint, ( Float, Float, Float ) )
-applyGhanianTransform points =
+applyGhanianTransform :
+    ( Float, Float, Float )
+    -> List ( Float, Float, Float )
+    -> List TrackPoint
+applyGhanianTransform ( baseLon, baseLat, _ ) points =
     -- Note we use the first entry as a fairly arbirary notional point from
     -- which to calculate offsets.
-    case points of
-        [] ->
-            ( [], ( 0, 0, 0 ) )
-
-        _ ->
-            let
-                ( lons, lats ) =
-                    List.map (\( lon, lat, _ ) -> ( lon, lat )) points |> List.unzip
-
-                lonExtrema =
-                    ( List.minimum lons, List.maximum lons )
-
-                latExtrema =
-                    ( List.minimum lats, List.maximum lats )
-
-                ( baseLon, baseLat ) =
-                    ( case lonExtrema of
-                        ( Just minLon, Just maxLon ) ->
-                            (minLon + maxLon) / 2.0
-
-                        _ ->
-                            0.0
-                    , case latExtrema of
-                        ( Just minLat, Just maxLat ) ->
-                            (minLat + maxLat) / 2.0
-
-                        _ ->
-                            0.0
-                    )
-
-                toLocalSpace ( lon, lat, ele ) =
-                    ( metresPerDegree * (lon - baseLon) * cos (degrees baseLat)
-                    , metresPerDegree * (lat - baseLat)
-                    , ele
-                    )
-                        |> Point3d.fromTuple meters
-                        |> trackPointFromPoint
-                        |> (\tp -> { tp | latLon = ( Angle.degrees lat, Angle.degrees lon ) })
-            in
-            ( List.map
-                toLocalSpace
-                points
-            , ( baseLon, baseLat, 0.0 )
+    let
+        toLocalSpace ( lon, lat, ele ) =
+            ( metresPerDegree * (lon - baseLon) * cos (degrees baseLat)
+            , metresPerDegree * (lat - baseLat)
+            , ele
             )
+                |> Point3d.fromTuple meters
+                |> trackPointFromPoint
+                |> (\tp -> { tp | latLon = ( Angle.degrees lat, Angle.degrees lon ) })
+    in
+    List.map
+        toLocalSpace
+        points
 
 
 gradientFromPoint : TrackPoint -> Float

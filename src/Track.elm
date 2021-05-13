@@ -36,9 +36,34 @@ trackFromGpx content =
         trackPoints =
             GpxParser.parseTrackPoints content
 
-        ( centredPoints, basePoint ) =
+        ( lons, lats ) =
+            List.map (\( lon, lat, _ ) -> ( lon, lat )) trackPoints |> List.unzip
+
+        lonExtrema =
+            ( List.minimum lons, List.maximum lons )
+
+        latExtrema =
+            ( List.minimum lats, List.maximum lats )
+
+        basePoint =
+            ( case lonExtrema of
+                ( Just minLon, Just maxLon ) ->
+                    (minLon + maxLon) / 2.0
+
+                _ ->
+                    0.0
+            , case latExtrema of
+                ( Just minLat, Just maxLat ) ->
+                    (minLat + maxLat) / 2.0
+
+                _ ->
+                    0.0
+            , 0.0
+            )
+
+        centredPoints =
             -- Move to near (0,0) to maintain precision in geometry -> clip space
-            applyGhanianTransform trackPoints
+            applyGhanianTransform basePoint trackPoints
     in
     case centredPoints of
         [] ->
@@ -161,9 +186,9 @@ summaryData track =
             track.currentNode
 
         gradient =
-            100.0 *
-            (Vector3d.zComponent pt.roadVector |> inMeters)
-             /  (pt.length |> inMeters)
+            100.0
+                * (Vector3d.zComponent pt.roadVector |> inMeters)
+                / (pt.length |> inMeters)
 
         ( lat, lon ) =
             pt.latLon
@@ -210,12 +235,11 @@ summaryData track =
 searchTrackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
 searchTrackPointFromLonLat ( lon, lat ) track =
     let
-        ( transformedLonLats, _ ) =
-            -- Sneaky. Not tidy.
-            applyGhanianTransform [ track.earthReferenceCoordinates, ( lon, lat, 0.0 ) ]
+        transformedLonLats =
+            applyGhanianTransform track.earthReferenceCoordinates [ ( lon, lat, 0.0 ) ]
     in
     case transformedLonLats of
-        dummy :: searchPoint :: _ ->
+        searchPoint :: _ ->
             let
                 distance =
                     .xyz >> Point3d.distanceFrom searchPoint.xyz >> Length.inMeters
@@ -232,12 +256,11 @@ searchTrackPointFromLonLat ( lon, lat ) track =
 updateTrackPointLonLat : ( Float, Float ) -> Track -> TrackPoint -> TrackPoint
 updateTrackPointLonLat ( lon, lat ) track tp =
     let
-        ( transformedLonLats, _ ) =
-            -- Sneaky. Not tidy.
-            applyGhanianTransform [ track.earthReferenceCoordinates, ( lon, lat, 0.0 ) ]
+        transformedLonLats =
+            applyGhanianTransform track.earthReferenceCoordinates [ ( lon, lat, 0.0 ) ]
     in
     case transformedLonLats of
-        dummy :: newLocation :: _ ->
+        newLocation :: _ ->
             let
                 ele =
                     Point3d.zCoordinate tp.xyz |> inMeters

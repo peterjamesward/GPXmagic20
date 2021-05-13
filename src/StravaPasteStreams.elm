@@ -28,9 +28,7 @@ pasteStreams track segment streams =
                 (\latLon ele -> ( latLon.lng, latLon.lat, ele))
                 streams.latLngs.data
                 streams.altitude.data
-                |> applyGhanianTransform
-                |> Tuple.first
-                |> List.drop 1
+                |> (applyGhanianTransform track.earthReferenceCoordinates)
 
         newRoute =
             case ( pStartingTrackPoint, pEndingTrackPoint ) of
