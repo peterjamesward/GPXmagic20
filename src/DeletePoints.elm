@@ -23,7 +23,8 @@ type Action
     | DeleteNoOp
 
 
-info = """## Delete track points
+info =
+    """## Delete track points
 
 Without the purple marker, the "Delete" button will delete the single track point
 at the orange marker.
@@ -35,6 +36,7 @@ A straight section of track will replace the deleted section.
 
 It is not possible to delete a Graph Node.
 """
+
 
 viewDeleteTools : Maybe Track -> (Msg -> msg) -> Element msg
 viewDeleteTools track msgWrapper =
@@ -102,7 +104,15 @@ deletePoints track =
                 |> List.Extra.removeIfIndex (\i -> i >= start && i <= finish)
 
         newCurrent =
-            List.Extra.getAt track.currentNode.index newRoute
+            if start == track.currentNode.index then
+                List.Extra.getAt
+                    (track.currentNode.index - 1)
+                    newRoute
+
+            else
+                List.Extra.getAt
+                    (track.currentNode.index + start - finish - 1)
+                    newRoute
     in
     { track
         | trackPoints = newRoute

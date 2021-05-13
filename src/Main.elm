@@ -909,8 +909,28 @@ updateTrackInModel newTrack editType model =
                     Maybe.map Graph.walkTheRoute newGraph
                         |> Maybe.withDefault newTrack.trackPoints
 
+                newOrange =
+                    -- Edit ay have repositioned the markers.
+                    newPointsFromGraph
+                        |> List.Extra.getAt newTrack.currentNode.index
+                        |> Maybe.withDefault oldTrack.currentNode
+
+                newPurple =
+                    case newTrack.markedNode of
+                        Just newMarker ->
+                            newPointsFromGraph
+                                |> List.Extra.getAt newMarker.index
+
+                        Nothing ->
+                            Nothing
+
                 trackWithNewRoute =
-                    { newTrack | trackPoints = newPointsFromGraph, graph = newGraph }
+                    { newTrack
+                        | trackPoints = newPointsFromGraph
+                        , currentNode = newOrange
+                        , markedNode = newPurple
+                        , graph = newGraph
+                    }
             in
             { model | track = Just trackWithNewRoute }
                 |> repeatTrackDerivations
@@ -928,7 +948,7 @@ repeatTrackDerivations model =
                     -- Damn, need to make sure all new point have lat & lon.
                     isTrack
                         |> Track.removeGhanianTransform
-                        |> (applyGhanianTransform isTrack.earthReferenceCoordinates)
+                        |> applyGhanianTransform isTrack.earthReferenceCoordinates
 
                 newTrack =
                     { isTrack | trackPoints = prepareTrackPoints earthTrack }

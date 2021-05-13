@@ -167,7 +167,7 @@ insertPoints options track =
             precedingTrackPoints ++ allNewTrackPoints ++ subsequentTrackPoints
 
         currentNode =
-            if track.currentNode == endPoint then
+            if track.currentNode.index == endPoint.index then
                 List.Extra.getAt
                     (endPoint.index
                         + List.length newTrackPointList
@@ -191,7 +191,7 @@ insertPoints options track =
                     |> Just
 
             else
-                track.markedNode
+                Nothing
     in
     ( { track
         | trackPoints = newTrackPointList
