@@ -11,10 +11,11 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.9 update 2021-05-13
+## 2.1.10 update 2021-05-13
 
 - Prevent "Simplify" from removing first or last point.
 - Fix errors in Bezier splines.
+- Added Rotate tool.
 
 ## About Version 2
 

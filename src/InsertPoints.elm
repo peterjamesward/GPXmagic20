@@ -146,7 +146,7 @@ insertPoints options track =
 
         pointsToInterpolate =
             track.trackPoints
-                |> List.take endPoint.index
+                |> List.take (endPoint.index + 1)
                 |> List.drop startPoint.index
 
         allNewTrackPoints =

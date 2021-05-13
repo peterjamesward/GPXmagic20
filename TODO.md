@@ -2,11 +2,15 @@
 
 # BUGS
 
-Upgrade logging?
+Road segment display not correct when track loaded.
+
+Insert points not resetting the current point well.
+
+# TODO
 
 Common track splitter for all edits - return three segments (prior, active, after).
 
-# TODO
+Upgrade logging?
 
 ? New bend smoother filter - four point external centroid (convex only, not 'S').
 
