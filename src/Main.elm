@@ -35,6 +35,7 @@ import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..))
+import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
@@ -87,6 +88,7 @@ type Msg
     | AdjustTimeZone Time.Zone
     | ReceivedIpDetails (Result Http.Error IpInfo)
     | IpInfoAcknowledged (Result Http.Error ())
+    | RotateMessage RotateRoute.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -138,6 +140,7 @@ type alias Model =
     , ipInfo : Maybe IpInfo
     , highlightedGraphEdge : Scene
     , gradientLimiter : GradientLimiter.Options
+    , rotateOptions : RotateRoute.Options
     }
 
 
@@ -183,6 +186,7 @@ init mflags origin navigationKey =
       , ipInfo = Nothing
       , highlightedGraphEdge = []
       , gradientLimiter = GradientLimiter.defaultOptions
+      , rotateOptions = RotateRoute.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -505,6 +509,17 @@ update msg model =
             in
             processPostUpdateAction
                 { model | filterOptions = newOptions }
+                action
+
+        RotateMessage rotate ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (RotateRoute.update rotate model.rotateOptions)
+                        model.track
+                        |> Maybe.withDefault ( model.rotateOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | rotateOptions = newOptions }
                 action
 
         ProblemMessage probMsg ->
@@ -1316,6 +1331,15 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = StravaTools.info
+      }
+    , { label = "Rotation"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (RotateRoute.view model.rotateOptions RotateMessage)
+                model.track
+                |> Maybe.withDefault none
+      , info = RotateRoute.info
       }
     ]
 

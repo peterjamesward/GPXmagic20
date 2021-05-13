@@ -2,13 +2,9 @@
 
 # BUGS
 
-Gradient limit with no markers => whole track
-
-Check all edits for old logic
-
-Disable limit button if no solution
-
 Upgrade logging?
+
+Common track splitter for all edits - return three segments (prior, active, after).
 
 # TODO
 

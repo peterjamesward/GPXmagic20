@@ -23,13 +23,19 @@ import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonS
 info =
     """## Gradient limiter
 
-## New in 2.1.5
+Limit the uphill and downhill gradient across all or part of the route.
+To select part of the route, use the Orange and Purple pointers.
 
-Mark two points on the route. The elevation at these points will be fixed.
+If you do not place the Puple pointer, the end of the route will be used instead,
+so effectively limiting from the Orange pointer to the route end.
+The elevation at these points will be fixed.
+
 Set the maximum ascent and descent with the sliders.
-Click the button to redistribute the ascents and descents between the 
+
+Click the button to redistribute the ascents and descents between the
 markers.
-If it's not arithmetically possible, the button will not work.
+
+If it's not arithmetically possible, the button will still work, but it may not come out well.
 """
 
 
@@ -98,36 +104,28 @@ limitGradient settings track =
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
-        ( startPoint, endPoint ) =
-            ( if track.currentNode.index <= marker.index then
-                track.currentNode
+        ( startIndex, endIndex, referenceNode ) =
+            if track.markedNode == Nothing then
+                ( track.currentNode.index, List.length track.trackPoints - 1, track.currentNode )
 
-              else
-                marker
-            , if track.currentNode.index > marker.index then
-                track.currentNode
+            else if track.currentNode.index <= marker.index then
+                ( track.currentNode.index, marker.index, track.currentNode )
 
-              else
-                marker
-            )
-
-        ( targetLength, targetElevationChangeAA ) =
-            ( endPoint.distanceFromStart |> Quantity.minus startPoint.distanceFromStart
-            , endPoint.xyz |> Point3d.zCoordinate |> Quantity.minus (startPoint.xyz |> Point3d.zCoordinate)
-            )
+            else
+                ( marker.index, track.currentNode.index, marker )
 
         undoMessage =
-            "limit gradient\nfrom "
-                ++ showDecimal0 (inMeters startPoint.distanceFromStart)
+            "limit gradient from "
+                ++ showDecimal0 settings.maximumDescent
                 ++ " to "
-                ++ showDecimal0 (inMeters endPoint.distanceFromStart)
+                ++ showDecimal0 settings.maximumAscent
                 ++ "."
 
         ( beforeEnd, afterEnd ) =
-            List.Extra.splitAt (1 + endPoint.index) track.trackPoints
+            List.Extra.splitAt (1 + endIndex) track.trackPoints
 
         ( beforeStart, targetZone ) =
-            List.Extra.splitAt startPoint.index beforeEnd
+            List.Extra.splitAt startIndex beforeEnd
 
         unclampedXYDeltas : List ( Length.Length, Length.Length )
         unclampedXYDeltas =
@@ -210,7 +208,7 @@ limitGradient settings track =
         resultingElevations =
             List.Extra.scanl
                 Quantity.plus
-                (Point3d.zCoordinate startPoint.xyz)
+                (Point3d.zCoordinate referenceNode.xyz)
                 finalYDeltas
 
         applyLimitsWithinRegion =
@@ -292,15 +290,11 @@ viewGradientLimitPane options wrapper track =
             [ maxAscentSlider
             , maxDescentSlider
             ]
-        , if startPoint.index == endPoint.index then
-            text "Please position the markers"
-
-          else
-            button
-                prettyButtonStyles
-                { onPress = Just <| wrapper <| LimitGradient
-                , label =
-                    text <|
-                        "Apply limits"
-                }
+        ,   button
+            prettyButtonStyles
+            { onPress = Just <| wrapper <| LimitGradient
+            , label =
+                text <|
+                    "Apply limits"
+            }
         ]
