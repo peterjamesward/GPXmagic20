@@ -2,8 +2,6 @@
 
 # BUGS
 
-Wacky splines with tight tolerance?
-
 Gradient limit with no markers => whole track
 
 Check all edits for old logic

@@ -339,25 +339,26 @@ bezierSplineHelper track tension tolerance loopiness =
                 )
 
         withinRange =
-            List.take finish >> List.drop start
+            List.take (finish + 1) >> List.drop start
 
         ( fixedFirst, fixedLast ) =
-            ( List.take (start + 1) points, List.drop finish points )
+            ( List.take start points, List.drop finish points )
 
         splinedSection =
-            if track.markedNode == Nothing && loopiness == IsALoop then
-                bezierSplines
-                    (loopiness == IsALoop)
-                    tension
-                    tolerance
-                    points
+            case ( loopiness, track.markedNode ) of
+                ( IsALoop, Nothing ) ->
+                    bezierSplines
+                        True
+                        tension
+                        tolerance
+                        points
 
-            else
-                bezierSplines
-                    (loopiness == IsALoop)
-                    tension
-                    tolerance
-                    (withinRange points)
+                ( _, _ ) ->
+                    bezierSplines
+                        False
+                        tension
+                        tolerance
+                        (withinRange points)
     in
     fixedFirst
         ++ splinedSection

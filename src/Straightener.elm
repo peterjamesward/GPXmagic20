@@ -254,8 +254,6 @@ simplifyTrack options track =
                 ++ String.fromInt (List.length nodesToRemove)
                 ++ " track points"
 
-        _ = Debug.log "removing" nodesToRemove
-
         nodesToRemove =
             List.filter
                 (\n -> n > startPoint && n < endPoint)
