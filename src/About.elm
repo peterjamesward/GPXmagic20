@@ -11,8 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.11 update 2021-05-13
+## 2.1.12 update 2021-05-13
 
+- STRAVA paste segment bug fixed. Thanks to Chris Ames.
 - INSERT was deleting the final marked point.
 - Prevent "Simplify" from removing first or last point.
 - Fix errors in Bezier splines.
