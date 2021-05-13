@@ -2,11 +2,17 @@
 
 # BUGS
 
-Possible splicing error centroid average filter. Adding at the start??
+Wacky splines with tight tolerance?
+
+Gradient limit with no markers => whole track
+
+Check all edits for old logic
+
+Disable limit button if no solution
+
+Upgrade logging?
 
 # TODO
-
-One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 
 ? New bend smoother filter - four point external centroid (convex only, not 'S').
 
@@ -17,9 +23,7 @@ Flythrough to respect any azimuth & elevation applied when stationery.
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 
-Working offline?
-
-Beware bounding box on tracks crossing the international date line !!
+Working offline? (Mongoose server?)
 
 Sun should be in the North at southern latitudes. Could make it moveable. Idle waste of time.
 

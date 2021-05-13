@@ -48,7 +48,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg)
+    -> ( Options, PostUpdateActions.PostUpdateAction msg )
 update msg settings track =
     case msg of
         StraightenStraight ->
@@ -63,7 +63,7 @@ update msg settings track =
                 undoMsg
             )
 
-        SimplifyTrack  ->
+        SimplifyTrack ->
             let
                 ( newTrack, undoMsg ) =
                     simplifyTrack settings track
@@ -240,31 +240,25 @@ simplifyTrack options track =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( startPoint, endPoint ) =
-            ( if track.markedNode == Nothing then
-                0
-              else if track.currentNode.index <= marker.index then
-                track.currentNode.index
+            if track.markedNode == Nothing then
+                ( 0, List.length track.trackPoints - 1)
 
-              else
-                marker.index
-            , if track.markedNode == Nothing then
-                List.length track.trackPoints
+            else if track.currentNode.index <= marker.index then
+                ( track.currentNode.index, marker.index )
 
-              else if track.currentNode.index > marker.index then
-                track.currentNode.index
-
-              else
-                marker.index
-            )
+            else
+                ( marker.index, track.currentNode.index )
 
         undoMessage =
             "Remove "
                 ++ String.fromInt (List.length nodesToRemove)
                 ++ " track points"
 
+        _ = Debug.log "removing" nodesToRemove
+
         nodesToRemove =
             List.filter
-                (\n -> n >= startPoint && n <= endPoint)
+                (\n -> n > startPoint && n < endPoint)
                 options.metricFilteredPoints
     in
     ( { track | trackPoints = removeByIndexNumbers nodesToRemove track.trackPoints }
