@@ -75,8 +75,6 @@ applyGhanianTransform :
     -> List ( Float, Float, Float )
     -> List TrackPoint
 applyGhanianTransform ( baseLon, baseLat, _ ) points =
-    -- Note we use the first entry as a fairly arbirary notional point from
-    -- which to calculate offsets.
     let
         toLocalSpace ( lon, lat, ele ) =
             ( metresPerDegree * (lon - baseLon) * cos (degrees baseLat)

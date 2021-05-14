@@ -302,6 +302,14 @@ function setClickMode(newMode, points) {
             e.preventDefault();
             startDraggingPoint(e);
         });
+
+        map.on('click', function(e) {
+          app.ports.messageReceiver.send
+              ( { 'msg' : 'click'
+                , 'lon' : e.lngLat.lng
+                , 'lat' : e.lngLat.lat
+            } );
+        });
     }
 };
 

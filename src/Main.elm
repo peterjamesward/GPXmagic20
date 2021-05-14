@@ -141,6 +141,7 @@ type alias Model =
     , highlightedGraphEdge : Scene
     , gradientLimiter : GradientLimiter.Options
     , rotateOptions : RotateRoute.Options
+    , lastMapClick : ( Float, Float )
     }
 
 
@@ -187,6 +188,7 @@ init mflags origin navigationKey =
       , highlightedGraphEdge = []
       , gradientLimiter = GradientLimiter.defaultOptions
       , rotateOptions = RotateRoute.defaultOptions
+      , lastMapClick = ( 0.0, 0.0 )
       }
     , Cmd.batch
         [ authCmd
@@ -362,7 +364,7 @@ update msg model =
                             case searchTrackPointFromLonLat ( lon1, lat1 ) track of
                                 Just point ->
                                     processPostUpdateAction
-                                        model
+                                        { model | lastMapClick = ( lon1, lat1 ) }
                                         (PostUpdateActions.ActionFocusMove point)
 
                                 Nothing ->
@@ -514,7 +516,7 @@ update msg model =
         RotateMessage rotate ->
             let
                 ( newOptions, action ) =
-                    Maybe.map (RotateRoute.update rotate model.rotateOptions)
+                    Maybe.map (RotateRoute.update rotate model.rotateOptions model.lastMapClick)
                         model.track
                         |> Maybe.withDefault ( model.rotateOptions, ActionNoOp )
             in
@@ -945,7 +947,7 @@ repeatTrackDerivations model =
         Just isTrack ->
             let
                 earthTrack =
-                    -- Damn, need to make sure all new point have lat & lon.
+                    -- Make sure all new points have lat & lon.
                     isTrack
                         |> Track.removeGhanianTransform
                         |> applyGhanianTransform isTrack.earthReferenceCoordinates
@@ -1351,7 +1353,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = StravaTools.info
       }
-    , { label = "Rotation"
+    , { label = "Lift & Shift"
       , state = Contracted
       , content =
             Maybe.map

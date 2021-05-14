@@ -12,13 +12,14 @@ import Length exposing (Meters, inMeters, meters)
 import LineSegment3d exposing (LineSegment3d)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra
 import Point3d
 import PostUpdateActions
 import Quantity
 import SketchPlane3d
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
-import TrackPoint exposing (TrackPoint, trackPointFromPoint)
+import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -38,6 +39,7 @@ Please note angles are positive ANTI-clockwise.
 type Msg
     = RotateRoute
     | SetRotateAngle Angle
+    | Recentre
 
 
 type alias Options =
@@ -54,9 +56,10 @@ defaultOptions =
 update :
     Msg
     -> Options
+    -> ( Float, Float )
     -> Track
     -> ( Options, PostUpdateActions.PostUpdateAction msg )
-update msg settings track =
+update msg settings lastMapClick track =
     case msg of
         SetRotateAngle theta ->
             ( { settings | rotateAngle = theta }
@@ -67,6 +70,18 @@ update msg settings track =
             let
                 ( newTrack, undoMsg ) =
                     rotateRoute settings track
+            in
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                newTrack
+                undoMsg
+            )
+
+        Recentre ->
+            let
+                ( newTrack, undoMsg ) =
+                    recentre settings lastMapClick track
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
@@ -93,6 +108,13 @@ rotateRoute settings track =
     in
     ( { track | trackPoints = rotatedRoute }
     , undoMessage
+    )
+
+
+recentre : Options -> ( Float, Float ) -> Track -> ( Track, String )
+recentre settings ( lon, lat ) track =
+    ( { track | earthReferenceCoordinates = ( lon, lat, 0.0 ) }
+    , "recentre"
     )
 
 
@@ -133,6 +155,9 @@ view options wrapper track =
                 , value = Angle.inDegrees <| options.rotateAngle
                 , thumb = Input.defaultThumb
                 }
+
+        ( lon, lat, _ ) =
+            track.earthReferenceCoordinates
     in
     column [ spacing 5, padding 5, centerX ]
         [ rotationSlider
@@ -143,4 +168,15 @@ view options wrapper track =
                 text <|
                     "Rotate"
             }
+        --, button
+        --    prettyButtonStyles
+        --    { onPress = Just <| wrapper <| Recentre
+        --    , label =
+        --        text <|
+        --            "Recentre at\n("
+        --                ++ String.fromFloat lon
+        --                ++ ", "
+        --                ++ String.fromFloat lat
+        --                ++ ")"
+        --    }
         ]
