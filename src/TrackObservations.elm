@@ -434,8 +434,9 @@ gradientChangeThresholdSlider options wrap =
         , label =
             Input.labelBelow [] <|
                 text <|
-                    "Gradient change threshold = "
+                    "Threshold = "
                         ++ showDecimal0 options.gradientChangeThreshold
+                        ++ "%"
         , min = 5.0
         , max = 20.0
         , step = Just 1.0
@@ -452,8 +453,9 @@ bearingChangeThresholdSlider options wrap =
         , label =
             Input.labelBelow [] <|
                 text <|
-                    "Direction change threshold = "
+                    "Threshold = "
                         ++ showDecimal0 (Angle.inDegrees options.directionChangeThreshold)
+                        ++ "º"
         , min = 20.0
         , max = 120.0
         , step = Just 1.0

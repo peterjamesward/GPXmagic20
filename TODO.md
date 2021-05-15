@@ -2,11 +2,7 @@
 
 # BUGS
 
-Profile click not detecting hit properly.
-
 Track relocation not working.
-
-Gradient Problems - slider causing layout glitches.
 
 # TODO
 
