@@ -11,13 +11,14 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.13 update 2021-05-14
+## 2.1.14 update 2021-05-15
 
-- Rotate tab now Lift & Shift tab pending new capabilities.
-- STRAVA paste segment bug fixed. Thanks to Chris Ames.
-- INSERT was deleting the final marked point.
-- Prevent "Simplify" from removing first or last point.
-- Fix errors in Bezier splines.
+- Lift & Shift tab allows relocation of route to centre on last point clicked on Map.
+- Stop layout issues with Gradient Problem and Bend Problem tabs.
+- Stopped last point reporting as Gradient Problem.
+- Removes zero length road segments.
+- Displays correct road segment info when track loaded.
+- Slightly better pointer positioning after edits.
 
 ## About Version 2
 
