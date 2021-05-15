@@ -4,10 +4,9 @@
 
 Profile click not detecting hit properly.
 
-Erroneously reports excessive gradient at track end.
-
 Track relocation not working.
 
+Gradient Problems - slider causing layout glitches.
 
 # TODO
 

@@ -130,7 +130,11 @@ prepareTrackPoints trackPoints =
 
         withoutZeroLengths =
             firstPassSetsForwardLooking
-                |> List.filter (.length >> Quantity.greaterThan Quantity.zero)
+                |> List.filter
+                    (\pt ->
+                        (pt.length |> Quantity.greaterThan Quantity.zero)
+                            || (pt.afterDirection == Nothing)
+                    )
 
         secondPassSetsBackwardLooking =
             List.map3
@@ -145,7 +149,13 @@ prepareTrackPoints trackPoints =
                 | index = index
                 , beforeDirection = prev.afterDirection
                 , directionChange = changeInBearing prev.afterDirection point.afterDirection
-                , gradientChange = Just <| abs (gradientFromPoint prev - gradientFromPoint point)
+                , gradientChange =
+                    case point.afterDirection of
+                        Just weArenNotAtTheEnd ->
+                            Just <| abs (gradientFromPoint prev - gradientFromPoint point)
+
+                        Nothing ->
+                            Nothing
                 , effectiveDirection =
                     Maybe.map2 meanBearing
                         prev.afterDirection
@@ -160,14 +170,14 @@ prepareTrackPoints trackPoints =
             }
 
         forwardAndBackward =
-            List.take 1 firstPassSetsForwardLooking
+            List.take 1 withoutZeroLengths
                 ++ secondPassSetsBackwardLooking
 
         distances =
             List.Extra.scanl
                 (\pt dist -> pt.length |> Quantity.plus dist)
                 Quantity.zero
-                firstPassSetsForwardLooking
+                withoutZeroLengths
 
         withDistances =
             List.map2
