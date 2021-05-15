@@ -2,6 +2,8 @@
 
 # BUGS
 
+Centroid filter on loop should not pull ends apart. (It was OK in v1.)
+
 # TODO
 
 Go up an abstraction level - user sets policy; program executes using constraints or possibly GA.
