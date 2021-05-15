@@ -2,8 +2,6 @@
 
 # BUGS
 
-Track relocation not working.
-
 # TODO
 
 Go up an abstraction level - user sets policy; program executes using constraints or possibly GA.

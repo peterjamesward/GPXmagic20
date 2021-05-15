@@ -168,15 +168,15 @@ view options wrapper track =
                 text <|
                     "Rotate"
             }
-        --, button
-        --    prettyButtonStyles
-        --    { onPress = Just <| wrapper <| Recentre
-        --    , label =
-        --        text <|
-        --            "Recentre at\n("
-        --                ++ String.fromFloat lon
-        --                ++ ", "
-        --                ++ String.fromFloat lat
-        --                ++ ")"
-        --    }
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrapper <| Recentre
+            , label =
+                text <|
+                    "Recentre at\n("
+                        ++ String.fromFloat lon
+                        ++ ", "
+                        ++ String.fromFloat lat
+                        ++ ")"
+            }
         ]
