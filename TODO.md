@@ -2,9 +2,18 @@
 
 # BUGS
 
-Road segment display not correct when track loaded.
+ALWAYS remove zero length and folds.
+
+Profile click not detecting hit properly.
+
+Erroneously reports excessive gradient at track end.
+
+Track relocation not working.
+
 
 # TODO
+
+Go up an abstraction level - user sets policy; program executes using constraints or possibly GA.
 
 Common track splitter for all edits - return three segments (prior, active, after).
 

@@ -951,9 +951,18 @@ repeatTrackDerivations model =
                     isTrack
                         |> Track.removeGhanianTransform
                         |> applyGhanianTransform isTrack.earthReferenceCoordinates
+                        |> prepareTrackPoints
+
+                newCurrent =
+                    earthTrack
+                        |> List.Extra.getAt isTrack.currentNode.index
+                        |> Maybe.withDefault isTrack.currentNode
 
                 newTrack =
-                    { isTrack | trackPoints = prepareTrackPoints earthTrack }
+                    { isTrack
+                        | trackPoints = earthTrack
+                        , currentNode = newCurrent
+                    }
             in
             { model
                 | track = Just newTrack
@@ -1151,7 +1160,7 @@ contentArea model =
                 , viewTrackControls MarkerMessage model.track
                 , undoRedoButtons model
                 , Accordion.view
-                    (updatedAccordion model model.toolsAccordion toolsAccordion)
+                    (updatedAccordion model.toolsAccordion toolsAccordion model)
                     AccordionMessage
                 ]
         ]
@@ -1165,7 +1174,7 @@ viewAllPanes panes options ( scene, profile ) wrapper =
             panes
 
 
-updatedAccordion model currentAccordion referenceAccordion =
+updatedAccordion currentAccordion referenceAccordion model =
     -- We have to reapply the accordion update functions with the current model,
     let
         blendAccordionStatus currentAccordionState refreshedContent =
