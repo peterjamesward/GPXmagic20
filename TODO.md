@@ -2,8 +2,6 @@
 
 # BUGS
 
-ALWAYS remove zero length and folds.
-
 Profile click not detecting hit properly.
 
 Erroneously reports excessive gradient at track end.

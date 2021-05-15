@@ -128,11 +128,15 @@ prepareTrackPoints trackPoints =
                         Spherical.range point.latLon nextPt.latLon
             }
 
+        withoutZeroLengths =
+            firstPassSetsForwardLooking
+                |> List.filter (.length >> Quantity.greaterThan Quantity.zero)
+
         secondPassSetsBackwardLooking =
             List.map3
                 deriveBackward
-                firstPassSetsForwardLooking
-                (List.drop 1 firstPassSetsForwardLooking)
+                withoutZeroLengths
+                (List.drop 1 withoutZeroLengths)
                 (List.range 1 (List.length trackPoints))
 
         deriveBackward : TrackPoint -> TrackPoint -> Int -> TrackPoint
@@ -176,27 +180,27 @@ prepareTrackPoints trackPoints =
                 forwardAndBackward
                 distances
 
-        --egregiousDirectionChangesRemoved =
-        --    -- Recurse (should only be needed once)
-        --    -- if there are any suspicious backward hops in the track.
-        --    if List.Extra.find egregiousDirectionChange processedPoints /= Nothing then
-        --        processedPoints
-        --            |> List.filter (not << egregiousDirectionChange)
-        --            |> prepareTrackPoints
-        --
-        --    else
-        --        processedPoints
-        --
-        --egregiousDirectionChange : TrackPoint -> Bool
-        --egregiousDirectionChange point =
-        --    case point.directionChange of
-        --        Just change ->
-        --            abs (Angle.inRadians change) > pi * 0.9
-        --
-        --        Nothing ->
-        --            False
+        egregiousDirectionChangesRemoved =
+            -- Recurse (should only be needed once)
+            -- if there are any suspicious backward hops in the track.
+            if List.Extra.find egregiousDirectionChange withDistances /= Nothing then
+                withDistances
+                    |> List.filter (not << egregiousDirectionChange)
+                    |> prepareTrackPoints
+
+            else
+                withDistances
+
+        egregiousDirectionChange : TrackPoint -> Bool
+        egregiousDirectionChange point =
+            case point.directionChange of
+                Just change ->
+                    abs (Angle.inRadians change) > pi * 0.9
+
+                Nothing ->
+                    False
     in
-    withDistances
+    egregiousDirectionChangesRemoved
 
 
 changeInBearing : Maybe (Direction3d LocalCoords) -> Maybe (Direction3d LocalCoords) -> Maybe Angle
