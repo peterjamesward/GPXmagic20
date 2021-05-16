@@ -180,9 +180,9 @@ computeNudgedPoints settings track =
                     ( inMeters pointDistance, inMeters referenceDistance )
 
                 x =
-                    pi * (place - base) / (inMeters settings.fadeExtent)
+                    abs <| (place - base) / (inMeters settings.fadeExtent)
             in
-            (1.0 + cos x) / 2.0
+            1.0 - x
 
         liesWithin ( lo, hi ) point =
             (point.distanceFromStart |> Quantity.greaterThanOrEqualTo lo)

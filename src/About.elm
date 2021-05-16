@@ -11,14 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.14 update 2021-05-15
+## 2.1.15 update 2021-05-16
 
-- Lift & Shift tab allows relocation of route to centre on last point clicked on Map.
-- Stop layout issues with Gradient Problem and Bend Problem tabs.
-- Stopped last point reporting as Gradient Problem.
-- Removes zero length road segments.
-- Displays correct road segment info when track loaded.
-- Slightly better pointer positioning after edits.
+- Change Nudge ramps to linear to avoid steep central section.
 
 ## About Version 2
 
