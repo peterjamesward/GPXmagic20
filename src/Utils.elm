@@ -66,9 +66,9 @@ terrainColourFromHeight : Float -> Color
 terrainColourFromHeight height =
     let
         x =
-            clamp 0.0 2000.0 height / 2000.0
+            clamp 0.0 3000.0 height / 3000.0
 
-        fullColour = Color.toHsla Color.green
+        fullColour = Color.toHsla (Color.rgb255 85 128 0)
 
         maxHeightSat =
             (Color.toHsla Color.white).saturation

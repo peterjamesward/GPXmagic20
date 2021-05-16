@@ -102,12 +102,28 @@ prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they
     -- have an index, start distance, a "bearing" and a "cost metric".
     let
+        preFilterDuplicates =
+            List.foldl duplicateHelper ( Point3d.origin, [] ) trackPoints
+                |> Tuple.second
+                |> List.reverse
+
+        duplicateHelper :
+            TrackPoint
+            -> ( Point3d Meters LocalCoords, List TrackPoint )
+            -> ( Point3d Meters LocalCoords, List TrackPoint )
+        duplicateHelper point ( lastXYZ, pointsToKeep ) =
+            if point.xyz |> Point3d.equalWithin (meters 0.1) lastXYZ then
+                ( lastXYZ, pointsToKeep )
+
+            else
+                ( point.xyz, point :: pointsToKeep )
+
         firstPassSetsForwardLooking =
             List.map2
                 deriveForward
-                trackPoints
-                (List.drop 1 trackPoints)
-                ++ List.drop (List.length trackPoints - 1) trackPoints
+                preFilterDuplicates
+                (List.drop 1 preFilterDuplicates)
+                ++ List.drop (List.length preFilterDuplicates - 1) preFilterDuplicates
 
         deriveForward : TrackPoint -> TrackPoint -> TrackPoint
         deriveForward point nextPt =
@@ -128,19 +144,11 @@ prepareTrackPoints trackPoints =
                         Spherical.range point.latLon nextPt.latLon
             }
 
-        withoutZeroLengths =
-            firstPassSetsForwardLooking
-                |> List.filter
-                    (\pt ->
-                        (pt.length |> Quantity.greaterThan Quantity.zero)
-                            || (pt.afterDirection == Nothing)
-                    )
-
         secondPassSetsBackwardLooking =
             List.map3
                 deriveBackward
-                withoutZeroLengths
-                (List.drop 1 withoutZeroLengths)
+                firstPassSetsForwardLooking
+                (List.drop 1 firstPassSetsForwardLooking)
                 (List.range 1 (List.length trackPoints))
 
         deriveBackward : TrackPoint -> TrackPoint -> Int -> TrackPoint
@@ -151,7 +159,7 @@ prepareTrackPoints trackPoints =
                 , directionChange = changeInBearing prev.afterDirection point.afterDirection
                 , gradientChange =
                     case point.afterDirection of
-                        Just weArenNotAtTheEnd ->
+                        Just weAreNotAtTheEnd ->
                             Just <| abs (gradientFromPoint prev - gradientFromPoint point)
 
                         Nothing ->
@@ -170,14 +178,14 @@ prepareTrackPoints trackPoints =
             }
 
         forwardAndBackward =
-            List.take 1 withoutZeroLengths
+            List.take 1 firstPassSetsForwardLooking
                 ++ secondPassSetsBackwardLooking
 
         distances =
             List.Extra.scanl
                 (\pt dist -> pt.length |> Quantity.plus dist)
                 Quantity.zero
-                withoutZeroLengths
+                forwardAndBackward
 
         withDistances =
             List.map2
