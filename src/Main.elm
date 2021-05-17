@@ -24,6 +24,7 @@ import Http
 import InsertPoints
 import Json.Decode as E exposing (at, decodeValue, field, float)
 import Json.Encode
+import Length
 import List.Extra
 import Loop
 import MapController exposing (..)
@@ -34,6 +35,7 @@ import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, vi
 import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
+import Point3d
 import PostUpdateActions exposing (PostUpdateAction(..))
 import RotateRoute
 import Scene exposing (Scene)
@@ -911,20 +913,29 @@ updateTrackInModel newTrack editType model =
                     Maybe.map Graph.walkTheRoute newGraph
                         |> Maybe.withDefault newTrack.trackPoints
 
+                replacePointer pointerNode =
+                    case editType of
+                        EditPreservesIndex ->
+                            newPointsFromGraph
+                                |> List.Extra.getAt pointerNode.index
+                                |> Maybe.withDefault pointerNode
+
+                        EditPreservesNodePosition ->
+                            newPointsFromGraph
+                                |> List.Extra.minimumBy
+                                    (.xyz >> Point3d.distanceFrom pointerNode.xyz >> Length.inMeters)
+                                |> Maybe.withDefault pointerNode
+
+                        EditNoOp ->
+                            newPointsFromGraph
+                                |> List.Extra.getAt pointerNode.index
+                                |> Maybe.withDefault pointerNode
+
                 newOrange =
-                    -- Edit ay have repositioned the markers.
-                    newPointsFromGraph
-                        |> List.Extra.getAt newTrack.currentNode.index
-                        |> Maybe.withDefault oldTrack.currentNode
+                    replacePointer oldTrack.currentNode
 
                 newPurple =
-                    case newTrack.markedNode of
-                        Just newMarker ->
-                            newPointsFromGraph
-                                |> List.Extra.getAt newMarker.index
-
-                        Nothing ->
-                            Nothing
+                    Maybe.map replacePointer oldTrack.markedNode
 
                 trackWithNewRoute =
                     { newTrack
@@ -953,15 +964,22 @@ repeatTrackDerivations model =
                         |> applyGhanianTransform isTrack.earthReferenceCoordinates
                         |> prepareTrackPoints
 
-                newCurrent =
+                replacePointer pointerNode =
                     earthTrack
-                        |> List.Extra.getAt isTrack.currentNode.index
-                        |> Maybe.withDefault isTrack.currentNode
+                        |> List.Extra.getAt pointerNode.index
+                        |> Maybe.withDefault pointerNode
+
+                newOrange =
+                    replacePointer isTrack.currentNode
+
+                newPurple =
+                    Maybe.map replacePointer isTrack.markedNode
 
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
-                        , currentNode = newCurrent
+                        , currentNode = newOrange
+                        , markedNode = newPurple
                     }
             in
             { model

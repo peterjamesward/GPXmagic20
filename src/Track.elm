@@ -12,7 +12,6 @@ import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
-import Quantity
 import SketchPlane3d
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)

@@ -11,10 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.16 update 2021-05-16
+## 2.1.17 update 2021-05-17
 
-- Change Nudge ramps to linear to avoid steep central section.
-- Better at removing coincident track points which cause "erroneous errors".
+- Reset pointers after Filter operations should now be OK.
 
 ## About Version 2
 

@@ -2,11 +2,11 @@
 
 # BUGS
 
-Centroid filter on loop should not pull ends apart. (It was OK in v1.)
 
 # TODO
 
-Go up an abstraction level - user sets policy; program executes using constraints or possibly GA.
+Go up an abstraction level? User sets policy; program executes using constraints or possibly GA.
+(This is exciting but very hard and probably a v3.)
 
 Common track splitter for all edits - return three segments (prior, active, after).
 

@@ -104,10 +104,11 @@ update msg settings observations track =
                 newTrack =
                     { track
                         | trackPoints =
-                            applyWeightedAverageFilter
-                                settings
-                                observations.loopiness
-                                track
+                            temporaryIndices <|
+                                applyWeightedAverageFilter
+                                    settings
+                                    observations.loopiness
+                                    track
                     }
             in
             ( settings
@@ -122,11 +123,12 @@ update msg settings observations track =
                 newTrack =
                     { track
                         | trackPoints =
-                            bezierSplineHelper
-                                track
-                                settings.bezierTension
-                                settings.bezierTolerance
-                                observations.loopiness
+                            temporaryIndices <|
+                                bezierSplineHelper
+                                    track
+                                    settings.bezierTension
+                                    settings.bezierTolerance
+                                    observations.loopiness
                     }
             in
             ( settings
@@ -135,6 +137,13 @@ update msg settings observations track =
                 newTrack
                 "Bezier splines"
             )
+
+
+temporaryIndices points =
+    List.map2
+        (\p i -> { p | index = i })
+        points
+        (List.range 0 (List.length points))
 
 
 viewFilterControls : Options -> (Msg -> msg) -> Track -> Element msg
