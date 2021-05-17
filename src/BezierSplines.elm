@@ -146,3 +146,57 @@ bezierSplines isLoop tension tolerance trackPoints =
                     asSegments
     in
     List.map trackPointFromPoint asPointsAgain
+
+
+bezierApproximation : Float -> List TrackPoint -> List TrackPoint
+bezierApproximation tolerance points =
+    -- This variant uses existing points as controls, and let's the result approximate the route.
+    let
+        rawPoints =
+            List.map .xyz points
+
+        makeSpline first second third =
+            let
+                ( start, end ) =
+                    ( Point3d.midpoint first second
+                    , Point3d.midpoint second third
+                    )
+            in
+            CubicSpline3d.fromControlPoints
+                start
+                second
+                second
+                end
+
+        makeSplines =
+            List.map3
+                makeSpline
+                rawPoints
+                (List.drop 1 rawPoints)
+                (List.drop 2 rawPoints)
+
+        asPolylines =
+            List.map
+                (CubicSpline3d.approximate (Length.meters tolerance))
+                makeSplines
+
+        asSegments =
+            List.concatMap
+                Polyline3d.segments
+                asPolylines
+
+        asPointsAgain =
+            List.map
+                LineSegment3d.startPoint
+                (List.take 1 asSegments)
+                ++ List.map
+                    LineSegment3d.endPoint
+                    asSegments
+    in
+    List.take 1 points
+        ++ List.map trackPointFromPoint asPointsAgain
+        ++ List.drop (List.length points - 1) points
+
+
+
+-- END

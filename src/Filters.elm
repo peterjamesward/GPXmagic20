@@ -45,6 +45,7 @@ type Msg
     | BezierSplines
     | SetPositionFlag Bool
     | SetElevationFlag Bool
+    | BezierApproximation
 
 
 type alias Options =
@@ -138,6 +139,22 @@ update msg settings observations track =
                 "Bezier splines"
             )
 
+        BezierApproximation ->
+            let
+                newTrack =
+                    { track
+                        | trackPoints =
+                            temporaryIndices
+                            <| BezierSplines.bezierApproximation settings.bezierTolerance track.trackPoints
+                    }
+            in
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                newTrack
+                "Bezier approximation"
+            )
+
 
 temporaryIndices points =
     List.map2
@@ -213,7 +230,12 @@ viewFilterControls options wrap track =
             , button
                 prettyButtonStyles
                 { onPress = Just <| wrap BezierSplines
-                , label = text <| "Bezier splines"
+                , label = text <| "Bezier splines passing\nthrough existing points"
+                }
+            , button
+                prettyButtonStyles
+                { onPress = Just <| wrap BezierApproximation
+                , label = text <| "Bezier approximation\nusing existing points"
                 }
             ]
     in
