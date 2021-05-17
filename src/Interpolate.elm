@@ -1,4 +1,4 @@
-module InsertPoints exposing (..)
+module Interpolate exposing (..)
 
 import Element exposing (..)
 import Element.Input as Input exposing (button)
@@ -79,9 +79,9 @@ viewTools options wrap =
                             "Maximum gap "
                                 ++ showDecimal2 options.maxSpacing
                                 ++ "m"
-                , min = 5.0
+                , min = 1.0
                 , max = 50.0
-                , step = Just 5.0
+                , step = Just 1.0
                 , value = options.maxSpacing
                 , thumb = Input.defaultThumb
                 }

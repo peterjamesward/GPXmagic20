@@ -11,10 +11,12 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.18 update 2021-05-17
+## 2.1.19 update 2021-05-17
 
 - Reset pointers after Filter operations should now be OK.
 - Added new Bezier splines option which can produce smoother results.
+- "Insert" renamed to "Interpolate"
+- "Filters" renamed to "Track smoothers 3D"
 
 ## About Version 2
 

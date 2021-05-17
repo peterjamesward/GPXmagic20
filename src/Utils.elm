@@ -74,7 +74,7 @@ terrainColourFromHeight height =
             (Color.toHsla Color.white).saturation
 
         minHeightSat =
-            fullColour.saturation
+            fullColour.saturation * 0.9
 
         saturation =
             x * maxHeightSat + (1.0 - x) * minHeightSat

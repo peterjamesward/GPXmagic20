@@ -21,7 +21,7 @@ import GradientLimiter
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Http
-import InsertPoints
+import Interpolate
 import Json.Decode as E exposing (at, decodeValue, field, float)
 import Json.Encode
 import Length
@@ -83,7 +83,7 @@ type Msg
     | FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
-    | InsertMessage InsertPoints.Msg
+    | InsertMessage Interpolate.Msg
     | UserChangedFilename String
     | OutputGPX
     | StravaMessage StravaTools.Msg
@@ -136,7 +136,7 @@ type alias Model =
     , flythrough : Flythrough.Options
     , filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
-    , insertOptions : InsertPoints.Options
+    , insertOptions : Interpolate.Options
     , stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
@@ -183,7 +183,7 @@ init mflags origin navigationKey =
       , flythrough = Flythrough.defaultOptions
       , filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
-      , insertOptions = InsertPoints.defaultOptions
+      , insertOptions = Interpolate.defaultOptions
       , stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
@@ -310,7 +310,7 @@ update msg model =
             let
                 ( newSettings, action ) =
                     Maybe.map
-                        (InsertPoints.update
+                        (Interpolate.update
                             insertMsg
                             model.insertOptions
                         )
@@ -1285,18 +1285,18 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Straightener.info
       }
-    , { label = "Insert"
+    , { label = "Interpolate"
       , state = Contracted
       , content =
             case model.track of
                 Just _ ->
-                    InsertPoints.viewTools
+                    Interpolate.viewTools
                         model.insertOptions
                         InsertMessage
 
                 Nothing ->
                     none
-      , info = InsertPoints.info
+      , info = Interpolate.info
       }
     , { label = "Delete"
       , state = Contracted
@@ -1308,7 +1308,7 @@ toolsAccordion model =
       , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
       , info = Flythrough.info
       }
-    , { label = "Filters"
+    , { label = "Track smoothers 3D"
       , state = Contracted
       , content =
             Maybe.map
