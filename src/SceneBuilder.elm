@@ -5,7 +5,8 @@ import Axis3d
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color, black, brown, darkGreen, green)
 import Cone3d
-import Direction3d exposing (negativeZ)
+import Cylinder3d
+import Direction3d exposing (negativeZ, positiveZ)
 import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
 import Length exposing (Length, Meters, inMeters, meters)
@@ -16,7 +17,7 @@ import Plane3d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import Scene3d exposing (Entity, cone)
+import Scene3d exposing (Entity, cone, cylinder)
 import Scene3d.Material as Material exposing (Material)
 import SketchPlane3d
 import Track exposing (Track)
@@ -137,12 +138,22 @@ renderMarkers track =
             [ cone (Material.color Color.lightOrange) <|
                 Cone3d.startingAt
                     (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 10.1)
+                        (Vector3d.meters 0.0 0.0 20.1)
                         point.xyz
                     )
                     negativeZ
-                    { radius = meters <| 3.0
-                    , length = meters <| 10.0
+                    { radius = meters <| 6.0
+                    , length = meters <| 20.0
+                    }
+            , cone (Material.color Color.lightOrange) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 20.1)
+                        point.xyz
+                    )
+                    positiveZ
+                    { radius = meters <| 5.5
+                    , length = meters <| 100.0
                     }
             ]
 
@@ -150,12 +161,22 @@ renderMarkers track =
             [ cone (Material.color Color.purple) <|
                 Cone3d.startingAt
                     (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 10.1)
+                        (Vector3d.meters 0.0 0.0 18.1)
                         point.xyz
                     )
                     negativeZ
-                    { radius = meters <| 3.5
-                    , length = meters <| 8.0
+                    { radius = meters <| 7.0
+                    , length = meters <| 18.0
+                    }
+            , cone (Material.color Color.purple) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 18.1)
+                        point.xyz
+                    )
+                    positiveZ
+                    { radius = meters <| 6.5
+                    , length = meters <| 100.0
                     }
             ]
     in

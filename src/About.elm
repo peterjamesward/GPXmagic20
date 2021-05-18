@@ -11,11 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.20 update 2021-05-18
+## 2.1.21 update 2021-05-18
 
-- Terrain is more colourful.
-- End of track is not reported as "Steep climb".
-- Flythrough doesn't spin-off.
+- Make marker cones slightly easier to see when zoomed out.
+- Click detect better on Profile, even when exaggerated.
 
 ## About Version 2
 

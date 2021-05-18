@@ -1,10 +1,8 @@
 module SceneBuilderProfile exposing (..)
 
-import Angle exposing (Angle)
-import Axis3d
 import Color exposing (Color, black, brown)
 import Cone3d
-import Direction3d exposing (negativeZ)
+import Direction3d exposing (negativeZ, positiveZ)
 import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
 import Length exposing (Length, Meters, meters)
@@ -114,12 +112,22 @@ renderMarkers options track =
             [ cone (Material.color Color.lightOrange) <|
                 Cone3d.startingAt
                     (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 10.1)
+                        (Vector3d.meters 0.0 0.0 20.1)
                         (scaledXZ point)
                     )
                     negativeZ
-                    { radius = meters <| 3.0
-                    , length = meters <| 10.0
+                    { radius = meters <| 6.0
+                    , length = meters <| 20.0
+                    }
+            , cone (Material.color Color.lightOrange) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 20.1)
+                        (scaledXZ point)
+                    )
+                    positiveZ
+                    { radius = meters <| 5.5
+                    , length = meters <| 100.0
                     }
             ]
 
@@ -127,12 +135,22 @@ renderMarkers options track =
             [ cone (Material.color Color.purple) <|
                 Cone3d.startingAt
                     (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 10.1)
+                        (Vector3d.meters 0.0 0.0 18.1)
                         (scaledXZ point)
                     )
                     negativeZ
-                    { radius = meters <| 3.5
-                    , length = meters <| 8.0
+                    { radius = meters <| 7.0
+                    , length = meters <| 18.0
+                    }
+            , cone (Material.color Color.purple) <|
+                Cone3d.startingAt
+                    (Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 18.1)
+                        (scaledXZ point)
+                    )
+                    positiveZ
+                    { radius = meters <| 6.5
+                    , length = meters <| 100.0
                     }
             ]
     in

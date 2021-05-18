@@ -37,7 +37,7 @@ initialiseView :
     -> Track
     -> ViewingContext
     -> ViewingContext
-initialiseView viewSize track oldContext=
+initialiseView viewSize track oldContext =
     -- This is just a simple default so we can see something!
     let
         profileTrack =
@@ -198,7 +198,7 @@ update msg view wrap =
                                         0.0
                                         0.0
                                     )
-                        , orbiting = Just ( dx, dy)
+                        , orbiting = Just ( dx, dy )
                       }
                     , ActionNoOp
                     )
@@ -297,10 +297,16 @@ detectHit context event =
 
 profilePointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
 profilePointNearestRay track ray =
-    -- Probably an easier way than this sledgehammer. But.
+    let
+        x =
+            ray |> Axis3d.originPoint |> Point3d.xCoordinate
+    in
     track
-        |> List.Extra.minimumBy
-            (Length.inMeters << distanceFromAxis ray << .profileXZ)
+        |> List.Extra.find
+            (\pt ->
+                (pt.distanceFromStart |> Quantity.lessThanOrEqualTo x)
+                    && (pt.distanceFromStart |> Quantity.plus pt.length |> Quantity.greaterThan x)
+            )
 
 
 changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
