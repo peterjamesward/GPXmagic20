@@ -125,8 +125,8 @@ update msg settings observations track =
                         (BendSmoother.softenSinglePoint changingTrack)
                         (List.Extra.getAt index changingTrack.trackPoints)
                         |> Maybe.withDefault changingTrack
-                        --|> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
 
+                --|> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
                 newTrack =
                     List.foldl
                         applyToSinglePointByIndex
@@ -308,9 +308,10 @@ viewSteepClimbs options wrap track =
             track.trackPoints
                 |> List.filter
                     (\pt ->
-                        pt
-                            |> gradientFromPoint
-                            |> exceeds options.gradientThreshold
+                        (pt.length |> Quantity.greaterThan Quantity.zero)
+                            && (gradientFromPoint pt
+                                    |> exceeds options.gradientThreshold
+                               )
                     )
 
         linkButton point =

@@ -11,12 +11,11 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.19 update 2021-05-17
+## 2.1.20 update 2021-05-18
 
-- Reset pointers after Filter operations should now be OK.
-- Added new Bezier splines option which can produce smoother results.
-- "Insert" renamed to "Interpolate"
-- "Filters" renamed to "Track smoothers 3D"
+- Terrain is more colourful.
+- End of track is not reported as "Steep climb".
+- Flythrough doesn't spin-off.
 
 ## About Version 2
 

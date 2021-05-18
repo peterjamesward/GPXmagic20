@@ -4,9 +4,11 @@ import Element exposing (..)
 import Element.Input as Input exposing (button)
 import FeatherIcons
 import Length exposing (inMeters, meters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import PostUpdateActions exposing (PostUpdateAction)
+import Quantity
 import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -79,17 +81,13 @@ flythrough newTime flying speed =
             flying.metresFromRouteStart + tempus * 10.0 ^ speed
 
         remainingPoints =
-            case flying.pointsRemaining of
-                pointBehind :: pointInFront :: _ ->
-                    if newDistance >= inMeters pointInFront.distanceFromStart then
-                        List.drop 1 flying.pointsRemaining
-
-                    else
-                        flying.pointsRemaining
-
-                _ ->
-                    -- Not goood.
-                    flying.pointsRemaining
+            flying.pointsRemaining
+                |> List.Extra.dropWhile
+                    (\pt ->
+                        pt.distanceFromStart
+                            |> Quantity.plus pt.length
+                            |> Quantity.lessThan (meters newDistance)
+                    )
     in
     if not flying.running then
         Just { flying | lastUpdated = newTime }

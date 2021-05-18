@@ -2,9 +2,9 @@
 
 # BUGS
 
-Fly-through spins off when accelerated whilst flying, and when it feels like it.
+Cones need to be more visible when zoomed out.
 
-Steep climbs reports End as being steep.
+Hit detect not working in profile with exaggeration.
 
 # TODO
 
