@@ -2,6 +2,9 @@
 
 # BUGS
 
+Fly-through spins off when accelerated whilst flying, and when it feels like it.
+
+Steep climbs reports End as being steep.
 
 # TODO
 
