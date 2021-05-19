@@ -9,10 +9,12 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
+import FlatColors.BritishPalette
 import List.Extra
 import Markdown
 import Scene exposing (Scene)
 import Track exposing (Track)
+import Url exposing (Url)
 import Utils exposing (useIcon)
 
 
@@ -154,10 +156,28 @@ view entries msgWrap =
             row [ width fill ]
                 [ infoButton entry msgWrap
                 , column [ width fill ]
-                    [ button (accordionTabStyles entry.state)
-                        { onPress = Just (msgWrap <| ToggleEntry entry.label)
-                        , label = text entry.label
-                        }
+                    [ row [ width fill, padding 5 ]
+                        [ button (accordionTabStyles entry.state)
+                            { onPress = Just (msgWrap <| ToggleEntry entry.label)
+                            , label = text entry.label
+                            }
+                        , newTabLink
+                            [ alignRight
+                            , Font.color ColourPalette.white
+                            , Font.size 16
+                            , Background.color FlatColors.BritishPalette.periwinkle
+                            , padding 8
+                            , spacing 2
+                            , Border.widthEach { left = 0, right = 2, top = 2, bottom = 2 }
+                            , Border.roundEach { topLeft = 0, bottomLeft = 0, topRight = 10, bottomRight = 0 }
+                            , Border.shadow { offset = ( 4, 4 ), size = 3, blur = 5, color = expandedTabShadow }
+                            , Border.color expandedTabBorder
+                            , height fill
+                            , centerX
+                            , centerY
+                            ]
+                            { url = "https://example.com", label = text " Video " }
+                        ]
                     , el
                         [ Background.color accordionContentBackground
                         , width fill

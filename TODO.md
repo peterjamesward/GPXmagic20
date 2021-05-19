@@ -6,6 +6,8 @@ Marker position after Simplify is bad.
 
 # TODO
 
+Video link button in help panes.
+
 Common track splitter for all edits - return three segments (prior, active, after).
 
 LIDAR?
