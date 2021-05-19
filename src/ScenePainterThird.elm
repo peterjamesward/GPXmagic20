@@ -4,6 +4,7 @@ module ScenePainterThird exposing (..)
 -- Build others for profile, plan, first person, and factor out common bits.
 
 import Angle exposing (Angle, inDegrees)
+import Axis3d
 import Camera3d exposing (Camera3d)
 import Color
 import Delay
@@ -186,16 +187,18 @@ update msg view wrap =
                     )
 
                 ( DragPan, Just ( startX, startY ) ) ->
+                    let
+                        shiftVector =
+                            Vector3d.meters
+                                (startY - dy)
+                                (startX - dx)
+                                0.0
+                                |> Vector3d.rotateAround Axis3d.z view.azimuth
+                    in
                     ( { view
                         | focalPoint =
-                            view.focalPoint
-                                |> Point3d.translateBy
-                                    (Vector3d.meters
-                                        (0.5 * (startX - dx))
-                                        (0.5 * (dy - startY))
-                                        0.0
-                                    )
-                        , orbiting = Just ( dx, dy)
+                            view.focalPoint |> Point3d.translateBy shiftVector
+                        , orbiting = Just ( dx, dy )
                       }
                     , ActionNoOp
                     )

@@ -570,9 +570,7 @@ makeTerrain options box points =
         recurse quad contents =
             --if notTiny quad && siblings contents then
             if
-                List.length contents
-                    > 2
-                    ^ options.terrainFineness
+                (List.length contents > (2 ^ options.terrainFineness))
                     && notTiny quad
             then
                 makeTerrain options quad contents

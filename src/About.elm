@@ -11,10 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.21 update 2021-05-18
+## 2.1.22 update 2021-05-19
 
-- Make marker cones slightly easier to see when zoomed out.
-- Click detect better on Profile, even when exaggerated.
+- Dragging in third person view is consistent with azimuth.
 
 ## About Version 2
 
