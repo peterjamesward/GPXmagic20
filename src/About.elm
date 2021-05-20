@@ -11,9 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.22 update 2021-05-19
+## 2.1.23 update 2021-05-20
 
-- Dragging in third person view is consistent with azimuth.
+- Link to YuTube videos in header of each tool tab.
 
 ## About Version 2
 

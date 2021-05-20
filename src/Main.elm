@@ -1228,21 +1228,25 @@ toolsAccordion model =
       , state = Contracted
       , content = TipJar.tipJar
       , info = TipJar.info
+      , video = Nothing
       }
     , { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info
+      , video = Just "https://youtu.be/N7zGRJvke_M"
       }
     , { label = "Loop maker"
       , state = Contracted
       , content = Loop.viewLoopTools model.observations.loopiness model.track LoopMsg
       , info = Loop.info
+      , video = Just "https://youtu.be/B3SGh8KhDu0"
       }
     , { label = "Bend smoother classic"
       , state = Contracted
       , content = BendSmoother.viewBendFixerPane model.bendOptions BendSmoothMessage
       , info = BendSmoother.info
+      , video = Just "https://youtu.be/VO5jsOZmTIg"
       }
     , { label = "Limit gradients"
       , state = Contracted
@@ -1255,6 +1259,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = GradientLimiter.info
+      , video = Just "https://youtu.be/LtcYi4fzImE"
       }
     , { label = "Smooth gradient"
       , state = Contracted
@@ -1267,11 +1272,13 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = GradientSmoother.info
+      , video = Just "https://youtu.be/YTY2CSl0wo8"
       }
     , { label = "Nudge"
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings NudgeMessage
       , info = Nudge.info
+      , video = Just "https://youtu.be/HsH7R9SGaSs"
       }
     , { label = "Straighten"
       , state = Contracted
@@ -1284,6 +1291,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = Straightener.info
+      , video = Just "https://youtu.be/MQ67mzShvxg"
       }
     , { label = "Interpolate"
       , state = Contracted
@@ -1297,16 +1305,19 @@ toolsAccordion model =
                 Nothing ->
                     none
       , info = Interpolate.info
+      , video = Just "https://youtu.be/C3chnX2Ij_8"
       }
     , { label = "Delete"
       , state = Contracted
       , content = viewDeleteTools model.track DeleteMessage
       , info = DeletePoints.info
+      , video = Nothing
       }
     , { label = "Fly-through"
       , state = Contracted
       , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
       , info = Flythrough.info
+      , video = Just "https://youtu.be/lRukK-do_dE"
       }
     , { label = "Track smoothers 3D"
       , state = Contracted
@@ -1318,6 +1329,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = Filters.info
+      , video = Just "https://youtu.be/N48cDi_N_x0"
       }
     , { label = "Graph Theory"
       , state = Contracted
@@ -1328,11 +1340,13 @@ toolsAccordion model =
                     (Just << viewGraphControls GraphMessage)
                 |> Maybe.withDefault none
       , info = Graph.info
+      , video = Just "https://youtu.be/KSuR8PcAZYc"
       }
     , { label = "Route summary"
       , state = Contracted
       , content = TrackObservations.overviewSummary model.observations
       , info = "Data about the route."
+      , video = Just "https://youtu.be/w5rfsmTF08o"
       }
     , { label = "Road segment"
       , state = Contracted
@@ -1340,6 +1354,7 @@ toolsAccordion model =
             Maybe.map summaryData model.track
                 |> Maybe.withDefault none
       , info = "Data about the road at the orange marker."
+      , video = Just "https://youtu.be/w5rfsmTF08o"
       }
     , { label = "Steep climbs"
       , state = Contracted
@@ -1352,6 +1367,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
       }
     , { label = "Gradient problems"
       , state = Contracted
@@ -1361,6 +1377,7 @@ toolsAccordion model =
                 model.observations
                 ProblemMessage
       , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
       }
     , { label = "Bend problems"
       , state = Contracted
@@ -1370,6 +1387,7 @@ toolsAccordion model =
                 model.observations
                 ProblemMessage
       , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
       }
     , { label = "Strava"
       , state = Contracted
@@ -1379,6 +1397,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = StravaTools.info
+      , video = Just "https://youtu.be/31qVuc3klUE"
       }
     , { label = "Lift & Shift"
       , state = Contracted
@@ -1388,6 +1407,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = RotateRoute.info
+      , video = Just "https://youtu.be/v9hu1bFGOzQ"
       }
     ]
 

@@ -30,6 +30,7 @@ type alias AccordionEntry msg =
     , state : AccordionState
     , content : Element msg
     , info : String
+    , video : Maybe String
     }
 
 
@@ -156,27 +157,25 @@ view entries msgWrap =
             row [ width fill ]
                 [ infoButton entry msgWrap
                 , column [ width fill ]
-                    [ row [ width fill, padding 5 ]
-                        [ button (accordionTabStyles entry.state)
+                    [ row (accordionTabStyles entry.state)
+                        [ button [ width fill ]
                             { onPress = Just (msgWrap <| ToggleEntry entry.label)
                             , label = text entry.label
                             }
-                        , newTabLink
-                            [ alignRight
-                            , Font.color ColourPalette.white
-                            , Font.size 16
-                            , Background.color FlatColors.BritishPalette.periwinkle
-                            , padding 8
-                            , spacing 2
-                            , Border.widthEach { left = 0, right = 2, top = 2, bottom = 2 }
-                            , Border.roundEach { topLeft = 0, bottomLeft = 0, topRight = 10, bottomRight = 0 }
-                            , Border.shadow { offset = ( 4, 4 ), size = 3, blur = 5, color = expandedTabShadow }
-                            , Border.color expandedTabBorder
-                            , height fill
-                            , centerX
-                            , centerY
-                            ]
-                            { url = "https://example.com", label = text " Video " }
+                        , case entry.video of
+                            Just video ->
+                                newTabLink
+                                    [ alignRight ]
+                                    { url = video
+                                    , label =
+                                        image [ height (px 16) ]
+                                            { src = "images/yt_logo_mono_dark.png"
+                                            , description = "YouTube"
+                                            }
+                                    }
+
+                            Nothing ->
+                                none
                         ]
                     , el
                         [ Background.color accordionContentBackground
