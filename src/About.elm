@@ -13,7 +13,7 @@ aboutText =
 
 ## 2.1.23 update 2021-05-20
 
-- Link to YuTube videos in header of each tool tab.
+- Dragging more consistent between 1st and 3rd views.
 
 ## About Version 2
 
