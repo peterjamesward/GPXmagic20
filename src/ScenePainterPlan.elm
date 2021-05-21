@@ -2,7 +2,7 @@ module ScenePainterPlan exposing (..)
 
 -- This is our PLAN view screen painter.
 
-import Angle exposing (Angle)
+import Angle exposing (Angle, inDegrees)
 import Camera3d exposing (Camera3d)
 import Color
 import Delay
@@ -13,6 +13,7 @@ import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import Length
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
+import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
 import PostUpdateActions exposing (PostUpdateAction(..))
@@ -21,6 +22,7 @@ import Rectangle2d
 import Scene exposing (Scene)
 import Scene3d exposing (Entity, backgroundColor)
 import ScenePainterCommon exposing (..)
+import SketchPlane3d
 import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
@@ -99,7 +101,11 @@ deriveViewPointAndCamera view =
             Viewpoint3d.lookAt
                 { focalPoint = lookingAt
                 , eyePoint = eyePoint
-                , upDirection = positiveY
+                , upDirection =
+                    Direction3d.reverse <|
+                        Direction3d.fromAzimuthInAndElevationFrom SketchPlane3d.xy
+                            view.azimuth
+                            Quantity.zero
                 }
     in
     Camera3d.orthographic
@@ -119,9 +125,18 @@ update msg view wrap =
         ImageGrab event ->
             -- Mouse behaviour depends which view is in use...
             -- Right-click or ctrl-click to mean rotate; otherwise pan.
+            let
+                alternate =
+                    event.keys.ctrl || event.button == SecondButton
+            in
             ( { view
                 | orbiting = Just event.offsetPos
-                , dragAction = DragPan
+                , dragAction =
+                    if alternate then
+                        DragRotate
+
+                    else
+                        DragPan
                 , waitingForClickDelay = True
               }
             , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
@@ -148,6 +163,26 @@ update msg view wrap =
                                         (0.5 * (dy - startY))
                                         0.0
                                     )
+                        , orbiting = Just ( dx, dy )
+                      }
+                    , ActionNoOp
+                    )
+
+                ( DragRotate, Just ( startX, startY ) ) ->
+                    let
+                        newAzimuth =
+                            Angle.degrees <|
+                                inDegrees view.azimuth
+                                    - (dx - startX)
+
+                        newElevation =
+                            Angle.degrees <|
+                                inDegrees view.elevation
+                                    + (dy - startY)
+                    in
+                    ( { view
+                        | azimuth = newAzimuth
+                        , elevation = newElevation
                         , orbiting = Just ( dx, dy )
                       }
                     , ActionNoOp

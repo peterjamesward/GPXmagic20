@@ -14,6 +14,7 @@ aboutText =
 ## 2.1.23 update 2021-05-20
 
 - Dragging more consistent between 1st and 3rd views.
+- Rotate in Plan.
 
 ## About Version 2
 

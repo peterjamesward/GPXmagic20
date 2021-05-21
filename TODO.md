@@ -8,7 +8,6 @@ Marker position after Simplify is bad.
 
 On load, if in About view switch to Third.
 
-Rotate in Plan.
 
 Common track splitter for all edits - return three segments (prior, active, after).
 
