@@ -1176,7 +1176,10 @@ contentArea model =
             column defaultColumnLayout
                 [ markerButton model.track MarkerMessage
                 , viewTrackControls MarkerMessage model.track
-                , undoRedoButtons model
+                , if model.track /= Nothing then
+                    undoRedoButtons model
+                  else
+                     none
                 , Accordion.view
                     (updatedAccordion model.toolsAccordion toolsAccordion model)
                     AccordionMessage

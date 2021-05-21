@@ -6,9 +6,6 @@ Marker position after Simplify is bad.
 
 # TODO
 
-On load, if in About view switch to Third.
-
-
 Common track splitter for all edits - return three segments (prior, active, after).
 
 LIDAR?

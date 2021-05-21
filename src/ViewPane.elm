@@ -310,15 +310,25 @@ view ( scene, profile ) options wrapper pane =
     -- experimentation to make the map behave predictably.
     if pane.visible then
         column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
-            [ row [ width fill ]
-                [ if pane.paneId == 0 then
-                    viewPaneTools wrapper
+            [ if List.length scene > 0 then
+                row [ width fill ]
+                    [ if pane.paneId == 0 then
+                        viewPaneTools wrapper
 
-                  else
-                    none
-                , el [ centerX ] <| viewModeChoices pane wrapper
-                , viewPaneControls pane wrapper
-                ]
+                      else
+                        none
+                    , el [ centerX ] <| viewModeChoices pane wrapper
+                    , viewPaneControls pane wrapper
+                    ]
+
+              else
+                Input.radioRow
+                    [ Border.rounded 6 ]
+                    { onChange = ChooseViewMode pane.paneId >> wrapper
+                    , selected = Just ViewAbout
+                    , label = Input.labelHidden "Choose view"
+                    , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
+                    }
             , conditionallyVisible (pane.activeContext /= ViewMap) <|
                 case pane.activeContext of
                     ViewThirdPerson ->

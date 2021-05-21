@@ -11,10 +11,11 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.23 update 2021-05-20
+## 2.1.24 update 2021-05-21
 
 - Dragging more consistent between 1st and 3rd views.
-- Rotate in Plan.
+- Rotate with right mouse button (or ctrl key) avilable in Plan.
+- View options suppressed until track is loaded.
 
 ## About Version 2
 
