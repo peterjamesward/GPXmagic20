@@ -9,7 +9,7 @@ import TrackPoint exposing (..)
 preamble =
     """<?xml version='1.0' encoding='UTF-8'?>
 <gpx version="1.1"
-  creator="https://www.komoot.de"
+  creator="https://www.stepwiserefinement.co.uk"
   xmlns="http://www.topografix.com/GPX/1/1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.topografix.com/GPX/1/1
@@ -18,7 +18,7 @@ preamble =
     <name>Cycling</name>
     <author>
       <link href="https://www.stepwiserefinement.co.uk">
-        <text>Fixed by Pete and his GPX viewer</text>
+        <text>GPXmagic 2.0</text>
         <type>text/html</type>
       </link>
     </author>

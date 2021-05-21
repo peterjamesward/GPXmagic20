@@ -2,6 +2,9 @@
 
 # BUGS
 
+Apply Limit Gradient at 15% - still Steep Climbs showing (Jebal Jais).
+(Possibly just rounding.)
+
 Marker position after Simplify is bad.
 
 # TODO
