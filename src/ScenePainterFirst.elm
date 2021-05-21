@@ -261,7 +261,7 @@ deriveViewPointAndCamera view =
                     Viewpoint3d.orbitZ
                         { focalPoint =
                             view.focalPoint
-                                |> Point3d.translateBy (Vector3d.meters 0 0 1)
+                                |> Point3d.translateBy (Vector3d.meters 0 0 1.8)
                         , azimuth = view.azimuth
                         , elevation = view.elevation
                         , distance = Length.meters 50.0
@@ -272,6 +272,7 @@ deriveViewPointAndCamera view =
         { viewpoint = cameraViewpoint
         , verticalFieldOfView = Angle.degrees <| 120.0 - view.zoomLevel * 4.0
         }
+
 
 
 detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint
