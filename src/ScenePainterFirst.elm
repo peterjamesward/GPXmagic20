@@ -1,6 +1,7 @@
 module ScenePainterFirst exposing (..)
 
 import Angle exposing (inDegrees)
+import Axis3d
 import Camera3d exposing (Camera3d)
 import Color
 import Delay
@@ -26,7 +27,7 @@ import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
-import ViewingContext exposing (ViewingContext, newViewingContext)
+import ViewingContext exposing (DragAction(..), ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d
 
@@ -73,6 +74,12 @@ update msg view wrap =
             in
             ( { view
                 | orbiting = Just event.offsetPos
+                , dragAction =
+                    if alternate then
+                        DragRotate
+
+                    else
+                        DragPan
                 , waitingForClickDelay = True
               }
             , ActionCommand <| Delay.after 250 (wrap ClickDelayExpired)
@@ -88,8 +95,8 @@ update msg view wrap =
                 ( dx, dy ) =
                     event.offsetPos
             in
-            case view.orbiting of
-                Just ( startX, startY ) ->
+            case ( view.dragAction, view.orbiting ) of
+                ( DragRotate, Just ( startX, startY ) ) ->
                     let
                         newAzimuth =
                             Angle.degrees <|
@@ -104,6 +111,23 @@ update msg view wrap =
                     ( { view
                         | azimuth = newAzimuth
                         , elevation = newElevation
+                        , orbiting = Just ( dx, dy )
+                      }
+                    , ActionNoOp
+                    )
+
+                ( DragPan, Just ( startX, startY ) ) ->
+                    let
+                        shiftVector =
+                            Vector3d.meters
+                                (startY - dy)
+                                (startX - dx)
+                                0.0
+                                |> Vector3d.rotateAround Axis3d.z view.azimuth
+                    in
+                    ( { view
+                        | focalPoint =
+                            view.focalPoint |> Point3d.translateBy shiftVector
                         , orbiting = Just ( dx, dy )
                       }
                     , ActionNoOp
