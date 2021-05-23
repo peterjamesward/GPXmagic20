@@ -582,6 +582,8 @@ draggedOnMap json track =
 
         lat2 =
             E.decodeValue (at [ "end", "lat" ] float) json
+
+        _ = Debug.log "Drag" json
     in
     case ( ( lon1, lat1 ), ( lon2, lat2 ) ) of
         ( ( Ok startLon, Ok startLat ), ( Ok endLon, Ok endLat ) ) ->
