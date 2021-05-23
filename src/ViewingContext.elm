@@ -30,6 +30,7 @@ type alias ViewingContext =
     , verticalExaggeration : Float
     , flythrough : Maybe Flythrough
     , waitingForClickDelay : Bool
+    , mapClickToDrag : Bool
     }
 
 
@@ -59,6 +60,7 @@ defaultViewingContext =
     , verticalExaggeration = 1.0
     , flythrough = Nothing
     , waitingForClickDelay = False
+    , mapClickToDrag = True
     }
 
 

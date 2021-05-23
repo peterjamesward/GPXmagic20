@@ -115,17 +115,14 @@ centreMapOnCurrent track =
             ]
 
 
-
---toggleDragging : Bool -> MapInfo -> Cmd msg
---toggleDragging state info =
---    mapPort <|
---        E.object
---            [ ( "Cmd", E.string "Drag" )
---            , ( "Enable", E.bool state )
---            , ( "points", trackPointsToJSON info.points ) -- Make track points draggable
---            ]
---
---addTrackToMap : Maybe Track -> Cmd msg
+toggleDragging : Bool -> Track -> Cmd msg
+toggleDragging isDragging track =
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Drag" )
+            , ( "Enable", E.bool isDragging )
+            , ( "points", trackPointsToJSON track ) -- Make track points draggable
+            ]
 
 
 addTrackToMap : ViewingContext -> Track -> Cmd msg

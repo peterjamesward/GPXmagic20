@@ -12,6 +12,7 @@ import FeatherIcons
 import Html.Attributes exposing (id)
 import MapController
 import Pixels exposing (Pixels, inPixels)
+import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import ScenePainterCommon exposing (..)
@@ -40,9 +41,11 @@ initialiseView viewSize track oldContext =
         , viewingMode = ViewMap
     }
 
+
 emptyPreviewCopy : Track -> Track
 emptyPreviewCopy track =
     { track | trackPoints = [] }
+
 
 initialiseMap : ViewingContext -> Track -> List (Cmd msg)
 initialiseMap context track =
@@ -60,6 +63,27 @@ mapTrackHasChanged context track =
     ]
 
 
+update :
+    ImageMsg
+    -> ViewingContext
+    -> (ImageMsg -> msg)
+    -> ( ViewingContext, PostUpdateAction (Cmd msg) )
+update msg view wrap =
+    -- Second return value indicates whether selection needs to change.
+    case msg of
+        ImageToggleClickToDragOnMap ->
+            let
+                newState =
+                    not view.mapClickToDrag
+            in
+            ( { view | mapClickToDrag = newState }
+            , ActionToggleMapDragging newState
+            )
+
+        _ ->
+            ( view, ActionNoOp )
+
+
 viewScene :
     Bool
     -> ViewingContext
@@ -70,6 +94,29 @@ viewScene visible context scene wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size
+
+        handyMapControls =
+            -- Might put the "click to drag" option here.
+            column
+                [ alignTop
+                , moveDown 100
+                , moveLeft 40
+                , Background.color white
+                , Font.size 40
+                , padding 6
+                , spacing 8
+                ]
+                [ button []
+                    { onPress = Just <| wrapper ImageToggleClickToDragOnMap
+                    , label =
+                        case context.mapClickToDrag of
+                            True ->
+                                useIcon <| FeatherIcons.move
+
+                            False ->
+                                useIcon <| FeatherIcons.xCircle
+                    }
+                ]
     in
     row [ spacing 0, padding 0 ]
         [ el
@@ -80,23 +127,5 @@ viewScene visible context scene wrapper =
             , htmlAttribute (id "map")
             ]
             none
-        , handyMapControls wrapper
-        ]
-
-
-handyMapControls wrap =
-    -- Might put the "click to drag" option here.
-    column
-        [ alignTop
-        , moveDown 5
-        , moveLeft 40
-        , Background.color white
-        , Font.size 40
-        , padding 6
-        , spacing 8
-        ]
-        [ button []
-            { onPress = Just <| wrap ImageNoOpMsg
-            , label = useIcon FeatherIcons.move
-            }
+        , handyMapControls
         ]

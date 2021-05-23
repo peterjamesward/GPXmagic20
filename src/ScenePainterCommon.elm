@@ -37,6 +37,7 @@ type ImageMsg
     | ImageZoomOut
     | ImageReset
     | ClickDelayExpired
+    | ImageToggleClickToDragOnMap
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)

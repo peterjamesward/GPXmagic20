@@ -513,6 +513,18 @@ update msg panes wrap =
                             , ImageAction action
                             )
 
+                        ViewMap ->
+                            let
+                                ( newContext, action ) =
+                                    ScenePainterMap.update
+                                        imageMsg
+                                        pane.profileContext
+                                        (wrap << imageMessageWrapper pane.paneId)
+                            in
+                            ( Just { pane | profileContext = newContext }
+                            , ImageAction action
+                            )
+
                         _ ->
                             ( Just pane, PaneNoOp )
 

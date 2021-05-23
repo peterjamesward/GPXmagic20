@@ -43,10 +43,11 @@ initialiseView viewSize track oldContext =
         p0 :: p1 :: _ ->
             { oldContext
                 | focalPoint = p1.xyz |> Point3d.translateBy (Vector3d.meters 0 0 eyeHeight)
-                , azimuth = p0.afterDirection
-                    |> Maybe.map Direction3d.reverse
-                    |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
-                    |> Maybe.withDefault (Quantity.zero)
+                , azimuth =
+                    p0.afterDirection
+                        |> Maybe.map Direction3d.reverse
+                        |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
+                        |> Maybe.withDefault Quantity.zero
                 , elevation = Angle.degrees 0
                 , sceneSearcher = trackPointNearestRay track.trackPoints
                 , zoomLevel = 14.0
@@ -202,6 +203,9 @@ update msg view wrap =
             , ActionNoOp
             )
 
+        _ ->
+            ( view, ActionNoOp )
+
 
 viewScene :
     Bool
@@ -265,14 +269,14 @@ deriveViewPointAndCamera view =
                         , azimuth = view.azimuth
                         , elevation = view.elevation
                         , distance = Length.meters 50.0
-                                    --* metresPerPixel view.zoomLevel (degrees latitude)
+
+                        --* metresPerPixel view.zoomLevel (degrees latitude)
                         }
     in
     Camera3d.perspective
         { viewpoint = cameraViewpoint
         , verticalFieldOfView = Angle.degrees <| 120.0 - view.zoomLevel * 4.0
         }
-
 
 
 detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint

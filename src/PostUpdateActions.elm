@@ -22,5 +22,6 @@ type
     | ActionCommand cmd
     | ActionNewRoute String GpxSource
     | ActionWalkGraph
+    | ActionToggleMapDragging Bool
 
 

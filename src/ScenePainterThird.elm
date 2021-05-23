@@ -277,6 +277,9 @@ update msg view wrap =
             , ActionNoOp
             )
 
+        _ ->
+            ( view, ActionNoOp )
+
 
 detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint
 detectHit context event =

@@ -720,6 +720,11 @@ processPostUpdateAction model action =
             , Delay.after 50 RepaintMap
             )
 
+        ( Just track, ActionToggleMapDragging isDragging ) ->
+            ( model
+            , MapController.toggleDragging isDragging track
+            )
+
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
             let
