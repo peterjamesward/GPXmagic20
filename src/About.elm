@@ -11,11 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.24 update 2021-05-21
+## 2.1.25 update 2021-05-23
 
-- Dragging more consistent between 1st and 3rd views.
-- Rotate with right mouse button (or ctrl key) avilable in Plan.
-- View options suppressed until track is loaded.
+- New control on Map toggles "Click to Drag" mode.
+- Stop map re-centering after point dragging.
 
 ## About Version 2
 
