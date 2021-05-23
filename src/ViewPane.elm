@@ -371,7 +371,7 @@ view ( scene, profile ) options wrapper pane =
                 ScenePainterMap.viewScene
                     (pane.activeContext == ViewMap)
                     (getActiveContext pane)
-                    profile
+                    []
                     (imageMessageWrapper pane.paneId >> wrapper)
             ]
 
@@ -518,10 +518,10 @@ update msg panes wrap =
                                 ( newContext, action ) =
                                     ScenePainterMap.update
                                         imageMsg
-                                        pane.profileContext
+                                        pane.mapContext
                                         (wrap << imageMessageWrapper pane.paneId)
                             in
-                            ( Just { pane | profileContext = newContext }
+                            ( Just { pane | mapContext = newContext }
                             , ImageAction action
                             )
 
