@@ -13,6 +13,7 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import SketchPlane3d
+import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)
 import Vector3d exposing (..)
@@ -234,19 +235,22 @@ summaryData track =
 searchTrackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
 searchTrackPointFromLonLat ( lon, lat ) track =
     let
-        transformedLonLats =
-            applyGhanianTransform track.earthReferenceCoordinates [ ( lon, lat, 0.0 ) ]
-    in
-    case transformedLonLats of
-        searchPoint :: _ ->
-            let
-                distance =
-                    .xyz >> Point3d.distanceFrom searchPoint.xyz >> Length.inMeters
+        trackLonLats =
+            List.Extra.zip
+                (removeGhanianTransform track)
+                (List.range 0 (List.length track.trackPoints))
 
-                nearest =
-                    List.Extra.minimumBy distance track.trackPoints
-            in
-            nearest
+        searchLatLon =
+            ( Angle.degrees lat, Angle.degrees lon )
+
+        nearestPair =
+            trackLonLats
+                |> List.Extra.minimumBy
+                    (\( ( lon1, lat1, _ ), _ ) -> Spherical.range ( Angle.degrees lat1, Angle.degrees lon1 ) searchLatLon)
+    in
+    case nearestPair of
+        Just ( _, index ) ->
+            List.Extra.getAt index track.trackPoints
 
         _ ->
             Nothing

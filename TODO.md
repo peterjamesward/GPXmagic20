@@ -2,9 +2,6 @@
 
 # BUGS
 
-Map click not good. May be that first click is centering, then second message has wrong coords????
-
-
 Apply Limit Gradient at 15% - still Steep Climbs showing (Jebal Jais).
 (Possibly just rounding.)
 

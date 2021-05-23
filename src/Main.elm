@@ -376,17 +376,18 @@ update msg model =
                             ( model, Cmd.none )
 
                 ( Ok "drag", Just track ) ->
-                    let
-                        newTrack =
-                            draggedOnMap json track
-                    in
-                    processPostUpdateAction
-                        model
-                        (PostUpdateActions.ActionTrackChanged
-                            EditPreservesIndex
-                            newTrack
-                            "Dragged on map"
-                        )
+                    case draggedOnMap json track of
+                        Just newTrack ->
+                            processPostUpdateAction
+                                model
+                                (PostUpdateActions.ActionTrackChanged
+                                    EditPreservesIndex
+                                    newTrack
+                                    "Dragged on map"
+                                )
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 ( Ok "no node", _ ) ->
                     ( model
@@ -567,9 +568,10 @@ update msg model =
                 action
 
 
-draggedOnMap : E.Value -> Track -> Track
+draggedOnMap : E.Value -> Track -> Maybe Track
 draggedOnMap json track =
     -- Map has told us the old and new coordinates of a trackpoint.
+    -- Return Nothing if drag did not change track.
     let
         lon1 =
             E.decodeValue (at [ "start", "lng" ] float) json
@@ -582,29 +584,31 @@ draggedOnMap json track =
 
         lat2 =
             E.decodeValue (at [ "end", "lat" ] float) json
-
-        _ = Debug.log "Drag" json
     in
-    case ( ( lon1, lat1 ), ( lon2, lat2 ) ) of
-        ( ( Ok startLon, Ok startLat ), ( Ok endLon, Ok endLat ) ) ->
-            let
-                maybetp =
-                    searchTrackPointFromLonLat ( startLon, startLat ) track
-            in
-            case maybetp of
-                Just tp ->
-                    { track
-                        | trackPoints =
-                            List.Extra.updateAt tp.index
-                                (updateTrackPointLonLat ( endLon, endLat ) track)
-                                track.trackPoints
-                    }
+    if lon1 == lon2 && lat1 == lat2 then
+        Nothing
 
-                Nothing ->
-                    track
+    else
+        case ( ( lon1, lat1 ), ( lon2, lat2 ) ) of
+            ( ( Ok startLon, Ok startLat ), ( Ok endLon, Ok endLat ) ) ->
+                let
+                    maybetp =
+                        searchTrackPointFromLonLat ( startLon, startLat ) track
+                in
+                case maybetp of
+                    Just tp ->
+                        Just { track
+                            | trackPoints =
+                                List.Extra.updateAt tp.index
+                                    (updateTrackPointLonLat ( endLon, endLat ) track)
+                                    track.trackPoints
+                        }
 
-        _ ->
-            track
+                    Nothing ->
+                        Nothing
+
+            _ ->
+                Nothing
 
 
 processPostUpdateAction : Model -> PostUpdateAction (Cmd Msg) -> ( Model, Cmd Msg )
@@ -1185,8 +1189,9 @@ contentArea model =
                 , viewTrackControls MarkerMessage model.track
                 , if model.track /= Nothing then
                     undoRedoButtons model
+
                   else
-                     none
+                    none
                 , Accordion.view
                     (updatedAccordion model.toolsAccordion toolsAccordion model)
                     AccordionMessage
