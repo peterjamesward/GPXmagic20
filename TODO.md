@@ -9,6 +9,9 @@ Marker position after Simplify is bad.
 
 # TODO
 
+Terrain that places road on a mesh, recursivly sub-divided, so quad-tree like.
+Mesh => Triangles. Like what we do now, but using the road, not points, to set the elevation.
+
 Common track splitter for all edits - return three segments (prior, active, after).
 
 LIDAR?

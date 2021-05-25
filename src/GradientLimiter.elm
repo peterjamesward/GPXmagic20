@@ -122,6 +122,7 @@ limitGradient settings track =
                 ++ "."
 
         ( beforeEnd, afterEnd ) =
+            -- Note we must include point after the end, I think, so we can do a map2.
             List.Extra.splitAt (1 + endIndex) track.trackPoints
 
         ( beforeStart, targetZone ) =
@@ -129,6 +130,7 @@ limitGradient settings track =
 
         unclampedXYDeltas : List ( Length.Length, Length.Length )
         unclampedXYDeltas =
+            -- Yields X and Y deltas looking forward from each track point.
             List.map2
                 (\pt1 pt2 ->
                     ( pt1.length
@@ -140,6 +142,7 @@ limitGradient settings track =
 
         clampedXYDeltas : List ( Length.Length, Length.Length )
         clampedXYDeltas =
+            -- What the deltas would be with the ascent and descent limits applied.
             List.map
                 (\( x, y ) ->
                     ( x
@@ -152,17 +155,21 @@ limitGradient settings track =
                 unclampedXYDeltas
 
         targetElevationChange =
+            -- Current change of elevation, derived directly by summation.
             Quantity.sum <| List.map Tuple.second unclampedXYDeltas
 
         clampedElevationChange =
+            -- What the change would be with the limits in place.
             Quantity.sum <| List.map Tuple.second clampedXYDeltas
 
         elevationCorrection =
+            -- What overall impact do the limits have?
             targetElevationChange |> Quantity.minus clampedElevationChange
 
         offeredCorrections =
             -- "Ask" each segment how much leeway they have from the limit (up or down)
             if elevationCorrection |> Quantity.greaterThan Quantity.zero then
+                -- We need to gain height overall.
                 List.map
                     (\( x, y ) ->
                         (x |> Quantity.multiplyBy (settings.maximumAscent / 100.0))
@@ -171,6 +178,7 @@ limitGradient settings track =
                     clampedXYDeltas
 
             else if elevationCorrection |> Quantity.lessThan Quantity.zero then
+                -- We need to lose height overall.
                 List.map
                     (\( x, y ) ->
                         (x |> Quantity.multiplyBy (settings.maximumDescent / 100.0))
@@ -182,36 +190,42 @@ limitGradient settings track =
                 List.map (always Quantity.zero) clampedXYDeltas
 
         totalOffered =
+            -- How much do we have to play with?
             Quantity.sum offeredCorrections
 
         proprtionNeeded =
             -- Assuming less than one for now, or button should have been disabled.
             if Quantity.abs elevationCorrection |> Quantity.lessThan (meters 0.1) then
+                -- 10 cm is near enough.
                 0
 
             else
+                -- How much of what is available is needed?
                 Quantity.ratio elevationCorrection totalOffered
                     |> clamp 0.0 1.0
 
         proRataCorrections =
-            -- Empirical test.
+            -- What shall we ask from each segment, on this basis?
             List.map
                 (Quantity.multiplyBy proprtionNeeded)
                 offeredCorrections
 
         finalYDeltas =
+            -- What does that make the deltas?
             List.map2
                 (\( x, y ) adjust -> y |> Quantity.plus adjust)
                 clampedXYDeltas
                 proRataCorrections
 
         resultingElevations =
+            -- And from that, the running cumulative elevations?
             List.Extra.scanl
                 Quantity.plus
                 (Point3d.zCoordinate referenceNode.xyz)
                 finalYDeltas
 
         applyLimitsWithinRegion =
+            -- Make it so.
             List.map2
                 (\pt ele ->
                     let
