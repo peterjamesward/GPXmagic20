@@ -597,12 +597,13 @@ draggedOnMap json track =
                 in
                 case maybetp of
                     Just tp ->
-                        Just { track
-                            | trackPoints =
-                                List.Extra.updateAt tp.index
-                                    (updateTrackPointLonLat ( endLon, endLat ) track)
-                                    track.trackPoints
-                        }
+                        Just
+                            { track
+                                | trackPoints =
+                                    List.Extra.updateAt tp.index
+                                        (updateTrackPointLonLat ( endLon, endLat ) track)
+                                        track.trackPoints
+                            }
 
                     Nothing ->
                         Nothing
@@ -900,14 +901,40 @@ updateTrackInModel newTrack editType model =
     case model.track of
         Just oldTrack ->
             let
+                orange =
+                    oldTrack.currentNode
+
                 purple =
                     -- Need to get edit region to help the graph assess the changes.
                     Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
                 editRegion =
-                    ( min oldTrack.currentNode.index purple.index
-                    , max oldTrack.currentNode.index purple.index
+                    ( min orange.index purple.index
+                    , max orange.index purple.index
                     )
+
+                changeInLength =
+                    List.length newTrack.trackPoints - List.length oldTrack.trackPoints
+
+                newOrange =
+                    Maybe.withDefault orange <|
+                        if orange.index <= purple.index then
+                            List.Extra.getAt orange.index newTrack.trackPoints
+
+                        else
+                            List.Extra.getAt (orange.index + changeInLength) newTrack.trackPoints
+
+                newPurple =
+                    case oldTrack.markedNode of
+                        Just mark ->
+                            if mark.index <= orange.index then
+                                List.Extra.getAt mark.index newTrack.trackPoints
+
+                            else
+                                List.Extra.getAt (mark.index + changeInLength) newTrack.trackPoints
+
+                        Nothing ->
+                            Nothing
 
                 newGraph =
                     Graph.updateWithNewTrack
@@ -923,30 +950,6 @@ updateTrackInModel newTrack editType model =
                 newPointsFromGraph =
                     Maybe.map Graph.walkTheRoute newGraph
                         |> Maybe.withDefault newTrack.trackPoints
-
-                replacePointer pointerNode =
-                    case editType of
-                        EditPreservesIndex ->
-                            newPointsFromGraph
-                                |> List.Extra.getAt pointerNode.index
-                                |> Maybe.withDefault pointerNode
-
-                        EditPreservesNodePosition ->
-                            newPointsFromGraph
-                                |> List.Extra.minimumBy
-                                    (.xyz >> Point3d.distanceFrom pointerNode.xyz >> Length.inMeters)
-                                |> Maybe.withDefault pointerNode
-
-                        EditNoOp ->
-                            newPointsFromGraph
-                                |> List.Extra.getAt pointerNode.index
-                                |> Maybe.withDefault pointerNode
-
-                newOrange =
-                    replacePointer oldTrack.currentNode
-
-                newPurple =
-                    Maybe.map replacePointer oldTrack.markedNode
 
                 trackWithNewRoute =
                     { newTrack
@@ -989,8 +992,8 @@ repeatTrackDerivations model =
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
-                        , currentNode = newOrange
-                        , markedNode = newPurple
+                        --, currentNode = newOrange
+                        --, markedNode = newPurple
                     }
             in
             { model
