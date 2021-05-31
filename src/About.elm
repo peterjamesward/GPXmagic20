@@ -11,12 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.27 update 2021-05-23
+## 2.1.28 update 2021-05-31
 
-- New control on Map toggles "Click to Drag" mode.
-- Stop map re-centering after point dragging.
-- Control now shows correct state.
-- Better click detection on Map and does not report simple click as a drag operation.
+- Correct marker positioning after edits.
 
 ## About Version 2
 
