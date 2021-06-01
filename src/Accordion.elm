@@ -31,6 +31,7 @@ type alias AccordionEntry msg =
     , content : Element msg
     , info : String
     , video : Maybe String
+    , reducedSet : Bool
     }
 
 

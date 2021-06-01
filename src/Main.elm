@@ -9,12 +9,14 @@ import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import File exposing (File)
 import File.Download as Download
 import File.Select as Select
 import Filters
+import FlatColors.BritishPalette
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
@@ -91,6 +93,7 @@ type Msg
     | ReceivedIpDetails (Result Http.Error IpInfo)
     | IpInfoAcknowledged (Result Http.Error ())
     | RotateMessage RotateRoute.Msg
+    | ToggleToolSet
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -144,6 +147,7 @@ type alias Model =
     , gradientLimiter : GradientLimiter.Options
     , rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
+    , reducedToolset : Bool
     }
 
 
@@ -191,6 +195,7 @@ init mflags origin navigationKey =
       , gradientLimiter = GradientLimiter.defaultOptions
       , rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
+      , reducedToolset = False
       }
     , Cmd.batch
         [ authCmd
@@ -566,6 +571,11 @@ update msg model =
             processPostUpdateAction
                 { model | stravaOptions = newOptions }
                 action
+
+        ToggleToolSet ->
+            ( { model | reducedToolset = not model.reducedToolset }
+            , Cmd.none
+            )
 
 
 draggedOnMap : E.Value -> Track -> Maybe Track
@@ -992,6 +1002,7 @@ repeatTrackDerivations model =
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
+
                         --, currentNode = newOrange
                         --, markedNode = newPurple
                     }
@@ -1195,9 +1206,34 @@ contentArea model =
 
                   else
                     none
-                , Accordion.view
-                    (updatedAccordion model.toolsAccordion toolsAccordion model)
-                    AccordionMessage
+                , button
+                    [ Border.width 2
+                    , Border.color FlatColors.BritishPalette.nanohanachaGold
+                    , padding 5
+                    , Border.rounded 3
+                    ]
+                  <|
+                    if model.reducedToolset then
+                        { label = text "Switch to full tool set"
+                        , onPress = Just ToggleToolSet
+                        }
+
+                    else
+                        { label = text "Switch to reduced tool set"
+                        , onPress = Just ToggleToolSet
+                        }
+                , if model.reducedToolset then
+                    Accordion.view
+                        (List.filter
+                            .reducedSet
+                            (updatedAccordion model.toolsAccordion toolsAccordion model)
+                        )
+                        AccordionMessage
+
+                  else
+                    Accordion.view
+                        (updatedAccordion model.toolsAccordion toolsAccordion model)
+                        AccordionMessage
                 ]
         ]
 
@@ -1210,6 +1246,11 @@ viewAllPanes panes options ( scene, profile ) wrapper =
             panes
 
 
+updatedAccordion :
+    List (AccordionEntry Msg)
+    -> (Model -> List (AccordionEntry Msg))
+    -> Model
+    -> List (AccordionEntry Msg)
 updatedAccordion currentAccordion referenceAccordion model =
     -- We have to reapply the accordion update functions with the current model,
     let
@@ -1247,24 +1288,28 @@ toolsAccordion model =
       , content = TipJar.tipJar
       , info = TipJar.info
       , video = Nothing
+      , reducedSet = True
       }
     , { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info
       , video = Just "https://youtu.be/N7zGRJvke_M"
+      , reducedSet = False
       }
     , { label = "Loop maker"
       , state = Contracted
       , content = Loop.viewLoopTools model.observations.loopiness model.track LoopMsg
       , info = Loop.info
       , video = Just "https://youtu.be/B3SGh8KhDu0"
+      , reducedSet = False
       }
     , { label = "Bend smoother classic"
       , state = Contracted
       , content = BendSmoother.viewBendFixerPane model.bendOptions BendSmoothMessage
       , info = BendSmoother.info
       , video = Just "https://youtu.be/VO5jsOZmTIg"
+      , reducedSet = False
       }
     , { label = "Limit gradients"
       , state = Contracted
@@ -1278,6 +1323,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = GradientLimiter.info
       , video = Just "https://youtu.be/LtcYi4fzImE"
+      , reducedSet = True
       }
     , { label = "Smooth gradient"
       , state = Contracted
@@ -1291,12 +1337,14 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = GradientSmoother.info
       , video = Just "https://youtu.be/YTY2CSl0wo8"
+      , reducedSet = False
       }
     , { label = "Nudge"
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings NudgeMessage
       , info = Nudge.info
       , video = Just "https://youtu.be/HsH7R9SGaSs"
+      , reducedSet = False
       }
     , { label = "Straighten"
       , state = Contracted
@@ -1310,6 +1358,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Straightener.info
       , video = Just "https://youtu.be/MQ67mzShvxg"
+      , reducedSet = False
       }
     , { label = "Interpolate"
       , state = Contracted
@@ -1324,18 +1373,21 @@ toolsAccordion model =
                     none
       , info = Interpolate.info
       , video = Just "https://youtu.be/C3chnX2Ij_8"
+      , reducedSet = False
       }
     , { label = "Delete"
       , state = Contracted
       , content = viewDeleteTools model.track DeleteMessage
       , info = DeletePoints.info
       , video = Nothing
+      , reducedSet = True
       }
     , { label = "Fly-through"
       , state = Contracted
       , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
       , info = Flythrough.info
       , video = Just "https://youtu.be/lRukK-do_dE"
+      , reducedSet = True
       }
     , { label = "Track smoothers 3D"
       , state = Contracted
@@ -1348,6 +1400,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Filters.info
       , video = Just "https://youtu.be/N48cDi_N_x0"
+      , reducedSet = True
       }
     , { label = "Graph Theory"
       , state = Contracted
@@ -1359,12 +1412,14 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Graph.info
       , video = Just "https://youtu.be/KSuR8PcAZYc"
+      , reducedSet = False
       }
     , { label = "Route summary"
       , state = Contracted
       , content = TrackObservations.overviewSummary model.observations
       , info = "Data about the route."
       , video = Just "https://youtu.be/w5rfsmTF08o"
+      , reducedSet = False
       }
     , { label = "Road segment"
       , state = Contracted
@@ -1373,6 +1428,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = "Data about the road at the orange marker."
       , video = Just "https://youtu.be/w5rfsmTF08o"
+      , reducedSet = False
       }
     , { label = "Steep climbs"
       , state = Contracted
@@ -1386,6 +1442,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
+      , reducedSet = False
       }
     , { label = "Gradient problems"
       , state = Contracted
@@ -1396,6 +1453,7 @@ toolsAccordion model =
                 ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
+      , reducedSet = True
       }
     , { label = "Bend problems"
       , state = Contracted
@@ -1406,6 +1464,7 @@ toolsAccordion model =
                 ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
+      , reducedSet = True
       }
     , { label = "Strava"
       , state = Contracted
@@ -1416,6 +1475,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = StravaTools.info
       , video = Just "https://youtu.be/31qVuc3klUE"
+      , reducedSet = False
       }
     , { label = "Lift & Shift"
       , state = Contracted
@@ -1426,6 +1486,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = RotateRoute.info
       , video = Just "https://youtu.be/v9hu1bFGOzQ"
+      , reducedSet = False
       }
     ]
 
