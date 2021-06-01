@@ -25,7 +25,6 @@ type AccordionState
 
 
 type alias AccordionEntry msg =
-    --TODO: Use this as dispatcher for tools' updates methods.
     { label : String
     , state : AccordionState
     , content : Element msg

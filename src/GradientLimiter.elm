@@ -1,9 +1,12 @@
 module GradientLimiter exposing (..)
 
 import Angle
+import ColourPalette exposing (warningColor)
 import Direction3d
 import Element exposing (..)
+import Element.Background as Background
 import Element.Input as Input exposing (button)
+import FeatherIcons
 import Length exposing (Meters, inMeters, meters)
 import LineSegment3d exposing (LineSegment3d)
 import List.Extra
@@ -15,7 +18,7 @@ import SketchPlane3d
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, useIcon)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -304,11 +307,18 @@ viewGradientLimitPane options wrapper track =
             [ maxAscentSlider
             , maxDescentSlider
             ]
-        ,   button
+        , button
             prettyButtonStyles
             { onPress = Just <| wrapper <| LimitGradient
             , label =
                 text <|
                     "Apply limits"
             }
+        , row [ padding 5, spacing 10, Background.color warningColor, width fill ]
+            [ useIcon FeatherIcons.alertTriangle
+            , column [padding 5, spacing 10]
+                [ text "If Purple marker is dropped, works between markers."
+                , text "Otherwise works from Orange marker to end of route."
+                ]
+            ]
         ]
