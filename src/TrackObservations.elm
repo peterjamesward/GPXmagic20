@@ -417,8 +417,9 @@ gradientThresholdSlider options wrap =
         , label =
             Input.labelBelow [] <|
                 text <|
-                    "Show climbs over "
+                    "Show climbs of "
                         ++ showDecimal0 options.gradientThreshold
+                        ++ "% or more"
         , min = 10.0
         , max = 30.0
         , step = Just 1.0
