@@ -1198,43 +1198,41 @@ contentArea model =
                 ( model.completeScene, model.completeProfile )
                 ViewPaneMessage
         , el [ alignTop ] <|
-            column defaultColumnLayout
-                [ markerButton model.track MarkerMessage
-                , viewTrackControls MarkerMessage model.track
-                , if model.track /= Nothing then
-                    undoRedoButtons model
+            if model.track /= Nothing then
+                column defaultColumnLayout
+                    [ markerButton model.track MarkerMessage
+                    , viewTrackControls MarkerMessage model.track
+                    , undoRedoButtons model
+                    , button
+                        [ Border.width 2
+                        , Border.color FlatColors.BritishPalette.nanohanachaGold
+                        , padding 5
+                        , Border.rounded 3
+                        ]
+                        { onPress = Just ToggleToolSet
+                        , label =
+                            if model.reducedToolset then
+                                text "Switch to full tool set"
 
-                  else
-                    none
-                , button
-                    [ Border.width 2
-                    , Border.color FlatColors.BritishPalette.nanohanachaGold
-                    , padding 5
-                    , Border.rounded 3
-                    ]
-                  <|
-                    if model.reducedToolset then
-                        { label = text "Switch to full tool set"
-                        , onPress = Just ToggleToolSet
+                            else
+                                text "Switch to reduced tool set"
                         }
+                    , if model.reducedToolset then
+                        Accordion.view
+                            (List.filter
+                                .reducedSet
+                                (updatedAccordion model.toolsAccordion toolsAccordion model)
+                            )
+                            AccordionMessage
 
-                    else
-                        { label = text "Switch to reduced tool set"
-                        , onPress = Just ToggleToolSet
-                        }
-                , if model.reducedToolset then
-                    Accordion.view
-                        (List.filter
-                            .reducedSet
+                      else
+                        Accordion.view
                             (updatedAccordion model.toolsAccordion toolsAccordion model)
-                        )
-                        AccordionMessage
+                            AccordionMessage
+                    ]
 
-                  else
-                    Accordion.view
-                        (updatedAccordion model.toolsAccordion toolsAccordion model)
-                        AccordionMessage
-                ]
+            else
+                none
         ]
 
 

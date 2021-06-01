@@ -11,9 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.28 update 2021-05-31
+## 2.1.29 update 2021-06-01
 
-- Correct marker positioning after edits.
+- Option to switch to reduced tool set.
 
 ## About Version 2
 
