@@ -34,7 +34,7 @@ I've tried to keep the overall look consistent, but with some fairly obvious cha
 * Autofix on Bend and Gradient problem tools uses the new 3D bend smoother
 * Double clicking a point will centre all views, but you can detach a view by clicking the padlock
 * Zoom scroll bars replaced with + & - on views, consistent with Map. Mouse wheel also zooms.
-* Map is "drag to move point" mode only
+* Map is "drag to move point" mode by default, which a toggle control on the Map.
 * Reduced carbon footprint by not doing the same thing twenty times a second
 * Terrain is so fast you can edit with it turned on (but it's simple)
 
@@ -69,7 +69,7 @@ The Save button writes to your download folder only (this is a security limitati
 
 ## Source code
 
-v2 source code is **not** currently open-source. If you want access, please ask.
+v2 source code is open-source. See https://github.com/peterjamesward/GPXmagic20
 
 ## Legally required notices
 
@@ -77,7 +77,7 @@ Compatible with Strava, for the purpose of loading route and segment data.
 
 Your IP address is logged for the purpose of aggregate usage recording; no personal details are stored.
 
-No cookies are used, though they may not be true for the site as a whole.
+No cookies are used.
 
 > _Peter Ward, 2021_
 """
