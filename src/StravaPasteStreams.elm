@@ -22,13 +22,13 @@ pasteStreams track segment streams =
                 track
 
         pointsFromStreams =
-                -- We need to apply the base point shift but using the original base point.
-                -- We can fudge this by prependng it to the track.
+            -- We need to apply the base point shift but using the original base point.
+            -- We can fudge this by prependng it to the track.
             List.map2
-                (\latLon ele -> ( latLon.lng, latLon.lat, ele))
+                (\latLon ele -> ( latLon.lng, latLon.lat, ele ))
                 streams.latLngs.data
                 streams.altitude.data
-                |> (applyGhanianTransform track.earthReferenceCoordinates)
+                |> applyGhanianTransform track.earthReferenceCoordinates
 
         newRoute =
             case ( pStartingTrackPoint, pEndingTrackPoint ) of
@@ -42,7 +42,7 @@ pasteStreams track segment streams =
 
                         orientedSegment =
                             if start == finish then
-                                []
+                                pointsFromStreams
 
                             else if start < finish then
                                 pointsFromStreams

@@ -5,7 +5,11 @@
 
 # TODO
 
-LIDAR?
+Bezier approximation should respect markers.
+
+Touch screen? No.
+
+LIDAR? No.
 
 ? Flythrough to respect any azimuth & elevation applied when stationery.
 
