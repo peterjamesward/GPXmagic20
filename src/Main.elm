@@ -127,6 +127,7 @@ type alias Model =
     , nudgeSettings : NudgeSettings
     , nudgePreview : Scene
     , nudgeProfilePreview : Scene
+    , stravaSegmentPreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
@@ -169,6 +170,7 @@ init mflags origin navigationKey =
       , visibleMarkers = []
       , nudgePreview = []
       , nudgeProfilePreview = []
+      , stravaSegmentPreview = []
       , completeScene = []
       , completeProfile = []
       , renderingContext = Nothing
@@ -1024,6 +1026,7 @@ composeScene model =
             model.visibleMarkers
                 ++ model.nudgePreview
                 ++ model.bendPreview
+                ++ model.stravaSegmentPreview
                 ++ model.highlightedGraphEdge
                 ++ model.staticScene
         , completeProfile =
@@ -1071,6 +1074,22 @@ renderVaryingSceneElements model =
             else
                 { options | smoothedBend = Nothing }
 
+        updatedStravaOptions =
+            -- TODO: ?? Move pointers to discovered paste start and end ??
+            let
+                options =
+                    model.stravaOptions
+            in
+            if Accordion.tabIsOpen "Strava" model.toolsAccordion then
+                { options
+                    | preview =
+                        Maybe.map (StravaTools.preview options) model.track
+                            |> Maybe.withDefault []
+                }
+
+            else
+                { options | preview = [] }
+
         updatedStraightenOptions =
             let
                 options =
@@ -1101,6 +1120,7 @@ renderVaryingSceneElements model =
         , profileMarkers = updatedProfileMarkers
         , nudgeSettings = updatedNudgeSettings
         , nudgePreview = SceneBuilder.previewNudge updatedNudgeSettings.preview
+        , stravaSegmentPreview = SceneBuilder.previewStravaSegment updatedStravaOptions.preview
         , bendOptions = updatedBendOptions
         , bendPreview =
             Maybe.map

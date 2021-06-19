@@ -5,6 +5,9 @@
 
 # TODO
 
+Strava segment blend elevation rather than just Paste (optional).
+Perhaps show preview of segment alongside route so user can positon markers to show where to merge.
+
 Bezier approximation should respect markers.
 
 Touch screen? No.

@@ -1,9 +1,18 @@
 module StravaPasteStreams exposing (..)
 
-import Point3d
 import StravaTypes exposing (StravaSegment, StravaSegmentStreams)
 import Track exposing (Track, searchTrackPointFromLonLat)
 import TrackPoint exposing (..)
+
+
+pointsFromStreams streams track =
+    -- We need to apply the base point shift but using the original base point.
+    -- We can fudge this by prependng it to the track.
+    List.map2
+        (\latLon ele -> ( latLon.lng, latLon.lat, ele ))
+        streams.latLngs.data
+        streams.altitude.data
+        |> applyGhanianTransform track.earthReferenceCoordinates
 
 
 pasteStreams : Track -> StravaSegment -> StravaSegmentStreams -> List TrackPoint
@@ -21,15 +30,6 @@ pasteStreams track segment streams =
                 ( segment.end_longitude, segment.end_latitude )
                 track
 
-        pointsFromStreams =
-            -- We need to apply the base point shift but using the original base point.
-            -- We can fudge this by prependng it to the track.
-            List.map2
-                (\latLon ele -> ( latLon.lng, latLon.lat, ele ))
-                streams.latLngs.data
-                streams.altitude.data
-                |> applyGhanianTransform track.earthReferenceCoordinates
-
         newRoute =
             case ( pStartingTrackPoint, pEndingTrackPoint ) of
                 ( Just startingTrackPoint, Just endingTrackPoint ) ->
@@ -42,13 +42,13 @@ pasteStreams track segment streams =
 
                         orientedSegment =
                             if start == finish then
-                                pointsFromStreams
+                                pointsFromStreams streams track
 
                             else if start < finish then
-                                pointsFromStreams
+                                pointsFromStreams streams track
 
                             else
-                                List.reverse pointsFromStreams
+                                List.reverse <| pointsFromStreams streams track
 
                         precedingPoints =
                             List.take (min start finish) track.trackPoints

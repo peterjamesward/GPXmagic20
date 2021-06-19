@@ -474,32 +474,40 @@ previewBend points =
             (List.drop 1 points)
 
 
+previewStravaSegment : List TrackPoint -> List (Entity LocalCoords)
+previewStravaSegment points =
+    List.map2
+        (arrowhead Color.white)
+        points
+        (List.drop 1 points)
+
+
+arrowhead colour pt1 pt2 =
+    let
+        halfWidth =
+            Vector3d.from pt1.xyz pt2.xyz
+                |> Vector3d.projectOnto Plane3d.xy
+                |> Vector3d.scaleTo (meters 5.0)
+
+        ( leftKerbVector, rightKerbVector ) =
+            ( Vector3d.rotateAround Axis3d.z (Angle.degrees 90) halfWidth
+            , Vector3d.rotateAround Axis3d.z (Angle.degrees -90) halfWidth
+            )
+
+        ( leftKerb, rightKerb ) =
+            ( pt1.xyz |> Point3d.translateBy leftKerbVector
+            , pt1.xyz |> Point3d.translateBy rightKerbVector
+            )
+    in
+    Triangle3d.fromVertices ( leftKerb, rightKerb, pt2.xyz )
+        |> Triangle3d.translateBy (Vector3d.meters 0 0 0.3)
+        |> Scene3d.triangle (Material.color colour)
+
+
 showGraphEdge : List TrackPoint -> List (Entity LocalCoords)
 showGraphEdge points =
-    let
-        arrowhead pt1 pt2 =
-            let
-                halfWidth =
-                    Vector3d.from pt1.xyz pt2.xyz
-                        |> Vector3d.projectOnto Plane3d.xy
-                        |> Vector3d.scaleTo (meters 5.0)
-
-                ( leftKerbVector, rightKerbVector ) =
-                    ( Vector3d.rotateAround Axis3d.z (Angle.degrees 90) halfWidth
-                    , Vector3d.rotateAround Axis3d.z (Angle.degrees -90) halfWidth
-                    )
-
-                ( leftKerb, rightKerb ) =
-                    ( pt1.xyz |> Point3d.translateBy leftKerbVector
-                    , pt1.xyz |> Point3d.translateBy rightKerbVector
-                    )
-            in
-            Triangle3d.fromVertices ( leftKerb, rightKerb, pt2.xyz )
-                |> Triangle3d.translateBy (Vector3d.meters 0 0 0.3)
-                |> Scene3d.triangle (Material.color Color.blue)
-    in
     List.map2
-        arrowhead
+        (arrowhead Color.blue)
         points
         (List.drop 1 points)
 

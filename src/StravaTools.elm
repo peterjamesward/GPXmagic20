@@ -15,6 +15,7 @@ import StravaPasteStreams exposing (pasteStreams)
 import StravaTypes exposing (..)
 import Track exposing (Track, trackBoundingBox)
 import TrackEditType as PostUpdateActions
+import TrackPoint exposing (TrackPoint)
 import Url
 import Url.Builder as Builder
 import ViewPureStyles exposing (displayName, prettyButtonStyles)
@@ -44,6 +45,8 @@ type Msg
     | UserChangedSegmentId String
     | LoadSegmentStreams
     | LoadExternalSegment
+    | PasteSegment
+    | ClearSegment
 
 
 type alias Options =
@@ -51,7 +54,9 @@ type alias Options =
     , externalRouteId : String
     , externalSegment : StravaSegmentStatus
     , stravaRoute : StravaRouteStatus
+    , stravaStreams : Maybe StravaSegmentStreams
     , lastHttpError : Maybe Http.Error
+    , preview : List TrackPoint
     }
 
 
@@ -61,7 +66,9 @@ defaultOptions =
     , externalRouteId = ""
     , externalSegment = SegmentNone
     , stravaRoute = StravaRouteNone
+    , stravaStreams = Nothing
     , lastHttpError = Nothing
+    , preview = []
     }
 
 
@@ -189,11 +196,11 @@ update msg settings authentication wrap track =
         HandleSegmentStreams response ->
             case ( track, response, settings.externalSegment ) of
                 ( Just isTrack, Ok streams, SegmentOk segment ) ->
-                    ( settings
-                    , PostUpdateActions.ActionTrackChanged
-                        PostUpdateActions.EditPreservesIndex
-                        { isTrack | trackPoints = pasteStreams isTrack segment streams }
-                        "Paste Strava segment"
+                    ( { settings
+                        | stravaStreams = Just streams
+                        , externalSegment = SegmentPreviewed segment
+                      }
+                    , PostUpdateActions.ActionPreview
                     )
 
                 ( _, Err err, _ ) ->
@@ -203,6 +210,27 @@ update msg settings authentication wrap track =
 
                 _ ->
                     ( settings, PostUpdateActions.ActionNoOp )
+
+        PasteSegment ->
+            case ( track, settings.externalSegment, settings.stravaStreams ) of
+                ( Just isTrack, SegmentPreviewed segment, Just streams ) ->
+                    ( { settings
+                        | stravaStreams = Nothing
+                        , externalSegment = SegmentNone
+                      }
+                    , PostUpdateActions.ActionTrackChanged
+                        PostUpdateActions.EditPreservesIndex
+                        { isTrack | trackPoints = pasteStreams isTrack segment streams }
+                        "Paste Strava segment"
+                    )
+
+                _ ->
+                    ( settings, PostUpdateActions.ActionNoOp )
+
+        ClearSegment ->
+            ( { settings | stravaStreams = Nothing, externalSegment = SegmentNone }
+            , PostUpdateActions.ActionPreview
+            )
 
 
 stravaRouteOption : O.Model -> Options -> (Msg -> msg) -> Element msg
@@ -254,7 +282,14 @@ viewStravaTab options wrap track =
                     button
                         prettyButtonStyles
                         { onPress = Just <| wrap LoadSegmentStreams
-                        , label = text "Paste into route"
+                        , label = text "Preview"
+                        }
+
+                SegmentPreviewed segment ->
+                    button
+                        prettyButtonStyles
+                        { onPress = Just <| wrap PasteSegment
+                        , label = text "Paste"
                         }
 
                 SegmentNone ->
@@ -270,6 +305,18 @@ viewStravaTab options wrap track =
                 _ ->
                     none
 
+        clearButton =
+            case options.externalSegment of
+                SegmentNone ->
+                    none
+
+                _ ->
+                    button
+                        prettyButtonStyles
+                        { onPress = Just <| wrap ClearSegment
+                        , label = text "Clear"
+                        }
+
         segmentInfo =
             case options.externalSegment of
                 SegmentRequested ->
@@ -283,6 +330,9 @@ viewStravaTab options wrap track =
 
                 SegmentOk segment ->
                     text segment.name
+
+                SegmentPreviewed segment ->
+                    text "In preview"
 
                 SegmentNotInRoute segment ->
                     text segment.name
@@ -310,6 +360,17 @@ viewStravaTab options wrap track =
         , row [ spacing 10 ]
             [ segmentIdField
             , segmentButton
+            , clearButton
             ]
         , segmentInfo
         ]
+
+
+preview : Options -> Track -> List TrackPoint
+preview options track =
+    case options.stravaStreams of
+        Just streams ->
+            StravaPasteStreams.pointsFromStreams streams track
+
+        Nothing ->
+            []

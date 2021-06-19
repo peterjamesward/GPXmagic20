@@ -11,9 +11,9 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.30 update 2021-06-17
+## 2.1.31 update 2021-06-19
 
-- Will paste Strava segment even if start and end points are the same, without replacing the original route.
+- Strava segment preview before paste.
 
 ## About Version 2
 

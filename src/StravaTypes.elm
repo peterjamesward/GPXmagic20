@@ -66,6 +66,7 @@ type StravaSegmentStatus
     | SegmentRequested
     | SegmentError String
     | SegmentOk StravaSegment
+    | SegmentPreviewed StravaSegment
     | SegmentNotInRoute StravaSegment
 
 
