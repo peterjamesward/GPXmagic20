@@ -476,10 +476,11 @@ previewBend points =
 
 previewStravaSegment : List TrackPoint -> List (Entity LocalCoords)
 previewStravaSegment points =
-    List.map2
-        (arrowhead Color.white)
-        points
-        (List.drop 1 points)
+    List.concat <|
+        List.map2
+            (paintSomethingBetween (Length.meters 3.0) (Material.matte Color.purple))
+            points
+            (List.drop 1 points)
 
 
 arrowhead colour pt1 pt2 =
