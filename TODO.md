@@ -21,10 +21,14 @@ STUFF FOR STEVE
     
     Track splitter:
         1. Split track into selected number of equal sections
+
+    Track combiner:
+        Appends new track to current
     
     Batch operation:
         1. Define list of (whole track) operations
         2. Apply over directory
+        3. Appends if possible when less than theshold distance remains.
 
 ---
 
