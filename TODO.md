@@ -15,16 +15,16 @@ One-click quick-fix.
 
 STUFF FOR STEVE
 
-Prep:
-    Send relevant Options through with Msg.
-    Save the Msg in the Undo list.
-
-Track splitter:
-    1. Split track into selected number of equal sections
-
-Batch operation:
-    1. Define list of (whole track) operations
-    2. Apply over directory
+    Prep:
+        Send relevant Options through with Msg.
+        Save the Msg in the Undo list.
+    
+    Track splitter:
+        1. Split track into selected number of equal sections
+    
+    Batch operation:
+        1. Define list of (whole track) operations
+        2. Apply over directory
 
 ---
 
