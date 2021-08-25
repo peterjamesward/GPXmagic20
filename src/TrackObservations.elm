@@ -65,9 +65,11 @@ type alias TrackObservations =
     , descendingDistance : Float
     , totalClimbing : Float
     , totalDescending : Float
+    , meanSpacing : Float
     }
 
 
+defaultObservations : TrackObservations
 defaultObservations =
     { abruptBearingChanges = []
     , abruptGradientChanges = []
@@ -80,6 +82,7 @@ defaultObservations =
     , descendingDistance = 0.0
     , totalClimbing = 0.0
     , totalDescending = 0.0
+    , meanSpacing = 0.0
     }
 
 
@@ -259,6 +262,27 @@ deriveProblems track options =
             downVectors
                 |> List.map (.roadVector >> Vector3d.length >> inMeters)
                 |> List.sum
+
+        safeGradient pt =
+            let
+                gradient =
+                    gradientFromPoint pt
+            in
+            case ( isNaN gradient, isInfinite gradient ) of
+                ( False, False ) ->
+                    gradient
+
+                _ ->
+                    0.0
+
+        correlation =
+            Utils.correlation
+                (.length >> Length.inMeters)
+                safeGradient
+                track.trackPoints
+
+        _ =
+            Debug.log "Correlation" correlation
     in
     { abruptGradientChanges = suddenGradientChanges
     , abruptBearingChanges = suddenBearingChanges
@@ -271,6 +295,7 @@ deriveProblems track options =
     , descendingDistance = descendingDistance
     , totalClimbing = ascent
     , totalDescending = descent
+    , meanSpacing = trackLength / (toFloat <| List.length track.trackPoints)
     }
 
 
@@ -285,6 +310,7 @@ overviewSummary obs =
             , text "Elevation gain "
             , text "Descending distance "
             , text "Elevation loss "
+            , text "Mean spacing "
             ]
         , column [ spacing 10 ]
             [ text <| showDecimal2 obs.highestMetres
@@ -294,6 +320,7 @@ overviewSummary obs =
             , text <| showDecimal2 obs.totalClimbing
             , text <| showDecimal2 obs.descendingDistance
             , text <| showDecimal2 obs.totalDescending
+            , text <| showDecimal2 obs.meanSpacing
             ]
         ]
 

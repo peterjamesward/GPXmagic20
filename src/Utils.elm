@@ -165,3 +165,33 @@ bearingToDisplayDegrees angle =
 
         Nothing ->
             "End"
+
+
+correlation : (a -> Float) -> (a -> Float) -> List a -> Float
+correlation xFn yFn records =
+    let
+        n =
+            List.length records |> toFloat
+
+        squared x =
+            x * x
+
+        xy rec =
+            xFn rec * yFn rec
+
+        sumXY =
+            records |> List.map xy |> List.sum
+
+        sumX =
+            records |> List.map xFn |> List.sum
+
+        sumY =
+            records |> List.map yFn |> List.sum
+
+        sumXX =
+            records |> List.map (xFn >> squared) |> List.sum
+
+        sumYY =
+            records |> List.map (yFn >> squared) |> List.sum
+    in
+    (n * sumXY - sumX * sumY) / (sqrt (n * sumXX - squared sumX) * (n * sumYY - squared sumY))

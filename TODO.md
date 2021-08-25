@@ -8,10 +8,11 @@
 Report GPX parse errors, eg no elevation.
 
 One-click quick-fix.
-    - If IRL, Simplify until mean density < some value
+    - Simplify until mean density < 20 - 30 meters, empirically.
     - Interpolate to 10m spacing, say
     - Centroid x N, N = 3?
     - Write with same file (OS will append -1)
+
 
 STUFF FOR STEVE
 
