@@ -262,27 +262,6 @@ deriveProblems track options =
             downVectors
                 |> List.map (.roadVector >> Vector3d.length >> inMeters)
                 |> List.sum
-
-        safeGradient pt =
-            let
-                gradient =
-                    gradientFromPoint pt
-            in
-            case ( isNaN gradient, isInfinite gradient ) of
-                ( False, False ) ->
-                    gradient
-
-                _ ->
-                    0.0
-
-        correlation =
-            Utils.correlation
-                (.length >> Length.inMeters)
-                safeGradient
-                track.trackPoints
-
-        _ =
-            Debug.log "Correlation" correlation
     in
     { abruptGradientChanges = suddenGradientChanges
     , abruptBearingChanges = suddenBearingChanges
