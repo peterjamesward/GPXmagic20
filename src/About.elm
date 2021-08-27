@@ -11,9 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.1.31 update 2021-06-19
+## 2.2.0 update 2021-08-31
 
-- Strava segment preview before paste.
+- One-click Quick-fix for the time-crunched. Aims to make "most" routes "rideable" with no effort.
+- Elevation defaults to zero, so you can read files with no elevation data.
 
 ## About Version 2
 

@@ -42,7 +42,9 @@ parseTrackPoints xml =
                 ( (Just lat) :: _, (Just lon) :: _, (Just ele) :: _ ) ->
                     Just ( lon, lat, ele )
 
-                --<| trackPointFromGPX lon lat ele
+                ( (Just lat) :: _, (Just lon) :: _, _ ) ->
+                    Just ( lon, lat, 0.0 )
+
                 _ ->
                     Nothing
 

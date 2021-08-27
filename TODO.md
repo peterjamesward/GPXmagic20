@@ -7,11 +7,14 @@
 
 Report GPX parse errors, eg no elevation.
 
+Interpolate with no markers should apply to whole track.
+
 One-click quick-fix.
-    - Simplify until mean density < 20 - 30 meters, empirically.
-    - Interpolate to 10m spacing, say
+    - Simplify until mean density >= 25 meters, empirically.
+    - Interpolate to max 10m spacing, say.
     - Centroid x N, N = 3?
-    - Write with same file (OS will append -1)
+    - Write with same file name (OS will append -1)
+    - Button goes in the top bar, not the accordion.
 
 
 STUFF FOR STEVE
