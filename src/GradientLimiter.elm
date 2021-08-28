@@ -56,8 +56,8 @@ type alias Options =
 
 defaultOptions : Options
 defaultOptions =
-    { maximumAscent = 20.0
-    , maximumDescent = 20.0
+    { maximumAscent = 15.0
+    , maximumDescent = 15.0
     }
 
 

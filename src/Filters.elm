@@ -59,7 +59,7 @@ type alias Options =
 
 defaultOptions : Options
 defaultOptions =
-    { filterBias = 50.0
+    { filterBias = 60.0
     , bezierTension = 0.5
     , bezierTolerance = 5.0
     , applyToPosition = True

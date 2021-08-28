@@ -15,6 +15,7 @@ aboutText =
 
 - One-click Quick-fix for the time-crunched. Aims to make "most" routes "rideable" with no effort.
 - Elevation defaults to zero, so you can read files with no elevation data.
+- Interpolate applies to whole track if no range is selected.
 
 ## About Version 2
 

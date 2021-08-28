@@ -38,14 +38,14 @@ type alias Options =
 
 
 defaultOptions =
-    { maxSpacing = 3.0 }
+    { maxSpacing = 10.0 }
 
 
 update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg)
+    -> ( Options, PostUpdateActions.PostUpdateAction msg )
 update msg settings track =
     case msg of
         SetMaxSpacing spacing ->
@@ -104,17 +104,16 @@ insertPoints options track =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( startPoint, endPoint ) =
-            ( if track.currentNode.index <= marker.index then
-                track.currentNode
+            if track.currentNode.index == marker.index then
+                -- Make explicit whole track if no range.
+                ( List.head track.trackPoints |> Maybe.withDefault track.currentNode
+                , List.Extra.last track.trackPoints |> Maybe.withDefault track.currentNode)
 
-              else
-                marker
-            , if track.currentNode.index > marker.index then
-                track.currentNode
+            else if track.currentNode.index < marker.index then
+                ( track.currentNode, marker )
 
-              else
-                marker
-            )
+            else
+                ( marker, track.currentNode )
 
         undoMessage =
             "Insert between "
