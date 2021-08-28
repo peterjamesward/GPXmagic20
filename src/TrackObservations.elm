@@ -6,7 +6,7 @@ import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (inMeters, meters)
 import List.Extra
-import Loop exposing (Loopiness(..))
+import LoopedTrack exposing (Loopiness(..))
 import Point3d
 import PostUpdateActions
 import Quantity exposing (zero)
@@ -57,7 +57,7 @@ type alias TrackObservations =
     { abruptBearingChanges : List TrackPoint
     , abruptGradientChanges : List TrackPoint
     , zeroLengths : List TrackPoint
-    , loopiness : Loop.Loopiness
+    , loopiness : LoopedTrack.Loopiness
     , highestMetres : Float
     , lowestMetres : Float
     , trackLength : Float

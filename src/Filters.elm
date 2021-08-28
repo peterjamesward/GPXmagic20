@@ -4,7 +4,7 @@ import BezierSplines exposing (bezierSplines)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import List.Extra
-import Loop exposing (Loopiness(..))
+import LoopedTrack exposing (Loopiness(..))
 import Point3d exposing (Point3d)
 import PostUpdateActions
 import TabCommonElements exposing (wholeTrackTextHelper)

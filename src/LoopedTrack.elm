@@ -1,4 +1,4 @@
-module Loop exposing (..)
+module LoopedTrack exposing (..)
 
 import Direction3d
 import Element exposing (..)
@@ -17,7 +17,7 @@ import ViewPureStyles exposing (prettyButtonStyles)
 
 
 info =
-    """## Loop
+    """## LoopedTrack
 
 If your route is nearly a loop, but no close enough for RGT
 to recognise it, you can use this to add a final road section
