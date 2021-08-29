@@ -28,7 +28,7 @@ import Json.Decode as E exposing (at, decodeValue, field, float)
 import Json.Encode
 import Length
 import List.Extra
-import Loop
+import LoopedTrack
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra
@@ -37,6 +37,7 @@ import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, vi
 import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
+import OneClickQuickFix exposing (oneClickQuickFix)
 import Point3d
 import PostUpdateActions exposing (PostUpdateAction(..))
 import RotateRoute
@@ -78,7 +79,7 @@ type Msg
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
-    | LoopMsg Loop.Msg
+    | LoopMsg LoopedTrack.Msg
     | GradientMessage GradientSmoother.Msg
     | GradientLimiter GradientLimiter.Msg
     | StraightenMessage Straightener.Msg
@@ -94,6 +95,7 @@ type Msg
     | IpInfoAcknowledged (Result Http.Error ())
     | RotateMessage RotateRoute.Msg
     | ToggleToolSet
+    | OneClickQuickFix
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -444,7 +446,7 @@ update msg model =
         LoopMsg loopMsg ->
             let
                 ( newOptions, action ) =
-                    Maybe.map (Loop.update loopMsg model.observations.loopiness) model.track
+                    Maybe.map (LoopedTrack.update loopMsg model.observations.loopiness) model.track
                         |> Maybe.withDefault ( model.observations.loopiness, ActionNoOp )
 
                 oldObs =
@@ -559,6 +561,25 @@ update msg model =
             ( { model | changeCounter = 0 }
             , outputGPX model
             )
+
+        OneClickQuickFix ->
+            case model.track of
+                Just track ->
+                    let
+                        newTrack =
+                            oneClickQuickFix track
+
+                        newModel =
+                            model
+                                |> addToUndoStack "One-click Quick-fix"
+                                |> updateTrackInModel newTrack EditNoOp
+                    in
+                    ( newModel
+                    , Cmd.batch <| outputGPX newModel :: ViewPane.makeMapCommands newTrack model.viewPanes
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         StravaMessage stravaMsg ->
             let
@@ -806,6 +827,7 @@ processGpxLoaded content model =
         , gpxSource = GpxLocalFile
         , undoStack = []
         , redoStack = []
+        , changeCounter = 0
       }
         |> repeatTrackDerivations
     , Cmd.batch mapCommands
@@ -1205,6 +1227,16 @@ topLoadingBar model =
             model.stravaOptions
             StravaMessage
         , viewAndEditFilename model
+        , case model.track of
+            Just _ ->
+                button
+                    prettyButtonStyles
+                    { onPress = Just OneClickQuickFix
+                    , label = E.text "One-click Quick-fix!"
+                    }
+
+            Nothing ->
+                none
         , saveButtonIfChanged model
         ]
 
@@ -1315,10 +1347,10 @@ toolsAccordion model =
       , video = Just "https://youtu.be/N7zGRJvke_M"
       , reducedSet = False
       }
-    , { label = "Loop maker"
+    , { label = "LoopedTrack maker"
       , state = Contracted
-      , content = Loop.viewLoopTools model.observations.loopiness model.track LoopMsg
-      , info = Loop.info
+      , content = LoopedTrack.viewLoopTools model.observations.loopiness model.track LoopMsg
+      , info = LoopedTrack.info
       , video = Just "https://youtu.be/B3SGh8KhDu0"
       , reducedSet = False
       }
@@ -1668,16 +1700,19 @@ viewAndEditFilename model =
 
 saveButtonIfChanged : Model -> Element Msg
 saveButtonIfChanged model =
-    case model.undoStack of
-        _ :: _ ->
-            button
-                prettyButtonStyles
-                { onPress = Just OutputGPX
-                , label = E.text "Save as GPX file to your computer"
-                }
+    -- Logic might be better with two buttons, as 1CQF could be applied at any time.
+    row []
+        [ case ( model.track, model.changeCounter > 0 ) of
+            ( Just _, True ) ->
+                button
+                    prettyButtonStyles
+                    { onPress = Just OutputGPX
+                    , label = E.text "Save as GPX file to your computer"
+                    }
 
-        _ ->
-            none
+            _ ->
+                none
+        ]
 
 
 outputGPX : Model -> Cmd Msg
