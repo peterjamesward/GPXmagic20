@@ -13,49 +13,19 @@ aboutText =
 
 ## 2.2.0 update 2021-08-31
 
-- One-click Quick-fix for the time-crunched. Aims to make "most" routes "rideable" with no effort.
+- One-click Quick-fix for the time-crunched. Aims to make "most" routes "rideable" with no effort by:
+    1. Reducing average track point density (this is good for removing noise from recorded IRL rides);
+    2. Limiting gradients to no more than 15% up or down;
+    3. Interpolating so maxmimum track point spacing is 10 metres;
+    4. Five rounds of 50% centroid averaging smoothing.
 - Elevation defaults to zero, so you can read files with no elevation data.
 - Interpolate applies to whole track if no range is selected.
 
-## About Version 2
-
-Version 2 is a 90% re-write.
-The code base, whilst imperfect, is a much better base for further work.
-I've tried to keep the overall look consistent, but with some fairly obvious changes.
-
-### Big things
-
-* Convert to canonical form and make up your own route (Graph Theory)
-* You can have up to four view panes open
-* Views can be re-sized (but they're all the same size)
-* You can have more than one tool open. Click to close. Open tools float to the top.
-
-### Medium things
-
-* There's a new single "3D" point smoother that replaces the v1 "chamfer" and works for bends and gradients
-* Autofix on Bend and Gradient problem tools uses the new 3D bend smoother
-* Double clicking a point will centre all views, but you can detach a view by clicking the padlock
-* Zoom scroll bars replaced with + & - on views, consistent with Map. Mouse wheel also zooms.
-* Map is "drag to move point" mode by default, which a toggle control on the Map.
-* Reduced carbon footprint by not doing the same thing twenty times a second
-* Terrain is so fast you can edit with it turned on (but it's simple)
-
-### Small things
-
-* The map is pre-loaded, so switching is quicker (but it's only allowed in the first view pane)
-* New "Steep climbs" tool helps you locate, um, steep climbs
-* Rotate and re-centre your route (if you're called Steve)
-* Positions of both pointers are shown in meters
-* Problems are labelled by distance in meters, not point number
-* "Zero sliders" and "fade range" on Nudge tool
-* Bend and Nudge previews are shown only when the tools are open
-* Similarly, closing the Flythrough tool stops the flythrough
-* Short help text for each tool, accessed by the (i) button
-
 ## Donations
 
-A few users have asked if I would accept some payment.
-**YES, PLEASE!!** Donations will be passed on to our local hospice.
+**YES, PLEASE!!**
+
+Donations will be passed on to our local hospice. Just use the TipJar, it's available 24x7.
 
 ## Guidance on use
 

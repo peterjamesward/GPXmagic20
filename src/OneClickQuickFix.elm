@@ -89,7 +89,11 @@ oneClickQuickFix originalTrack =
                 |> GradientLimiter.limitGradient GradientLimiter.defaultOptions
                 |> Tuple.first
     in
-    originalTrack
+    -- Ignore markers for Quick Fix.
+    { originalTrack
+        | currentNode = List.head originalTrack.trackPoints |> Maybe.withDefault originalTrack.currentNode
+        , markedNode = Nothing
+    }
         |> simplifyTrack
         |> limitGradients
         |> interpolateTrack
