@@ -11,8 +11,10 @@ Interpolate with no markers should apply to whole track.
 
 One-click quick-fix.
     - Simplify until mean density >= 25 meters, empirically.
+    - Maximum slope 15% up & down.
     - Interpolate to max 10m spacing, say.
     - Centroid x N, N = 3?
+    - NEW -- auto local bend smoothing for gradient (10%) and bend (20%) problems.
     - Write with same file name (OS will append -1)
     - Button goes in the top bar, not the accordion.
 

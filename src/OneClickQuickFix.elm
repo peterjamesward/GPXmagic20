@@ -15,10 +15,10 @@ import TrackPoint
 
 {-
    One-click quick-fix.
-       - Simplify until mean density >= 20 meters, empirically.
-       - NEW: Maximum slope 15% up & down.
+       - Simplify until mean density >= 25 meters, empirically.
+       - Maximum slope 15% up & down.
        - Interpolate to max 10m spacing, say.
-       - Centroid x N, N = 3?
+       - Centroid x 5
        - Write with same file name (OS will append -1)
        - Button goes in the top bar, not the accordion.
 -}
@@ -47,12 +47,6 @@ oneClickQuickFix originalTrack =
                                 |> Tuple.first
                                 |> .trackPoints
                                 |> TrackPoint.prepareTrackPoints
-
-                        _ =
-                            Debug.log "start length" <| List.length t.trackPoints
-
-                        _ =
-                            Debug.log "after length" <| List.length remainingTrackPoints
                     in
                     { t | trackPoints = remainingTrackPoints }
             in
@@ -61,33 +55,36 @@ oneClickQuickFix originalTrack =
                 removeSomePoints
 
         interpolateTrack track =
-            let
-                _ =
-                    Debug.log "interpolate" (List.length track.trackPoints)
-            in
-            Interpolate.insertPoints Interpolate.defaultOptions track |> Tuple.first
-
-        smoothTrack track =
-            let
-                _ =
-                    Debug.log "smooth" (List.length track.trackPoints)
-            in
             { track
                 | trackPoints =
-                    Filters.applyWeightedAverageFilter
-                        Filters.defaultOptions
-                        (LoopedTrack.NotALoop Quantity.zero)
-                        track
+                    track
+                        |> Interpolate.insertPoints Interpolate.defaultOptions
+                        |> Tuple.first
+                        |> .trackPoints
+                        |> TrackPoint.prepareTrackPoints
             }
 
-        thriceSmoothTrack : Track -> Track
-        thriceSmoothTrack =
-            Loop.for 5 smoothTrack
+        smoothTrack track =
+            { track
+                | trackPoints =
+                    track
+                        |> Filters.applyWeightedAverageFilter
+                            Filters.defaultOptions
+                            (LoopedTrack.NotALoop Quantity.zero)
+                        |> Filters.temporaryIndices
+                        -- ??
+                        |> TrackPoint.prepareTrackPoints
+            }
 
         limitGradients track =
-            track
-                |> GradientLimiter.limitGradient GradientLimiter.defaultOptions
-                |> Tuple.first
+            { track
+                | trackPoints =
+                    track
+                        |> GradientLimiter.limitGradient GradientLimiter.defaultOptions
+                        |> Tuple.first
+                        |> .trackPoints
+                        |> TrackPoint.prepareTrackPoints
+            }
     in
     -- Ignore markers for Quick Fix.
     { originalTrack
@@ -97,4 +94,4 @@ oneClickQuickFix originalTrack =
         |> simplifyTrack
         |> limitGradients
         |> interpolateTrack
-        |> thriceSmoothTrack
+        |> Loop.for 5 smoothTrack

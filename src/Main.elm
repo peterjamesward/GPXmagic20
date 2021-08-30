@@ -572,10 +572,19 @@ update msg model =
                         newModel =
                             model
                                 |> addToUndoStack "One-click Quick-fix"
-                                |> updateTrackInModel newTrack EditNoOp
+                                |> (\m ->
+                                        { m
+                                            | track = Just newTrack
+                                            , observations = deriveProblems newTrack m.problemOptions
+                                        }
+                                   )
+                                |> repeatTrackDerivations
+                                |> renderTrackSceneElements
                     in
                     ( newModel
-                    , Cmd.batch <| outputGPX newModel :: ViewPane.makeMapCommands newTrack model.viewPanes
+                    , Cmd.batch <|
+                        outputGPX newModel
+                            :: ViewPane.makeMapCommands newTrack model.viewPanes
                     )
 
                 Nothing ->
