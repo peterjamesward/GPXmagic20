@@ -543,12 +543,13 @@ update msg model =
         SplitterMessage splitter ->
             -- Need to make some way of outputting multiple files.
             let
-                (newOptions, commands) =
-                            TrackSplitter.update
-                                splitter
-                                model.splitterOptions
-                                model.observations
-                                model.track
+                ( newOptions, commands ) =
+                    TrackSplitter.update
+                        splitter
+                        model.splitterOptions
+                        model.observations
+                        model.track
+
                 newModel =
                     { model
                         | splitterOptions = newOptions
@@ -973,6 +974,12 @@ updateTrackInModel newTrack editType model =
                     -- Need to get edit region to help the graph assess the changes.
                     Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
+                _ =
+                    Debug.log "(Orange, Purple)" ( orange.index, purple.index )
+
+                _ =
+                    Debug.log "(NewOrange, NewPurple)" ( newOrange.index, newPurple )
+
                 editRegion =
                     ( min orange.index purple.index
                     , max orange.index purple.index
@@ -1057,9 +1064,8 @@ repeatTrackDerivations model =
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
-
-                        --, currentNode = newOrange
-                        --, markedNode = newPurple
+                        , currentNode = newOrange
+                        , markedNode = newPurple
                     }
             in
             { model
@@ -1569,6 +1575,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/v9hu1bFGOzQ"
       , reducedSet = False
       }
+
     --, { label = "Track splitter"
     --  , state = Contracted
     --  , content =
