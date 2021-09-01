@@ -5,31 +5,20 @@
 
 # TODO
 
-Report GPX parse errors, eg no elevation.
+CHANGES TO 1CQF
 
-Interpolate with no markers should apply to whole track.
+Alternative 1QCF - two rounds of smoothing followed by Bezier approximation?? No need for gradient limiter.
 
-One-click quick-fix.
-    - Simplify until mean density >= 25 meters, empirically.
-    - Maximum slope 15% up & down.
-    - Interpolate to max 10m spacing, say.
-    - Centroid x N, N = 3?
-    - NEW -- auto local bend smoothing for gradient (10%) and bend (20%) problems.
-    - Write with same file name (OS will append -1)
-    - Button goes in the top bar, not the accordion.
-
+    -- Use current values for gradient limit, interpolation and smoothing.
+    -- Apply local 3D fixes to any remaining problems.
 
 STUFF FOR STEVE
 
-    Prep:
-        Send relevant Options through with Msg.
-        Save the Msg in the Undo list.
-    
     Track splitter:
         1. Split track into selected number of equal sections
 
     Track combiner:
-        Appends new track to current
+        Appends new track (from local file only) to current
     
     Batch operation:
         1. Define list of (whole track) operations
@@ -38,17 +27,19 @@ STUFF FOR STEVE
 
 ---
 
-Strava segment blend elevation rather than just Paste (optional).
+Consider colouring TP by curvature.
+This may lead to way of identifying (e.g.) sweeping bends, straights, hairpins.
+That might then lead to more intelligent automated smoothing, specialised by region.
 
-Bezier approximation should respect markers.
+Strava segment blend elevation rather than just Paste (optional).
 
 ? Flythrough to respect any azimuth & elevation applied when stationery.
 
 One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
 
-Working offline? (Mongoose server?)
-
 # Not doing
+
+Working offline? (Mongoose server?)
 
 Touch screen? No.
 

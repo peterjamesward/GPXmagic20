@@ -148,9 +148,10 @@ bezierSplines isLoop tension tolerance trackPoints =
     List.map trackPointFromPoint asPointsAgain
 
 
-bezierApproximation : Float -> List TrackPoint -> List TrackPoint
-bezierApproximation tolerance points =
-    -- This variant uses existing points as controls, and let's the result approximate the route.
+bezierApproximation : Bool -> Float -> Float -> List TrackPoint -> List TrackPoint
+bezierApproximation _ _ tolerance points =
+    -- This variant uses existing points as controls, and lets the result approximate the route.
+    -- Arguments compatible; loopiness and tension not used.
     let
         rawPoints =
             List.map .xyz points

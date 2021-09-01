@@ -126,6 +126,7 @@ update msg settings observations track =
                         | trackPoints =
                             temporaryIndices <|
                                 bezierSplineHelper
+                                    BezierSplines.bezierSplines
                                     track
                                     settings.bezierTension
                                     settings.bezierTolerance
@@ -144,8 +145,13 @@ update msg settings observations track =
                 newTrack =
                     { track
                         | trackPoints =
-                            temporaryIndices
-                            <| BezierSplines.bezierApproximation settings.bezierTolerance track.trackPoints
+                            temporaryIndices <|
+                                bezierSplineHelper
+                                    BezierSplines.bezierApproximation
+                                    track
+                                    settings.bezierTension
+                                    settings.bezierTolerance
+                                    observations.loopiness
                     }
             in
             ( settings
@@ -329,12 +335,13 @@ applyWeightedAverageFilter settings loopiness track =
 
 
 bezierSplineHelper :
-    Track
+    (Bool -> Float -> Float -> List TrackPoint -> List TrackPoint)
+    -> Track
     -> Float
     -> Float
     -> Loopiness
     -> List TrackPoint
-bezierSplineHelper track tension tolerance loopiness =
+bezierSplineHelper splineFunction track tension tolerance loopiness =
     let
         points =
             track.trackPoints
@@ -378,14 +385,14 @@ bezierSplineHelper track tension tolerance loopiness =
         splinedSection =
             case ( loopiness, track.markedNode ) of
                 ( IsALoop, Nothing ) ->
-                    bezierSplines
+                    splineFunction
                         True
                         tension
                         tolerance
                         points
 
                 ( _, _ ) ->
-                    bezierSplines
+                    splineFunction
                         False
                         tension
                         tolerance

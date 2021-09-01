@@ -118,6 +118,7 @@ checkboxIcon isChecked =
         <|
             none
 
+
 radioButton label state =
     el
         [ padding 10
@@ -137,6 +138,7 @@ radioButton label state =
         el [ centerX, centerY ] <|
             text label
 
+
 displayName n =
     case n of
         Just s ->
@@ -146,3 +148,21 @@ displayName n =
         _ ->
             none
 
+
+wideSliderStyles =
+    [ height <| px 20
+    , width <| px 360
+    , centerY
+    , centerX
+    , behindContent <|
+        -- Slider track
+        el
+            [ width <| px 360
+            , height <| px 20
+            , centerY
+            , centerX
+            , Background.color scrollbarBackground
+            , Border.rounded 6
+            ]
+            Element.none
+    ]

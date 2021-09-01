@@ -54,6 +54,7 @@ import Track exposing (Track, searchTrackPointFromLonLat, summaryData, updateTra
 import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
+import TrackSplitter
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
@@ -87,6 +88,7 @@ type Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
     | InsertMessage Interpolate.Msg
+    | SplitterMessage TrackSplitter.Msg
     | UserChangedFilename String
     | OutputGPX
     | StravaMessage StravaTools.Msg
@@ -151,6 +153,7 @@ type alias Model =
     , rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
     , reducedToolset : Bool
+    , splitterOptions : TrackSplitter.Options
     }
 
 
@@ -200,6 +203,7 @@ init mflags origin navigationKey =
       , rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
       , reducedToolset = False
+      , splitterOptions = TrackSplitter.defaultOptions
       }
     , Cmd.batch
         [ authCmd
@@ -535,6 +539,24 @@ update msg model =
             processPostUpdateAction
                 { model | rotateOptions = newOptions }
                 action
+
+        SplitterMessage splitter ->
+            -- Need to make some way of outputting multiple files.
+            let
+                (newOptions, commands) =
+                            TrackSplitter.update
+                                splitter
+                                model.splitterOptions
+                                model.observations
+                                model.track
+                newModel =
+                    { model
+                        | splitterOptions = newOptions
+                    }
+            in
+            ( newModel
+            , Cmd.map SplitterMessage commands
+            )
 
         ProblemMessage probMsg ->
             let
@@ -1547,6 +1569,17 @@ toolsAccordion model =
       , video = Just "https://youtu.be/v9hu1bFGOzQ"
       , reducedSet = False
       }
+    --, { label = "Track splitter"
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (TrackSplitter.view model.splitterOptions model.observations SplitterMessage)
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = TrackSplitter.info
+    --  , video = Nothing
+    --  , reducedSet = False
+    --  }
     ]
 
 

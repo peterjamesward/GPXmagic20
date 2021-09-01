@@ -22,7 +22,7 @@ import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
-import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
+import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
 
 
 info =
@@ -117,24 +117,6 @@ recentre settings ( lon, lat ) track =
     , "recentre"
     )
 
-
-wideSliderStyles =
-    [ height <| px 20
-    , width <| px 360
-    , centerY
-    , centerX
-    , behindContent <|
-        -- Slider track
-        el
-            [ width <| px 360
-            , height <| px 20
-            , centerY
-            , centerX
-            , Background.color scrollbarBackground
-            , Border.rounded 6
-            ]
-            Element.none
-    ]
 
 
 view : Options -> (Msg -> msg) -> Track -> Element msg

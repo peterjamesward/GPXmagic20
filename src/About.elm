@@ -11,19 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.0 update 2021-08-31
+## 2.2.1 update 2021-09-01
 
-- One-click Quick-fix for the time-crunched. Aims to make "most" routes "rideable" with no effort by:
-    1. Reducing average track point density (this is good for removing noise from recorded IRL rides);
-    2. Limiting gradients to no more than 15% up or down;
-    3. Interpolating so maxmimum track point spacing is 10 metres;
-    4. Five rounds of 100% centroid averaging smoothing;
-    5. Writes amended file to your Downloads folder.
-(Note that this favours smoothness over fidelity.)
-
-- Elevation defaults to zero, so you can read files with no elevation data.
-
-- Interpolate applies to whole track if no range is selected.
+- Bezier approximation should now respect Orange and Purple markers,
+so that it applies between the markers and does not randomly move them.
 
 ## Donations
 
