@@ -964,6 +964,9 @@ processGraphMessage innerMsg model isTrack =
 
 updateTrackInModel : Track -> TrackEditType -> Model -> Model
 updateTrackInModel newTrack editType model =
+    -- We need this in case we have a Graph in effect, and the edits need to be
+    -- reflected in the graph and the final new route dervied from the graph again.
+    -- If there's no graph, it's basically a noop.
     case model.track of
         Just oldTrack ->
             let
@@ -1064,8 +1067,9 @@ repeatTrackDerivations model =
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
-                        , currentNode = newOrange
-                        , markedNode = newPurple
+
+                        --, currentNode = newOrange
+                        --, markedNode = newPurple
                     }
             in
             { model
@@ -1275,7 +1279,20 @@ topLoadingBar model =
             Nothing ->
                 none
         , saveButtonIfChanged model
+        , buyMeACoffeeButton
         ]
+
+
+buyMeACoffeeButton =
+    newTabLink
+        [ alignRight ]
+        { url = "https://www.buymeacoffee.com/Peterward"
+        , label =
+            image [ height (px 60), width (px 217) ]
+                { src = "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+                , description = "Buy Me A Coffee"
+                }
+        }
 
 
 contentArea model =
@@ -1370,14 +1387,14 @@ subscriptions model =
 toolsAccordion : Model -> List (AccordionEntry Msg)
 toolsAccordion model =
     [ -- For V2 we see if a single collection works...
-      { label = "Tip jar"
-      , state = Contracted
-      , content = TipJar.tipJar
-      , info = TipJar.info
-      , video = Nothing
-      , reducedSet = True
-      }
-    , { label = "Visual styles"
+      --{ label = "Tip jar"
+      --, state = Contracted
+      --, content = TipJar.tipJar
+      --, info = TipJar.info
+      --, video = Nothing
+      --, reducedSet = True
+      --}
+      { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info

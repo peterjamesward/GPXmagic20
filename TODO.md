@@ -2,12 +2,30 @@
 
 # BUGS
 
+Inferring marker placement is fraught amd dumb.
+Each edit operation should return a Track with new pointers set, not a List TrackPoint.
+
+So, again, list of operations to work through:
+Nudge -- pointer indices unchanged
+Delete (single node) -- back one unless at end, can't delete last node
+Delete (range) -- near back one, far forward one, unless at extremes, can't delete whole track
+Interpolate -- adjust far pointer by length change
+Straighten -- unchanged
+Bend smoother classic -- adjust far pointer by length change
+Bend smoother 3D (single point) -- move to new bend midpoint
+Bend smoother 3D (range) -- adjust far pointer
+Centroid -- unchanged
+Bezier 1 -- adjust far pointer
+Bezier 2 -- adjust far pointer
+
+Note effect of Graph though; still want edits to be unaware so see what we need to retain of current code.
 
 # TODO
 
 CHANGES TO 1CQF
 
-Alternative 1QCF - two rounds of smoothing followed by Bezier approximation?? No need for gradient limiter.
+Alternative 1QCF - two rounds of smoothing followed by Bezier approximation?? 
+No need for gradient limiter. Arguably more organic feel.
 
     -- Use current values for gradient limit, interpolation and smoothing.
     -- Apply local 3D fixes to any remaining problems.
@@ -35,7 +53,8 @@ Strava segment blend elevation rather than just Paste (optional).
 
 ? Flythrough to respect any azimuth & elevation applied when stationery.
 
-One useful elevation tab tool might be the ability to apply a slope difference to a range of points.
+"One useful elevation tab tool might be the ability to apply a slope difference to a range of points."
+(I don't understand this suggestion.)
 
 # Not doing
 
