@@ -102,6 +102,7 @@ nudgeNodes track settings =
 
         newCurrent =
             List.Extra.getAt track.currentNode.index nudgedTrackPoints
+                |> Maybe.withDefault track.currentNode
 
         newMarker =
             case track.markedNode of
@@ -113,7 +114,7 @@ nudgeNodes track settings =
     in
     { track
         | trackPoints = nudgedTrackPoints
-        , currentNode = newCurrent |> Maybe.withDefault track.currentNode
+        , currentNode = newCurrent
         , markedNode = newMarker
     }
 
@@ -180,7 +181,7 @@ computeNudgedPoints settings track =
                     ( inMeters pointDistance, inMeters referenceDistance )
 
                 x =
-                    abs <| (place - base) / (inMeters settings.fadeExtent)
+                    abs <| (place - base) / inMeters settings.fadeExtent
             in
             1.0 - x
 
@@ -206,6 +207,7 @@ computeNudgedPoints settings track =
             nudgeTrackPoint settings fade point
     in
     List.map nudge track.trackPoints
+    |> TrackPoint.prepareTrackPoints
 
 
 previewNudgeNodes : NudgeSettings -> Track -> NudgeSettings

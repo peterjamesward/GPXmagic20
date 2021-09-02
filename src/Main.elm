@@ -685,14 +685,14 @@ processPostUpdateAction model action =
         ( Just track, ActionTrackChanged editType newTrack undoMsg ) ->
             ( model
                 |> addToUndoStack undoMsg
-                |> updateTrackInModel newTrack editType
+                |> reflectNewTrackViaGraph newTrack editType
             , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
             )
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
             ( model
-                |> updateTrackInModel track EditNoOp
+                |> reflectNewTrackViaGraph track EditNoOp
             , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
             )
 
@@ -710,7 +710,7 @@ processPostUpdateAction model action =
                     { model | track = Just newTrack }
             in
             ( newModel
-                |> updateTrackInModel track EditNoOp
+                |> reflectNewTrackViaGraph track EditNoOp
             , Cmd.batch <| ViewPane.makeMapCommands newTrack newModel.viewPanes
             )
 
@@ -962,8 +962,8 @@ processGraphMessage innerMsg model isTrack =
             )
 
 
-updateTrackInModel : Track -> TrackEditType -> Model -> Model
-updateTrackInModel newTrack editType model =
+reflectNewTrackViaGraph : Track -> TrackEditType -> Model -> Model
+reflectNewTrackViaGraph newTrack editType model =
     -- We need this in case we have a Graph in effect, and the edits need to be
     -- reflected in the graph and the final new route dervied from the graph again.
     -- If there's no graph, it's basically a noop.
@@ -976,12 +976,6 @@ updateTrackInModel newTrack editType model =
                 purple =
                     -- Need to get edit region to help the graph assess the changes.
                     Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
-
-                _ =
-                    Debug.log "(Orange, Purple)" ( orange.index, purple.index )
-
-                _ =
-                    Debug.log "(NewOrange, NewPurple)" ( newOrange.index, newPurple )
 
                 editRegion =
                     ( min orange.index purple.index
@@ -1027,12 +1021,17 @@ updateTrackInModel newTrack editType model =
                         |> Maybe.withDefault newTrack.trackPoints
 
                 trackWithNewRoute =
-                    { newTrack
-                        | trackPoints = newPointsFromGraph
-                        , currentNode = newOrange
-                        , markedNode = newPurple
-                        , graph = newGraph
-                    }
+                    case newTrack.graph of
+                        Just graph ->
+                            { newTrack
+                                | trackPoints = newPointsFromGraph
+                                , currentNode = newOrange
+                                , markedNode = newPurple
+                                , graph = newGraph
+                            }
+
+                        Nothing ->
+                            newTrack
             in
             { model | track = Just trackWithNewRoute }
                 |> repeatTrackDerivations

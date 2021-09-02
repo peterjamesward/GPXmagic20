@@ -4,19 +4,21 @@
 
 Inferring marker placement is fraught amd dumb.
 Each edit operation should return a Track with new pointers set, not a List TrackPoint.
+HANG ON; they return a Track already.
+So why am I not using the pointer positions there?????
 
 So, again, list of operations to work through:
-Nudge -- pointer indices unchanged
-Delete (single node) -- back one unless at end, can't delete last node
-Delete (range) -- near back one, far forward one, unless at extremes, can't delete whole track
-Interpolate -- adjust far pointer by length change
-Straighten -- unchanged
-Bend smoother classic -- adjust far pointer by length change
-Bend smoother 3D (single point) -- move to new bend midpoint
-Bend smoother 3D (range) -- adjust far pointer
-Centroid -- unchanged
-Bezier 1 -- adjust far pointer
-Bezier 2 -- adjust far pointer
+OK Nudge -- pointer indices unchanged
+OK Delete (single node) -- back one unless at end, disallow delete last remaining node
+OK Delete (range) -- near back one, far forward one, unless at extremes, disallow delete whole track
+-- Interpolate -- adjust far pointer by length change
+-- Straighten -- unchanged
+-- Bend smoother classic -- adjust far pointer by length change
+-- Bend smoother 3D (single point) -- move to new bend midpoint
+-- Bend smoother 3D (range) -- adjust far pointer
+-- Centroid -- unchanged
+-- Bezier 1 -- adjust far pointer
+-- Bezier 2 -- adjust far pointer
 
 Note effect of Graph though; still want edits to be unaware so see what we need to retain of current code.
 

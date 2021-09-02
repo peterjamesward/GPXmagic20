@@ -99,19 +99,29 @@ deletePoints track =
             , max track.currentNode.index marker.index
             )
 
+        safeStart =
+            if start == 0 && finish == List.length track.trackPoints - 1 then
+                1
+            else
+                start
+
+        pointsToDelete =
+            finish - safeStart + 1
+
         newRoute =
             track.trackPoints
-                |> List.Extra.removeIfIndex (\i -> i >= start && i <= finish)
+                |> List.Extra.removeIfIndex (\i -> i >= safeStart && i <= finish)
+                |> TrackPoint.prepareTrackPoints
 
         newCurrent =
             if start == track.currentNode.index then
                 List.Extra.getAt
-                    (track.currentNode.index - 1)
+                    (max 0 (track.currentNode.index - 1))
                     newRoute
 
             else
                 List.Extra.getAt
-                    (track.currentNode.index + start - finish - 1)
+                    (min (finish - pointsToDelete) (List.length track.trackPoints - 1))
                     newRoute
     in
     { track
