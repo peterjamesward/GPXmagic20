@@ -157,6 +157,7 @@ smoothBend track options =
                     List.take bend.startIndex track.trackPoints
                         ++ bend.nodes
                         ++ List.drop (bend.endIndex + 1) track.trackPoints
+                        |> TrackPoint.prepareTrackPoints
             in
             { track
                 | trackPoints = newTrackPoints
@@ -583,10 +584,33 @@ softenSinglePoint track point =
                                 |> List.map LineSegment3d.endPoint
                            )
 
-                newTrackPoints =
+                newBendPoints =
                     List.map trackPointFromPoint newPoints
+
+                newTrackPoints =
+                    precedingTrack
+                        ++ newBendPoints
+                        ++ remainingTrack
+                        |> TrackPoint.prepareTrackPoints
+
+                newMark =
+                    case track.markedNode of
+                        Just marker ->
+                            if marker.index > point.index then
+                                List.Extra.getAt
+                                    (marker.index + 5)
+                                    newTrackPoints
+
+                            else
+                                Just marker
+
+                        Nothing ->
+                            Nothing
             in
-            { track | trackPoints = precedingTrack ++ newTrackPoints ++ remainingTrack }
+            { track
+                | trackPoints = newTrackPoints
+                , markedNode = newMark
+            }
 
         Nothing ->
             track
@@ -607,4 +631,3 @@ singlePoint3dArc track point =
 
         _ ->
             Nothing
-

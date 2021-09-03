@@ -10,14 +10,13 @@ OK Nudge -- pointer indices unchanged
 OK Delete (single node) -- back one unless at end, disallow delete last remaining node
 OK Delete (range) -- near back one, far forward one, unless at extremes, disallow delete whole track
 OK Interpolate -- adjust far pointer by length change
-
--- Straighten -- unchanged
--- Bend smoother classic -- adjust far pointer by length change
--- Bend smoother 3D (single point) -- move to new bend midpoint
--- Bend smoother 3D (range) -- adjust far pointer
--- Centroid -- unchanged
--- Bezier 1 -- adjust far pointer
--- Bezier 2 -- adjust far pointer
+OK Straighten -- unchanged
+OK Bend smoother classic -- adjust far pointer by length change
+OK Bend smoother 3D (single point) -- move to new bend midpoint
+OK Bend smoother 3D (range) -- adjust far pointer
+OK Centroid -- unchanged
+OK Bezier 1 -- adjust far pointer
+OK Bezier 2 -- adjust far pointer
 
 Note effect of Graph though; still want edits to be unaware so see what we need to retain of current code.
 

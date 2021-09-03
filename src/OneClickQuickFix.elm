@@ -1,5 +1,6 @@
 module OneClickQuickFix exposing (oneClickQuickFix)
 
+import BezierSplines
 import Filters
 import GradientLimiter
 import Interpolate
@@ -85,6 +86,14 @@ oneClickQuickFix originalTrack =
                         |> .trackPoints
                         |> TrackPoint.prepareTrackPoints
             }
+
+        bezierApprox track =
+                    Filters.bezierSplineHelper
+                        BezierSplines.bezierApproximation
+                        track
+                        Filters.defaultOptions.bezierTension
+                        Filters.defaultOptions.bezierTolerance
+                        (LoopedTrack.NotALoop Quantity.zero)
     in
     -- Ignore markers for Quick Fix.
     { originalTrack
@@ -92,6 +101,7 @@ oneClickQuickFix originalTrack =
         , markedNode = Nothing
     }
         |> simplifyTrack
-        |> limitGradients
-        |> interpolateTrack
-        |> Loop.for 5 smoothTrack
+        --|> limitGradients
+        |> bezierApprox
+        --|> interpolateTrack
+        |> Loop.for 3 smoothTrack

@@ -11,11 +11,15 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.1 update 2021-09-01
+## 2.2.2 update 2021-09-03
 
-- TipJar replaced by "Buy Me A Coffee" button, because [insert reason here].
+- TipJar replaced by "Buy Me A Coffee" button, because.
 - Tidy up of orange and purple marker positions after changes.
 - Not allowed to delete the whole track.
+- Tweaked One-click Quick-fix:
+    1. Reduce average track point spacing to remove IRL noise
+    2. Apply Bezier approximation
+    3. Apply centroid smoothing three times
 
 ## Donations
 

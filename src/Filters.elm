@@ -122,16 +122,12 @@ update msg settings observations track =
         BezierSplines ->
             let
                 newTrack =
-                    { track
-                        | trackPoints =
-                            temporaryIndices <|
-                                bezierSplineHelper
-                                    BezierSplines.bezierSplines
-                                    track
-                                    settings.bezierTension
-                                    settings.bezierTolerance
-                                    observations.loopiness
-                    }
+                    bezierSplineHelper
+                        BezierSplines.bezierSplines
+                        track
+                        settings.bezierTension
+                        settings.bezierTolerance
+                        observations.loopiness
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
@@ -143,16 +139,12 @@ update msg settings observations track =
         BezierApproximation ->
             let
                 newTrack =
-                    { track
-                        | trackPoints =
-                            temporaryIndices <|
-                                bezierSplineHelper
-                                    BezierSplines.bezierApproximation
-                                    track
-                                    settings.bezierTension
-                                    settings.bezierTolerance
-                                    observations.loopiness
-                    }
+                    bezierSplineHelper
+                        BezierSplines.bezierApproximation
+                        track
+                        settings.bezierTension
+                        settings.bezierTolerance
+                        observations.loopiness
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
@@ -160,7 +152,6 @@ update msg settings observations track =
                 newTrack
                 "Bezier approximation"
             )
-
 
 
 viewFilterControls : Options -> (Msg -> msg) -> Track -> Element msg
@@ -334,7 +325,7 @@ bezierSplineHelper :
     -> Float
     -> Float
     -> Loopiness
-    -> List TrackPoint
+    -> Track
 bezierSplineHelper splineFunction track tension tolerance loopiness =
     let
         points =
@@ -391,10 +382,40 @@ bezierSplineHelper splineFunction track tension tolerance loopiness =
                         tension
                         tolerance
                         (withinRange points)
+
+        modifiedTrack =
+            TrackPoint.prepareTrackPoints <|
+                fixedFirst
+                    ++ splinedSection
+                    ++ fixedLast
+
+        newFinish =
+            finish + (List.length modifiedTrack - List.length points)
+
+        newPurple =
+            case track.markedNode of
+                Just mark ->
+                    if mark.index > start then
+                        List.Extra.getAt newFinish modifiedTrack
+
+                    else
+                        List.Extra.getAt mark.index modifiedTrack
+
+                Nothing ->
+                    Nothing
+
+        newOrange =
+            if track.currentNode.index > start then
+                List.Extra.getAt newFinish modifiedTrack
+
+            else
+                List.Extra.getAt start modifiedTrack
     in
-    fixedFirst
-        ++ splinedSection
-        ++ fixedLast
+    { track
+        | trackPoints = modifiedTrack
+        , currentNode = newOrange |> Maybe.withDefault track.currentNode
+        , markedNode = newPurple
+    }
 
 
 weightedAverage :
