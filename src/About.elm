@@ -11,15 +11,12 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.2 update 2021-09-03
+## 2.2.3 update 2021-09-03
 
-- TipJar replaced by "Buy Me A Coffee" button, because.
-- Tidy up of orange and purple marker positions after changes.
-- Not allowed to delete the whole track.
-- Tweaked One-click Quick-fix:
-    1. Increase average track point spacing to remove IRL noise
-    2. Apply Bezier approximation
-    3. Apply centroid smoothing three times
+- New tool alert: "Track splitter" can be used to deal with really long routes, such as you may encounter
+if you tried to replicate a big Audax adventure. We know Magic Roads limits us to 100km, but you can set your
+own limit on the length, and this will work out roughly equal splits within the limit you set. It writes them
+out as new files in your Downloads folder but does not replace the loaded track.
 
 ## Donations
 
@@ -49,9 +46,9 @@ v2 source code is open-source. See https://github.com/peterjamesward/GPXmagic20
 
 Compatible with Strava, for the purpose of loading route and segment data.
 
-Your IP address is logged for the purpose of aggregate usage recording; no personal details are stored.
+Your IP address may be logged for the purpose of aggregate usage recording; no personal details are stored.
 
-No cookies are used.
+No cookies are used, though many chocolate digestives were consumed whilst writing.
 
 > _Peter Ward, 2021_
 """
@@ -75,6 +72,7 @@ viewAboutText view =
         [ paragraph
             [ width <| px (inPixels w)
             , height <| px (inPixels h)
+            , paddingXY 20 0
             ]
           <|
             [ html <| Markdown.toHtml [] aboutText ]

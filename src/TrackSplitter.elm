@@ -1,37 +1,26 @@
 module TrackSplitter exposing (..)
 
-import Angle exposing (Angle)
-import Axis3d
-import ColourPalette exposing (scrollbarBackground)
-import Direction3d
+import Delay
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Input as Input exposing (button)
-import File.Download as Download
-import Length exposing (Meters, inMeters, meters)
-import LineSegment3d exposing (LineSegment3d)
+import File.Download
+import Length
 import List.Extra
-import LocalCoords exposing (LocalCoords)
-import Maybe.Extra
-import Point3d
-import PostUpdateActions
 import Quantity
-import SketchPlane3d
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackObservations
-import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
-import Vector3d
-import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
+import ViewPureStyles exposing (prettyButtonStyles, wideSliderStyles)
 import WriteGPX
 
 
 info =
     """## Track splitter
 
-Divide track into smaller tracks, each in its own file.
+"Track splitter" can be used to deal with really long routes, such as you may encounter
+if you tried to replicate a big Audax adventure. We know Magic Roads limits us to 100km, but you can set your
+own limit on the length, and this will work out roughly equal splits within the limit you set. It writes them
+out as new files in your Downloads folder but does not replace the loaded track.
 """
 
 
@@ -43,16 +32,12 @@ type Msg
 
 type alias Options =
     { splitLimit : Int
-    , splitCount : Int
-    , splitLength : Float
     }
 
 
 defaultOptions : Options
 defaultOptions =
     { splitLimit = 100
-    , splitCount = 1
-    , splitLength = 100.0
     }
 
 
@@ -65,17 +50,8 @@ update :
 update msg settings observations mTrack =
     case msg of
         SetSplitLimit n ->
-            let
-                splitCount =
-                    ceiling (observations.trackLength / (1000.0 * toFloat settings.splitLimit))
-
-                splitLength =
-                    observations.trackLength / toFloat splitCount / 1000.0
-            in
             ( { settings
                 | splitLimit = n
-                , splitCount = splitCount
-                , splitLength = splitLength
               }
             , Cmd.none
             )
@@ -83,33 +59,92 @@ update msg settings observations mTrack =
         SplitTrack ->
             case mTrack of
                 Just track ->
-                    ( settings, writeSections track settings )
+                    ( settings
+                    , Cmd.batch
+                        [ Delay.after 100 <|
+                            WriteSection <|
+                                writeSections
+                                    track
+                                    observations.trackLength
+                                    settings.splitLimit
+                        ]
+                    )
 
                 Nothing ->
                     ( settings, Cmd.none )
 
         WriteSection sections ->
-            ( settings, Cmd.none )
+            case ( mTrack, sections ) of
+                ( Just track, ( start, end ) :: rest ) ->
+                    let
+                        metricStart =
+                            Length.meters <| start * 1000.0
+
+                        metricEnd =
+                            Length.meters <| end * 1000.0
+
+                        trackName =
+                            track.trackName |> Maybe.withDefault "track"
+
+                        filename =
+                            trackName
+                                ++ "_"
+                                ++ showDecimal0 start
+                                ++ "_"
+                                ++ showDecimal0 end
+                                ++ ".gpx"
+
+                        trackExtract =
+                            { track
+                                | trackPoints =
+                                    track.trackPoints
+                                        |> List.Extra.dropWhile
+                                            (.distanceFromStart >> Quantity.lessThan metricStart)
+                                        |> List.Extra.takeWhile
+                                            (.distanceFromStart >> Quantity.lessThanOrEqualTo metricEnd)
+                            }
+
+                        content =
+                            WriteGPX.writeGPX trackExtract
+                    in
+                    ( settings
+                    , Cmd.batch
+                        [ File.Download.string filename "text/xml" content
+                        , Delay.after 1000 <| WriteSection rest
+                        ]
+                    )
+
+                _ ->
+                    ( settings, Cmd.none )
 
 
-writeSections : Track -> Options -> Cmd msg
-writeSections track options =
+writeSections : Track -> Float -> Int -> List ( Float, Float )
+writeSections track length limit =
     -- Doesn't *actually* split the track, just writes out the files.
     -- This function works out where the splits are, then each section is
     -- written out using the runtime, which kicks off the next.
     let
-        splitPoints =
-            List.map (toFloat >> (*) options.splitLength) (List.range 0 options.splitCount)
+        splitCount =
+            ceiling (length / (1000.0 * toFloat limit))
 
-        trackSections =
-            List.map2 Tuple.pair splitPoints (List.drop 1 splitPoints)
+        splitLength =
+            length / toFloat splitCount / 1000.0
+
+        splitPoints =
+            List.map (toFloat >> (*) splitLength) (List.range 0 splitCount)
     in
-    Cmd.none
+    List.map2 Tuple.pair splitPoints (List.drop 1 splitPoints)
 
 
 view : Options -> TrackObservations.TrackObservations -> (Msg -> msg) -> Track -> Element msg
 view options observations wrapper track =
     let
+        splitCount =
+            ceiling (observations.trackLength / (1000.0 * toFloat options.splitLimit))
+
+        splitLength =
+            observations.trackLength / toFloat splitCount / 1000.0
+
         partsSlider =
             Input.slider
                 wideSliderStyles
@@ -128,7 +163,10 @@ view options observations wrapper track =
                 }
     in
     column [ spacing 5, padding 5, centerX ]
-        [ text "Files will be written to Downloads folder."
+        [ paragraph [ centerX, width fill, paddingXY 20 0 ]
+            [ text "Files will be written to Downloads "
+            , text "folder at one second intervals."
+            ]
         , partsSlider
         , button
             prettyButtonStyles
@@ -136,10 +174,10 @@ view options observations wrapper track =
             , label =
                 text <|
                     "Split into "
-                        ++ String.fromInt options.splitCount
+                        ++ String.fromInt splitCount
                         ++ " files\n"
                         ++ "each "
-                        ++ showDecimal2 options.splitLength
+                        ++ showDecimal2 splitLength
                         ++ "km long."
             }
         ]

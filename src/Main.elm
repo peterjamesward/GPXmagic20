@@ -541,7 +541,6 @@ update msg model =
                 action
 
         SplitterMessage splitter ->
-            -- Need to make some way of outputting multiple files.
             let
                 ( newOptions, commands ) =
                     TrackSplitter.update
@@ -1590,18 +1589,17 @@ toolsAccordion model =
       , video = Just "https://youtu.be/v9hu1bFGOzQ"
       , reducedSet = False
       }
-
-    --, { label = "Track splitter"
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (TrackSplitter.view model.splitterOptions model.observations SplitterMessage)
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = TrackSplitter.info
-    --  , video = Nothing
-    --  , reducedSet = False
-    --  }
+    , { label = "Track splitter"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (TrackSplitter.view model.splitterOptions model.observations SplitterMessage)
+                model.track
+                |> Maybe.withDefault none
+      , info = TrackSplitter.info
+      , video = Nothing
+      , reducedSet = False
+      }
     ]
 
 
