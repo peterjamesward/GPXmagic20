@@ -8,7 +8,7 @@ import Point3d
 import PostUpdateActions
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
-import TrackPoint exposing (trackPointFromPoint)
+import TrackPoint exposing (temporaryIndices, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -107,7 +107,8 @@ insertPoints options track =
             if track.currentNode.index == marker.index then
                 -- Make explicit whole track if no range.
                 ( List.head track.trackPoints |> Maybe.withDefault track.currentNode
-                , List.Extra.last track.trackPoints |> Maybe.withDefault track.currentNode)
+                , List.Extra.last track.trackPoints |> Maybe.withDefault track.currentNode
+                )
 
             else if track.currentNode.index < marker.index then
                 ( track.currentNode, marker )
@@ -140,9 +141,6 @@ insertPoints options track =
                 )
                 (List.range 1 trackPointsNeeded)
 
-        totalTrackPointsBefore =
-            List.length track.trackPoints
-
         pointsToInterpolate =
             track.trackPoints
                 |> List.take (endPoint.index + 1)
@@ -163,16 +161,16 @@ insertPoints options track =
             List.drop (endPoint.index + 1) track.trackPoints
 
         newTrackPointList =
-            precedingTrackPoints ++ allNewTrackPoints ++ subsequentTrackPoints
+            precedingTrackPoints
+                ++ allNewTrackPoints
+                ++ subsequentTrackPoints
+                |> TrackPoint.prepareTrackPoints
 
         currentNode =
             if track.currentNode.index == endPoint.index then
                 List.Extra.getAt
-                    (endPoint.index
-                        + List.length newTrackPointList
-                        - totalTrackPointsBefore
-                    )
-                    track.trackPoints
+                    (endPoint.index + List.length allNewTrackPoints - List.length pointsToInterpolate + 1)
+                    newTrackPointList
                     |> Maybe.withDefault track.currentNode
 
             else
@@ -181,16 +179,11 @@ insertPoints options track =
         markedNode =
             if track.markedNode == Just endPoint then
                 List.Extra.getAt
-                    (endPoint.index
-                        + List.length newTrackPointList
-                        - totalTrackPointsBefore
-                    )
-                    track.trackPoints
-                    |> Maybe.withDefault endPoint
-                    |> Just
+                    (endPoint.index + List.length allNewTrackPoints - List.length pointsToInterpolate + 1)
+                    newTrackPointList
 
             else
-                Nothing
+                track.markedNode
     in
     ( { track
         | trackPoints = newTrackPointList

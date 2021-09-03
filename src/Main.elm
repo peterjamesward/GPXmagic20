@@ -1066,9 +1066,8 @@ repeatTrackDerivations model =
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
-
-                        --, currentNode = newOrange
-                        --, markedNode = newPurple
+                        , currentNode = newOrange
+                        , markedNode = newPurple
                     }
             in
             { model

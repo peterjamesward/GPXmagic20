@@ -97,6 +97,13 @@ gradientFromPoint pt =
         / (pt.length |> inMeters)
 
 
+temporaryIndices points =
+    List.map2
+        (\p i -> { p | index = i })
+        points
+        (List.range 0 (List.length points))
+
+
 prepareTrackPoints : List TrackPoint -> List TrackPoint
 prepareTrackPoints trackPoints =
     -- This is where we "enrich" the track points so they

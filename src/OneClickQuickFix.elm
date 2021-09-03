@@ -71,7 +71,7 @@ oneClickQuickFix originalTrack =
                         |> Filters.applyWeightedAverageFilter
                             Filters.defaultOptions
                             (LoopedTrack.NotALoop Quantity.zero)
-                        |> Filters.temporaryIndices
+                        |> TrackPoint.temporaryIndices
                         -- ??
                         |> TrackPoint.prepareTrackPoints
             }

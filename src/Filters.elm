@@ -11,7 +11,7 @@ import TabCommonElements exposing (wholeTrackTextHelper)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackObservations exposing (TrackObservations)
-import TrackPoint exposing (TrackPoint, trackPointFromPoint)
+import TrackPoint exposing (TrackPoint, temporaryIndices, trackPointFromPoint)
 import Triangle3d exposing (Triangle3d)
 import Utils exposing (showDecimal2)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -161,12 +161,6 @@ update msg settings observations track =
                 "Bezier approximation"
             )
 
-
-temporaryIndices points =
-    List.map2
-        (\p i -> { p | index = i })
-        points
-        (List.range 0 (List.length points))
 
 
 viewFilterControls : Options -> (Msg -> msg) -> Track -> Element msg

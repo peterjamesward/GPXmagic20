@@ -14,14 +14,15 @@ aboutText =
 ## 2.2.1 update 2021-09-01
 
 - TipJar replaced by "Buy Me A Coffee" button, because [insert reason here].
-- Bezier approximation should now respect Orange and Purple markers,
-so that it applies between the markers and does not randomly move them.
+- Tidy up of orange and purple marker positions after changes.
+- Not allowed to delete the whole track.
 
 ## Donations
 
 **YES, PLEASE!!**
 
 Donations will be passed on to our local hospice.
+We have changed to "Buy Me a Coffee".
 Use the not so subtle yellow button at the top.
 
 ## Guidance on use

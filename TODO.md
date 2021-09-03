@@ -4,14 +4,13 @@
 
 Inferring marker placement is fraught amd dumb.
 Each edit operation should return a Track with new pointers set, not a List TrackPoint.
-HANG ON; they return a Track already.
-So why am I not using the pointer positions there?????
 
 So, again, list of operations to work through:
 OK Nudge -- pointer indices unchanged
 OK Delete (single node) -- back one unless at end, disallow delete last remaining node
 OK Delete (range) -- near back one, far forward one, unless at extremes, disallow delete whole track
--- Interpolate -- adjust far pointer by length change
+OK Interpolate -- adjust far pointer by length change
+
 -- Straighten -- unchanged
 -- Bend smoother classic -- adjust far pointer by length change
 -- Bend smoother 3D (single point) -- move to new bend midpoint
