@@ -17,7 +17,7 @@ aboutText =
 - Tidy up of orange and purple marker positions after changes.
 - Not allowed to delete the whole track.
 - Tweaked One-click Quick-fix:
-    1. Reduce average track point spacing to remove IRL noise
+    1. Increase average track point spacing to remove IRL noise
     2. Apply Bezier approximation
     3. Apply centroid smoothing three times
 
