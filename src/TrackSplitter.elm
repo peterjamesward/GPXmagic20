@@ -10,7 +10,7 @@ import Quantity
 import Track exposing (Track)
 import TrackObservations
 import Utils exposing (showDecimal0, showDecimal2)
-import ViewPureStyles exposing (prettyButtonStyles, wideSliderStyles)
+import ViewPureStyles exposing (checkboxIcon, prettyButtonStyles, wideSliderStyles)
 import WriteGPX
 
 
@@ -21,6 +21,9 @@ info =
 if you tried to replicate a big Audax adventure. We know Magic Roads limits us to 100km, but you can set your
 own limit on the length, and this will work out roughly equal splits within the limit you set. It writes them
 out as new files in your Downloads folder but does not replace the loaded track.
+
+"Allow for start and end pens" will put a 60m zone before the start and a 140m zone after the end
+to allow for the RGT rider pens. This should mean you actually get to ride the relevant section in full.
 """
 
 
@@ -28,16 +31,19 @@ type Msg
     = SplitTrack
     | SetSplitLimit Int
     | WriteSection (List ( Float, Float ))
+    | ToggleBuffers Bool
 
 
 type alias Options =
     { splitLimit : Int
+    , addBuffers : Bool
     }
 
 
 defaultOptions : Options
 defaultOptions =
     { splitLimit = 100
+    , addBuffers = False
     }
 
 
@@ -56,6 +62,13 @@ update msg settings observations mTrack =
             , Cmd.none
             )
 
+        ToggleBuffers state ->
+            ( { settings
+                | addBuffers = not settings.addBuffers
+              }
+            , Cmd.none
+            )
+
         SplitTrack ->
             case mTrack of
                 Just track ->
@@ -66,7 +79,7 @@ update msg settings observations mTrack =
                                 writeSections
                                     track
                                     observations.trackLength
-                                    settings.splitLimit
+                                    settings
                         ]
                     )
 
@@ -78,10 +91,24 @@ update msg settings observations mTrack =
                 ( Just track, ( start, end ) :: rest ) ->
                     let
                         metricStart =
-                            Length.meters <| start * 1000.0
+                            Length.meters <|
+                                start
+                                    - (if settings.addBuffers then
+                                        60.0
+
+                                       else
+                                        0.0
+                                      )
 
                         metricEnd =
-                            Length.meters <| end * 1000.0
+                            Length.meters <|
+                                end
+                                    + (if settings.addBuffers then
+                                        140.0
+
+                                       else
+                                        0.0
+                                      )
 
                         trackName =
                             track.trackName |> Maybe.withDefault "track"
@@ -118,17 +145,24 @@ update msg settings observations mTrack =
                     ( settings, Cmd.none )
 
 
-writeSections : Track -> Float -> Int -> List ( Float, Float )
-writeSections track length limit =
+writeSections : Track -> Float -> Options -> List ( Float, Float )
+writeSections track length options =
     -- Doesn't *actually* split the track, just writes out the files.
     -- This function works out where the splits are, then each section is
     -- written out using the runtime, which kicks off the next.
     let
+        effectiveLength =
+            if options.addBuffers then
+                toFloat options.splitLimit * 1000.0 - 200
+
+            else
+                toFloat options.splitLimit * 1000.0
+
         splitCount =
-            ceiling (length / (1000.0 * toFloat limit))
+            ceiling (length / effectiveLength)
 
         splitLength =
-            length / toFloat splitCount / 1000.0
+            length / toFloat splitCount
 
         splitPoints =
             List.map (toFloat >> (*) splitLength) (List.range 0 splitCount)
@@ -139,11 +173,18 @@ writeSections track length limit =
 view : Options -> TrackObservations.TrackObservations -> (Msg -> msg) -> Track -> Element msg
 view options observations wrapper track =
     let
+        effectiveLength =
+            if options.addBuffers then
+                toFloat options.splitLimit * 1000.0 - 200
+
+            else
+                toFloat options.splitLimit * 1000.0
+
         splitCount =
-            ceiling (observations.trackLength / (1000.0 * toFloat options.splitLimit))
+            ceiling (observations.trackLength / effectiveLength)
 
         splitLength =
-            observations.trackLength / toFloat splitCount / 1000.0
+            observations.trackLength / toFloat splitCount
 
         partsSlider =
             Input.slider
@@ -168,6 +209,12 @@ view options observations wrapper track =
             , text "folder at one second intervals."
             ]
         , partsSlider
+        , Input.checkbox []
+            { onChange = wrapper << ToggleBuffers
+            , icon = checkboxIcon
+            , checked = options.addBuffers
+            , label = Input.labelRight [ centerY ] (text "Allow for start and end pens")
+            }
         , button
             prettyButtonStyles
             { onPress = Just <| wrapper <| SplitTrack
