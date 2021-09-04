@@ -13,13 +13,9 @@ aboutText =
 
 ## 2.2.5 update 2021-09-04
 
-- New tool alert: "Track splitter" can be used to deal with really long routes, such as you may encounter
-if you tried to replicate a big Audax adventure. We know Magic Roads limits us to 100km, but you can set your
-own limit on the length, and this will work out roughly equal splits within the limit you set. It writes them
-out as new files in your Downloads folder but does not replace the loaded track.
-
-- "Allow for start and end pens" will put a 60m zone before the start and a 140m zone after the end
-  to allow for the RGT rider pens. This should mean you actually get to ride the relevant section in full.
+- "Track splitter" is renamed to "Splitter & Joiner"
+The "Append file" button allows you to select a GPX file on your computer to be appended to the current route.
+This will **not** adjust the locations of either route; you can use Shift & Rotate for that.
 
 ## Donations
 

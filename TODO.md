@@ -5,9 +5,6 @@
 
 # TODO
 
-Track combiner: Appends new track (from local file only) to current
-OK but bounding box does not get re-drawn...
-
 Consider colouring TP by curvature.
 This may lead to way of identifying (e.g.) sweeping bends, straights, hairpins.
 That might then lead to more intelligent automated smoothing, specialised by region.
