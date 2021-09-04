@@ -11,7 +11,7 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.4 update 2021-09-03
+## 2.2.5 update 2021-09-04
 
 - New tool alert: "Track splitter" can be used to deal with really long routes, such as you may encounter
 if you tried to replicate a big Audax adventure. We know Magic Roads limits us to 100km, but you can set your

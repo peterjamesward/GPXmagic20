@@ -542,21 +542,20 @@ update msg model =
 
         SplitterMessage splitter ->
             let
-                ( newOptions, commands ) =
+                ( newOptions, action ) =
                     TrackSplitter.update
                         splitter
                         model.splitterOptions
                         model.observations
                         model.track
+                        SplitterMessage
 
                 newModel =
                     { model
                         | splitterOptions = newOptions
                     }
             in
-            ( newModel
-            , Cmd.map SplitterMessage commands
-            )
+            processPostUpdateAction newModel action
 
         ProblemMessage probMsg ->
             let
@@ -1589,7 +1588,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/v9hu1bFGOzQ"
       , reducedSet = False
       }
-    , { label = "Track splitter"
+    , { label = "Splitter & Joiner"
       , state = Contracted
       , content =
             Maybe.map

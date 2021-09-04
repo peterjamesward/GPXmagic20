@@ -221,7 +221,7 @@ viewInfo info =
             [ centerX
             , Background.color <| rgb255 220 220 200
             , clipY
-            , scrollbarY
+            , scrollbars
             , padding 20
             , width <| px 500
             , moveUp 200

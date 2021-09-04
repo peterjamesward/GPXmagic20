@@ -5,18 +5,8 @@
 
 # TODO
 
-
-STUFF FOR STEVE
-
-    Track combiner:
-        Appends new track (from local file only) to current
-    
-    Batch operation:
-        1. Define list of (whole track) operations
-        2. Apply over directory
-        3. Appends if possible when less than theshold distance remains.
-
----
+Track combiner: Appends new track (from local file only) to current
+OK but bounding box does not get re-drawn...
 
 Consider colouring TP by curvature.
 This may lead to way of identifying (e.g.) sweeping bends, straights, hairpins.
