@@ -194,6 +194,7 @@ update msg view wrap =
                                 (startX - dx)
                                 0.0
                                 |> Vector3d.rotateAround Axis3d.z view.azimuth
+                                |> Vector3d.scaleBy (metresPerPixel view.zoomLevel (degrees 30))
                     in
                     ( { view
                         | focalPoint =

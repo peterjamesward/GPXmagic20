@@ -189,15 +189,18 @@ update msg view wrap =
             in
             case ( view.dragAction, view.orbiting ) of
                 ( DragProfile, Just ( startX, startY ) ) ->
+                    let
+                        shiftVector =
+                            Vector3d.meters
+                                (startY - dy)
+                                (startX - dx)
+                                0.0
+                                |> Vector3d.rotateAround Axis3d.z view.azimuth
+                                |> Vector3d.scaleBy (metresPerPixel view.zoomLevel (degrees 30))
+                    in
                     ( { view
                         | focalPoint =
-                            view.focalPoint
-                                |> Point3d.translateBy
-                                    (Vector3d.meters
-                                        (0.5 * (startX - dx))
-                                        0.0
-                                        0.0
-                                    )
+                            view.focalPoint |> Point3d.translateBy shiftVector
                         , orbiting = Just ( dx, dy )
                       }
                     , ActionNoOp

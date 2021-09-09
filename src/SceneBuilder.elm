@@ -46,8 +46,6 @@ defaultRenderingContext =
 
 renderTrack : DisplayOptions -> Track -> Scene
 renderTrack options track =
-    -- Let's just try a clean room implementation here, with surface only.
-    -- Adding in extra options ...
     --TODO: Implement selective detail (optimisation!) = simpleSelectiveDetail context track
     let
         box =

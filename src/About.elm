@@ -11,11 +11,11 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.5 update 2021-09-04
+## 2.2.6 update 2021-09-09
 
-- "Track splitter" is renamed to "Splitter & Joiner"
-The "Append file" button allows you to select a GPX file on your computer to be appended to the current route.
-This will **not** adjust the locations of either route; you can use Shift & Rotate for that.
+- Dragging in Third person, Plan and Profile views should track the mouse better and vary with zoom level. Please note
+this will never be perfect as your clicking on a 2D screen that holds a 3D image and there's some room
+for ambiguity.
 
 ## Donations
 
