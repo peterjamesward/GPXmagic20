@@ -190,9 +190,9 @@ update msg view wrap =
                     let
                         shiftVector =
                             Vector3d.meters
-                                (startY - dy)
+                                ((startY - dy)* Angle.sin view.elevation)
                                 (startX - dx)
-                                0.0
+                                ((dy - startY) * Angle.cos view.elevation)
                                 |> Vector3d.rotateAround Axis3d.z view.azimuth
                                 |> Vector3d.scaleBy (metresPerPixel view.zoomLevel (degrees 30))
                     in

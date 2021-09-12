@@ -11,11 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.6 update 2021-09-09
+## 2.2.7 update 2021-09-12
 
-- Dragging in Third person, Plan and Profile views should track the mouse better and vary with zoom level. Please note
-this will never be perfect as your clicking on a 2D screen that holds a 3D image and there's some room
-for ambiguity.
+- Minor change to dragging in Third person view. It takes into account the viewpoint elevation
+and should feel more natural.
 
 ## Donations
 
