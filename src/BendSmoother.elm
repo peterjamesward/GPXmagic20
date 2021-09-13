@@ -12,19 +12,15 @@ import LineSegment2d
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
-import Plane3d
 import Point2d exposing (Point2d)
 import Point3d exposing (Point3d, xCoordinate, yCoordinate, zCoordinate)
 import Polyline2d
 import Polyline3d
 import PostUpdateActions
-import Quantity
-import SketchPlane3d
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
-import Vector2d
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
