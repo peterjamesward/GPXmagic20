@@ -125,7 +125,7 @@ update msg settings observations track =
                 applyToSinglePointByIndex index changingTrack =
                     -- repeated use of prepareTrackPoints looks costly but check logic first.
                     Maybe.map
-                        (BendSmoother.softenSinglePoint changingTrack)
+                        (BendSmoother.softenSinglePoint 5 changingTrack)
                         (List.Extra.getAt index changingTrack.trackPoints)
                         |> Maybe.withDefault changingTrack
 

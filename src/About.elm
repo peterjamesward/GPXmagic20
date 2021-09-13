@@ -11,10 +11,10 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.7 update 2021-09-12
+## 2.2.8 update 2021-TBD
 
-- Minor change to dragging in Third person view. It takes into account the viewpoint elevation
-and should feel more natural.
+- Bend smoother classic lets you change the number of line segments used to smooth a single track point.
+Setting this to 1 equates (more or less) to the old v1 "chamfer" operation.
 
 ## Donations
 

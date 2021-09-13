@@ -38,7 +38,7 @@ not be what you want.
 A yellow line shows what the curve will look like, assuming
 the algorithm can find one, and this control tab is open.
 
-Use the spacing to vary the number of track points used to
+Use the slider to vary the number of track points used to
 define the bend, and hence the smoothness.
 
 ### New in V2
@@ -108,7 +108,7 @@ update msg settings track =
 
         SoftenBend ->
             ( settings
-            , softenCurrentPoint track
+            , softenCurrentPoint settings track
             )
 
 
@@ -519,12 +519,11 @@ viewBendFixerPane bendOptions wrap =
                 }
     in
     column [ spacing 10, padding 10, alignTop, centerX ]
-        [ case bendOptions.smoothedBend of
+        [ bendSmoothnessSlider bendOptions wrap
+        , case bendOptions.smoothedBend of
             Just smooth ->
                 row [ spacing 10, padding 10, alignTop ]
-                    [ fixBendButton smooth
-                    , bendSmoothnessSlider bendOptions wrap
-                    ]
+                    [ fixBendButton smooth                    ]
 
             Nothing ->
                 column [ spacing 10, padding 10, alignTop, centerX ]
@@ -543,26 +542,26 @@ bendSmoothnessSlider model wrap =
         , label =
             Input.labelBelow [] <|
                 text <|
-                    "Spacing = "
-                        ++ showDecimal2 model.bendTrackPointSpacing
+                    "Segments: "
+                        ++ showDecimal0 model.bendTrackPointSpacing
         , min = 1.0
         , max = 10.0
-        , step = Nothing
+        , step = Just 1.0
         , value = model.bendTrackPointSpacing
         , thumb = Input.defaultThumb
         }
 
 
-softenCurrentPoint : Track -> PostUpdateActions.PostUpdateAction cmd
-softenCurrentPoint track =
+softenCurrentPoint : BendOptions -> Track -> PostUpdateActions.PostUpdateAction cmd
+softenCurrentPoint options track =
     PostUpdateActions.ActionTrackChanged
         PostUpdateActions.EditPreservesNodePosition
-        (softenSinglePoint track track.currentNode)
+        (softenSinglePoint (round options.bendTrackPointSpacing) track track.currentNode)
         "Smooth single point"
 
 
-softenSinglePoint : Track -> TrackPoint -> Track
-softenSinglePoint track point =
+softenSinglePoint : Int -> Track -> TrackPoint -> Track
+softenSinglePoint numSegments track point =
     -- Apply the new bend smoother to a single point, if possible.
     case singlePoint3dArc track point of
         Just arc ->
@@ -575,7 +574,7 @@ softenSinglePoint track point =
 
                 newPoints =
                     Arc3d.startPoint arc
-                        :: (Arc3d.segments 5 arc
+                        :: (Arc3d.segments numSegments arc
                                 |> Polyline3d.segments
                                 |> List.map LineSegment3d.endPoint
                            )

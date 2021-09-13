@@ -9,7 +9,7 @@ Parameterise arc segments in smooth bend 3D -- effectively recreate v1 chamfer.
 
 Add scale track function - just linearly scale x, y, z and recompute TPs. (Range 2 .. 100?)
 
-Add option to get elevation data from https://www.opentopodata.org/api/ ((NO! CORS restriction.))
+---
 
 Strava segment blend elevation rather than just Paste (optional).
 
@@ -19,6 +19,8 @@ Strava segment blend elevation rather than just Paste (optional).
 (I don't understand this suggestion.)
 
 # Not doing
+
+Add option to get elevation data from https://www.opentopodata.org/api/ ((NO! CORS restriction.))
 
 Working offline? (Mongoose server?)
 
