@@ -47,6 +47,7 @@ import SceneBuilderProfile
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
+import SvgPathExtractor
 import Task
 import Time
 import TipJar
@@ -98,6 +99,7 @@ type Msg
     | RotateMessage RotateRoute.Msg
     | ToggleToolSet
     | OneClickQuickFix
+    | SvgMessage SvgPathExtractor.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -154,6 +156,7 @@ type alias Model =
     , lastMapClick : ( Float, Float )
     , reducedToolset : Bool
     , splitterOptions : TrackSplitter.Options
+    , svgData : SvgPathExtractor.Options
     }
 
 
@@ -204,6 +207,7 @@ init mflags origin navigationKey =
       , lastMapClick = ( 0.0, 0.0 )
       , reducedToolset = False
       , splitterOptions = TrackSplitter.defaultOptions
+      , svgData = SvgPathExtractor.empty
       }
     , Cmd.batch
         [ authCmd
@@ -628,6 +632,18 @@ update msg model =
         ToggleToolSet ->
             ( { model | reducedToolset = not model.reducedToolset }
             , Cmd.none
+            )
+
+        SvgMessage svgMsg ->
+            let
+                ( newData, cmd ) =
+                    SvgPathExtractor.update
+                        svgMsg
+                        model.svgData
+                        SvgMessage
+            in
+            ( { model | svgData = newData }
+            , cmd
             )
 
 
@@ -1240,18 +1256,23 @@ view model =
                 [ width fill ]
                 [ topLoadingBar model
                 , contentArea model
+                , footer model
                 ]
         ]
     }
 
 
 topLoadingBar model =
+    let
+        loadGpxButton =
+            button
+                prettyButtonStyles
+                { onPress = Just GpxRequested
+                , label = text "Load GPX from your computer"
+                }
+    in
     row [ spacing 20, padding 10 ]
-        [ button
-            prettyButtonStyles
-            { onPress = Just GpxRequested
-            , label = text "Load GPX from your computer"
-            }
+        [ loadGpxButton
         , if model.changeCounter == 0 then
             stravaButton
                 model.stravaAuthentication
@@ -1276,6 +1297,13 @@ topLoadingBar model =
                 none
         , saveButtonIfChanged model
         , buyMeACoffeeButton
+        ]
+
+
+footer : Model -> Element Msg
+footer model =
+    row [ spacing 20, padding 10 ]
+        [ SvgPathExtractor.view SvgMessage
         ]
 
 
