@@ -195,21 +195,29 @@ view options wrapper track =
         scaleSlider =
             Input.slider
                 wideSliderStyles
-                { onChange = wrapper << SetScale
+                { onChange = wrapper << SetScale << (\x -> 10.0 ^ x)
                 , label =
                     Input.labelBelow [] <|
                         text <|
                             "Scale: "
-                                ++ showDecimal0 options.scaleFactor
-                , min = 1.0
-                , max = 100.0
-                , step = Just 1.0
-                , value = options.scaleFactor
+                                ++ showDecimal2 options.scaleFactor
+                , min = -1.0
+                , max = 1.0
+                , step = Nothing
+                , value = logBase 10 options.scaleFactor
                 , thumb = Input.defaultThumb
                 }
 
         ( lon, lat, _ ) =
             track.earthReferenceCoordinates
+
+        trackLength =
+            case List.Extra.last track.trackPoints of
+                Just last ->
+                    inMeters last.distanceFromStart
+
+                _ ->
+                    0.0
     in
     column [ spacing 5, padding 5, centerX ]
         [ rotationSlider
@@ -237,7 +245,8 @@ view options wrapper track =
             { onPress = Just <| wrapper <| ScaleRoute
             , label =
                 text <|
-                    "Scale by "
-                        ++ String.fromFloat options.scaleFactor
+                    "Scale track to "
+                        ++ showDecimal2 (options.scaleFactor * trackLength)
+                        ++ "m"
             }
         ]
