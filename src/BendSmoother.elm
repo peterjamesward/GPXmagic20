@@ -51,18 +51,21 @@ a set threshold while preserving the gradients before and after."""
 type Msg
     = SmoothBend
     | SetBendTrackPointSpacing Float
+    | SetSegments Int
     | SoftenBend
 
 
 type alias BendOptions =
     { bendTrackPointSpacing : Float
     , smoothedBend : Maybe SmoothedBend
+    , segments : Int
     }
 
 
 defaultOptions =
     { bendTrackPointSpacing = 5.0
     , smoothedBend = Nothing
+    , segments = 5
     }
 
 
@@ -93,6 +96,15 @@ update msg settings track =
             let
                 newSettings =
                     { settings | bendTrackPointSpacing = spacing }
+            in
+            ( newSettings
+            , PostUpdateActions.ActionPreview
+            )
+
+        SetSegments segments ->
+            let
+                newSettings =
+                    { settings | segments = segments }
             in
             ( newSettings
             , PostUpdateActions.ActionPreview
@@ -515,22 +527,26 @@ viewBendFixerPane bendOptions wrap =
             button
                 prettyButtonStyles
                 { onPress = Just <| wrap SoftenBend
-                , label = text "Smooth current point in 3D"
+                , label = text "Smooth current point"
                 }
     in
     column [ spacing 10, padding 10, alignTop, centerX ]
-        [ bendSmoothnessSlider bendOptions wrap
-        , case bendOptions.smoothedBend of
+        [ case bendOptions.smoothedBend of
             Just smooth ->
                 row [ spacing 10, padding 10, alignTop ]
-                    [ fixBendButton smooth                    ]
+                    [ bendSmoothnessSlider bendOptions wrap
+                    , fixBendButton smooth
+                    ]
 
             Nothing ->
                 column [ spacing 10, padding 10, alignTop, centerX ]
                     [ text "Sorry, failed to find a nice bend."
                     , text "Try re-positioning the current pointer or marker."
                     ]
-        , softenButton
+        , row [ spacing 10, padding 10, alignTop ]
+            [ segmentSlider bendOptions wrap
+            , softenButton
+            ]
         ]
 
 
@@ -542,8 +558,9 @@ bendSmoothnessSlider model wrap =
         , label =
             Input.labelBelow [] <|
                 text <|
-                    "Segments: "
+                    "Spacing: "
                         ++ showDecimal0 model.bendTrackPointSpacing
+                        ++ "m"
         , min = 1.0
         , max = 10.0
         , step = Just 1.0
@@ -552,11 +569,29 @@ bendSmoothnessSlider model wrap =
         }
 
 
+segmentSlider : BendOptions -> (Msg -> msg) -> Element msg
+segmentSlider model wrap =
+    Input.slider
+        commonShortHorizontalSliderStyles
+        { onChange = wrap << SetSegments << round
+        , label =
+            Input.labelBelow [] <|
+                text <|
+                    "Segments: "
+                        ++ String.fromInt model.segments
+        , min = 1.0
+        , max = 10.0
+        , step = Just 1.0
+        , value = toFloat model.segments
+        , thumb = Input.defaultThumb
+        }
+
+
 softenCurrentPoint : BendOptions -> Track -> PostUpdateActions.PostUpdateAction cmd
 softenCurrentPoint options track =
     PostUpdateActions.ActionTrackChanged
         PostUpdateActions.EditPreservesNodePosition
-        (softenSinglePoint (round options.bendTrackPointSpacing) track track.currentNode)
+        (softenSinglePoint options.segments track track.currentNode)
         "Smooth single point"
 
 
