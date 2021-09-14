@@ -5,10 +5,12 @@ import Accordion exposing (AccordionEntry, AccordionState(..), view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import ColourPalette exposing (buttonText)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
@@ -17,6 +19,7 @@ import File.Download as Download
 import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
+import FlatColors.FlatUIPalette
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
@@ -24,7 +27,7 @@ import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Http
 import Interpolate
-import Json.Decode as E exposing (at, decodeValue, field, float)
+import Json.Decode as E exposing (at, decodeValue, field, float, list, string)
 import Json.Encode
 import Length
 import List.Extra
@@ -100,6 +103,7 @@ type Msg
     | ToggleToolSet
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
+    | UseMapElevations
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -157,6 +161,7 @@ type alias Model =
     , reducedToolset : Bool
     , splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
+    , mapElevations : List Float
     }
 
 
@@ -208,6 +213,7 @@ init mflags origin navigationKey =
       , reducedToolset = False
       , splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
+      , mapElevations = []
       }
     , Cmd.batch
         [ authCmd
@@ -371,6 +377,9 @@ update msg model =
                     ( decodeValue (field "lat" float) json
                     , decodeValue (field "lon" float) json
                     )
+
+                elevations =
+                    decodeValue (field "elevations" (list float)) json
             in
             case ( jsonMsg, model.track ) of
                 ( Ok "click", Just track ) ->
@@ -404,6 +413,20 @@ update msg model =
                                 )
 
                         Nothing ->
+                            ( model, Cmd.none )
+
+                ( Ok "track ready", Just track ) ->
+                    let
+                        _ =
+                            Debug.log "ELEVATIONS" elevations
+                    in
+                    case elevations of
+                        Ok mapElevations ->
+                            ( { model | mapElevations = mapElevations }
+                            , Cmd.none
+                            )
+
+                        _ ->
                             ( model, Cmd.none )
 
                 ( Ok "no node", _ ) ->
@@ -645,6 +668,32 @@ update msg model =
             ( { model | svgData = newData }
             , cmd
             )
+
+        UseMapElevations ->
+            case model.track of
+                Just track ->
+                    let
+                        newTrack =
+                            OneClickQuickFix.applyMapElevations model.mapElevations track
+
+                        newModel =
+                            model
+                                |> addToUndoStack "Use map elevations"
+                                |> (\m ->
+                                        { m
+                                            | track = Just newTrack
+                                            , observations = deriveProblems newTrack m.problemOptions
+                                        }
+                                   )
+                                |> repeatTrackDerivations
+                                |> renderTrackSceneElements
+                    in
+                    ( newModel
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
 
 draggedOnMap : E.Value -> Track -> Maybe Track
@@ -1304,6 +1353,17 @@ footer : Model -> Element Msg
 footer model =
     row [ spacing 20, padding 10 ]
         [ SvgPathExtractor.view SvgMessage
+        , Input.button
+            [ Background.color FlatColors.FlatUIPalette.belizeHole
+            , Font.color <| buttonText
+            , Font.size 16
+            , padding 4
+            , focused
+                [ Background.color FlatColors.FlatUIPalette.wisteria ]
+            ]
+            { onPress = Just UseMapElevations
+            , label = text "Use elevations fetched from Mapbox"
+            }
         ]
 
 

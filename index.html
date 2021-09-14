@@ -269,12 +269,17 @@ function addLineToMap(data, points) {
     trackAdded = true;
     setClickMode(clickToDrag, points);
 
-    app.ports.messageReceiver.send({ 'msg' : 'track ready' });
-
-        data.geometry.coordinates.forEach(
-            v => console.log(map.queryTerrainElevation(v))
+    const elevations =
+        data.geometry.coordinates.map(
+            v => map.queryTerrainElevation(v)
         );
+    //console.log(elevations);
 
+    app.ports.messageReceiver.send(
+      { 'msg' : 'track ready'
+      , 'elevations' : elevations
+      }
+    );
 };
 
 function setClickMode(newMode, points) {

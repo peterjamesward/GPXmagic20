@@ -1,11 +1,14 @@
-module OneClickQuickFix exposing (oneClickQuickFix)
+module OneClickQuickFix exposing (applyMapElevations, oneClickQuickFix)
 
 import BezierSplines
+import BoundingBox3d
 import Filters
 import GradientLimiter
 import Interpolate
+import Length
 import Loop
 import LoopedTrack
+import Point3d
 import Quantity
 import Straightener
 import Track exposing (Track)
@@ -88,12 +91,12 @@ oneClickQuickFix originalTrack =
             }
 
         bezierApprox track =
-                    Filters.bezierSplineHelper
-                        BezierSplines.bezierApproximation
-                        track
-                        Filters.defaultOptions.bezierTension
-                        Filters.defaultOptions.bezierTolerance
-                        (LoopedTrack.NotALoop Quantity.zero)
+            Filters.bezierSplineHelper
+                BezierSplines.bezierApproximation
+                track
+                Filters.defaultOptions.bezierTension
+                Filters.defaultOptions.bezierTolerance
+                (LoopedTrack.NotALoop Quantity.zero)
     in
     -- Ignore markers for Quick Fix.
     { originalTrack
@@ -101,7 +104,30 @@ oneClickQuickFix originalTrack =
         , markedNode = Nothing
     }
         |> simplifyTrack
-        --|> limitGradients
         |> bezierApprox
-        --|> interpolateTrack
         |> Loop.for 3 smoothTrack
+
+
+applyMapElevations : List Float -> Track -> Track
+applyMapElevations elevations track =
+    let
+        useNewElevation tp ele =
+            Point3d.xyz
+                (Point3d.xCoordinate tp.xyz)
+                (Point3d.yCoordinate tp.xyz)
+                (Length.meters ele)
+                |> TrackPoint.trackPointFromPoint
+
+        newPoints =
+            List.map2
+                useNewElevation
+                track.trackPoints
+                elevations
+                |> TrackPoint.prepareTrackPoints
+    in
+    { track
+        | trackPoints = newPoints
+        , box =
+            BoundingBox3d.hullOfN .xyz newPoints
+                |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+    }
