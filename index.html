@@ -212,13 +212,14 @@ function makeTheMap(msg) {
             // Add zoom and rotation controls to the map.
             map.addControl(new mapboxgl.NavigationControl());
 
-            map.addSource('mapbox-terrain', {
-              type: 'vector',
-              // Use any Mapbox-hosted tileset using its tileset id.
-              // Learn more about where to find a tileset id:
-              // https://docs.mapbox.com/help/glossary/tileset-id/
-              url: 'mapbox://mapbox.mapbox-terrain-v2'
+            // Add terrain source, with slight exaggeration
+            map.addSource('mapbox-dem', {
+              'type': 'raster-dem',
+              'url': 'mapbox://mapbox.terrain-rgb',
+              'tileSize': 512,
+              'maxzoom': 14
             });
+            map.setTerrain({ 'source': 'mapbox-dem'});
 
             app.ports.messageReceiver.send({ 'msg' : 'map ready' });
         });
@@ -270,9 +271,9 @@ function addLineToMap(data, points) {
 
     app.ports.messageReceiver.send({ 'msg' : 'track ready' });
 
-        //data.geometry.coordinates.forEach(
-        //    v => console.log(map.queryTerrainElevation(v))
-        //);
+        data.geometry.coordinates.forEach(
+            v => console.log(map.queryTerrainElevation(v))
+        );
 
 };
 
