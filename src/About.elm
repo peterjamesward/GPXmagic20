@@ -11,12 +11,19 @@ aboutText =
     """## Thank you for trying GPXmagic.
     GPXmagic is freely provided without warranty.
 
-## 2.2.8 update 2021-TBD
+## 2.2.8 update 2021-09-14
 
 - Bend smoother classic lets you change the number of line segments used to smooth a single track point.
 Setting this to 1 equates (more or less) to the old v1 "chamfer" operation.
 
-## Donations
+- Under Lift & Shift you can now expand your ride by up to 100x
+
+- New feature accessible at foot of screen: If you have an SVG graphic file, this will quickly extract the
+paths from within it into separate GPX tracks. You can then load these in, position and scale them with
+"Lift & Shift". Elevation is zero, mind. You can put them through popular route planners or GIS tools to
+add elevation data. You may find autotracer useful for making SVG out of image files.
+
+## Support GPXmagic development
 
 **YES, PLEASE!!**
 
