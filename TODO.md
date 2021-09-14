@@ -5,9 +5,9 @@
 
 # TODO
 
-Add scale track function - just linearly scale x, y, z and recompute TPs. (Range 2 .. 100?)
+Recentre route should also recentre the map, although it's more odd that the map restores itself.
 
-Recentre route should also recentre the map,
+Fetch elevations from mapbox API?
 
 ---
 

@@ -6,8 +6,8 @@
   <title>GPXmagic</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
   <script type="text/javascript" src="main.js"></script>
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js"></script>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.css" rel="stylesheet">
+  <script src='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
 </head>
 
 <body>
@@ -206,12 +206,21 @@ function makeTheMap(msg) {
         });
 
         map.on('load', function () {
-                //console.log('tell Elm the map is ready');
-                isMapCreated = true;
-                canvas  = map.getCanvasContainer();
-                // Add zoom and rotation controls to the map.
-                map.addControl(new mapboxgl.NavigationControl());
-                app.ports.messageReceiver.send({ 'msg' : 'map ready' });
+            //console.log('tell Elm the map is ready');
+            isMapCreated = true;
+            canvas  = map.getCanvasContainer();
+            // Add zoom and rotation controls to the map.
+            map.addControl(new mapboxgl.NavigationControl());
+
+            map.addSource('mapbox-terrain', {
+              type: 'vector',
+              // Use any Mapbox-hosted tileset using its tileset id.
+              // Learn more about where to find a tileset id:
+              // https://docs.mapbox.com/help/glossary/tileset-id/
+              url: 'mapbox://mapbox.mapbox-terrain-v2'
+            });
+
+            app.ports.messageReceiver.send({ 'msg' : 'map ready' });
         });
 
     } else {
@@ -260,6 +269,11 @@ function addLineToMap(data, points) {
     setClickMode(clickToDrag, points);
 
     app.ports.messageReceiver.send({ 'msg' : 'track ready' });
+
+        //data.geometry.coordinates.forEach(
+        //    v => console.log(map.queryTerrainElevation(v))
+        //);
+
 };
 
 function setClickMode(newMode, points) {
