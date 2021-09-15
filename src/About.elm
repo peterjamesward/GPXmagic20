@@ -10,7 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.2.9 update 2021-09-15
+## 2.2.10 update 2021-09-15
+
+- Quick fix to minor scaling error in 2.2.9.
 
 - Upgrade Mapbox component to v2.4.1. Performance improvements, bug fixes. Terrain!
 

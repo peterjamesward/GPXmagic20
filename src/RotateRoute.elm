@@ -177,7 +177,10 @@ rescale : Options -> Track -> ( Track, String )
 rescale settings track =
     let
         centre =
-            BoundingBox3d.centerPoint track.box
+            Point3d.xyz
+                (BoundingBox3d.midX track.box)
+                (BoundingBox3d.midY track.box)
+                (BoundingBox3d.minZ track.box)
 
         scaleAboutCentre point =
             centre
