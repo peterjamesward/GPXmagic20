@@ -240,6 +240,17 @@ function makeTheMap(msg) {
             });
             map.setTerrain({ 'source': 'mapbox-dem'});
 
+            // add a sky layer that will show when the map is highly pitched
+            map.addLayer({
+              'id': 'sky',
+              'type': 'sky',
+              'paint': {
+              'sky-type': 'atmosphere',
+              'sky-atmosphere-sun': [0.0, 0.0],
+              'sky-atmosphere-sun-intensity': 15
+              }
+            });
+
             app.ports.messageReceiver.send({ 'msg' : 'map ready' });
         });
 

@@ -2,7 +2,7 @@
 
 # BUGS
 
-Why is sea level wrong after elevation fetch (e.g. Hillingdon -> Alps).
+Why is sea level wrong after elevation fetch (e.g. Hillingdon -> Alps)?
 
 Typing in to file name is slow. No idea why, code is simple.
 
@@ -16,8 +16,6 @@ Strava segment blend elevation rather than just Paste (optional).
 (I don't understand this suggestion.)
 
 # Not doing
-
-Add option to get elevation data from https://www.opentopodata.org/api/ ((NO! CORS restriction.))
 
 Working offline? (Mongoose server?)
 
