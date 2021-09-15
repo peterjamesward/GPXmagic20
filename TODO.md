@@ -10,6 +10,9 @@ Use mapbox plug-in to draw a route directly on the Map.
 
 # TODO
 
+Integrate elm-canvas and make a simple sketching tool for tracks.
+(Message delegation pattern and a new panel for the canvas.)
+
 Strava segment blend elevation rather than just Paste (optional).
 
 ? Flythrough to respect any azimuth & elevation applied when stationery.
