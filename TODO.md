@@ -8,6 +8,9 @@ Typing in to file name is slow. No idea why, code is simple.
 
 # TODO
 
+Integrate elm-canvas and make a simple sketching tool for tracks.
+(Message delegation pattern and a new panel for the canvas.)
+
 Strava segment blend elevation rather than just Paste (optional).
 
 ? Flythrough to respect any azimuth & elevation applied when stationery.

@@ -44,6 +44,7 @@
             "ianmackenzie/elm-triangular-mesh": "1.1.0",
             "ianmackenzie/elm-units": "2.7.0",
             "ianmackenzie/elm-units-interval": "2.1.0",
+            "joakin/elm-canvas": "4.3.0",
             "mdgriffith/elm-ui": "1.1.8",
             "mpizenberg/elm-pointer-events": "4.0.2",
             "rtfeldman/elm-iso8601-date-strings": "1.1.3",

@@ -5,12 +5,11 @@ import Accordion exposing (AccordionEntry, AccordionState(..), view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
-import ColourPalette exposing (buttonText)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
+import Drawing
 import Element as E exposing (..)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
@@ -19,7 +18,6 @@ import File.Download as Download
 import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
-import FlatColors.FlatUIPalette
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
@@ -29,7 +27,6 @@ import Http
 import Interpolate
 import Json.Decode as E exposing (at, decodeValue, field, float, list, string)
 import Json.Encode
-import Length
 import List.Extra
 import LoopedTrack
 import MapController exposing (..)
@@ -41,7 +38,6 @@ import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
-import Point3d
 import PostUpdateActions exposing (PostUpdateAction(..))
 import RotateRoute
 import Scene exposing (Scene)
@@ -53,7 +49,6 @@ import StravaTools exposing (stravaRouteOption)
 import SvgPathExtractor
 import Task
 import Time
-import TipJar
 import Track exposing (Track, searchTrackPointFromLonLat, summaryData, updateTrackPointLonLat)
 import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
@@ -103,6 +98,7 @@ type Msg
     | ToggleToolSet
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
+    | DrawingMessage Drawing.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -161,6 +157,7 @@ type alias Model =
     , splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
+    , drawing : Drawing.Model
     }
 
 
@@ -213,6 +210,7 @@ init mflags origin navigationKey =
       , splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
       , mapElevations = []
+      , drawing = Drawing.init
       }
     , Cmd.batch
         [ authCmd
@@ -679,6 +677,11 @@ update msg model =
             in
             ( { model | svgData = newData }
             , cmd
+            )
+
+        DrawingMessage drawMsg ->
+            ( { model | drawing = Drawing.update drawMsg model.drawing }
+            , Cmd.none
             )
 
 
@@ -1342,8 +1345,10 @@ topLoadingBar model =
 
 footer : Model -> Element Msg
 footer model =
-    row [ spacing 20, padding 10 ]
-        [ SvgPathExtractor.view SvgMessage
+    column [ spacing 20, padding 10 ]
+        [ text "Experimental zone"
+        , SvgPathExtractor.view SvgMessage
+        , html <| Drawing.view model.drawing DrawingMessage
         ]
 
 
@@ -1445,6 +1450,7 @@ subscriptions model =
         Sub.batch
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , Drawing.subscriptions model.drawing DrawingMessage
             ]
 
 
