@@ -49,18 +49,17 @@ renderTrack options track =
     --TODO: Implement selective detail (optimisation!) = simpleSelectiveDetail context track
     let
         box =
-            BoundingBox3d.hullOfN .xyz track.trackPoints
+            track.box
 
         terrain =
-            case ( box, options.terrainOn ) of
-                ( Just isBox, True ) ->
-                    makeTerrain
-                        options
-                        (BoundingBox3d.expandBy (meters 100) isBox)
-                        (List.map .xyz track.trackPoints)
+            if options.terrainOn then
+                makeTerrain
+                    options
+                    (BoundingBox3d.expandBy (meters 100) box)
+                    (List.map .xyz track.trackPoints)
 
-                _ ->
-                    []
+            else
+                []
 
         reducedTrack =
             track.trackPoints

@@ -2,9 +2,9 @@
 
 # BUGS
 
-Typing in to file name is slow.
+Why is sea level wrong after elevation fetch (e.g. Hillingdon -> Alps).
 
-Avoid long text in Undo/Redo buttons.
+Typing in to file name is slow. No idea why, code is simple.
 
 # TODO
 

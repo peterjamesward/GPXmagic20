@@ -1737,7 +1737,7 @@ redo model =
 undoRedoButtons model =
     row toolRowLayout
         [ button
-            prettyButtonStyles
+            ((width <| fillPortion 1) :: prettyButtonStyles)
             { onPress =
                 case model.undoStack of
                     [] ->
@@ -1748,13 +1748,13 @@ undoRedoButtons model =
             , label =
                 case model.undoStack of
                     u :: _ ->
-                        E.text <| "Undo " ++ u.label
+                        E.paragraph [] [E.text <| "Undo " ++ u.label]
 
                     _ ->
-                        E.text "Nothing to undo"
+                        E.paragraph [] [E.text "Nothing to undo"]
             }
         , button
-            prettyButtonStyles
+            ((width <| fillPortion 1) :: prettyButtonStyles)
             { onPress =
                 case model.redoStack of
                     [] ->

@@ -14,6 +14,8 @@ aboutText =
 
 - Quick fix to minor scaling error in 2.2.9.
 
+- Essential watching: https://youtu.be/P602MjJLrZ0
+
 - Upgrade Mapbox component to v2.4.1. Performance improvements, bug fixes. Terrain!
 
 - Scale track in __Lift & Shift__ now goes from 0.1x to 10x.
@@ -21,10 +23,6 @@ Also indicates expected route length on button.
 
 - New feature in __Lift & Shift__ to fetch track point elevations from Mapbox elevation data source.
 This is most useful after a recentre, rotate or scale. Accuracy is unknown.
-
-- __USAGE TIP:__ If you're trying to re-centre a route, it's best if you first click the padlock
-on the top-right of the map view. This stops map clicks from re-centering the map on the nearest
-track point when you click.
 
 ## Can I support this work?
 
