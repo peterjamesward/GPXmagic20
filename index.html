@@ -67,6 +67,7 @@ var drag = {
 };
 
 function startDraggingPoint(e) {
+//    console.log(e);
     canvas.style.cursor = 'grab';
 
     var coords = e.lngLat;
@@ -103,7 +104,7 @@ function startDraggingPoint(e) {
 function onMove(e) {
     var coords = e.lngLat;
 
-//    console.log(e);
+    //console.log(e);
 
     // Set a UI indicator for dragging.
     canvas.style.cursor = 'grabbing';
@@ -117,6 +118,7 @@ function onMove(e) {
 };
 
 function onUp(e) {
+    //console.log(e);
     var coords = e.lngLat;
 
     canvas.style.cursor = '';

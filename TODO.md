@@ -5,11 +5,8 @@
 
 # TODO
 
-Recentre route should also recentre the map, although it's more odd that the map restores itself.
-
-Fetch elevations from mapbox API? Nah. Just trouble.
-
-Scale to be continuously variable 0.1 -- 10.0 and indicate new route length.
+Recentre route should also recentre the map, 
+although it's more odd that single click centres the map.
 
 ---
 
