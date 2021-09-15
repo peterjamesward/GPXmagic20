@@ -1450,6 +1450,7 @@ subscriptions model =
         Sub.batch
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            --TODO: Only when canvas is open!
             , Drawing.subscriptions model.drawing DrawingMessage
             ]
 
