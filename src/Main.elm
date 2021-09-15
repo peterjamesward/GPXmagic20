@@ -8,7 +8,6 @@ import Browser.Navigation exposing (Key)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
-import Drawing
 import Element as E exposing (..)
 import Element.Border as Border
 import Element.Font as Font
@@ -98,7 +97,6 @@ type Msg
     | ToggleToolSet
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
-    | DrawingMessage Drawing.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -157,7 +155,6 @@ type alias Model =
     , splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
-    , drawing : Drawing.Model
     }
 
 
@@ -210,7 +207,6 @@ init mflags origin navigationKey =
       , splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
       , mapElevations = []
-      , drawing = Drawing.init
       }
     , Cmd.batch
         [ authCmd
@@ -677,11 +673,6 @@ update msg model =
             in
             ( { model | svgData = newData }
             , cmd
-            )
-
-        DrawingMessage drawMsg ->
-            ( { model | drawing = Drawing.update drawMsg model.drawing }
-            , Cmd.none
             )
 
 
@@ -1348,7 +1339,6 @@ footer model =
     column [ spacing 20, padding 10 ]
         [ text "Experimental zone"
         , SvgPathExtractor.view SvgMessage
-        , html <| Drawing.view model.drawing DrawingMessage
         ]
 
 
@@ -1450,8 +1440,6 @@ subscriptions model =
         Sub.batch
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-            --TODO: Only when canvas is open!
-            , Drawing.subscriptions model.drawing DrawingMessage
             ]
 
 
