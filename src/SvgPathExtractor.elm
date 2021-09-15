@@ -98,7 +98,7 @@ update msg model wrap =
                     in
                     ( model
                     , Cmd.batch
-                        [ File.Download.string model.svgFilename "text/xml" content
+                        [ File.Download.string (model.svgFilename ++ ".gpx") "text/xml" content
                         , Delay.after 1000 <| (wrap << WritePaths) rest
                         ]
                     )

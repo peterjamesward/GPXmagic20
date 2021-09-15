@@ -14,7 +14,7 @@ aboutText =
 
 - Upgrade Mapbox component to v2.4.1. Performance improvements, bug fixes. Terrain!
 
-- Scale track now goes from 0.1x to 10x. You can use it more than once.
+- Scale track in __Lift & Shift__ now goes from 0.1x to 10x.
 Also indicates expected route length on button.
 
 - New feature in __Lift & Shift__ to fetch track point elevations from Mapbox elevation data source.
@@ -24,12 +24,12 @@ This is most useful after a recentre, rotate or scale. Accuracy is unknown.
 on the top-right of the map view. This stops map clicks from re-centering the map on the nearest
 track point when you click.
 
-## Support GPXmagic development
+## Can I support this work?
 
 **YES, PLEASE!!**
 
 Donations will be passed on to our local hospice.
-We have changed to "Buy Me a Coffee".
+We have changed to "Buy Me a Coffee" as a payment provider.
 Use the not so subtle yellow button at the top.
 
 ## Guidance on use

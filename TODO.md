@@ -2,6 +2,9 @@
 
 # BUGS
 
+Typing in to file name is slow.
+
+Avoid long text in Undo/Redo buttons.
 
 # TODO
 

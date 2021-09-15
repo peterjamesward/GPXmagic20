@@ -1653,7 +1653,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = RotateRoute.info
-      , video = Just "https://youtu.be/v9hu1bFGOzQ"
+      , video = Just "https://youtu.be/P602MjJLrZ0"
       , reducedSet = False
       }
     , { label = "Splitter & Joiner"

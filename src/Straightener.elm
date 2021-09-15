@@ -107,8 +107,8 @@ viewStraightenTools options wrapper track =
             straightenButton
 
           else
-            column [ spacing 10, padding 10, alignTop, centerX ]
-                [ text "The straighten tool requires a range."
+            paragraph [ spacing 10, padding 10, alignTop, centerX ]
+                [ text "The straighten tool requires a range. "
                 , text "Drop the marker and move it away from the current pointer."
                 ]
         , simplifyButton
