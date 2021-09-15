@@ -1,4 +1,4 @@
-module OneClickQuickFix exposing (applyMapElevations, oneClickQuickFix)
+module OneClickQuickFix exposing (oneClickQuickFix)
 
 import BezierSplines
 import BoundingBox3d
@@ -108,26 +108,3 @@ oneClickQuickFix originalTrack =
         |> Loop.for 3 smoothTrack
 
 
-applyMapElevations : List Float -> Track -> Track
-applyMapElevations elevations track =
-    let
-        useNewElevation tp ele =
-            Point3d.xyz
-                (Point3d.xCoordinate tp.xyz)
-                (Point3d.yCoordinate tp.xyz)
-                (Length.meters ele)
-                |> TrackPoint.trackPointFromPoint
-
-        newPoints =
-            List.map2
-                useNewElevation
-                track.trackPoints
-                elevations
-                |> TrackPoint.prepareTrackPoints
-    in
-    { track
-        | trackPoints = newPoints
-        , box =
-            BoundingBox3d.hullOfN .xyz newPoints
-                |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
-    }

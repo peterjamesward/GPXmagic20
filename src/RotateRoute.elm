@@ -45,6 +45,7 @@ type Msg
     | Recentre
     | SetScale Float
     | ScaleRoute
+    | UseMapElevations
 
 
 type alias Options =
@@ -113,6 +114,36 @@ update msg settings lastMapClick track =
                 newTrack
                 undoMsg
             )
+
+        UseMapElevations ->
+            ( settings
+            , PostUpdateActions.ActionFetchMapElevations
+            )
+
+
+applyMapElevations : List Float -> Track -> Track
+applyMapElevations elevations track =
+    let
+        useNewElevation tp ele =
+            Point3d.xyz
+                (Point3d.xCoordinate tp.xyz)
+                (Point3d.yCoordinate tp.xyz)
+                (Length.meters ele)
+                |> TrackPoint.trackPointFromPoint
+
+        newPoints =
+            List.map2
+                useNewElevation
+                track.trackPoints
+                elevations
+                |> TrackPoint.prepareTrackPoints
+    in
+    { track
+        | trackPoints = newPoints
+        , box =
+            BoundingBox3d.hullOfN .xyz newPoints
+                |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+    }
 
 
 rotateRoute : Options -> Track -> ( Track, String )
@@ -223,14 +254,14 @@ view options wrapper track =
         [ rotationSlider
         , button
             prettyButtonStyles
-            { onPress = Just <| wrapper <| RotateRoute
+            { onPress = Just <| wrapper RotateRoute
             , label =
                 text <|
                     "Rotate"
             }
         , button
             prettyButtonStyles
-            { onPress = Just <| wrapper <| Recentre
+            { onPress = Just <| wrapper Recentre
             , label =
                 text <|
                     "Recentre at\n("
@@ -242,11 +273,16 @@ view options wrapper track =
         , scaleSlider
         , button
             prettyButtonStyles
-            { onPress = Just <| wrapper <| ScaleRoute
+            { onPress = Just <| wrapper ScaleRoute
             , label =
                 text <|
                     "Scale track to "
                         ++ showDecimal2 (options.scaleFactor * trackLength)
                         ++ "m"
+            }
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrapper UseMapElevations
+            , label = text "Use elevations fetched from Mapbox"
             }
         ]

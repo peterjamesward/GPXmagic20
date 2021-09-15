@@ -23,5 +23,6 @@ type
     | ActionNewRoute String GpxSource
     | ActionWalkGraph
     | ActionToggleMapDragging Bool
+    | ActionFetchMapElevations
 
 

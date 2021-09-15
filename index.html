@@ -186,6 +186,23 @@ function incomingMessageHandler(msg) {
                 map.setZoom(msg.zoom)
             }
             break;
+
+        case 'Elev':
+            if (isMapCreated) {
+                const source = map.getSource('route');
+                const elevations =
+                    source._data.geometry.coordinates.map(
+                        v => map.queryTerrainElevation(v)
+                    );
+                //console.log(elevations);
+
+                app.ports.messageReceiver.send(
+                  { 'msg' : 'elevations'
+                  , 'elevations' : elevations
+                  }
+                );
+            }
+            break;
     }
 };
 
@@ -269,16 +286,8 @@ function addLineToMap(data, points) {
     trackAdded = true;
     setClickMode(clickToDrag, points);
 
-    const elevations =
-        data.geometry.coordinates.map(
-            v => map.queryTerrainElevation(v)
-        );
-    //console.log(elevations);
-
     app.ports.messageReceiver.send(
-      { 'msg' : 'track ready'
-      , 'elevations' : elevations
-      }
+      { 'msg' : 'track ready' }
     );
 };
 

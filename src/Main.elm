@@ -103,7 +103,6 @@ type Msg
     | ToggleToolSet
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
-    | UseMapElevations
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -415,14 +414,27 @@ update msg model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                ( Ok "track ready", Just track ) ->
-                    let
-                        _ =
-                            Debug.log "ELEVATIONS" elevations
-                    in
+                ( Ok "elevations", Just track ) ->
                     case elevations of
                         Ok mapElevations ->
-                            ( { model | mapElevations = mapElevations }
+                            let
+                                newTrack =
+                                    RotateRoute.applyMapElevations mapElevations track
+
+                                newModel =
+                                    -- TODO: Avoid clunk!
+                                    model
+                                        |> addToUndoStack "Use map elevations"
+                                        |> (\m ->
+                                                { m
+                                                    | track = Just newTrack
+                                                    , observations = deriveProblems newTrack m.problemOptions
+                                                }
+                                           )
+                                        |> repeatTrackDerivations
+                                        |> renderTrackSceneElements
+                            in
+                            ( newModel
                             , Cmd.none
                             )
 
@@ -669,32 +681,6 @@ update msg model =
             , cmd
             )
 
-        UseMapElevations ->
-            case model.track of
-                Just track ->
-                    let
-                        newTrack =
-                            OneClickQuickFix.applyMapElevations model.mapElevations track
-
-                        newModel =
-                            model
-                                |> addToUndoStack "Use map elevations"
-                                |> (\m ->
-                                        { m
-                                            | track = Just newTrack
-                                            , observations = deriveProblems newTrack m.problemOptions
-                                        }
-                                   )
-                                |> repeatTrackDerivations
-                                |> renderTrackSceneElements
-                    in
-                    ( newModel
-                    , Cmd.none
-                    )
-
-                Nothing ->
-                    ( model, Cmd.none )
-
 
 draggedOnMap : E.Value -> Track -> Maybe Track
 draggedOnMap json track =
@@ -858,6 +844,11 @@ processPostUpdateAction model action =
         ( Just track, ActionToggleMapDragging isDragging ) ->
             ( model
             , MapController.toggleDragging isDragging track
+            )
+
+        ( Just track, ActionFetchMapElevations ) ->
+            ( model
+            , MapController.requestElevations
             )
 
         ( Just track, ActionPreview ) ->
@@ -1353,17 +1344,6 @@ footer : Model -> Element Msg
 footer model =
     row [ spacing 20, padding 10 ]
         [ SvgPathExtractor.view SvgMessage
-        , Input.button
-            [ Background.color FlatColors.FlatUIPalette.belizeHole
-            , Font.color <| buttonText
-            , Font.size 16
-            , padding 4
-            , focused
-                [ Background.color FlatColors.FlatUIPalette.wisteria ]
-            ]
-            { onPress = Just UseMapElevations
-            , label = text "Use elevations fetched from Mapbox"
-            }
         ]
 
 

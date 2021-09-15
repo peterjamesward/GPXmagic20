@@ -124,6 +124,14 @@ toggleDragging isDragging track =
             , ( "points", trackPointsToJSON track ) -- Make track points draggable
             ]
 
+requestElevations : Cmd msg
+requestElevations  =
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Elev" )
+            ]
+
+
 
 addTrackToMap : ViewingContext -> Track -> Cmd msg
 addTrackToMap context track =
