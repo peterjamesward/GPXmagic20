@@ -11,6 +11,7 @@
   <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
   <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
   <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css" type="text/css">
+
 </head>
 
 <body>
@@ -208,6 +209,14 @@ function incomingMessageHandler(msg) {
                   }
                 );
             }
+            break;
+
+        case 'Sketch':
+            sketchMapEnable(msg.lon, msg.lat, msg.zoom);
+            break;
+
+        case 'ExitSketch':
+            sketchDataCapture();
             break;
     }
 };
@@ -440,20 +449,68 @@ function createSketchMap() {
             zoom: 2 // starting zoom
         });
 
-        const draw = new MapboxDraw({
-            displayControlsDefault: false,
-            // Select which mapbox-gl-draw control buttons to add to the map.
-            controls: {
-                polygon: true,
-                trash: true
-            },
+    sketchMap.on('load', () => {
+        completeSketchMapInitialisation()
+    });
+}
 
-            // Set mapbox-gl-draw to draw by default.
-            // The user does not have to click the polygon control button first.
-            defaultMode: 'draw_polygon'
-        });
+var draw;
 
-        sketchMap.addControl(draw);
+function completeSketchMapInitialisation() {
+
+    draw = new MapboxDraw({
+        displayControlsDefault: false,
+
+        // Select which mapbox-gl-draw control buttons to add to the map.
+        controls: {
+            line_string: true,
+            // polygon: true,
+            trash: true
+        },
+
+        // Set mapbox-gl-draw to draw by default.
+        // The user does not have to click the polygon control button first.
+        defaultMode: 'draw_line_string'
+    });
+
+    // Add terrain source, so we can query elevations.
+    sketchMap.addSource('mapbox-dem', {
+      'type': 'raster-dem',
+      'url': 'mapbox://mapbox.terrain-rgb',
+      'tileSize': 512,
+      'maxzoom': 14
+    });
+
+    sketchMap
+      .addControl(draw)
+      .setTerrain({ 'source': 'mapbox-dem'})
+      ;
+};
+
+function sketchMapEnable(lon, lat, zoom) {
+    sketchMap
+      .resize()
+      .setCenter([lon, lat])
+      .setZoom(zoom)
+      ;
+};
+
+function sketchDataCapture() {
+    const data = draw.getAll();
+    const points2d = data.features[0].geometry.coordinates;
+    const longitudes = points2d.map( p => p[0] );
+    const latitudes = points2d.map( p => p[1] );
+    const elevations = points2d.map( p => sketchMap.queryTerrainElevation(p) );
+
+    console.log(elevations);
+
+    app.ports.messageReceiver.send(
+      { 'msg' : 'sketch'
+      , 'longitudes' : longitudes
+      , 'latitudes' : latitudes
+      , 'elevations' : elevations
+      }
+    );
 };
 
 </script>

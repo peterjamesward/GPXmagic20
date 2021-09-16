@@ -115,6 +115,27 @@ centreMapOnCurrent track =
             ]
 
 
+prepareSketchMap : ( Float, Float ) -> Cmd msg
+prepareSketchMap ( lon, lat ) =
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "Sketch" )
+            , ( "token", E.string mapboxKey )
+            , ( "lon", E.float lon )
+            , ( "lat", E.float lat )
+            , ( "zoom", E.float 10.0 )
+            ]
+
+
+exitSketchMode : Cmd msg
+exitSketchMode =
+    mapPort <|
+        E.object
+            [ ( "Cmd", E.string "ExitSketch" )
+            , ( "token", E.string mapboxKey )
+            ]
+
+
 toggleDragging : Bool -> Track -> Cmd msg
 toggleDragging isDragging track =
     mapPort <|
@@ -124,13 +145,13 @@ toggleDragging isDragging track =
             , ( "points", trackPointsToJSON track ) -- Make track points draggable
             ]
 
+
 requestElevations : Cmd msg
-requestElevations  =
+requestElevations =
     mapPort <|
         E.object
             [ ( "Cmd", E.string "Elev" )
             ]
-
 
 
 addTrackToMap : ViewingContext -> Track -> Cmd msg

@@ -83,6 +83,58 @@ trackFromGpx content =
                 }
 
 
+trackFromMap : List (Float, Float, Float) -> Maybe Track
+trackFromMap trackPoints =
+    let
+        ( lons, lats ) =
+            List.map (\( lon, lat, _ ) -> ( lon, lat )) trackPoints |> List.unzip
+
+        lonExtrema =
+            ( List.minimum lons, List.maximum lons )
+
+        latExtrema =
+            ( List.minimum lats, List.maximum lats )
+
+        basePoint =
+            ( case lonExtrema of
+                ( Just minLon, Just maxLon ) ->
+                    (minLon + maxLon) / 2.0
+
+                _ ->
+                    0.0
+            , case latExtrema of
+                ( Just minLat, Just maxLat ) ->
+                    (minLat + maxLat) / 2.0
+
+                _ ->
+                    0.0
+            , 0.0
+            )
+
+        centredPoints =
+            -- Move to near (0,0) to maintain precision in geometry -> clip space
+            applyGhanianTransform basePoint trackPoints
+    in
+    case centredPoints of
+        [] ->
+            Nothing
+
+        n1 :: _ ->
+            Just
+                { trackName = Just "from-sketch"
+                , trackPoints = prepareTrackPoints centredPoints
+                , currentNode = n1
+                , markedNode = Nothing
+                , graph = Nothing
+                , earthReferenceCoordinates = basePoint
+                , box =
+                    BoundingBox3d.hullOfN .xyz centredPoints
+                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                }
+
+
+
+
 removeGhanianTransform : Track -> List ( Float, Float, Float )
 removeGhanianTransform track =
     List.map

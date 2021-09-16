@@ -100,6 +100,7 @@ type Msg
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
+    | SketchRouteData (List ( Float, Float, Float ))
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -378,6 +379,12 @@ update msg model =
 
                 elevations =
                     decodeValue (field "elevations" (list float)) json
+
+                longitudes =
+                    decodeValue (field "longitudes" (list float)) json
+
+                latitudes =
+                    decodeValue (field "latitudes" (list float)) json
             in
             case ( jsonMsg, model.track ) of
                 ( Ok "click", Just track ) ->
@@ -432,6 +439,43 @@ update msg model =
                                            )
                                         |> repeatTrackDerivations
                                         |> renderTrackSceneElements
+                            in
+                            ( newModel
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                ( Ok "sketch", _ ) ->
+                    case ( longitudes, latitudes, elevations ) of
+                        ( Ok mapLongitudes, Ok mapLatitudes, Ok mapElevations ) ->
+                            let
+                                newTrack =
+                                    List.map3
+                                        (\x y z -> ( x, y, z ))
+                                        mapLongitudes
+                                        mapLatitudes
+                                        mapElevations
+                                        |> Track.trackFromMap
+
+                                newModel =
+                                    -- TODO: Avoid clunk!
+                                    case newTrack of
+                                        Just track ->
+                                            model
+                                                |> addToUndoStack "Use sketch map"
+                                                |> (\m ->
+                                                        { m
+                                                            | track = Just track
+                                                            , observations = deriveProblems track m.problemOptions
+                                                        }
+                                                   )
+                                                |> repeatTrackDerivations
+                                                |> renderTrackSceneElements
+
+                                        Nothing ->
+                                            model
                             in
                             ( newModel
                             , Cmd.none
@@ -681,9 +725,28 @@ update msg model =
             )
 
         EnableMapSketchMode ->
-            ( { model | mapSketchMode = not model.mapSketchMode }
-            , Cmd.none
-            )
+            let
+                ( lon, lat ) =
+                    case model.ipInfo of
+                        Just info ->
+                            ( info.longitude, info.latitude )
+
+                        Nothing ->
+                            ( 0.0, 0.0 )
+            in
+            case model.mapSketchMode of
+                False ->
+                    ( { model | mapSketchMode = True }
+                    , MapController.prepareSketchMap ( lon, lat )
+                    )
+
+                True ->
+                    ( { model | mapSketchMode = False }
+                    , MapController.exitSketchMode
+                    )
+
+        SketchRouteData triples ->
+            ( model, Cmd.none )
 
 
 draggedOnMap : E.Value -> Track -> Maybe Track
@@ -1345,6 +1408,7 @@ topLoadingBar model =
 
 footer : Model -> Element Msg
 footer model =
+    -- Rather hacky addition of secondary map here.
     column [ spacing 20, padding 10 ]
         [ text "Experimental zone"
         , row [ spacing 20, padding 10 ]
