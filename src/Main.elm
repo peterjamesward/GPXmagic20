@@ -100,7 +100,6 @@ type Msg
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
-    | SketchRouteData (List ( Float, Float, Float ))
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -458,28 +457,15 @@ update msg model =
                                         mapLatitudes
                                         mapElevations
                                         |> Track.trackFromMap
-
-                                newModel =
-                                    -- TODO: Avoid clunk!
-                                    case newTrack of
-                                        Just track ->
-                                            model
-                                                |> addToUndoStack "Use sketch map"
-                                                |> (\m ->
-                                                        { m
-                                                            | track = Just track
-                                                            , observations = deriveProblems track m.problemOptions
-                                                        }
-                                                   )
-                                                |> repeatTrackDerivations
-                                                |> renderTrackSceneElements
-
-                                        Nothing ->
-                                            model
                             in
-                            ( newModel
-                            , Cmd.none
-                            )
+                            case newTrack of
+                                Just track ->
+                                    applyTrack model track
+
+                                Nothing ->
+                                    ( model
+                                    , Cmd.none
+                                    )
 
                         _ ->
                             ( model, Cmd.none )
@@ -745,9 +731,6 @@ update msg model =
                     , MapController.exitSketchMode
                     )
 
-        SketchRouteData triples ->
-            ( model, Cmd.none )
-
 
 draggedOnMap : E.Value -> Track -> Maybe Track
 draggedOnMap json track =
@@ -957,23 +940,25 @@ processPostUpdateAction model action =
 
 processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
 processGpxLoaded content model =
+    case Track.trackFromGpx content of
+        Just track ->
+            applyTrack model track
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+applyTrack : Model -> Track -> ( Model, Cmd Msg )
+applyTrack model track =
     let
-        track =
-            Track.trackFromGpx content
-
         ( newViewPanes, mapCommands ) =
-            case track of
-                Just isTrack ->
-                    ( List.map (ViewPane.resetAllViews isTrack) model.viewPanes
-                    , ViewPane.initialiseMap isTrack model.viewPanes
-                        ++ [ Delay.after 50 RepaintMap ]
-                    )
-
-                Nothing ->
-                    ( model.viewPanes, [] )
+            ( List.map (ViewPane.resetAllViews track) model.viewPanes
+            , ViewPane.initialiseMap track model.viewPanes
+                ++ [ Delay.after 50 RepaintMap ]
+            )
     in
     ( { model
-        | track = track
+        | track = Just track
         , renderingContext = Just defaultRenderingContext
         , toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes

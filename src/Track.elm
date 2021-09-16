@@ -83,11 +83,17 @@ trackFromGpx content =
                 }
 
 
-trackFromMap : List (Float, Float, Float) -> Maybe Track
+trackFromMap : List ( Float, Float, Float ) -> Maybe Track
 trackFromMap trackPoints =
     let
-        ( lons, lats ) =
-            List.map (\( lon, lat, _ ) -> ( lon, lat )) trackPoints |> List.unzip
+        lons =
+            List.map (\( lon, lat, ele ) -> lon) trackPoints
+
+        lats =
+            List.map (\( lon, lat, ele ) -> lat) trackPoints
+
+        eles =
+            List.map (\( lon, lat, ele ) -> ele) trackPoints
 
         lonExtrema =
             ( List.minimum lons, List.maximum lons )
@@ -131,8 +137,6 @@ trackFromMap trackPoints =
                     BoundingBox3d.hullOfN .xyz centredPoints
                         |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
                 }
-
-
 
 
 removeGhanianTransform : Track -> List ( Float, Float, Float )
