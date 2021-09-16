@@ -22,6 +22,7 @@ import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
+import Html.Attributes exposing (id)
 import Http
 import Interpolate
 import Json.Decode as E exposing (at, decodeValue, field, float, list, string)
@@ -37,6 +38,7 @@ import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
+import Pixels exposing (inPixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import RotateRoute
 import Scene exposing (Scene)
@@ -55,7 +57,7 @@ import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoint
 import TrackSplitter
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, updatePointerInLinkedPanes)
-import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
+import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
 
@@ -97,6 +99,7 @@ type Msg
     | ToggleToolSet
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
+    | EnableMapSketchMode
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -155,6 +158,7 @@ type alias Model =
     , splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
+    , mapSketchMode : Bool
     }
 
 
@@ -207,6 +211,7 @@ init mflags origin navigationKey =
       , splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
       , mapElevations = []
+      , mapSketchMode = False
       }
     , Cmd.batch
         [ authCmd
@@ -673,6 +678,11 @@ update msg model =
             in
             ( { model | svgData = newData }
             , cmd
+            )
+
+        EnableMapSketchMode ->
+            ( { model | mapSketchMode = not model.mapSketchMode }
+            , Cmd.none
             )
 
 
@@ -1290,7 +1300,6 @@ view model =
                 [ width fill ]
                 [ topLoadingBar model
                 , contentArea model
-                , footer model
                 ]
         ]
     }
@@ -1338,8 +1347,38 @@ footer : Model -> Element Msg
 footer model =
     column [ spacing 20, padding 10 ]
         [ text "Experimental zone"
-        , SvgPathExtractor.view SvgMessage
+        , row [ spacing 20, padding 10 ]
+            [ SvgPathExtractor.view SvgMessage
+            , mapSketchEnable model
+            ]
+        , conditionallyVisible model.mapSketchMode <|
+            el
+                [ width <| px 800
+                , height <| px 600
+                , alignLeft
+                , alignTop
+                , Border.width 1
+                , htmlAttribute (id "sketchMap")
+                ]
+                none
         ]
+
+
+mapSketchEnable : Model -> Element Msg
+mapSketchEnable model =
+    if model.mapSketchMode then
+        button
+            prettyButtonStyles
+            { onPress = Just EnableMapSketchMode
+            , label = text "Lift into GPXmagic"
+            }
+
+    else
+        button
+            prettyButtonStyles
+            { onPress = Just EnableMapSketchMode
+            , label = text "Draw a route on the map"
+            }
 
 
 buyMeACoffeeButton =
@@ -1356,12 +1395,14 @@ buyMeACoffeeButton =
 
 contentArea model =
     row (width fill :: defaultRowLayout) <|
-        [ el [ width fill, alignTop ] <|
-            viewAllPanes
+        [ column [ width fill, alignTop ] <|
+            [ viewAllPanes
                 model.viewPanes
                 model.displayOptions
                 ( model.completeScene, model.completeProfile )
                 ViewPaneMessage
+            , footer model
+            ]
         , el [ alignTop ] <|
             if model.track /= Nothing then
                 column defaultColumnLayout
@@ -1446,13 +1487,6 @@ subscriptions model =
 toolsAccordion : Model -> List (AccordionEntry Msg)
 toolsAccordion model =
     [ -- For V2 we see if a single collection works...
-      --{ label = "Tip jar"
-      --, state = Contracted
-      --, content = TipJar.tipJar
-      --, info = TipJar.info
-      --, video = Nothing
-      --, reducedSet = True
-      --}
       { label = "Visual styles"
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
@@ -1743,10 +1777,10 @@ undoRedoButtons model =
             , label =
                 case model.undoStack of
                     u :: _ ->
-                        E.paragraph [] [E.text <| "Undo " ++ u.label]
+                        E.paragraph [] [ E.text <| "Undo " ++ u.label ]
 
                     _ ->
-                        E.paragraph [] [E.text "Nothing to undo"]
+                        E.paragraph [] [ E.text "Nothing to undo" ]
             }
         , button
             ((width <| fillPortion 1) :: prettyButtonStyles)

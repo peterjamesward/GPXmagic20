@@ -308,6 +308,7 @@ view : ( Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPan
 view ( scene, profile ) options wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
+    -- Further complicated by Map sketch mode.
     if pane.visible then
         column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
             [ if List.length scene > 0 then

@@ -22,6 +22,7 @@ import Spherical exposing (metresPerDegree)
 import SvgParser exposing (SvgNode(..), parseToNode)
 import Task
 import Vector3d
+import ViewPureStyles exposing (prettyButtonStyles)
 
 
 type alias Options =
@@ -110,13 +111,7 @@ update msg model wrap =
 view : (Msg -> msg) -> Element msg
 view wrap =
     Input.button
-        [ Background.color FlatColors.FlatUIPalette.belizeHole
-        , Font.color <| buttonText
-        , Font.size 16
-        , padding 4
-        , Element.focused
-            [ Background.color FlatColors.FlatUIPalette.wisteria ]
-        ]
+        prettyButtonStyles
         { onPress = Just (wrap ReadFile)
         , label = text "Extract paths from SVG file"
         }

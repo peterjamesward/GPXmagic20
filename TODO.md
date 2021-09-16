@@ -5,13 +5,23 @@
 Why is sea level wrong after elevation fetch (e.g. Hillingdon -> Alps)?
 
 Typing in to file name is slow. No idea why, code is simple.
-
-Use mapbox plug-in to draw a route directly on the Map.
+Possibly something expensive in the view hierarchy, though I think that would be more obvious.
 
 # TODO
 
-Integrate elm-canvas and make a simple sketching tool for tracks.
-(Message delegation pattern and a new panel for the canvas.)
+Use mapbox plug-in to draw a route directly on the Map.
+https://github.com/mapbox/mapbox-gl-draw
+
+1. New GPX entry mode button
+2. Shows Map view only with no track
+3. Send command to JS to enable drawing
+4. Each new point sends list of points (with elevations) to Elm
+5. Elm builds the route
+6. Another button to finish?
+
+Plan from one route, elevation from another.
+
+Appended route elevation adjusted and contiguous.
 
 Strava segment blend elevation rather than just Paste (optional).
 

@@ -9,6 +9,8 @@
   <script src='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js'></script>
   <script src="./elm-canvas.js"></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css" type="text/css">
 </head>
 
 <body>
@@ -51,6 +53,7 @@ var dragPointStart;
 var dragging = false;
 var clickToDrag = false;
 var pointsLayerAdded = false;
+var sketchMap;
 
 var canvas;
 // Make dummy feature just for making drag point feedback.
@@ -260,6 +263,8 @@ function makeTheMap(msg) {
         //console.log('no map node');
         app.ports.messageReceiver.send({ 'msg' : 'no node' });
     }
+
+    createSketchMap();
 };
 
 function centreMap(lon, lat) {
@@ -426,7 +431,30 @@ function addOptionals(msg) {
     };
 };
 
+function createSketchMap() {
+    // Make another map for route sketching.
+    sketchMap = new mapboxgl.Map({
+            container: 'sketchMap',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [0.0, 0.0],
+            zoom: 2 // starting zoom
+        });
 
+        const draw = new MapboxDraw({
+            displayControlsDefault: false,
+            // Select which mapbox-gl-draw control buttons to add to the map.
+            controls: {
+                polygon: true,
+                trash: true
+            },
+
+            // Set mapbox-gl-draw to draw by default.
+            // The user does not have to click the polygon control button first.
+            defaultMode: 'draw_polygon'
+        });
+
+        sketchMap.addControl(draw);
+};
 
 </script>
 
