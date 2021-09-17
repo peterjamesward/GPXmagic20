@@ -13,7 +13,7 @@ aboutText =
 ## 2.3.0 update 2021-09-17
 
 - Experimental feature to draw a route directly onto a (new) Map.
-Please see video at https://youtu.be/XXX for explanation.
+Please see video at https://youtu.be/80CZVCAX-t8 for explanation.
 
 ## Can I support this work?
 
