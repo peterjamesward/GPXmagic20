@@ -217,7 +217,6 @@ init mflags origin navigationKey =
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
         , Task.perform Tick Time.now
-        , MapController.createMap MapController.defaultMapInfo
         ]
     )
 
@@ -239,9 +238,24 @@ update msg model =
             let
                 ipInfo =
                     MyIP.processIpInfo response
+
+                mapInfoWithLocation =
+                    case ipInfo of
+                        Just ip ->
+                            { defaultMapInfo
+                                | centreLon = ip.longitude
+                                , centreLat = ip.latitude
+                                , mapZoom = 10.0
+                            }
+
+                        Nothing ->
+                            defaultMapInfo
             in
             ( { model | ipInfo = ipInfo }
-            , MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
+            , Cmd.batch
+                [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
+                , MapController.createMap mapInfoWithLocation
+                ]
             )
 
         IpInfoAcknowledged _ ->

@@ -274,7 +274,7 @@ function makeTheMap(msg) {
         app.ports.messageReceiver.send({ 'msg' : 'no node' });
     }
 
-    createSketchMap();
+    createSketchMap(msg);
 };
 
 function centreMap(lon, lat) {
@@ -441,13 +441,13 @@ function addOptionals(msg) {
     };
 };
 
-function createSketchMap() {
+function createSketchMap(msg) {
     // Make another map for route sketching.
     sketchMap = new mapboxgl.Map({
             container: 'sketchMap',
             style: 'mapbox://styles/mapbox/streets-v11',
-            center: [0.0, 0.0],
-            zoom: 2 // starting zoom
+            center: [msg.lon, msg.lat],
+            zoom: msg.zoom
         });
 
     sketchMap.on('load', () => {
@@ -491,27 +491,30 @@ function completeSketchMapInitialisation() {
 function sketchMapEnable(lon, lat, zoom) {
     sketchMap
       .resize()
-      .setCenter([lon, lat])
-      .setZoom(zoom)
       ;
 };
 
 function sketchDataCapture() {
     const data = draw.getAll();
-    const points2d = data.features[0].geometry.coordinates;
-    const longitudes = points2d.map( p => p[0] );
-    const latitudes = points2d.map( p => p[1] );
-    const elevations = points2d.map( p => sketchMap.queryTerrainElevation(p) );
 
-    //console.log(data);
+    if(typeof(data) != 'undefined' && data != null)
+    {
 
-    app.ports.messageReceiver.send(
-      { 'msg' : 'sketch'
-      , 'longitudes' : longitudes
-      , 'latitudes' : latitudes
-      , 'elevations' : elevations
-      }
-    );
+        const points2d = data.features[0].geometry.coordinates;
+        const longitudes = points2d.map( p => p[0] );
+        const latitudes = points2d.map( p => p[1] );
+        const elevations = points2d.map( p => sketchMap.queryTerrainElevation(p) );
+
+        //console.log(data);
+
+        app.ports.messageReceiver.send(
+          { 'msg' : 'sketch'
+          , 'longitudes' : longitudes
+          , 'latitudes' : latitudes
+          , 'elevations' : elevations
+          }
+        );
+    };
 };
 
 </script>
