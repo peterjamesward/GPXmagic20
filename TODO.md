@@ -9,8 +9,6 @@ Possibly something expensive in the view hierarchy, though I think that would be
 
 # TODO
 
-** Constrain bounding box aspect ratio. Avoid long thin ones.
-
 Plan from one route, elevation from another.
 
 Appended route elevation adjusted and contiguous.

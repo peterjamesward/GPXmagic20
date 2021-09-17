@@ -5,7 +5,6 @@ import Axis3d
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color, black, brown, darkGreen, green)
 import Cone3d
-import Cylinder3d
 import Direction3d exposing (negativeZ, positiveZ)
 import DisplayOptions exposing (CurtainStyle(..), DisplayOptions)
 import Graph exposing (Graph)
@@ -19,11 +18,10 @@ import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import Scene3d exposing (Entity, cone, cylinder)
 import Scene3d.Material as Material exposing (Material)
-import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
-import Utils exposing (gradientColourPastel, gradientColourVivid, terrainColourFromHeight)
+import Utils exposing (gradientColourPastel, gradientColourVivid, squareAspect, terrainColourFromHeight)
 import Vector3d
 
 
@@ -50,12 +48,14 @@ renderTrack options track =
     let
         box =
             track.box
+                |> BoundingBox3d.expandBy (meters 500)
+                |> squareAspect
 
         terrain =
             if options.terrainOn then
                 makeTerrain
                     options
-                    (BoundingBox3d.expandBy (meters 100) box)
+                    box
                     (List.map .xyz track.trackPoints)
 
             else
@@ -362,7 +362,10 @@ seaLevel useActualWaterLevel box =
                 BoundingBox3d.minZ box |> Quantity.minus (meters 10.0)
 
         { minX, maxX, minY, maxY, minZ, maxZ } =
-            BoundingBox3d.extrema <| BoundingBox3d.expandBy (meters 500) box
+            box
+                |> BoundingBox3d.expandBy (meters 500)
+                |> squareAspect
+                |> BoundingBox3d.extrema
     in
     [ Scene3d.quad (Material.color Color.darkGreen)
         (Point3d.xyz minX minY groundZ)

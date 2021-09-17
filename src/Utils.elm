@@ -1,6 +1,7 @@
 module Utils exposing (..)
 
 import Angle exposing (Angle, inRadians)
+import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color)
 import Direction3d
 import Element exposing (html)
@@ -195,3 +196,20 @@ correlation xFn yFn records =
             records |> List.map (yFn >> squared) |> List.sum
     in
     (n * sumXY - sumX * sumY) / (sqrt (n * sumXX - squared sumX) * (n * sumYY - squared sumY))
+
+
+squareAspect : BoundingBox3d a b -> BoundingBox3d a b
+squareAspect box =
+    let
+        centre =
+            BoundingBox3d.centerPoint box
+
+        ( sizeX, sizeY, sizeZ ) =
+            BoundingBox3d.dimensions box
+    in
+    BoundingBox3d.withDimensions
+        ( Quantity.max sizeX sizeY
+        , Quantity.max sizeX sizeY
+        , sizeZ
+        )
+        centre
