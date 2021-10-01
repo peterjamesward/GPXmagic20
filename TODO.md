@@ -2,14 +2,26 @@
 
 # BUGS
 
-Why is sea level wrong after elevation fetch (e.g. Hillingdon -> Alps)?
-
-Typing in to file name is slow. No idea why, code is simple.
-Possibly something expensive in the view hierarchy, though I think that would be more obvious.
+SVG parser should report errors. At least summarise outcome.
 
 # TODO
 
-Plan from one route, elevation from another.
+@Jason Hurst:
+
+    Can you enable a custom pallet that would allow users to drag their 
+    preferred functions onto that pallet and arrange them in their preferred order 
+    for that GPXMagic session?
+    I appreciate that you wouldn't be able to store user preferences without 
+    requiring logins and that takes you down the dark path of privacy legislation 
+    and security. So a 'per session' pallet seems a reasonable compromise.
+    
+Should be able to do this with https://package.elm-lang.org/packages/billstclair/elm-localstorage/latest/
+Not sure how to configure pallette. Perhaps "Favourite" on each tool, with ordering & removal subsequent.
+May need some modality: normal tools, configure favourites, use favourites.
+
+--
+
+Plan from one route, elevation from another?
 
 Appended route elevation adjusted and contiguous.
 
@@ -21,6 +33,8 @@ Strava segment blend elevation rather than just Paste (optional).
 (I don't understand this suggestion.)
 
 # Not doing
+
+Better terrain by slightly smarter rendering of each quadrant based on its context.
 
 Working offline? (Mongoose server?)
 
