@@ -240,11 +240,17 @@ view model entries msgWrap =
         isOpen entry =
             entry.state == Expanded True || entry.state == Expanded False
 
-        ( open, closed ) =
-            List.partition isOpen entries
+        ( starred, unstarred ) =
+            List.partition .isFavourite entries
+
+        ( openStarred, closedStarred ) =
+            List.partition isOpen starred
+
+        ( openOther, closedOther ) =
+            List.partition isOpen unstarred
     in
-    column accordionMenuStyles <|
-        button
+    column accordionMenuStyles
+        [ button
             [ Border.width 2
             , Border.color FlatColors.BritishPalette.nanohanachaGold
             , padding 5
@@ -258,8 +264,16 @@ view model entries msgWrap =
                 else
                     text "Starred only"
             }
-            :: List.map viewOpenEntry open
-            ++ [ wrappedRow [] (List.map viewClosedEntry closed) ]
+        , column [] <| List.map viewOpenEntry openStarred
+        , wrappedRow [] <| List.map viewClosedEntry closedStarred
+        , row [ height <| px 10, Background.color accordionContentBackground ] []
+        , column [] <| List.map viewOpenEntry openOther
+        , if model.reducedToolset then
+            none
+
+          else
+            wrappedRow [] <| List.map viewClosedEntry closedOther
+        ]
 
 
 update : Msg -> Model -> List (AccordionEntry msg) -> ( Model, List (AccordionEntry msg) )
