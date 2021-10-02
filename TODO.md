@@ -2,7 +2,9 @@
 
 # BUGS
 
-SVG parser should report errors. At least summarise outcome.
+_SVG parser should report errors. At least summarise outcome._
+
+**Classic bend smoother used to show segments. What's happened?**
 
 # TODO
 
@@ -18,6 +20,26 @@ SVG parser should report errors. At least summarise outcome.
 Should be able to do this with https://package.elm-lang.org/packages/billstclair/elm-localstorage/latest/
 Not sure how to configure pallette. Perhaps "Favourite" on each tool, with ordering & removal subsequent.
 May need some modality: normal tools, configure favourites, use favourites.
+
+Maybe time to improve structure of Accordion, so that it becomes more generic and self-administrating.
+That is, all Accordion (tab-level) messages are handled in the module. Obviously, tool-level messages
+are dispacthed to the relevant tool by Main. (No advantage moving all this to Accordion.)
+
+New thought. Not having a separate Favourites, just allow reordering of the accordion.
+Possibly with a (...) area at the end so that some can he parked there.
+Or even easier, when you Star a tool, collapsing it doesn't send it back into the morass.
+
+**Might be able to deal with this just in terms of display order, with some visual tweaks.**
+
+    1 Starred Open tools.
+    2 Starred Closed tools.
+    3 Separator
+    4 Other Open tools.
+    5 Separator = Option to collapse Closed tools.
+    6 Other Closed tools.
+
+Still use localstorage to save state of all tools.
+This lacks re-ordering but is 80% of value with 20% of effort, so maybe worth as an interim for feedback.
 
 --
 

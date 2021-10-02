@@ -2,6 +2,7 @@ module Accordion exposing (..)
 
 -- Seeking a better way to organise all the controls.
 
+import Color
 import ColourPalette exposing (..)
 import Element exposing (..)
 import Element.Background as Background
@@ -30,13 +31,25 @@ type alias AccordionEntry msg =
     , content : Element msg
     , info : String
     , video : Maybe String
-    , reducedSet : Bool
+    , isFavourite : Bool
     }
+
+
+type alias Model =
+    { reducedToolset : Bool
+    }
+
+
+defaultState : Model
+defaultState =
+    { reducedToolset = False }
 
 
 type Msg
     = ToggleEntry String
     | ToggleInfo String
+    | ToggleFavourite String
+    | ToggleToolSet
 
 
 accordionMenuStyles =
@@ -124,6 +137,22 @@ accordionToggleInfo entries label =
     List.map toggleMatching entries
 
 
+accordionToggleFavourite :
+    List (AccordionEntry msg)
+    -> String
+    -> List (AccordionEntry msg)
+accordionToggleFavourite entries label =
+    let
+        toggleMatching e =
+            if e.label == label then
+                { e | isFavourite = not e.isFavourite }
+
+            else
+                e
+    in
+    List.map toggleMatching entries
+
+
 infoButton :
     AccordionEntry msg
     -> (Msg -> msg)
@@ -147,18 +176,33 @@ infoButton entry msgWrap =
 
 
 view :
-    List (AccordionEntry msg)
+    Model
+    -> List (AccordionEntry msg)
     -> (Msg -> msg)
     -> Element msg
-view entries msgWrap =
+view model entries msgWrap =
     let
+        favouriteButton entry =
+            button
+                [ Font.color <|
+                    if entry.isFavourite then
+                        buttonBackground
+
+                    else
+                        buttonText
+                ]
+                { onPress = Just <| msgWrap (ToggleFavourite entry.label)
+                , label = useIcon FeatherIcons.star
+                }
+
         viewOpenEntry : AccordionEntry msg -> Element msg
         viewOpenEntry entry =
             row [ width fill ]
                 [ infoButton entry msgWrap
                 , column [ width fill ]
                     [ row (accordionTabStyles entry.state)
-                        [ button [ width fill ]
+                        [ favouriteButton entry
+                        , button [ width fill ]
                             { onPress = Just (msgWrap <| ToggleEntry entry.label)
                             , label = text entry.label
                             }
@@ -200,18 +244,40 @@ view entries msgWrap =
             List.partition isOpen entries
     in
     column accordionMenuStyles <|
-        List.map viewOpenEntry open
+        button
+            [ Border.width 2
+            , Border.color FlatColors.BritishPalette.nanohanachaGold
+            , padding 5
+            , Border.rounded 3
+            ]
+            { onPress = Just <| msgWrap ToggleToolSet
+            , label =
+                if model.reducedToolset then
+                    text "Show all"
+
+                else
+                    text "Starred only"
+            }
+            :: List.map viewOpenEntry open
             ++ [ wrappedRow [] (List.map viewClosedEntry closed) ]
 
 
-update : Msg -> List (AccordionEntry msg) -> List (AccordionEntry msg)
-update msg accordion =
+update : Msg -> Model -> List (AccordionEntry msg) -> ( Model, List (AccordionEntry msg) )
+update msg model accordion =
     case msg of
         ToggleEntry label ->
-            accordionToggle accordion label
+            ( model, accordionToggle accordion label )
 
         ToggleInfo label ->
-            accordionToggleInfo accordion label
+            ( model, accordionToggleInfo accordion label )
+
+        ToggleFavourite label ->
+            ( model, accordionToggleFavourite accordion label )
+
+        ToggleToolSet ->
+            ( { model | reducedToolset = not model.reducedToolset }
+            , accordion
+            )
 
 
 viewInfo : String -> Element msg

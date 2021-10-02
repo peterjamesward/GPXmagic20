@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import About
-import Accordion exposing (AccordionEntry, AccordionState(..), view)
+import Accordion exposing (AccordionEntry, AccordionState(..), Model, defaultState, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
@@ -96,7 +96,6 @@ type Msg
     | ReceivedIpDetails (Result Http.Error IpInfo)
     | IpInfoAcknowledged (Result Http.Error ())
     | RotateMessage RotateRoute.Msg
-    | ToggleToolSet
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
@@ -154,11 +153,11 @@ type alias Model =
     , gradientLimiter : GradientLimiter.Options
     , rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
-    , reducedToolset : Bool
     , splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
     , mapSketchMode : Bool
+    , accordionState : Accordion.Model
     }
 
 
@@ -207,11 +206,11 @@ init mflags origin navigationKey =
       , gradientLimiter = GradientLimiter.defaultOptions
       , rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
-      , reducedToolset = False
       , splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
       , mapElevations = []
       , mapSketchMode = False
+      , accordionState = Accordion.defaultState
       }
     , Cmd.batch
         [ authCmd
@@ -319,8 +318,15 @@ update msg model =
             processPostUpdateAction newModel action
 
         AccordionMessage accordionMsg ->
+            let
+                ( newState, newAccordion ) =
+                    Accordion.update accordionMsg model.accordionState model.toolsAccordion
+            in
             processPostUpdateAction
-                { model | toolsAccordion = Accordion.update accordionMsg model.toolsAccordion }
+                { model
+                    | toolsAccordion = newAccordion
+                    , accordionState = newState
+                }
                 PostUpdateActions.ActionPreview
 
         MarkerMessage markerMsg ->
@@ -706,11 +712,6 @@ update msg model =
             processPostUpdateAction
                 { model | stravaOptions = newOptions }
                 action
-
-        ToggleToolSet ->
-            ( { model | reducedToolset = not model.reducedToolset }
-            , Cmd.none
-            )
 
         SvgMessage svgMsg ->
             let
@@ -1475,32 +1476,10 @@ contentArea model =
                     [ markerButton model.track MarkerMessage
                     , viewTrackControls MarkerMessage model.track
                     , undoRedoButtons model
-                    , button
-                        [ Border.width 2
-                        , Border.color FlatColors.BritishPalette.nanohanachaGold
-                        , padding 5
-                        , Border.rounded 3
-                        ]
-                        { onPress = Just ToggleToolSet
-                        , label =
-                            if model.reducedToolset then
-                                text "Switch to full tool set"
-
-                            else
-                                text "Switch to reduced tool set"
-                        }
-                    , if model.reducedToolset then
-                        Accordion.view
-                            (List.filter
-                                .reducedSet
-                                (updatedAccordion model.toolsAccordion toolsAccordion model)
-                            )
-                            AccordionMessage
-
-                      else
-                        Accordion.view
-                            (updatedAccordion model.toolsAccordion toolsAccordion model)
-                            AccordionMessage
+                    , Accordion.view
+                        model.accordionState
+                        (updatedAccordion model.toolsAccordion toolsAccordion model)
+                        AccordionMessage
                     ]
 
             else
@@ -1558,21 +1537,21 @@ toolsAccordion model =
       , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info
       , video = Just "https://youtu.be/N7zGRJvke_M"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "LoopedTrack maker"
       , state = Contracted
       , content = LoopedTrack.viewLoopTools model.observations.loopiness model.track LoopMsg
       , info = LoopedTrack.info
       , video = Just "https://youtu.be/B3SGh8KhDu0"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Bend smoother classic"
       , state = Contracted
       , content = BendSmoother.viewBendFixerPane model.bendOptions BendSmoothMessage
       , info = BendSmoother.info
       , video = Just "https://youtu.be/VO5jsOZmTIg"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Limit gradients"
       , state = Contracted
@@ -1586,7 +1565,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = GradientLimiter.info
       , video = Just "https://youtu.be/LtcYi4fzImE"
-      , reducedSet = True
+      , isFavourite = True
       }
     , { label = "Smooth gradient"
       , state = Contracted
@@ -1600,14 +1579,14 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = GradientSmoother.info
       , video = Just "https://youtu.be/YTY2CSl0wo8"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Nudge"
       , state = Contracted
       , content = viewNudgeTools model.nudgeSettings NudgeMessage
       , info = Nudge.info
       , video = Just "https://youtu.be/HsH7R9SGaSs"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Straighten"
       , state = Contracted
@@ -1621,7 +1600,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Straightener.info
       , video = Just "https://youtu.be/MQ67mzShvxg"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Interpolate"
       , state = Contracted
@@ -1636,21 +1615,21 @@ toolsAccordion model =
                     none
       , info = Interpolate.info
       , video = Just "https://youtu.be/C3chnX2Ij_8"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Delete"
       , state = Contracted
       , content = viewDeleteTools model.track DeleteMessage
       , info = DeletePoints.info
       , video = Nothing
-      , reducedSet = True
+      , isFavourite = True
       }
     , { label = "Fly-through"
       , state = Contracted
       , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
       , info = Flythrough.info
       , video = Just "https://youtu.be/lRukK-do_dE"
-      , reducedSet = True
+      , isFavourite = True
       }
     , { label = "Track smoothers 3D"
       , state = Contracted
@@ -1663,7 +1642,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Filters.info
       , video = Just "https://youtu.be/N48cDi_N_x0"
-      , reducedSet = True
+      , isFavourite = True
       }
     , { label = "Graph Theory"
       , state = Contracted
@@ -1675,14 +1654,14 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Graph.info
       , video = Just "https://youtu.be/KSuR8PcAZYc"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Route summary"
       , state = Contracted
       , content = TrackObservations.overviewSummary model.observations
       , info = "Data about the route."
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Road segment"
       , state = Contracted
@@ -1691,7 +1670,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = "Data about the road at the orange marker."
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Steep climbs"
       , state = Contracted
@@ -1705,7 +1684,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Gradient problems"
       , state = Contracted
@@ -1716,7 +1695,7 @@ toolsAccordion model =
                 ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , reducedSet = True
+      , isFavourite = True
       }
     , { label = "Bend problems"
       , state = Contracted
@@ -1727,7 +1706,7 @@ toolsAccordion model =
                 ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , reducedSet = True
+      , isFavourite = True
       }
     , { label = "Strava"
       , state = Contracted
@@ -1738,7 +1717,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = StravaTools.info
       , video = Just "https://youtu.be/31qVuc3klUE"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Lift & Shift"
       , state = Contracted
@@ -1749,7 +1728,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = RotateRoute.info
       , video = Just "https://youtu.be/P602MjJLrZ0"
-      , reducedSet = False
+      , isFavourite = False
       }
     , { label = "Splitter & Joiner"
       , state = Contracted
@@ -1760,7 +1739,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = TrackSplitter.info
       , video = Nothing
-      , reducedSet = False
+      , isFavourite = False
       }
     ]
 
