@@ -212,6 +212,8 @@ init mflags origin navigationKey =
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
       }
+        |> -- TODO: Fix Fugly Fudge.
+           (\m -> { m | toolsAccordion = toolsAccordion m })
     , Cmd.batch
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
@@ -978,7 +980,7 @@ applyTrack model track =
     ( { model
         | track = Just track
         , renderingContext = Just defaultRenderingContext
-        , toolsAccordion = toolsAccordion model
+        --, toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes
         , gpxSource = GpxLocalFile
         , undoStack = []
