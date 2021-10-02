@@ -314,11 +314,4 @@ viewGradientLimitPane options wrapper track =
                 text <|
                     "Apply limits"
             }
-        , row [ padding 5, spacing 10, Background.color warningColor, width fill ]
-            [ useIcon FeatherIcons.alertTriangle
-            , column [padding 5, spacing 10]
-                [ text "If Purple marker is dropped, works between markers."
-                , text "Otherwise works from Orange marker to end of route."
-                ]
-            ]
         ]
