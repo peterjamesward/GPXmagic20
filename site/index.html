@@ -6,12 +6,12 @@
   <title>GPXmagic</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
   <script type="text/javascript" src="main.js"></script>
+  <script type='text/javascript' src='js/PortFunnel.js'></script>
+  <script type='text/javascript' src='js/PortFunnel/LocalStorage.js'></script>
   <script src='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js'></script>
-  <script src="./elm-canvas.js"></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
   <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.js"></script>
   <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.2.2/mapbox-gl-draw.css" type="text/css">
-
 </head>
 
 <body>
@@ -43,8 +43,10 @@ app.ports.genRandomBytes.subscribe(n => {
     app.ports.randomBytes.send(bytes);
 });
 
-// Mapbox integration ...
+// Mapbox integration ... possibly focked by PortFunnel.
 app.ports.mapPort.subscribe(incomingMessageHandler);
+PortFunnel.subscribe(app);
+
 
 // We use port messages to synchronise our state here with Elm.
 var map;

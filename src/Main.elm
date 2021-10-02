@@ -1,6 +1,5 @@
 module Main exposing (main)
 
-import About
 import Accordion exposing (AccordionEntry, AccordionState(..), Model, defaultState, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
@@ -16,7 +15,6 @@ import File exposing (File)
 import File.Download as Download
 import File.Select as Select
 import Filters
-import FlatColors.BritishPalette
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
@@ -38,7 +36,6 @@ import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
-import Pixels exposing (inPixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import RotateRoute
 import Scene exposing (Scene)
