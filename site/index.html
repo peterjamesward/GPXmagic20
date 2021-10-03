@@ -45,8 +45,7 @@ app.ports.genRandomBytes.subscribe(n => {
 
 // Mapbox integration ... possibly focked by PortFunnel.
 app.ports.mapPort.subscribe(incomingMessageHandler);
-PortFunnel.subscribe(app);
-
+app.ports.storagePort.subscribe(storagePortDispatcher);
 
 // We use port messages to synchronise our state here with Elm.
 var map;

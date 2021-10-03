@@ -26,6 +26,7 @@ import Interpolate
 import Json.Decode as E exposing (at, decodeValue, field, float, list, string)
 import Json.Encode
 import List.Extra
+import LocalStorage
 import LoopedTrack
 import MapController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
@@ -1519,12 +1520,14 @@ subscriptions model =
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
+            , LocalStorage.subPort LocalStorage.subPort
             ]
 
     else
         Sub.batch
             [ MapController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , LocalStorage.subPort LocalStorage.subPort
             ]
 
 
