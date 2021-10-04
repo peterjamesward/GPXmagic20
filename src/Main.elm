@@ -26,9 +26,8 @@ import Interpolate
 import Json.Decode as E exposing (at, decodeValue, field, float, list, string)
 import Json.Encode
 import List.Extra
-import LocalStorage
 import LoopedTrack
-import MapController exposing (..)
+import PortController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra
 import MyIP
@@ -253,7 +252,7 @@ update msg model =
             ( { model | ipInfo = ipInfo }
             , Cmd.batch
                 [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
-                , MapController.createMap mapInfoWithLocation
+                , PortController.createMap mapInfoWithLocation
                 ]
             )
 
@@ -385,7 +384,7 @@ update msg model =
             )
 
         MapMessage json ->
-            -- So we don't need to keep going to the MapController.
+            -- So we don't need to keep going to the PortController.
             -- These will be Model-domain messages.
             let
                 jsonMsg =
@@ -493,7 +492,7 @@ update msg model =
                 ( Ok "no node", _ ) ->
                     ( model
                     , Cmd.none
-                      --, Delay.after 100 <| MapController.createMap MapController.defaultMapInfo
+                      --, Delay.after 100 <| PortController.createMap PortController.defaultMapInfo
                     )
 
                 _ ->
@@ -739,14 +738,14 @@ update msg model =
                 False ->
                     ( { model | mapSketchMode = True }
                     , Cmd.batch
-                        [ MapController.prepareSketchMap ( lon, lat )
+                        [ PortController.prepareSketchMap ( lon, lat )
                         , Delay.after 500 RepaintMap
                         ]
                     )
 
                 True ->
                     ( { model | mapSketchMode = False }
-                    , MapController.exitSketchMode
+                    , PortController.exitSketchMode
                     )
 
 
@@ -850,7 +849,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
             )
 
         ( Just track, ActionFocusMove tp ) ->
@@ -874,9 +873,9 @@ processPostUpdateAction model action =
               }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack bendPreview nudgePreview
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview
                 , if ViewPane.mapPaneIsLinked model.viewPanes then
-                    MapController.centreMapOnCurrent updatedTrack
+                    PortController.centreMapOnCurrent updatedTrack
 
                   else
                     Cmd.none
@@ -901,7 +900,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
             )
 
         ( Just track, ActionRepaintMap ) ->
@@ -911,12 +910,12 @@ processPostUpdateAction model action =
 
         ( Just track, ActionToggleMapDragging isDragging ) ->
             ( model
-            , MapController.toggleDragging isDragging track
+            , PortController.toggleDragging isDragging track
             )
 
         ( Just track, ActionFetchMapElevations ) ->
             ( model
-            , MapController.requestElevations
+            , PortController.requestElevations
             )
 
         ( Just track, ActionPreview ) ->
@@ -942,7 +941,7 @@ processPostUpdateAction model action =
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
-                [ MapController.addMarkersToMap track bendPreview nudgePreview ]
+                [ PortController.addMarkersToMap track bendPreview nudgePreview ]
             )
 
         ( _, ActionCommand a ) ->
@@ -1517,17 +1516,15 @@ subscriptions model =
     if Accordion.tabIsOpen "Fly-through" model.toolsAccordion then
         --if model.flythrough.flythrough /= Nothing then
         Sub.batch
-            [ MapController.messageReceiver MapMessage
+            [ PortController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
-            , LocalStorage.subPort LocalStorage.subPort
             ]
 
     else
         Sub.batch
-            [ MapController.messageReceiver MapMessage
+            [ PortController.messageReceiver MapMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-            , LocalStorage.subPort LocalStorage.subPort
             ]
 
 

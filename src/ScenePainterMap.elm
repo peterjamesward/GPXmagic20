@@ -10,7 +10,7 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
 import Html.Attributes exposing (id)
-import MapController
+import PortController
 import Pixels exposing (Pixels, inPixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
@@ -49,17 +49,17 @@ emptyPreviewCopy track =
 
 initialiseMap : ViewingContext -> Track -> List (Cmd msg)
 initialiseMap context track =
-    [ MapController.addTrackToMap context track
-    , MapController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
-    , MapController.centreMap context track
-    , MapController.zoomMap context
+    [ PortController.addTrackToMap context track
+    , PortController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
+    , PortController.centreMap context track
+    , PortController.zoomMap context
     ]
 
 
 mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)
 mapTrackHasChanged context track =
-    [ MapController.addTrackToMap context track
-    , MapController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
+    [ PortController.addTrackToMap context track
+    , PortController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
     ]
 
 

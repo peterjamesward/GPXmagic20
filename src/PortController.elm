@@ -1,17 +1,16 @@
-port module MapController exposing (..)
+port module PortController exposing (..)
 
 import BoundingBox3d exposing (BoundingBox3d)
-import Delay
 import Element exposing (Element, centerX, column, padding, row, spacing, text)
 import Json.Decode exposing (Decoder, decodeValue, field, float, string)
 import Json.Encode as E
-import Length exposing (inMeters)
+import Length
 import LocalCoords exposing (LocalCoords)
 import MapboxKey exposing (mapboxKey)
 import Point3d
 import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
-import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
-import Utils exposing (showDecimal0, showDecimal2, showDecimal6)
+import TrackPoint exposing (TrackPoint)
+import Utils exposing (showDecimal0, showDecimal6)
 import ViewingContext exposing (ViewingContext)
 
 
@@ -43,18 +42,15 @@ defaultMapInfo =
     }
 
 
-port mapPort : E.Value -> Cmd msg
+port commandPort : E.Value -> Cmd msg
 
 
 port messageReceiver : (E.Value -> msg) -> Sub msg
 
 
-port mapStopped : (String -> msg) -> Sub msg
-
-
 createMap : MapInfo -> Cmd msg
 createMap info =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Init" )
             , ( "token", E.string mapboxKey )
@@ -66,7 +62,7 @@ createMap info =
 
 refreshMap : Cmd msg
 refreshMap =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Repaint" )
             , ( "token", E.string mapboxKey )
@@ -80,7 +76,7 @@ centreMap context track =
             context.focalPoint
                 |> withoutGhanianTransform track
     in
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Centre" )
             , ( "token", E.string mapboxKey )
@@ -91,7 +87,7 @@ centreMap context track =
 
 zoomMap : ViewingContext -> Cmd msg
 zoomMap context =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Zoom" )
             , ( "token", E.string mapboxKey )
@@ -106,7 +102,7 @@ centreMapOnCurrent track =
             track.currentNode.xyz
                 |> withoutGhanianTransform track
     in
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Centre" )
             , ( "token", E.string mapboxKey )
@@ -117,7 +113,7 @@ centreMapOnCurrent track =
 
 prepareSketchMap : ( Float, Float ) -> Cmd msg
 prepareSketchMap ( lon, lat ) =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Sketch" )
             , ( "token", E.string mapboxKey )
@@ -129,7 +125,7 @@ prepareSketchMap ( lon, lat ) =
 
 exitSketchMode : Cmd msg
 exitSketchMode =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "ExitSketch" )
             , ( "token", E.string mapboxKey )
@@ -138,7 +134,7 @@ exitSketchMode =
 
 toggleDragging : Bool -> Track -> Cmd msg
 toggleDragging isDragging track =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Drag" )
             , ( "Enable", E.bool isDragging )
@@ -148,7 +144,7 @@ toggleDragging isDragging track =
 
 requestElevations : Cmd msg
 requestElevations =
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Elev" )
             ]
@@ -163,7 +159,7 @@ addTrackToMap context track =
             context.focalPoint
                 |> withoutGhanianTransform track
     in
-    mapPort <|
+    commandPort <|
         E.object
             [ ( "Cmd", E.string "Track" )
             , ( "token", E.string mapboxKey )
@@ -191,7 +187,7 @@ addMarkersToMap track smoothBend nudged =
                 , ( "lat", E.float lat )
                 ]
     in
-    mapPort <|
+    commandPort <|
         case track.markedNode of
             Just mark ->
                 E.object

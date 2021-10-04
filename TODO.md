@@ -34,6 +34,10 @@ to Bill StClair's PortFunnel and I don't really want or need the complexity of b
 
 Thinking of having a Key for each tool tab, and Value encodes Open & Starred states.
 But don't use label as Key, if we're ever likely to have language support -- need an ID.
+Need a "reset to default" button - this could be below the stacks.
+
+Once we have localstorage, saving window layout becomes possible; saving anything becomes possible.
+Let's see how the public reacts.
 
 --
 
