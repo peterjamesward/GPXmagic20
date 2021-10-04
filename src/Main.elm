@@ -1611,7 +1611,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = GradientLimiter.info
       , video = Just "https://youtu.be/LtcYi4fzImE"
-      , isFavourite = True
+      , isFavourite = False
       }
     , { label = "Smooth gradient"
       , state = Contracted
@@ -1668,14 +1668,14 @@ toolsAccordion model =
       , content = viewDeleteTools model.track DeleteMessage
       , info = DeletePoints.info
       , video = Nothing
-      , isFavourite = True
+      , isFavourite = False
       }
     , { label = "Fly-through"
       , state = Contracted
       , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
       , info = Flythrough.info
       , video = Just "https://youtu.be/lRukK-do_dE"
-      , isFavourite = True
+      , isFavourite = False
       }
     , { label = "Track smoothers 3D"
       , state = Contracted
@@ -1688,7 +1688,7 @@ toolsAccordion model =
                 |> Maybe.withDefault none
       , info = Filters.info
       , video = Just "https://youtu.be/N48cDi_N_x0"
-      , isFavourite = True
+      , isFavourite = False
       }
     , { label = "Graph Theory"
       , state = Contracted
@@ -1741,7 +1741,7 @@ toolsAccordion model =
                 ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , isFavourite = True
+      , isFavourite = False
       }
     , { label = "Bend problems"
       , state = Contracted
@@ -1752,7 +1752,7 @@ toolsAccordion model =
                 ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
-      , isFavourite = True
+      , isFavourite = False
       }
     , { label = "Strava"
       , state = Contracted

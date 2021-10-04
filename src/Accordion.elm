@@ -134,10 +134,46 @@ recoverStoredState savedState accordion =
         fromStorage =
             D.decodeValue storedStateDecoder savedState
 
-        _ =
-            Debug.log "recovered" fromStorage
+        withSavedValues : List ToolStoredState -> List (AccordionEntry msg) -> List (AccordionEntry msg)
+        withSavedValues stored original =
+            List.map (applyStoredSettings stored) original
+
+        applyStoredSettings : List ToolStoredState -> AccordionEntry msg -> AccordionEntry msg
+        applyStoredSettings stored entry =
+            let
+                relevantStoredEntry : Maybe ToolStoredState
+                relevantStoredEntry =
+                    List.Extra.find (\e -> e.label == entry.label) stored
+            in
+            case relevantStoredEntry of
+                Just storedEntry ->
+                    { entry
+                        | state = decodeStoredState storedEntry.state
+                        , isFavourite = storedEntry.isFavourite
+                    }
+
+                Nothing ->
+                    entry
+
+        decodeStoredState s =
+            case s of
+                "Expanded" ->
+                    Expanded False
+
+                "Contracted" ->
+                    Contracted
+
+                _ ->
+                    Disabled
     in
-    ( defaultState, accordion )
+    case fromStorage of
+        Ok recoveredState ->
+            ( recoveredState.model
+            , withSavedValues recoveredState.tabs accordion
+            )
+
+        _ ->
+            ( defaultState, accordion )
 
 
 storedStateDecoder : D.Decoder AccordionStoredState
