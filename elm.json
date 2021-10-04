@@ -10,8 +10,6 @@
             "JohnBugner/elm-loop": "2.1.0",
             "andrewMacmurray/elm-delay": "4.0.0",
             "avh4/elm-color": "1.0.0",
-            "billstclair/elm-localstorage": "7.3.1",
-            "billstclair/elm-port-funnel": "1.2.0",
             "chelovek0v/bbase64": "1.0.1",
             "cuducos/elm-format-number": "8.1.4",
             "danfishgold/base64-bytes": "1.1.0",

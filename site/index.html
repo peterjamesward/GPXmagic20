@@ -225,19 +225,18 @@ function incomingMessageHandler(msg) {
             try {
               val = JSON.parse(localStorage.getItem(msg.key))
             } catch (e) {
-            }
-            app.ports.messageReceiver.send({ 'msg' : 'got', 'key' : msg.key, 'val' : val });
+            };
+            app.ports.messageReceiver.send({ 'msg' : 'storage.got', 'key' : msg.key, 'val' : val });
             break;
 
         case 'storage.list':
             var keys = [];
             var cnt = localStorage.length;
-                for (var i = 0; i < cnt; i++) {
-                    var key = storage.key(i);
-                    keys.push(key);
-                }
-            }
-            app.ports.messageReceiver.send({ 'msg' : 'got', 'keys' : keys });
+            for (var i = 0; i < cnt; i++) {
+                var key = storage.key(i);
+                keys.push(key);
+            };
+            app.ports.messageReceiver.send({ 'msg' : 'storage.keys', 'keys' : keys });
             break;
 
         case 'storage.clear':
