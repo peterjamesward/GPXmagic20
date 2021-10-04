@@ -1,8 +1,7 @@
 port module PortController exposing (..)
 
 import BoundingBox3d exposing (BoundingBox3d)
-import Element exposing (Element, centerX, column, padding, row, spacing, text)
-import Json.Decode exposing (Decoder, decodeValue, field, float, string)
+import Json.Decode exposing (Decoder, field, string)
 import Json.Encode as E
 import Length
 import LocalCoords exposing (LocalCoords)
@@ -10,7 +9,6 @@ import MapboxKey exposing (mapboxKey)
 import Point3d
 import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal6)
 import ViewingContext exposing (ViewingContext)
 
 
@@ -207,77 +205,39 @@ addMarkersToMap track smoothBend nudged =
                     ]
 
 
-viewMapInfo : Maybe MapInfo -> Element msg
-viewMapInfo mapInfo =
-    case mapInfo of
-        Just info ->
-            column [ padding 10, spacing 10, centerX ]
-                [ row [ padding 10, spacing 10, centerX ]
-                    [ column [ padding 10, spacing 10, centerX ]
-                        [ text "Longitude "
-                        , text "Latitude "
-                        , text "Zoom "
-                        ]
-                    , column [ padding 10, spacing 10, centerX ]
-                        [ text <| showDecimal6 info.centreLon
-                        , text <| showDecimal6 info.centreLat
-                        , text <| showDecimal0 info.mapZoom
-                        ]
-                    ]
-                ]
-
-        Nothing ->
-            column [ padding 10, spacing 10, centerX ]
-                [ text "Map information is available only once a map has been loaded." ]
+storageSetItem : String -> E.Value -> Cmd msg
+storageSetItem key value =
+    commandPort <|
+        E.object
+            [ ( "Cmd", E.string "storage.set" )
+            , ( "key", E.string key )
+            , ( "value", value )
+            ]
 
 
-processMapMessage : MapInfo -> E.Value -> Maybe ( MapInfo, Cmd msg )
-processMapMessage info json =
-    -- If we return Nothing, it means we're not interested and Main should handle it.
-    let
-        msg =
-            decodeValue msgDecoder json
-    in
-    case msg of
-        Ok "move" ->
-            -- User is dragging/zooming the map
-            --( { 'msg' : 'move'
-            --  , 'lat' : map.getCentre().lat
-            --  , 'lon' : map.getCentre().lon
-            --  , 'zoom' : map.getZoom()
-            --  } );
-            let
-                lat =
-                    decodeValue (field "lat" float) json
+storageGetItem : String -> Cmd msg
+storageGetItem key =
+    commandPort <|
+        E.object
+            [ ( "Cmd", E.string "storage.get" )
+            , ( "key", E.string key )
+            ]
 
-                lon =
-                    decodeValue (field "lon" float) json
 
-                zoom =
-                    decodeValue (field "zoom" float) json
-            in
-            case ( lat, lon, zoom ) of
-                ( Ok lat1, Ok lon1, Ok zoom1 ) ->
-                    Just
-                        ( { info
-                            | centreLon = lon1
-                            , centreLat = lat1
-                            , mapZoom = zoom1
-                          }
-                        , Cmd.none
-                        )
+storageListKeys : Cmd msg
+storageListKeys =
+    commandPort <|
+        E.object
+            [ ( "Cmd", E.string "storage.list" )
+            ]
 
-                _ ->
-                    Just ( info, Cmd.none )
 
-        Ok "no node" ->
-            Just
-                ( info
-                , createMap info
-                )
-
-        _ ->
-            Nothing
+storageClear : Cmd msg
+storageClear =
+    commandPort <|
+        E.object
+            [ ( "Cmd", E.string "storage.clear" )
+            ]
 
 
 msgDecoder : Decoder String

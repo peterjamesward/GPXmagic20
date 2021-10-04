@@ -216,8 +216,9 @@ function incomingMessageHandler(msg) {
             sketchDataCapture();
             break;
 
-        case 'storage.put':
-            localStorage.setItem(msg.key, msg.value);
+        case 'storage.set':
+            //console.log(msg.key); console.log(msg.value);
+            localStorage.setItem(msg.key, JSON.stringify( msg.value ) );
             break;
 
         case 'storage.get':
@@ -226,16 +227,17 @@ function incomingMessageHandler(msg) {
               val = JSON.parse(localStorage.getItem(msg.key))
             } catch (e) {
             };
-            app.ports.messageReceiver.send({ 'msg' : 'storage.got', 'key' : msg.key, 'val' : val });
+            app.ports.messageReceiver.send({ 'msg' : 'storage.got', 'key' : msg.key, 'value' : val });
             break;
 
         case 'storage.list':
             var keys = [];
             var cnt = localStorage.length;
             for (var i = 0; i < cnt; i++) {
-                var key = storage.key(i);
+                var key = localStorage.key(i);
                 keys.push(key);
             };
+            //console.log(keys);
             app.ports.messageReceiver.send({ 'msg' : 'storage.keys', 'keys' : keys });
             break;
 

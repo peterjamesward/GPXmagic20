@@ -2,7 +2,6 @@ module Accordion exposing (..)
 
 -- Seeking a better way to organise all the controls.
 
-import Color
 import ColourPalette exposing (..)
 import Element exposing (..)
 import Element.Background as Background
@@ -11,11 +10,10 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
 import FlatColors.BritishPalette
+import Json.Decode as D exposing (Error, decodeValue, field)
+import Json.Encode as E
 import List.Extra
 import Markdown
-import Scene exposing (Scene)
-import Track exposing (Track)
-import Url exposing (Url)
 import Utils exposing (useIcon)
 
 
@@ -31,6 +29,19 @@ type alias AccordionEntry msg =
     , content : Element msg
     , info : String
     , video : Maybe String
+    , isFavourite : Bool
+    }
+
+
+type alias AccordionStoredState =
+    { model : Model
+    , tabs : List ToolStoredState
+    }
+
+
+type alias ToolStoredState =
+    { label : String
+    , state : String
     , isFavourite : Bool
     }
 
@@ -84,6 +95,70 @@ accordionTabStyles state =
     , Font.center
     , Font.size 16
     ]
+
+
+storedState : Model -> List (AccordionEntry msg) -> E.Value
+storedState state entries =
+    let
+        encodedModel =
+            E.object [ ( "reducedToolset", E.bool state.reducedToolset ) ]
+
+        encodedTab : AccordionEntry msg -> E.Value
+        encodedTab tab =
+            E.object
+                [ ( "label", E.string tab.label )
+                , ( "state", E.string <| encodeState tab.state )
+                , ( "isFavourite", E.bool tab.isFavourite )
+                ]
+
+        encodeState s =
+            case s of
+                Expanded _ ->
+                    "Expanded"
+
+                Contracted ->
+                    "Contracted"
+
+                Disabled ->
+                    "Disabled"
+    in
+    E.object
+        [ ( "model", encodedModel )
+        , ( "tabs", E.list encodedTab entries )
+        ]
+
+
+recoverStoredState : E.Value -> List (AccordionEntry msg) -> ( Model, List (AccordionEntry msg) )
+recoverStoredState savedState accordion =
+    let
+        fromStorage =
+            D.decodeValue storedStateDecoder savedState
+
+        _ =
+            Debug.log "recovered" fromStorage
+    in
+    ( defaultState, accordion )
+
+
+storedStateDecoder : D.Decoder AccordionStoredState
+storedStateDecoder =
+    D.map2 AccordionStoredState
+        (field "model" modelDecoder)
+        (field "tabs" (D.list tabDecoder))
+
+
+modelDecoder : D.Decoder Model
+modelDecoder =
+    D.map Model
+        (field "reducedToolset" D.bool)
+
+
+tabDecoder : D.Decoder ToolStoredState
+tabDecoder =
+    D.map3 ToolStoredState
+        (field "label" D.string)
+        (field "state" D.string)
+        (field "isFavourite" D.bool)
 
 
 accordionToggle :

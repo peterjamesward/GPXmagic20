@@ -23,11 +23,10 @@ import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id)
 import Http
 import Interpolate
-import Json.Decode as E exposing (at, decodeValue, field, float, list, string)
-import Json.Encode
+import Json.Decode as D
+import Json.Encode as E
 import List.Extra
 import LoopedTrack
-import PortController exposing (..)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra
 import MyIP
@@ -36,6 +35,7 @@ import OAuth.GpxSource exposing (GpxSource(..))
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
+import PortController exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import RotateRoute
 import Scene exposing (Scene)
@@ -73,7 +73,7 @@ type Msg
     | DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
-    | MapMessage Json.Encode.Value
+    | PortMessage E.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
@@ -215,6 +215,7 @@ init mflags origin navigationKey =
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
         , Task.perform Tick Time.now
+        , PortController.storageGetItem "accordion"
         ]
     )
 
@@ -320,13 +321,25 @@ update msg model =
             let
                 ( newState, newAccordion ) =
                     Accordion.update accordionMsg model.accordionState model.toolsAccordion
+
+                newModel =
+                    { model
+                        | toolsAccordion = newAccordion
+                        , accordionState = newState
+                    }
+
+                -- Cheeky hack to add storage message in here.
+                ( finalModel, cmds ) =
+                    processPostUpdateAction
+                        newModel
+                        PostUpdateActions.ActionPreview
             in
-            processPostUpdateAction
-                { model
-                    | toolsAccordion = newAccordion
-                    , accordionState = newState
-                }
-                PostUpdateActions.ActionPreview
+            ( finalModel
+            , Cmd.batch
+                [ PortController.storageSetItem "accordion" (Accordion.storedState newState newAccordion)
+                , cmds
+                ]
+            )
 
         MarkerMessage markerMsg ->
             let
@@ -383,26 +396,26 @@ update msg model =
             , Cmd.map OAuthMessage authCmd
             )
 
-        MapMessage json ->
+        PortMessage json ->
             -- So we don't need to keep going to the PortController.
             -- These will be Model-domain messages.
             let
                 jsonMsg =
-                    decodeValue msgDecoder json
+                    D.decodeValue msgDecoder json
 
                 ( lat, lon ) =
-                    ( decodeValue (field "lat" float) json
-                    , decodeValue (field "lon" float) json
+                    ( D.decodeValue (D.field "lat" D.float) json
+                    , D.decodeValue (D.field "lon" D.float) json
                     )
 
                 elevations =
-                    decodeValue (field "elevations" (list float)) json
+                    D.decodeValue (D.field "elevations" (D.list D.float)) json
 
                 longitudes =
-                    decodeValue (field "longitudes" (list float)) json
+                    D.decodeValue (D.field "longitudes" (D.list D.float)) json
 
                 latitudes =
-                    decodeValue (field "latitudes" (list float)) json
+                    D.decodeValue (D.field "latitudes" (D.list D.float)) json
             in
             case ( jsonMsg, model.track ) of
                 ( Ok "click", Just track ) ->
@@ -492,7 +505,40 @@ update msg model =
                 ( Ok "no node", _ ) ->
                     ( model
                     , Cmd.none
-                      --, Delay.after 100 <| PortController.createMap PortController.defaultMapInfo
+                    )
+
+                ( Ok "storage.got", _ ) ->
+                    let
+                        key =
+                            D.decodeValue (D.field "key" D.string) json
+
+                        value =
+                            D.decodeValue (D.field "value" D.value) json
+
+                        ( restoreAccordionState, restoreAccordion ) =
+                            case ( key, value ) of
+                                ( Ok "accordion", Ok saved ) ->
+                                    Accordion.recoverStoredState
+                                        saved
+                                        model.toolsAccordion
+
+                                _ ->
+                                    ( Accordion.defaultState, model.toolsAccordion )
+                    in
+                    ( { model
+                        | accordionState = restoreAccordionState
+                        , toolsAccordion = restoreAccordion
+                      }
+                    , Cmd.none
+                    )
+
+                ( Ok "storage.keys", _ ) ->
+                    let
+                        _ =
+                            Debug.log "storage.keys" json
+                    in
+                    ( model
+                    , Cmd.none
                     )
 
                 _ ->
@@ -755,16 +801,16 @@ draggedOnMap json track =
     -- Return Nothing if drag did not change track.
     let
         lon1 =
-            E.decodeValue (at [ "start", "lng" ] float) json
+            D.decodeValue (D.at [ "start", "lng" ] D.float) json
 
         lat1 =
-            E.decodeValue (at [ "start", "lat" ] float) json
+            D.decodeValue (D.at [ "start", "lat" ] D.float) json
 
         lon2 =
-            E.decodeValue (at [ "end", "lng" ] float) json
+            D.decodeValue (D.at [ "end", "lng" ] D.float) json
 
         lat2 =
-            E.decodeValue (at [ "end", "lat" ] float) json
+            D.decodeValue (D.at [ "end", "lat" ] D.float) json
     in
     if lon1 == lon2 && lat1 == lat2 then
         Nothing
@@ -977,6 +1023,7 @@ applyTrack model track =
     ( { model
         | track = Just track
         , renderingContext = Just defaultRenderingContext
+
         --, toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes
         , gpxSource = GpxLocalFile
@@ -1516,14 +1563,14 @@ subscriptions model =
     if Accordion.tabIsOpen "Fly-through" model.toolsAccordion then
         --if model.flythrough.flythrough /= Nothing then
         Sub.batch
-            [ PortController.messageReceiver MapMessage
+            [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
             ]
 
     else
         Sub.batch
-            [ PortController.messageReceiver MapMessage
+            [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             ]
 
