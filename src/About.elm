@@ -10,10 +10,17 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.3.0 update 2021-09-17
+## 2.3.1 update 2021-10-04
 
-- Experimental feature to draw a route directly onto a (new) Map.
-Please see video at https://youtu.be/80CZVCAX-t8 for explanation.
+- You can select your own Favourite tools by clicking on the star. Blue stars denote the Favourites.
+If you then click on "Show Starred and Open only", all other tools will be hidden. Favourite tools,
+whether Open or Closed, will be listed above the non-favourites.
+
+- Yes, it seems more complicated. If you liked things as they were, don't click on the Stars. If you
+like to work with a subset of tools, Star them. The tool settings will (in most cases) be preserved
+even between sessions.
+
+- Please see video at https://youtu.be/3eRFRLgkF8I for illustration.
 
 ## Can I support this work?
 

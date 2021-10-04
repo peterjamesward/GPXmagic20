@@ -61,6 +61,7 @@ type Msg
     | ToggleInfo String
     | ToggleFavourite String
     | ToggleToolSet
+    | RestoreDefaultTools
 
 
 accordionMenuStyles =
@@ -359,22 +360,37 @@ view model entries msgWrap =
 
         ( openOther, closedOther ) =
             List.partition isOpen unstarred
+
+        showHideUnstarred =
+            button
+                [ Border.width 2
+                , Border.color FlatColors.BritishPalette.nanohanachaGold
+                , padding 5
+                , Border.rounded 3
+                ]
+                { onPress = Just <| msgWrap ToggleToolSet
+                , label =
+                    if model.reducedToolset then
+                        text "Show all"
+
+                    else
+                        text "Show Starred and Open only"
+                }
+
+        resetTools =
+            button
+                [ Border.width 2
+                , Border.color FlatColors.BritishPalette.nanohanachaGold
+                , padding 5
+                , Border.rounded 3
+                , alignRight
+                ]
+                { onPress = Just <| msgWrap RestoreDefaultTools
+                , label = text "Restore to defaults"
+                }
     in
     column accordionMenuStyles
-        [ button
-            [ Border.width 2
-            , Border.color FlatColors.BritishPalette.nanohanachaGold
-            , padding 5
-            , Border.rounded 3
-            ]
-            { onPress = Just <| msgWrap ToggleToolSet
-            , label =
-                if model.reducedToolset then
-                    text "Show all"
-
-                else
-                    text "Starred only"
-            }
+        [ row [ width fill ] [ showHideUnstarred, resetTools ]
         , column [] <| List.map viewOpenEntry openStarred
         , wrappedRow [] <| List.map viewClosedEntry closedStarred
         , row [ height <| px 10, Background.color accordionContentBackground ] []
@@ -389,6 +405,10 @@ view model entries msgWrap =
 
 update : Msg -> Model -> List (AccordionEntry msg) -> ( Model, List (AccordionEntry msg) )
 update msg model accordion =
+    let
+        closeAndDefavourite entry =
+            { entry | state = Contracted, isFavourite = False }
+    in
     case msg of
         ToggleEntry label ->
             ( model, accordionToggle accordion label )
@@ -402,6 +422,11 @@ update msg model accordion =
         ToggleToolSet ->
             ( { model | reducedToolset = not model.reducedToolset }
             , accordion
+            )
+
+        RestoreDefaultTools ->
+            ( defaultState
+            , List.map closeAndDefavourite accordion
             )
 
 

@@ -8,39 +8,6 @@ _SVG parser should report errors. At least summarise outcome._
 
 # TODO
 
-@Jason Hurst:
-
-    Can you enable a custom pallet that would allow users to drag their 
-    preferred functions onto that pallet and arrange them in their preferred order 
-    for that GPXMagic session?
-    I appreciate that you wouldn't be able to store user preferences without 
-    requiring logins and that takes you down the dark path of privacy legislation 
-    and security. So a 'per session' pallet seems a reasonable compromise.
-    
-**Might be able to deal with this just in terms of display order, with some visual tweaks.**
-
-    1 Starred Open tools.
-    2 Starred Closed tools.
-    3 Separator
-    4 Other Open tools.
-    5 Separator = Option to collapse Closed tools.
-    6 Other Closed tools.
-
-Remains to use localstorage to save state of all tools.
-This lacks re-ordering but is 80% of value with 20% of effort, so maybe worth as an interim for feedback.
-
-This is going well but I might use MapController (renamed to PortController) as it does a similar job
-to Bill StClair's PortFunnel and I don't really want or need the complexity of both.
-
-Thinking of having a Key for each tool tab, and Value encodes Open & Starred states.
-But don't use label as Key, if we're ever likely to have language support -- need an ID.
-Need a "reset to default" button - this could be below the stacks.
-
-Once we have localstorage, saving window layout becomes possible; saving anything becomes possible.
-Let's see how the public reacts.
-
---
-
 Plan from one route, elevation from another?
 
 Appended route elevation adjusted and contiguous.

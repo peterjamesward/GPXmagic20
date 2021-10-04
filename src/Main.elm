@@ -533,10 +533,6 @@ update msg model =
                     )
 
                 ( Ok "storage.keys", _ ) ->
-                    let
-                        _ =
-                            Debug.log "storage.keys" json
-                    in
                     ( model
                     , Cmd.none
                     )
