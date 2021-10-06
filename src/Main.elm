@@ -1528,6 +1528,7 @@ contentArea model =
                         model.displayOptions
                         ( model.completeScene, model.completeProfile )
                         ViewPaneMessage
+                    , viewTrackControls MarkerMessage model.track
                     , footer model
                     ]
 
@@ -2027,8 +2028,8 @@ myCustomSplitter =
     createCustomSplitter SplitterMsg
         { attributes =
             asStyles
-                [ ( "width", "40px" )
-                , ( "height", "600px" )
+                [ ( "width", "5px" )
+                , ( "height", "100%" )
                 , ( "background", "lightcoral" )
                 , ( "cursor", "col-resize" )
                 ]

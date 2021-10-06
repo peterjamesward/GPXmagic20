@@ -4,16 +4,21 @@
 
 SVG parser should report errors. At least summarise outcome.
 
-**Marker and Undo button styling not rendering propetly sometimes.**
+**Marker and Undo button styling not rendering properly sometimes.**
 Perhaps only at certain zoom levels of browser, or pane size?
 This happens now also with V1, so it's not recent changes -- it could be Safari 15.0!
+**Try another browser!**
 
 # TODO
 
-Variable split between panes and tools?
-https://stackoverflow.com/questions/64016466/how-can-i-make-a-draggable-split-panel-with-elm-preferably-elm-ui
+1. **Store splitter location in localStorage.**
 
-More Configurable layout (or just option to be like v1). Uses localstorage.
+2. Open tools should go to top and occupy whole width. Close tools are wrapped row.
+   Don't need separate space for starred, just the option to hide the unstarred.
+
+3. **Review all tool panels for optimising use of available width.**
+
+Clean up splitter code with less swapping between HTML and elm-ui?
 
 Store various control settings, now we know how.
 
