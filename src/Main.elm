@@ -20,7 +20,7 @@ import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
-import Html.Attributes exposing (id)
+import Html.Attributes exposing (id, style)
 import Http
 import Interpolate
 import Json.Decode as D
@@ -41,6 +41,7 @@ import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
+import SplitPane exposing (CustomSplitter, Orientation(..), State, ViewConfig, createCustomSplitter, createViewConfig)
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
@@ -96,6 +97,7 @@ type Msg
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
+    | SplitterMsg SplitPane.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -155,6 +157,7 @@ type alias Model =
     , mapElevations : List Float
     , mapSketchMode : Bool
     , accordionState : Accordion.Model
+    , splitter : SplitPane.State
     }
 
 
@@ -208,6 +211,7 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
+      , splitter = SplitPane.init Horizontal
       }
         |> -- TODO: Fix Fugly Fudge.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -789,6 +793,9 @@ update msg model =
                     ( { model | mapSketchMode = False }
                     , PortController.exitSketchMode
                     )
+
+        SplitterMsg paneMsg ->
+            ( { model | splitter = SplitPane.update paneMsg model.splitter }, Cmd.none )
 
 
 draggedOnMap : E.Value -> Track -> Maybe Track
@@ -1502,31 +1509,60 @@ buyMeACoffeeButton =
         }
 
 
+contentArea : Model -> Element Msg
 contentArea model =
-    row (width fill :: defaultRowLayout) <|
-        [ column [ width fill, alignTop ] <|
-            [ viewAllPanes
-                model.viewPanes
-                model.displayOptions
-                ( model.completeScene, model.completeProfile )
-                ViewPaneMessage
-            , footer model
-            ]
-        , el [ alignTop ] <|
-            if model.track /= Nothing then
-                column defaultColumnLayout
-                    [ markerButton model.track MarkerMessage
-                    , viewTrackControls MarkerMessage model.track
-                    , undoRedoButtons model
-                    , Accordion.view
-                        model.accordionState
-                        (updatedAccordion model.toolsAccordion toolsAccordion model)
-                        AccordionMessage
+    let
+        leftPaneHtml =
+            layout
+                [ width fill
+                , padding 10
+                , spacing 10
+                , Font.size 16
+                , height fill
+                ]
+            <|
+                column
+                    [ width fill, alignTop ]
+                    [ viewAllPanes
+                        model.viewPanes
+                        model.displayOptions
+                        ( model.completeScene, model.completeProfile )
+                        ViewPaneMessage
+                    , footer model
                     ]
 
-            else
-                none
-        ]
+        rightPaneHtml =
+            layout
+                [ width fill
+                , padding 10
+                , spacing 10
+                , Font.size 16
+                , height fill
+                ]
+            <|
+                el
+                    [ alignTop ]
+                <|
+                    if model.track /= Nothing then
+                        column defaultColumnLayout
+                            [ markerButton model.track MarkerMessage
+                            , viewTrackControls MarkerMessage model.track
+                            , undoRedoButtons model
+                            , Accordion.view
+                                model.accordionState
+                                (updatedAccordion model.toolsAccordion toolsAccordion model)
+                                AccordionMessage
+                            ]
+
+                    else
+                        none
+    in
+    E.html <|
+        SplitPane.view
+            viewConfig
+            leftPaneHtml
+            rightPaneHtml
+            model.splitter
 
 
 viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
@@ -1562,12 +1598,14 @@ subscriptions model =
             [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
+            , Sub.map SplitterMsg <| SplitPane.subscriptions model.splitter
             ]
 
     else
         Sub.batch
             [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , Sub.map SplitterMsg <| SplitPane.subscriptions model.splitter
             ]
 
 
@@ -1982,3 +2020,29 @@ outputGPX model =
                     "NOFILENAME"
     in
     Download.string outputFilename "text/gpx" gpxString
+
+
+myCustomSplitter : CustomSplitter Msg
+myCustomSplitter =
+    createCustomSplitter SplitterMsg
+        { attributes =
+            asStyles
+                [ ( "width", "40px" )
+                , ( "height", "600px" )
+                , ( "background", "lightcoral" )
+                , ( "cursor", "col-resize" )
+                ]
+        , children = []
+        }
+
+
+asStyles =
+    List.map (\( a, b ) -> style a b)
+
+
+viewConfig : ViewConfig Msg
+viewConfig =
+    createViewConfig
+        { toMsg = SplitterMsg
+        , customSplitter = Just myCustomSplitter
+        }
