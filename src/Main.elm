@@ -693,7 +693,7 @@ update msg model =
                         (TrackObservations.update
                             probMsg
                             model.problemOptions
-                            model.observations
+                            model.bendOptions.segments
                         )
                         model.track
                         |> Maybe.withDefault ( model.problemOptions, ActionNoOp )

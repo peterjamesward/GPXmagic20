@@ -2,7 +2,7 @@
 
 # BUGS
 
-Centroid averaging should anchor the first and last points.
+**Centroid averaging** should anchor the first and last points.
 
 SVG parser should report errors. At least summarise outcome.
 
@@ -12,9 +12,12 @@ This happens now also with V1, so it's not recent changes -- it could be Safari 
 
 # TODO
 
-**Chamfer returns.**
+Variable split between panes and tools?
+https://stackoverflow.com/questions/64016466/how-can-i-make-a-draggable-split-panel-with-elm-preferably-elm-ui
 
-Single point smoother needs minimum radius setting.
+More Configurable layout (or just option to be like v1). Uses localstorage.
+
+Open tools not jump to top.
 
 Store various control settings, now we know how.
 

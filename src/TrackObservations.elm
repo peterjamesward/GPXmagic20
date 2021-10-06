@@ -89,10 +89,10 @@ defaultObservations =
 update :
     Msg
     -> Options
-    -> TrackObservations
+    -> Int
     -> Track
     -> ( Options, PostUpdateActions.PostUpdateAction msg )
-update msg settings observations track =
+update msg settings numSegments track =
     case msg of
         LocateProblem trackPoint ->
             ( settings
@@ -125,11 +125,10 @@ update msg settings observations track =
                 applyToSinglePointByIndex index changingTrack =
                     -- repeated use of prepareTrackPoints looks costly but check logic first.
                     Maybe.map
-                        (BendSmoother.softenSinglePoint 5 changingTrack)
+                        (BendSmoother.softenSinglePoint numSegments changingTrack)
                         (List.Extra.getAt index changingTrack.trackPoints)
                         |> Maybe.withDefault changingTrack
 
-                --|> (\latestTrack -> { latestTrack | track = prepareTrackPoints latestTrack.track })
                 newTrack =
                     List.foldl
                         applyToSinglePointByIndex
