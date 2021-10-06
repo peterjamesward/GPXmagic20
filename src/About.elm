@@ -14,6 +14,8 @@ aboutText =
 
 - Autofix in Bend Prblems panel uses the number of segments selected in the Bend Smoother Classic panel.
 
+- Centroid averaging does not move start and end points in track that's not a loop.
+
 ## Can I support this work?
 
 **YES, PLEASE!!**

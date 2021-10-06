@@ -293,10 +293,10 @@ applyWeightedAverageFilter settings loopiness track =
                 )
 
         withinRange =
-            List.take finish >> List.drop start
+            List.take finish >> List.drop (start + 1)
 
         ( fixedFirst, fixedLast ) =
-            ( List.take start points, List.drop finish points )
+            ( List.take (start + 1) points, List.drop finish points )
     in
     if track.markedNode == Nothing && loopiness == IsALoop then
         List.map3

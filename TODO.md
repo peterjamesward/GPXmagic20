@@ -2,8 +2,6 @@
 
 # BUGS
 
-**Centroid averaging** should anchor the first and last points.
-
 SVG parser should report errors. At least summarise outcome.
 
 **Marker and Undo button styling not rendering propetly sometimes.**
