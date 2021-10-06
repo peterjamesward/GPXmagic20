@@ -75,72 +75,66 @@ defaultDisplayOptions =
 viewDisplayOptions : DisplayOptions -> (Msg -> msg) -> Element msg
 viewDisplayOptions options wrap =
     column [ width fill, centerX ]
-        [ row [ spacing 5, padding 10 ]
-            [ column [ spacing 5 ]
-                [ Input.checkbox []
-                    { onChange = wrap << ToggleRoad
-                    , icon = checkboxIcon
-                    , checked = options.roadTrack
-                    , label = Input.labelRight [ centerY ] (text "Road surface")
-                    }
-                , Input.checkbox []
-                    { onChange = wrap << ToggleCentreLine
-                    , icon = checkboxIcon
-                    , checked = options.centreLine
-                    , label = Input.labelRight [ centerY ] (text "Centre line")
-                    }
-                , Input.checkbox []
-                    { onChange = wrap << ToggleSeaLevel
-                    , icon = checkboxIcon
-                    , checked = options.seaLevel
-                    , label = Input.labelRight [ centerY ] (text "Sea level")
-                    }
-                , Input.checkbox []
-                    { onChange = wrap << Terrain
-                    , icon = checkboxIcon
-                    , checked = options.terrainOn
-                    , label = Input.labelRight [ centerY ] (text "Terrain")
-                    }
-                ]
-            , column [ spacing 5 ]
-                [ Input.checkbox []
-                    { onChange = wrap << TogglePillars
-                    , icon = checkboxIcon
-                    , checked = options.roadPillars
-                    , label = Input.labelRight [ centerY ] (text "Road support pillars")
-                    }
-                , Input.checkbox []
-                    { onChange = wrap << ToggleCones
-                    , icon = checkboxIcon
-                    , checked = options.roadCones
-                    , label = Input.labelRight [ centerY ] (text "Trackpoint cones")
-                    }
-                , Input.checkbox []
-                    { onChange = wrap << ToggleLighting
-                    , icon = checkboxIcon
-                    , checked = options.withLighting
-                    , label = Input.labelRight [ centerY ] (text "Lighting")
-                    }
-                , Input.slider commonShortHorizontalSliderStyles
-                    { onChange = wrap << TerrainFineness << round
-                    , label =
-                        Input.labelBelow [] <| text "Fineness "
-                    , min = 0.0
-                    , max = 7.0
-                    , step = Just 1.0
-                    , value = toFloat options.terrainFineness
-                    , thumb = Input.defaultThumb
-                    }
-                ]
-            ]
-        , row [ padding 5, centerX ]
-            [ Input.slider
+        [ wrappedRow [ spacing 5, padding 10 ]
+            [ Input.checkbox []
+                { onChange = wrap << ToggleRoad
+                , icon = checkboxIcon
+                , checked = options.roadTrack
+                , label = Input.labelRight [ centerY ] (text "Road surface")
+                }
+            , Input.checkbox []
+                { onChange = wrap << ToggleCentreLine
+                , icon = checkboxIcon
+                , checked = options.centreLine
+                , label = Input.labelRight [ centerY ] (text "Centre line")
+                }
+            , Input.checkbox []
+                { onChange = wrap << ToggleSeaLevel
+                , icon = checkboxIcon
+                , checked = options.seaLevel
+                , label = Input.labelRight [ centerY ] (text "Sea level")
+                }
+            , Input.checkbox []
+                { onChange = wrap << Terrain
+                , icon = checkboxIcon
+                , checked = options.terrainOn
+                , label = Input.labelRight [ centerY ] (text "Terrain")
+                }
+            , Input.checkbox []
+                { onChange = wrap << TogglePillars
+                , icon = checkboxIcon
+                , checked = options.roadPillars
+                , label = Input.labelRight [ centerY ] (text "Pillars")
+                }
+            , Input.checkbox []
+                { onChange = wrap << ToggleCones
+                , icon = checkboxIcon
+                , checked = options.roadCones
+                , label = Input.labelRight [ centerY ] (text "Trackpoints")
+                }
+            , Input.checkbox []
+                { onChange = wrap << ToggleLighting
+                , icon = checkboxIcon
+                , checked = options.withLighting
+                , label = Input.labelRight [ centerY ] (text "Lighting")
+                }
+            , Input.slider commonShortHorizontalSliderStyles
+                { onChange = wrap << TerrainFineness << round
+                , label =
+                    Input.labelBelow [] <| text "Terrain quality"
+                , min = 0.0
+                , max = 7.0
+                , step = Just 1.0
+                , value = toFloat options.terrainFineness
+                , thumb = Input.defaultThumb
+                }
+            , Input.slider
                 commonShortHorizontalSliderStyles
                 { onChange = wrap << SetVerticalExaggeration
                 , label =
                     Input.labelBelow [] <|
                         text <|
-                            "Elevation exaggeration = "
+                            "Profile scale: "
                                 ++ showDecimal2 options.verticalExaggeration
                 , min = 1.0
                 , max = 10.0
@@ -217,4 +211,3 @@ update options dispMsg wrap =
             ( { options | terrainFineness = fine }
             , NoOp
             )
-
