@@ -9,18 +9,21 @@ Perhaps only at certain zoom levels of browser, or pane size?
 This happens now also with V1, so it's not recent changes -- it could be Safari 15.0!
 **Try another browser!**
 
+Padding on About pane is wrong when second pane open.
+
 # TODO
 
-1. **Store splitter location in localStorage.**
+1. **Store splitter location in localStorage.** (turns out to be awkward, **need to fork**)
 
-2. Open tools should go to top and occupy whole width. Close tools are wrapped row.
-   Don't need separate space for starred, just the option to hide the unstarred.
+2. **Review all tool panels for optimising use of available width.**
 
-3. **Review all tool panels for optimising use of available width.**
-
-Clean up splitter code with less swapping between HTML and elm-ui?
+3. Dragging splitter resizes view panes. If possible.
+Maybe have option to have multiple views one-up or two-up.
+**Yes** use the x value from the splitter message to resize the panes including the Map.
 
 Store various control settings, now we know how.
+
+Clean up splitter code with less swapping between HTML and elm-ui?
 
 Plan from one route, elevation from another?
 

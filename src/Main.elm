@@ -41,7 +41,7 @@ import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
-import SplitPane exposing (CustomSplitter, Orientation(..), State, ViewConfig, createCustomSplitter, createViewConfig)
+import SplitPane exposing (CustomSplitter, Orientation(..), SizeUnit(..), State, ViewConfig, createCustomSplitter, createViewConfig)
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
@@ -795,7 +795,11 @@ update msg model =
                     )
 
         SplitterMsg paneMsg ->
-            ( { model | splitter = SplitPane.update paneMsg model.splitter }, Cmd.none )
+            -- Need to store on (e.g.) SplitterLeftAlone { x = 672, y = 104 }
+            -- We can put that into the Splitter module if we fork it.
+            ( { model | splitter = SplitPane.update paneMsg model.splitter }
+            , Cmd.none
+            )
 
 
 draggedOnMap : E.Value -> Track -> Maybe Track
@@ -1511,6 +1515,7 @@ buyMeACoffeeButton =
 
 contentArea : Model -> Element Msg
 contentArea model =
+    --TODO: It's fugly that the splitter is HTML based. Yet, this works.
     let
         leftPaneHtml =
             layout
