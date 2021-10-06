@@ -17,36 +17,29 @@ arc3dFromThreePoints : TrackPoint -> TrackPoint -> TrackPoint -> Maybe (Arc3d Me
 arc3dFromThreePoints pa pb pc =
     -- Must have three points to play with!
     let
-        ( splitAB, splitBC ) =
-            -- Where do we want to begin and end?
-            ( Point3d.interpolateFrom pa.xyz pb.xyz 0.7
-            , Point3d.interpolateFrom pb.xyz pc.xyz 0.3
-            )
+        (beforeLength, afterLength) =
+            (Point3d.distanceFrom pa.xyz pb.xyz, Point3d.distanceFrom pb.xyz pc.xyz)
 
-        ( abDistFromCorner, bcDistFromCorner ) =
-            -- Which is closest to the corner and hence limits the choice?
-            ( Point3d.distanceFrom splitAB pb.xyz
-            , Point3d.distanceFrom splitBC pb.xyz
-            )
+        amountToStealFromFirstSegment =
+            Quantity.min (meters 4.0) (Quantity.divideBy 2.0 beforeLength)
 
-        ( arcStart, arcEnd ) =
-            -- Use shortest length from both edges.
-            if abDistFromCorner |> Quantity.lessThanOrEqualTo bcDistFromCorner then
-                ( splitAB
-                , pb.xyz
-                    |> Point3d.translateBy
-                        (Vector3d.scaleTo abDistFromCorner pb.roadVector)
-                )
+        amountToStealFromSecondSegment =
+            Quantity.min (meters 4.0) (Quantity.divideBy 2.0 afterLength)
 
-            else
-                ( pa.xyz
-                    |> Point3d.translateBy
-                        (Vector3d.scaleTo
-                            (Vector3d.length pa.roadVector |> Quantity.minus bcDistFromCorner)
-                            pa.roadVector
-                        )
-                , splitBC
-                )
+        commonAmountToSteal =
+            Quantity.min amountToStealFromFirstSegment amountToStealFromSecondSegment
+
+        arcStart =
+            Point3d.interpolateFrom
+                pb.xyz
+                pa.xyz
+                (Quantity.ratio commonAmountToSteal beforeLength)
+
+        arcEnd =
+            Point3d.interpolateFrom
+                pb.xyz
+                pc.xyz
+                (Quantity.ratio commonAmountToSteal afterLength)
 
         trianglePlane =
             SketchPlane3d.throughPoints pa.xyz pb.xyz pc.xyz

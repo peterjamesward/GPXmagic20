@@ -465,7 +465,7 @@ previewBend : List TrackPoint -> List (Entity LocalCoords)
 previewBend points =
     let
         section tp1 tp2 =
-            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.yellow) tp1 tp2
+            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightYellow) tp1 tp2
     in
     List.concat <|
         List.map2

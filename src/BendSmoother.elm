@@ -65,7 +65,7 @@ type alias BendOptions =
 defaultOptions =
     { bendTrackPointSpacing = 5.0
     , smoothedBend = Nothing
-    , segments = 5
+    , segments = 1
     }
 
 
@@ -628,7 +628,7 @@ softenSinglePoint numSegments track point =
                         Just marker ->
                             if marker.index > point.index then
                                 List.Extra.getAt
-                                    (marker.index + 5)
+                                    (marker.index + numSegments)
                                     newTrackPoints
 
                             else
@@ -640,6 +640,10 @@ softenSinglePoint numSegments track point =
             { track
                 | trackPoints = newTrackPoints
                 , markedNode = newMark
+                , currentNode =
+                    newTrackPoints
+                        |> List.Extra.getAt (track.currentNode.index + 1)
+                        |> Maybe.withDefault track.currentNode
             }
 
         Nothing ->

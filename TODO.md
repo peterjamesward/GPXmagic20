@@ -2,11 +2,21 @@
 
 # BUGS
 
-_SVG parser should report errors. At least summarise outcome._
+Centroid averaging should anchor the first and last points.
 
-**Classic bend smoother used to show segments. What's happened?**
+SVG parser should report errors. At least summarise outcome.
+
+**Marker and Undo button styling not rendering propetly sometimes.**
+Perhaps only at certain zoom levels of browser, or pane size?
+This happens now also with V1, so it's not recent changes -- it could be Safari 15.0!
 
 # TODO
+
+**Chamfer returns.**
+
+Single point smoother needs minimum radius setting.
+
+Store various control settings, now we know how.
 
 Plan from one route, elevation from another?
 
@@ -15,9 +25,6 @@ Appended route elevation adjusted and contiguous.
 Strava segment blend elevation rather than just Paste (optional).
 
 ? Flythrough to respect any azimuth & elevation applied when stationery.
-
-"One useful elevation tab tool might be the ability to apply a slope difference to a range of points."
-(I don't understand this suggestion.)
 
 # Not doing
 
