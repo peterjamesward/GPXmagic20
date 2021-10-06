@@ -15,8 +15,6 @@ https://stackoverflow.com/questions/64016466/how-can-i-make-a-draggable-split-pa
 
 More Configurable layout (or just option to be like v1). Uses localstorage.
 
-Open tools not jump to top.
-
 Store various control settings, now we know how.
 
 Plan from one route, elevation from another?

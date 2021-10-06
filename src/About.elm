@@ -10,11 +10,14 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.3.2 update 2021-10-06
+## 2.3.3 update 2021-10-tbd
 
 - Autofix in Bend Prblems panel uses the number of segments selected in the Bend Smoother Classic panel.
 
 - Centroid averaging does not move start and end points in track that's not a loop.
+
+- After much debate, open tools do not jump to top of the tool stack but stay in place.
+Favourites will still be at top.
 
 ## Can I support this work?
 

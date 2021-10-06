@@ -349,6 +349,14 @@ view model entries msgWrap =
                 , label = text entry.label
                 }
 
+        viewAnyEntry : AccordionEntry msg -> Element msg
+        viewAnyEntry e =
+            if isOpen e then
+                viewOpenEntry e
+
+            else
+                viewClosedEntry e
+
         isOpen entry =
             entry.state == Expanded True || entry.state == Expanded False
 
@@ -374,7 +382,7 @@ view model entries msgWrap =
                         text "Show all"
 
                     else
-                        text "Show Starred and Open only"
+                        text "Show Starred only"
                 }
 
         resetTools =
@@ -391,15 +399,15 @@ view model entries msgWrap =
     in
     column accordionMenuStyles
         [ row [ width fill ] [ showHideUnstarred, resetTools ]
-        , column [] <| List.map viewOpenEntry openStarred
-        , wrappedRow [] <| List.map viewClosedEntry closedStarred
+        --, column [] <| List.map viewOpenEntry openStarred
+        , wrappedRow [] <| List.map viewAnyEntry starred
         , row [ height <| px 10, Background.color accordionContentBackground ] []
-        , column [] <| List.map viewOpenEntry openOther
+        --, wrappedRow [] <| List.map viewOpenEntry openOther
         , if model.reducedToolset then
             none
 
           else
-            wrappedRow [] <| List.map viewClosedEntry closedOther
+            wrappedRow [] <| List.map viewAnyEntry unstarred
         ]
 
 
