@@ -369,6 +369,9 @@ view model entries msgWrap =
         ( openOther, closedOther ) =
             List.partition isOpen unstarred
 
+        ( allOpen, allClosed ) =
+            List.partition isOpen entries
+
         showHideUnstarred =
             button
                 [ Border.width 2
@@ -399,15 +402,12 @@ view model entries msgWrap =
     in
     column accordionMenuStyles
         [ row [ width fill ] [ showHideUnstarred, resetTools ]
-        --, column [] <| List.map viewOpenEntry openStarred
-        , wrappedRow [] <| List.map viewAnyEntry starred
-        , row [ height <| px 10, Background.color accordionContentBackground ] []
-        --, wrappedRow [] <| List.map viewOpenEntry openOther
+        , column [] <| List.map viewOpenEntry allOpen
         , if model.reducedToolset then
-            none
+            wrappedRow [] <| List.map viewClosedEntry closedStarred
 
           else
-            wrappedRow [] <| List.map viewAnyEntry unstarred
+            wrappedRow [] <| List.map viewClosedEntry allClosed
         ]
 
 
