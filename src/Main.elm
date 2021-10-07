@@ -541,12 +541,22 @@ update msg model =
 
                         ( Ok "splitter", Ok splitter ) ->
                             let
-                                _ =
-                                    Debug.log "restore split" <| D.decodeValue D.int splitter
+                                p =
+                                    D.decodeValue D.int splitter
                             in
-                            ( model
-                            , Cmd.none
-                            )
+                            case p of
+                                Ok pixels ->
+                                    ( { model
+                                        | splitInPixels = pixels
+                                        , splitter =
+                                            model.splitter
+                                                |> configureSplitter (SplitPane.px pixels Nothing)
+                                      }
+                                    , Cmd.none
+                                    )
+
+                                _ ->
+                                    ( model, Cmd.none )
 
                         _ ->
                             ( model, Cmd.none )
