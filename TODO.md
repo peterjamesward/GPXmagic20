@@ -13,13 +13,10 @@ Padding on About pane is wrong when second pane open.
 
 # TODO
 
-1. **Store splitter location in localStorage.** (turns out to be awkward, may need to fork but see examples.)
+2. Dragging splitter resizes view panes. If possible.
+   Option to have multiple views one-up or two-up. 
 
-2. **Review all tool panels for optimising use of available width.**
-
-3. Dragging splitter resizes view panes. If possible.
-Maybe have option to have multiple views one-up or two-up.
-**Yes** use the x value from the splitter message to resize the panes including the Map.
+3. **Review all tool panels for optimising use of available width.**
 
 4. @Steve -- when splitting, have option to 1CQF each section.
 

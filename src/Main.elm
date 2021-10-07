@@ -54,7 +54,7 @@ import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
 import Url exposing (Url)
-import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, updatePointerInLinkedPanes)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
@@ -214,7 +214,7 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
-      , splitter = SplitPane.init Horizontal |> configureSplitter (SplitPane.px 700 Nothing)
+      , splitter = SplitPane.init Horizontal |> configureSplitter (SplitPane.px 700 (Just ( 0, 1000 )))
       , splitInPixels = 700
       }
         |> -- TODO: Fix Fugly Fudge.
@@ -550,7 +550,7 @@ update msg model =
                                         | splitInPixels = pixels
                                         , splitter =
                                             model.splitter
-                                                |> configureSplitter (SplitPane.px pixels Nothing)
+                                                |> configureSplitter (SplitPane.px pixels (Just ( 0, 1000 )))
                                       }
                                     , Cmd.none
                                     )
@@ -846,7 +846,10 @@ update msg model =
                         Px ( p, _ ) ->
                             p
             in
-            ( { model | splitInPixels = position }
+            ( { model
+                | splitInPixels = position
+                , viewPanes = ViewPane.mapOverPanes (setViewPaneSize position) model.viewPanes
+              }
             , Cmd.none
             )
 

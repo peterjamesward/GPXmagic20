@@ -179,6 +179,20 @@ diminishPane pane =
         |> mapOverPaneContexts (setSize newSize)
 
 
+setViewPaneSize : Int -> ViewPane -> ViewPane
+setViewPaneSize split pane =
+    let
+        newSize =
+            ( pixels <| split - 20
+            , pixels <| (split - 20) * 500 // 800
+            )
+    in
+    { pane
+        | viewPixels = newSize
+    }
+        |> mapOverPaneContexts (setSize newSize)
+
+
 resetAllViews :
     Track
     -> ViewPane
@@ -390,18 +404,14 @@ viewPaneTools wrap =
                 , label = useIcon icon
                 }
 
-        enlargeButton =
-            makeButton EnlargePanes FeatherIcons.maximize2
-
-        diminishButton =
-            makeButton DiminishPanes FeatherIcons.minimize2
+        toggleColumnLayout =
+            makeButton EnlargePanes FeatherIcons.columns
 
         addButton =
             makeButton AddPane FeatherIcons.copy
     in
     row [ padding 10, spacing 10 ]
-        [ enlargeButton
-        , diminishButton
+        [ toggleColumnLayout
         , addButton
         ]
 
