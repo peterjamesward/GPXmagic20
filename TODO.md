@@ -13,7 +13,7 @@ Padding on About pane is wrong when second pane open.
 
 # TODO
 
-1. **Store splitter location in localStorage.** (turns out to be awkward, **need to fork**)
+1. **Store splitter location in localStorage.** (turns out to be awkward, may need to fork but see examples.)
 
 2. **Review all tool panels for optimising use of available width.**
 
@@ -21,7 +21,12 @@ Padding on About pane is wrong when second pane open.
 Maybe have option to have multiple views one-up or two-up.
 **Yes** use the x value from the splitter message to resize the panes including the Map.
 
-Store various control settings, now we know how.
+4. @Steve -- when splitting, have option to 1CQF each section.
+
+5. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
+carried a sequence prefix: 1-Road1, 2-Road2, 3-Road3 etc. 
+
+6. Store various minor control settings, now we know how.
 
 Clean up splitter code with less swapping between HTML and elm-ui?
 

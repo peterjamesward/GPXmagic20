@@ -24,7 +24,7 @@ import Html.Attributes exposing (id, style)
 import Http
 import Interpolate
 import Json.Decode as D
-import Json.Encode as E
+import Json.Encode as Encode
 import List.Extra
 import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
@@ -41,7 +41,7 @@ import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
-import SplitPane exposing (CustomSplitter, Orientation(..), SizeUnit(..), State, ViewConfig, createCustomSplitter, createViewConfig)
+import SplitPane exposing (CustomSplitter, Orientation(..), SizeUnit(..), State, UpdateConfig, ViewConfig, configureSplitter, createCustomSplitter, createUpdateConfig, createViewConfig)
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
@@ -74,7 +74,7 @@ type Msg
     | DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
-    | PortMessage E.Value
+    | PortMessage Encode.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
@@ -98,6 +98,8 @@ type Msg
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
     | SplitterMsg SplitPane.Msg
+    | ResizeViews SizeUnit
+    | StoreSplitterPosition
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -158,6 +160,7 @@ type alias Model =
     , mapSketchMode : Bool
     , accordionState : Accordion.Model
     , splitter : SplitPane.State
+    , splitInPixels : Int
     }
 
 
@@ -211,7 +214,8 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
-      , splitter = SplitPane.init Horizontal
+      , splitter = SplitPane.init Horizontal |> configureSplitter (SplitPane.px 700 Nothing)
+      , splitInPixels = 700
       }
         |> -- TODO: Fix Fugly Fudge.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -220,6 +224,7 @@ init mflags origin navigationKey =
         , Task.perform AdjustTimeZone Time.here
         , Task.perform Tick Time.now
         , PortController.storageGetItem "accordion"
+        , PortController.storageGetItem "splitter"
         ]
     )
 
@@ -518,23 +523,33 @@ update msg model =
 
                         value =
                             D.decodeValue (D.field "value" D.value) json
-
-                        ( restoreAccordionState, restoreAccordion ) =
-                            case ( key, value ) of
-                                ( Ok "accordion", Ok saved ) ->
+                    in
+                    case ( key, value ) of
+                        ( Ok "accordion", Ok saved ) ->
+                            let
+                                ( restoreAccordionState, restoreAccordion ) =
                                     Accordion.recoverStoredState
                                         saved
                                         model.toolsAccordion
+                            in
+                            ( { model
+                                | accordionState = restoreAccordionState
+                                , toolsAccordion = restoreAccordion
+                              }
+                            , Cmd.none
+                            )
 
-                                _ ->
-                                    ( Accordion.defaultState, model.toolsAccordion )
-                    in
-                    ( { model
-                        | accordionState = restoreAccordionState
-                        , toolsAccordion = restoreAccordion
-                      }
-                    , Cmd.none
-                    )
+                        ( Ok "splitter", Ok splitter ) ->
+                            let
+                                _ =
+                                    Debug.log "restore split" <| D.decodeValue D.int splitter
+                            in
+                            ( model
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( model, Cmd.none )
 
                 ( Ok "storage.keys", _ ) ->
                     ( model
@@ -797,12 +812,50 @@ update msg model =
         SplitterMsg paneMsg ->
             -- Need to store on (e.g.) SplitterLeftAlone { x = 672, y = 104 }
             -- We can put that into the Splitter module if we fork it.
-            ( { model | splitter = SplitPane.update paneMsg model.splitter }
+            let
+                ( updatedSplitter, whatHappened ) =
+                    SplitPane.customUpdate updateConfig paneMsg model.splitter
+
+                updatedModel =
+                    { model | splitter = updatedSplitter }
+            in
+            case whatHappened of
+                Nothing ->
+                    ( updatedModel, Cmd.none )
+
+                Just m ->
+                    update m updatedModel
+
+        ResizeViews newPosition ->
+            let
+                position =
+                    case newPosition of
+                        Percentage ( p, _ ) ->
+                            p * 800.0 |> round
+
+                        Px ( p, _ ) ->
+                            p
+            in
+            ( { model | splitInPixels = position }
             , Cmd.none
             )
 
+        StoreSplitterPosition ->
+            ( model
+            , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
+            )
 
-draggedOnMap : E.Value -> Track -> Maybe Track
+
+updateConfig : UpdateConfig Msg
+updateConfig =
+    createUpdateConfig
+        { onResize = \s -> Just (ResizeViews s)
+        , onResizeStarted = Nothing
+        , onResizeEnded = Just StoreSplitterPosition
+        }
+
+
+draggedOnMap : Encode.Value -> Track -> Maybe Track
 draggedOnMap json track =
     -- Map has told us the old and new coordinates of a trackpoint.
     -- Return Nothing if drag did not change track.
