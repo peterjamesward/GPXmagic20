@@ -28,7 +28,7 @@ import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonS
 info =
     """## Bend smoother classic
 
-Carried over directly from v1, this tool tries to replace
+This tool tries to replace
 a section of the route between markers with a circular arc.
 
 This will generally give a reasonable curve. It will also
@@ -38,14 +38,13 @@ not be what you want.
 A yellow line shows what the curve will look like, assuming
 the algorithm can find one, and this control tab is open.
 
-Use the slider to vary the number of track points used to
+Use the slider to vary the spacing between track points used to
 define the bend, and hence the smoothness.
 
-### New in V2
-
-When applied to a single point, the new _Bend Smoother 3D_ will
-reduce the gradient and direction changes at the point to below
-a set threshold while preserving the gradients before and after."""
+When applied to a single point, _Smooth current point_ will
+reduce the gradient and direction changes at the point by replacing
+one trackpoint with two or more along an arc. The number added
+is determined by the _Segments_ setting."""
 
 
 type Msg

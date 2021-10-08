@@ -212,7 +212,7 @@ view options wrapper track =
     let
         rotationSlider =
             Input.slider
-                wideSliderStyles
+                commonShortHorizontalSliderStyles
                 { onChange = wrapper << SetRotateAngle << Angle.degrees
                 , label =
                     Input.labelBelow [] <|
@@ -228,7 +228,7 @@ view options wrapper track =
 
         scaleSlider =
             Input.slider
-                wideSliderStyles
+                commonShortHorizontalSliderStyles
                 { onChange = wrapper << SetScale << (\x -> 10.0 ^ x)
                 , label =
                     Input.labelBelow [] <|
@@ -252,40 +252,50 @@ view options wrapper track =
 
                 _ ->
                     0.0
+
+        rotateButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper RotateRoute
+                , label =
+                    text <|
+                        "Rotate"
+                }
+
+        recentreButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper Recentre
+                , label =
+                    text <|
+                        "Recentre at\n("
+                            ++ String.fromFloat lon
+                            ++ ", "
+                            ++ String.fromFloat lat
+                            ++ ")"
+                }
+
+        scaleButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper ScaleRoute
+                , label =
+                    text <|
+                        "Scale track to "
+                            ++ showDecimal2 (options.scaleFactor * trackLength)
+                            ++ "m"
+                }
+
+        elevationFetchButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper UseMapElevations
+                , label = text "Use elevations fetched from Mapbox"
+                }
     in
-    column [ spacing 5, padding 5, centerX ]
-        [ rotationSlider
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrapper RotateRoute
-            , label =
-                text <|
-                    "Rotate"
-            }
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrapper Recentre
-            , label =
-                text <|
-                    "Recentre at\n("
-                        ++ String.fromFloat lon
-                        ++ ", "
-                        ++ String.fromFloat lat
-                        ++ ")"
-            }
-        , scaleSlider
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrapper ScaleRoute
-            , label =
-                text <|
-                    "Scale track to "
-                        ++ showDecimal2 (options.scaleFactor * trackLength)
-                        ++ "m"
-            }
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrapper UseMapElevations
-            , label = text "Use elevations fetched from Mapbox"
-            }
+    wrappedRow [ spacing 5, padding 5 ]
+        [ column [ spacing 5, padding 5 ] [ rotationSlider, rotateButton ]
+        , column [ spacing 5, padding 5 ] [ scaleSlider, scaleButton ]
+        , recentreButton
+        , elevationFetchButton
         ]

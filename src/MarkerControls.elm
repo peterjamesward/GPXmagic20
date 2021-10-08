@@ -12,7 +12,7 @@ import List.Extra
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Track exposing (Track)
 import Utils exposing (scrollbarThickness, showDecimal2, useIcon)
-import ViewPureStyles exposing (defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
+import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
 
 
 type Msg
@@ -34,7 +34,7 @@ markerButton track messageWrapper =
     let
         makeButton label =
             button
-                prettyButtonStyles
+                (centerX :: prettyButtonStyles)
                 { onPress = Just <| messageWrapper ToggleMarker
                 , label =
                     E.text <| label
@@ -45,40 +45,54 @@ markerButton track messageWrapper =
             none
 
         Just isTrack ->
-            case isTrack.markedNode of
-                Just markedTP ->
-                    column defaultColumnLayout
-                        [ row toolRowLayout
-                            [ button
-                                prettyButtonStyles
-                                { onPress = Just <| messageWrapper MarkerBackOne
-                                , label = useIcon FeatherIcons.skipBack
-                                }
-                            , makeButton "Clear marker"
-                            , button
-                                prettyButtonStyles
-                                { onPress = Just <| messageWrapper MarkerForwardOne
-                                , label = useIcon FeatherIcons.skipForward
-                                }
-                            ]
-                        , el [ centerX, centerY ] <|
-                            text <|
+            let
+                ( positionText, isDropped ) =
+                    case isTrack.markedNode of
+                        Just markedTP ->
+                            ( text <|
                                 "Orange: "
                                     ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)
                                     ++ "m. Purple: "
                                     ++ (showDecimal2 <| Length.inMeters markedTP.distanceFromStart)
                                     ++ "m."
-                        ]
+                            , True
+                            )
 
-                Nothing ->
-                    column defaultColumnLayout
-                        [ makeButton "Drop marker to select a range"
-                        , el [ centerX, centerY ] <|
-                            text <|
-                                "Pointer at "
+                        Nothing ->
+                            ( text <|
+                                "Orange: "
                                     ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)
-                                    ++ "m"
-                        ]
+                                    ++ "m."
+                            , False
+                            )
+            in
+            column  [ spacing 5, padding 5, alignTop, width fill, centerX ]
+                [ row
+                    [ spacing 10
+                    , padding 10
+                    , centerX
+                    ]
+                    [ conditionallyVisible isDropped <|
+                        button
+                            prettyButtonStyles
+                            { onPress = Just <| messageWrapper MarkerBackOne
+                            , label = useIcon FeatherIcons.skipBack
+                            }
+                    , makeButton <|
+                        if isDropped then
+                            "Clear marker"
+
+                        else
+                            "Drop marker"
+                    , conditionallyVisible isDropped <|
+                        button
+                            prettyButtonStyles
+                            { onPress = Just <| messageWrapper MarkerForwardOne
+                            , label = useIcon FeatherIcons.skipForward
+                            }
+                    ]
+                , el [ centerX, centerY ] <| positionText
+                ]
 
 
 positionControls : (Msg -> msg) -> Track -> Element msg

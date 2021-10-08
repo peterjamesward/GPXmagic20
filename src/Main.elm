@@ -551,6 +551,7 @@ update msg model =
                                         , splitter =
                                             model.splitter
                                                 |> configureSplitter (SplitPane.px pixels Nothing)
+                                        , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
                                       }
                                     , Cmd.none
                                     )
@@ -1127,9 +1128,10 @@ processViewPaneMessage innerMsg model track =
 
         ViewPane.PaneLayoutChange f ->
             ( { updatedModel
-                | viewPanes = ViewPane.mapOverPanes
-                    (f >> ViewPane.setViewPaneSize model.splitInPixels)
-                    updatedModel.viewPanes
+                | viewPanes =
+                    ViewPane.mapOverPanes
+                        (f >> ViewPane.setViewPaneSize model.splitInPixels)
+                        updatedModel.viewPanes
               }
             , Delay.after 50 RepaintMap
             )
@@ -1612,22 +1614,19 @@ contentArea model =
                 , height fill
                 ]
             <|
-                el
-                    [ alignTop ]
-                <|
-                    if model.track /= Nothing then
-                        column defaultColumnLayout
-                            [ markerButton model.track MarkerMessage
-                            , viewTrackControls MarkerMessage model.track
-                            , undoRedoButtons model
-                            , Accordion.view
-                                model.accordionState
-                                (updatedAccordion model.toolsAccordion toolsAccordion model)
-                                AccordionMessage
-                            ]
+                if model.track /= Nothing then
+                    column [ spacing 5, padding 5, alignTop, centerX ]
+                        [ markerButton model.track MarkerMessage
+                        , viewTrackControls MarkerMessage model.track
+                        , undoRedoButtons model
+                        , Accordion.view
+                            model.accordionState
+                            (updatedAccordion model.toolsAccordion toolsAccordion model)
+                            AccordionMessage
+                        ]
 
-                    else
-                        none
+                else
+                    none
     in
     E.html <|
         SplitPane.view
@@ -1961,9 +1960,14 @@ redo model =
 
 
 undoRedoButtons model =
-    row toolRowLayout
+    row
+        [ spacing 10
+        , padding 10
+        , centerX
+        , width fill
+        ]
         [ button
-            ((width <| fillPortion 1) :: prettyButtonStyles)
+            (width fill :: prettyButtonStyles)
             { onPress =
                 case model.undoStack of
                     [] ->
@@ -1974,13 +1978,13 @@ undoRedoButtons model =
             , label =
                 case model.undoStack of
                     u :: _ ->
-                        E.paragraph [] [ E.text <| "Undo " ++ u.label ]
+                        E.paragraph [ width fill ] [ E.text <| "Undo " ++ u.label ]
 
                     _ ->
-                        E.paragraph [] [ E.text "Nothing to undo" ]
+                        E.paragraph [ width fill ] [ E.text "Nothing to undo" ]
             }
         , button
-            ((width <| fillPortion 1) :: prettyButtonStyles)
+            (width fill :: prettyButtonStyles)
             { onPress =
                 case model.redoStack of
                     [] ->
@@ -1991,10 +1995,10 @@ undoRedoButtons model =
             , label =
                 case model.redoStack of
                     u :: _ ->
-                        E.text <| "Redo " ++ u.label
+                        E.paragraph [ width fill ] [ E.text <| "Redo " ++ u.label ]
 
                     _ ->
-                        E.text "Nothing to redo"
+                        E.paragraph [ width fill ] [ E.text "Nothing to redo" ]
             }
         ]
 

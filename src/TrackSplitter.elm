@@ -18,7 +18,7 @@ import TrackEditType exposing (TrackEditType(..))
 import TrackObservations
 import TrackPoint
 import Utils exposing (showDecimal0, showDecimal2)
-import ViewPureStyles exposing (checkboxIcon, prettyButtonStyles, wideSliderStyles)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
 import WriteGPX
 
 
@@ -264,7 +264,7 @@ view options observations wrapper track =
 
         partsSlider =
             Input.slider
-                wideSliderStyles
+                commonShortHorizontalSliderStyles
                 { onChange = wrapper << SetSplitLimit << round
                 , label =
                     Input.labelBelow [] <|
@@ -278,34 +278,41 @@ view options observations wrapper track =
                 , value = toFloat options.splitLimit
                 , thumb = Input.defaultThumb
                 }
+
+        endPenCheckbox =
+            Input.checkbox []
+                { onChange = wrapper << ToggleBuffers
+                , icon = checkboxIcon
+                , checked = options.addBuffers
+                , label = Input.labelRight [ centerY ] (text "Allow for start and end pens")
+                }
+
+        splitButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper <| SplitTrack
+                , label =
+                    text <|
+                        "Split into "
+                            ++ String.fromInt splitCount
+                            ++ " files\n"
+                            ++ "each "
+                            ++ showDecimal2 splitLength
+                            ++ "km long."
+                }
+
+        appendFileButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper <| AppendFile
+                , label = text "Append file ..."
+                }
     in
-    column [ spacing 5, padding 5, centerX ]
-        [ paragraph [ centerX, width fill, paddingXY 20 0 ]
-            [ text "Files will be written to Downloads "
-            , text "folder at one second intervals."
-            ]
+    wrappedRow [ spacing 10, padding 10 ]
+        [ paragraph []
+            [ text "Files will be written to Downloads folder at one second intervals." ]
         , partsSlider
-        , Input.checkbox []
-            { onChange = wrapper << ToggleBuffers
-            , icon = checkboxIcon
-            , checked = options.addBuffers
-            , label = Input.labelRight [ centerY ] (text "Allow for start and end pens")
-            }
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrapper <| SplitTrack
-            , label =
-                text <|
-                    "Split into "
-                        ++ String.fromInt splitCount
-                        ++ " files\n"
-                        ++ "each "
-                        ++ showDecimal2 splitLength
-                        ++ "km long."
-            }
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrapper <| AppendFile
-            , label = text "Append file ..."
-            }
+        , endPenCheckbox
+        , splitButton
+        , appendFileButton
         ]

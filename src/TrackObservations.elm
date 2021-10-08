@@ -13,7 +13,7 @@ import Quantity exposing (zero)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showLabelledValues)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -27,8 +27,9 @@ or direction changes by more than the threshold you choose.
 
 Click on an entry to centre the views on that point.
 
-Use Autofix to apply a simple fix to all the points listed
-that are within the range of the Orange and Purple markers."""
+Use __Smooth these points...__ to apply a simple fix to all the points listed
+that are within the range of the Orange and Purple markers. **Note:** this
+is not recommended other than as a way to clean up minor issues."""
 
 
 type Msg
@@ -279,31 +280,18 @@ deriveProblems track options =
 
 overviewSummary : TrackObservations -> Element msg
 overviewSummary obs =
-    let
-        showList pairs =
-            row [ spacing 5, padding 5 ]
-                [ column [ spacing 5 ] <| List.map (Tuple.first >> showLabel) pairs
-                , column [ spacing 5 ] <| List.map (Tuple.second >> showValue) pairs
-                ]
-
-        showLabel label =
-            text label
-
-        showValue value =
-            el [ alignRight ] <| text <| showDecimal2 <| value
-    in
     wrappedRow [ spacing 10, padding 10 ]
-        [ showList
-            [ ( "Highest point", obs.highestMetres )
-            , ( "Lowest point", obs.lowestMetres )
+        [ showLabelledValues
+            [ ( "Highest point", showDecimal2 <| obs.highestMetres )
+            , ( "Lowest point", showDecimal2 <| obs.lowestMetres )
             ]
-        , showList
-            [ ( "Elevation gain ", obs.climbingDistance )
-            , ( "Elevation loss ", obs.descendingDistance )
+        , showLabelledValues
+            [ ( "Elevation gain ",  showDecimal2 <| obs.climbingDistance )
+            , ( "Elevation loss ",  showDecimal2 <| obs.descendingDistance )
             ]
-        , showList
-            [ ( "Climbing distance ", obs.trackLength )
-            , ( "Descending distance ", obs.totalClimbing )
+        , showLabelledValues
+            [ ( "Climbing distance ",  showDecimal2 <| obs.trackLength )
+            , ( "Descending distance ", showDecimal2 <| obs.totalClimbing )
             ]
         ]
 

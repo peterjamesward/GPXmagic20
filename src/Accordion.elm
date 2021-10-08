@@ -272,7 +272,7 @@ infoButton :
 infoButton entry msgWrap =
     case entry.state of
         Expanded True ->
-            button [ onLeft <| viewInfo entry.info ]
+            button [ onRight <| viewInfo entry.info ]
                 { onPress = Just <| msgWrap (ToggleInfo entry.label)
                 , label = useIcon FeatherIcons.info
                 }

@@ -15,7 +15,7 @@ defaultRowLayout =
 
 
 toolRowLayout =
-    [ spaceEvenly
+    [ spacing 10
     , paddingXY 20 10
     , width fill
     ]
@@ -30,8 +30,6 @@ prettyButtonStyles =
     , Border.width 2
     , Border.rounded 16
     , Border.color buttonBackground
-
-    --, Border.shadow { offset = ( 4, 4 ), size = 3, blur = 5, color = rgb255 0xD0 0xD0 0xD0 }
     , Background.color buttonBackground
     , Font.color <| buttonText
     , Font.size 16
@@ -39,7 +37,6 @@ prettyButtonStyles =
         [ Background.color buttonText, Font.color buttonBackground ]
     , focused
         [ Border.shadow { offset = ( 4, 0 ), size = 3, blur = 5, color = buttonShadow } ]
-    , centerX
     ]
 
 

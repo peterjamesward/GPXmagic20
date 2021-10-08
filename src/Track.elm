@@ -15,7 +15,7 @@ import Point3d exposing (Point3d)
 import SketchPlane3d
 import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
-import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6)
+import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6, showLabelledValues)
 import Vector3d exposing (..)
 
 
@@ -249,41 +249,26 @@ summaryData track =
         ( lat, lon ) =
             pt.latLon
     in
-    column [ centerX ]
-        [ row [ padding 20, centerX, spacing 10 ]
-            [ column [ spacing 10 ]
-                [ text "Start point index "
-                , text "Length "
-                ]
-            , column [ spacing 10 ]
-                [ text <| String.fromInt pt.index
-                , text <| showDecimal2 <| inMeters <| pt.length
-                ]
-            , column [ spacing 10 ]
-                [ text "Gradient "
-                , text "Bearing "
-                ]
-            , column [ spacing 10 ]
-                [ text <| showDecimal2 gradient
-                , text <|
-                    bearingToDisplayDegrees <|
-                        Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy) <|
-                            pt.afterDirection
-                ]
+    wrappedRow [ spacing 10, padding 10 ]
+        [ showLabelledValues
+            [ ( "Start index", String.fromInt pt.index )
+            , ( "From start ", showDecimal2 <| inMeters pt.distanceFromStart )
             ]
-        , row [ padding 10, centerX, alignTop, spacing 10 ]
-            [ column [ spacing 10 ]
-                [ text "Latitude "
-                , text "Longitude "
-                , text "Elevation "
-                , text "Distance "
-                ]
-            , column [ spacing 10 ]
-                [ text <| showDecimal6 <| Angle.inDegrees lat
-                , text <| showDecimal6 <| Angle.inDegrees lon
-                , text <| showDecimal2 <| inMeters <| Point3d.zCoordinate pt.xyz
-                , text <| showDecimal2 <| inMeters pt.distanceFromStart
-                ]
+        , showLabelledValues
+            [ ( "Length", showDecimal2 <| inMeters <| pt.length )
+            , ( "Gradient", showDecimal2 gradient )
+            ]
+        , showLabelledValues
+            [ ( "Latitude ", showDecimal6 <| Angle.inDegrees lat )
+            , ( "Longitude ", showDecimal6 <| Angle.inDegrees lon )
+            ]
+        , showLabelledValues
+            [ ( "Elevation ", showDecimal2 <| inMeters <| Point3d.zCoordinate pt.xyz )
+            , ( "Bearing"
+              , bearingToDisplayDegrees <|
+                    Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy) <|
+                        pt.afterDirection
+              )
             ]
         ]
 

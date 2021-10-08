@@ -1,16 +1,14 @@
 module Utils exposing (..)
 
-import Angle exposing (Angle, inRadians)
+import Angle exposing (Angle)
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color)
-import Direction3d
-import Element exposing (html)
+import Element exposing (..)
 import FeatherIcons
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
 import Quantity
-import SketchPlane3d
 
 
 type alias Point =
@@ -27,7 +25,7 @@ showMaybe mi =
             "----"
 
 
-gradientColourPastel : Float -> Color
+gradientColourPastel : Float -> Color.Color
 gradientColourPastel slope =
     let
         x =
@@ -45,7 +43,7 @@ gradientColourPastel slope =
     Color.hsl hue 0.6 0.7
 
 
-gradientColourVivid : Float -> Color
+gradientColourVivid : Float -> Color.Color
 gradientColourVivid slope =
     let
         x =
@@ -63,7 +61,7 @@ gradientColourVivid slope =
     Color.hsl hue 1.0 0.4
 
 
-terrainColourFromHeight : Float -> Color
+terrainColourFromHeight : Float -> Color.Color
 terrainColourFromHeight height =
     let
         lightness =
@@ -143,7 +141,7 @@ httpErrorString error =
 
 
 useIcon =
-    html << FeatherIcons.toHtml [] << FeatherIcons.withSize 24
+    html << FeatherIcons.toHtml [] << FeatherIcons.withSize 20
 
 
 bearingToDisplayDegrees : Maybe Angle -> String
@@ -213,3 +211,17 @@ squareAspect box =
         , sizeZ
         )
         centre
+
+
+showLabelledValues pairs =
+    let
+        showLabel label =
+            text label
+
+        showValue value =
+            el [ alignRight ] <| text value
+    in
+    row [ spacing 5, padding 5 ]
+        [ column [ spacing 5 ] <| List.map (Tuple.first >> showLabel) pairs
+        , column [ spacing 5 ] <| List.map (Tuple.second >> showValue) pairs
+        ]

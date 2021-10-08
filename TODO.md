@@ -4,25 +4,14 @@
 
 SVG parser should report errors. At least summarise outcome.
 
-**Marker and Undo button styling not rendering properly sometimes.**
-Perhaps only at certain zoom levels of browser, or pane size?
-This happens now also with V1, so it's not recent changes -- it could be Safari 15.0!
-**Try another browser!**
-
-Padding on About pane is wrong when second pane open.
-
 # TODO
 
-1. **Review all tool panels for optimising use of available width.**
+3. @Steve -- when splitting, have option to 1CQF each section.
 
-Tool info panels now appear under the splitter!!
-
-2. @Steve -- when splitting, have option to 1CQF each section.
-
-3. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
+4. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
 carried a sequence prefix: 1-Road1, 2-Road2, 3-Road3 etc. 
 
-4. Store various minor control settings, now we know how.
+5. Store various minor control settings, now we know how.
 
 Clean up splitter code with less swapping between HTML and elm-ui?
 

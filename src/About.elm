@@ -10,14 +10,34 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.3.3 update 2021-10-tbd
+## 2.4.0 update 2021-10-tbd
+
+### Significant changes in managing the workspace
+
+- Prominent pink vertical divider can be dragged sideways to change the amount of screen space
+given to the track views and the tools. The location is saved between sessions.
+
+- The course view panes size automatically to fill space available.
+
+- Button at top left of the first pane toggles between having one column of views or two columns.
+
+- There is a secondary position control below the views, where it was in V1.
+There's still the one above the tools.
+
+- Tool information now obscures the tools. Such is the price of having the splitter.
+
+- Each tool pane will try to make best use of available width.
+
+- Open tools do not jump to top of the tool stack but stay in place.
+Favourites will still be at top.
+
+### Bug fixes and small change
 
 - Autofix in Bend Prblems panel uses the number of segments selected in the Bend Smoother Classic panel.
 
 - Centroid averaging does not move start and end points in track that's not a loop.
 
-- After much debate, open tools do not jump to top of the tool stack but stay in place.
-Favourites will still be at top.
+- A situation where the Drop/Clear marker controls were losing their blue colour has been fixed.
 
 ## Can I support this work?
 
@@ -61,20 +81,13 @@ viewAboutText view =
         ( w, h ) =
             view.size
     in
-    row
-        [ centerX
+    paragraph
+        [ width <| px (inPixels w)
+        , height <| px (inPixels h)
+        , padding 20
         , Background.color <| rgb255 220 220 200
         , clipY
         , scrollbarY
-        , padding 20
-        , width <| px (inPixels w)
-        , height <| px (inPixels h)
         ]
-        [ paragraph
-            [ width <| px (inPixels w)
-            , height <| px (inPixels h)
-            , paddingXY 20 0
-            ]
-          <|
-            [ html <| Markdown.toHtml [] aboutText ]
-        ]
+    <|
+        [ html <| Markdown.toHtml [] aboutText ]
