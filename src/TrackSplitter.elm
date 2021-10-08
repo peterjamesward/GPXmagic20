@@ -9,6 +9,7 @@ import File.Download
 import File.Select as Select
 import Length
 import List.Extra
+import OneClickQuickFix exposing (oneClickQuickFix)
 import Point3d
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity
@@ -46,11 +47,13 @@ type Msg
     | AppendFile
     | FileSelected File
     | FileLoaded String
+    | ToggleAutofix Bool
 
 
 type alias Options =
     { splitLimit : Int
     , addBuffers : Bool
+    , applyAutofix : Bool
     }
 
 
@@ -58,6 +61,7 @@ defaultOptions : Options
 defaultOptions =
     { splitLimit = 100
     , addBuffers = False
+    , applyAutofix = False
     }
 
 
@@ -80,6 +84,13 @@ update msg settings observations mTrack msgWrapper =
         ToggleBuffers state ->
             ( { settings
                 | addBuffers = not settings.addBuffers
+              }
+            , ActionNoOp
+            )
+
+        ToggleAutofix _ ->
+            ( { settings
+                | applyAutofix = not settings.applyAutofix
               }
             , ActionNoOp
             )
@@ -206,14 +217,21 @@ update msg settings observations mTrack msgWrapper =
                                             (.distanceFromStart >> Quantity.lessThanOrEqualTo metricEnd)
                             }
 
+                        processingFunction =
+                            if settings.applyAutofix then
+                                oneClickQuickFix
+
+                            else
+                                identity
+
                         content =
-                            WriteGPX.writeGPX trackExtract
+                            WriteGPX.writeGPX <| processingFunction trackExtract
                     in
                     ( settings
                     , ActionCommand <|
                         Cmd.batch
                             [ File.Download.string filename "text/xml" content
-                            , Delay.after 1000 <| msgWrapper <| WriteSection rest
+                            , Delay.after 2000 <| msgWrapper <| WriteSection rest
                             ]
                     )
 
@@ -287,6 +305,14 @@ view options observations wrapper track =
                 , label = Input.labelRight [ centerY ] (text "Allow for start and end pens")
                 }
 
+        quickFixCheckbox =
+            Input.checkbox []
+                { onChange = wrapper << ToggleAutofix
+                , icon = checkboxIcon
+                , checked = options.applyAutofix
+                , label = Input.labelRight [ centerY ] (text "Apply one-click-quick-fix to each section")
+                }
+
         splitButton =
             button
                 prettyButtonStyles
@@ -297,8 +323,8 @@ view options observations wrapper track =
                             ++ String.fromInt splitCount
                             ++ " files\n"
                             ++ "each "
-                            ++ showDecimal2 splitLength
-                            ++ "km long."
+                            ++ showDecimal0 splitLength
+                            ++ "m long."
                 }
 
         appendFileButton =
@@ -309,10 +335,11 @@ view options observations wrapper track =
                 }
     in
     wrappedRow [ spacing 10, padding 10 ]
-        [ paragraph []
-            [ text "Files will be written to Downloads folder at one second intervals." ]
-        , partsSlider
+        [ partsSlider
         , endPenCheckbox
+        , quickFixCheckbox
         , splitButton
+        , paragraph []
+            [ text "Files will be written to Downloads folder at two second intervals." ]
         , appendFileButton
         ]

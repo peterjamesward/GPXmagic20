@@ -31,6 +31,9 @@ There's still the one above the tools.
 - Open tools do not jump to top of the tool stack but stay in place.
 Favourites will still be at top.
 
+- _Splitter & Joiner_ allows you to request that each section is processed by _One Click Quick Fix_
+before being written (Steve).
+
 ### Bug fixes and small change
 
 - Autofix in Bend Prblems panel uses the number of segments selected in the Bend Smoother Classic panel.
