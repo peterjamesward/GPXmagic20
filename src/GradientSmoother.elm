@@ -51,7 +51,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg)
+    -> ( Options, PostUpdateActions.PostUpdateAction msg )
 update msg settings track =
     case msg of
         SetBumpinessFactor bumpiness ->
@@ -198,19 +198,15 @@ viewGradientFixerPane options wrapper track =
 
         avg =
             averageGradient startPoint endPoint
-
-        gradientSmoothControls =
-            row [ spacing 5, padding 5 ]
-                [ button
-                    prettyButtonStyles
-                    { onPress = Just <| wrapper <| SmoothGradient options.bumpinessFactor
-                    , label =
-                        text <|
-                            "Smooth between markers\nAverage gradient "
-                                ++ showDecimal2 avg
-                    }
-                , smoothnessSlider
-                ]
     in
-    column [ padding 10, spacing 10, centerX ] <|
-        [ gradientSmoothControls ]
+    wrappedRow [ spacing 10, padding 10 ]
+        [ button
+            prettyButtonStyles
+            { onPress = Just <| wrapper <| SmoothGradient options.bumpinessFactor
+            , label =
+                text <|
+                    "Smooth between markers\nAverage gradient "
+                        ++ showDecimal2 avg
+            }
+        , smoothnessSlider
+        ]

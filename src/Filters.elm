@@ -232,12 +232,9 @@ viewFilterControls options wrap track =
     in
     column [ spacing 10, padding 10, centerX, width fill ]
         [ text "Centroid averaging reduces local deviations."
+        , wrappedRow [ spacing 10, padding 10 ] centroidFilterControls
         , text "Splines create new points to smooth between existing points."
-        , row
-            [ width fill, spacing 20, centerX ]
-            [ column [ width <| fillPortion 1, spacing 10, centerX ] centroidFilterControls
-            , column [ width <| fillPortion 1, spacing 10, centerX ] bezierControls
-            ]
+        , wrappedRow [ spacing 10, padding 10 ] bezierControls
         , wholeTrackTextHelper track
         ]
 

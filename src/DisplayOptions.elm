@@ -74,8 +74,8 @@ defaultDisplayOptions =
 
 viewDisplayOptions : DisplayOptions -> (Msg -> msg) -> Element msg
 viewDisplayOptions options wrap =
-    column [ width fill, centerX ]
-        [ wrappedRow [ spacing 5, padding 10 ]
+    column [ width fill ]
+        [ wrappedRow [ spacing 10, padding 10 ]
             [ Input.checkbox []
                 { onChange = wrap << ToggleRoad
                 , icon = checkboxIcon

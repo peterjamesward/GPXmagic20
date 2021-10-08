@@ -302,11 +302,9 @@ viewGradientLimitPane options wrapper track =
             else
                 track.currentNode
     in
-    column [ spacing 5, padding 5, centerX ]
-        [ row [ spacing 5, padding 5 ]
-            [ maxAscentSlider
-            , maxDescentSlider
-            ]
+    wrappedRow [ spacing 10, padding 10 ]
+        [ maxAscentSlider
+        , maxDescentSlider
         , button
             prettyButtonStyles
             { onPress = Just <| wrapper <| LimitGradient

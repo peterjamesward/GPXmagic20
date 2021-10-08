@@ -13,16 +13,16 @@ Padding on About pane is wrong when second pane open.
 
 # TODO
 
-2. Option to have multiple views one-up or two-up. 
+1. **Review all tool panels for optimising use of available width.**
 
-3. **Review all tool panels for optimising use of available width.**
+Tool info panels now appear under the splitter!!
 
-4. @Steve -- when splitting, have option to 1CQF each section.
+2. @Steve -- when splitting, have option to 1CQF each section.
 
-5. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
+3. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
 carried a sequence prefix: 1-Road1, 2-Road2, 3-Road3 etc. 
 
-6. Store various minor control settings, now we know how.
+4. Store various minor control settings, now we know how.
 
 Clean up splitter code with less swapping between HTML and elm-ui?
 

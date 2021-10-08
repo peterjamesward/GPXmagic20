@@ -279,26 +279,31 @@ deriveProblems track options =
 
 overviewSummary : TrackObservations -> Element msg
 overviewSummary obs =
-    row [ padding 20, centerX ]
-        [ column [ spacing 10 ]
-            [ text "Highest point "
-            , text "Lowest point "
-            , text "Track length "
-            , text "Climbing distance "
-            , text "Elevation gain "
-            , text "Descending distance "
-            , text "Elevation loss "
-            , text "Mean spacing "
+    let
+        showList pairs =
+            row [ spacing 5, padding 5 ]
+                [ column [ spacing 5 ] <| List.map (Tuple.first >> showLabel) pairs
+                , column [ spacing 5 ] <| List.map (Tuple.second >> showValue) pairs
+                ]
+
+        showLabel label =
+            text label
+
+        showValue value =
+            el [ alignRight ] <| text <| showDecimal2 <| value
+    in
+    wrappedRow [ spacing 10, padding 10 ]
+        [ showList
+            [ ( "Highest point", obs.highestMetres )
+            , ( "Lowest point", obs.lowestMetres )
             ]
-        , column [ spacing 10 ]
-            [ text <| showDecimal2 obs.highestMetres
-            , text <| showDecimal2 obs.lowestMetres
-            , text <| showDecimal2 obs.trackLength
-            , text <| showDecimal2 obs.climbingDistance
-            , text <| showDecimal2 obs.totalClimbing
-            , text <| showDecimal2 obs.descendingDistance
-            , text <| showDecimal2 obs.totalDescending
-            , text <| showDecimal2 obs.meanSpacing
+        , showList
+            [ ( "Elevation gain ", obs.climbingDistance )
+            , ( "Elevation loss ", obs.descendingDistance )
+            ]
+        , showList
+            [ ( "Climbing distance ", obs.trackLength )
+            , ( "Descending distance ", obs.totalClimbing )
             ]
         ]
 
@@ -363,14 +368,11 @@ viewGradientChanges options obs wrap =
                         , label = text "Smooth these points in 3D"
                         }
     in
-    column [ spacing 5, padding 10 ]
-        [ row [ spacing 10 ]
-            [ gradientChangeThresholdSlider options wrap
-            , el [ alignRight ] autosmoothButton
-            ]
-        , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
-            List.map linkButton exceedingThreshold
+    wrappedRow [ spacing 10, padding 10 ] <|
+        [ gradientChangeThresholdSlider options wrap
+        , autosmoothButton
         ]
+            ++ List.map linkButton exceedingThreshold
 
 
 viewBearingChanges : Options -> TrackObservations -> (Msg -> msg) -> Element msg
@@ -404,14 +406,11 @@ viewBearingChanges options obs wrap =
                         , label = text "Smooth these points in 3D"
                         }
     in
-    column [ spacing 5, padding 10 ]
-        [ row [ spacing 10 ]
-            [ bearingChangeThresholdSlider options wrap
-            , el [ alignRight ] autosmoothButton
-            ]
-        , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
-            List.map linkButton exceedingThreshold
+    wrappedRow [ spacing 10, padding 10 ] <|
+        [ bearingChangeThresholdSlider options wrap
+        , autosmoothButton
         ]
+            ++ List.map linkButton exceedingThreshold
 
 
 gradientThresholdSlider : Options -> (Msg -> msg) -> Element msg

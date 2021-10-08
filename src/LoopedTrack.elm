@@ -75,41 +75,31 @@ viewLoopTools loopiness track wrap =
                         { onPress = Just (wrap <| ChangeLoopStart c)
                         , label = text "Move start/finish to current point"
                         }
-
-                commonButtons =
-                    wrappedRow [ spacing 10, padding 20, centerX ]
-                        [ reverseButton ]
             in
-            column [ spacing 10, padding 5, centerX ] <|
+            wrappedRow [ spacing 10, padding 10 ] <|
                 case loopiness of
                     IsALoop ->
-                        [ row [ spacing 10, padding 5, centerX ]
-                            [ text "This track is a loop."
-                            , changeStartButton isTrack.currentNode
-                            ]
-                        , commonButtons
+                        [ text "This track is a loop."
+                        , changeStartButton isTrack.currentNode
+                        , reverseButton
                         ]
 
                     AlmostLoop gap ->
-                        [ row [ spacing 10, padding 5, centerX ]
-                            [ text <|
-                                "This track is "
-                                    ++ showDecimal0 (inMeters gap)
-                                    ++ "\naway from a loop"
-                            , loopButton
-                            ]
-                        , commonButtons
+                        [ text <|
+                            "This track is "
+                                ++ showDecimal0 (inMeters gap)
+                                ++ "m\naway from a loop"
+                        , loopButton
+                        , reverseButton
                         ]
 
                     NotALoop gap ->
-                        [ row [ spacing 10, padding 5, centerX ]
-                            [ text <|
-                                "This track is "
-                                    ++ showDecimal0 (inMeters gap)
-                                    ++ " away from a loop"
-                            , loopButton
-                            ]
-                        , commonButtons
+                        [ text <|
+                            "This track is "
+                                ++ showDecimal0 (inMeters gap)
+                                ++ "m\naway from a loop"
+                        , loopButton
+                        , reverseButton
                         ]
 
 
@@ -117,7 +107,7 @@ update :
     Msg
     -> Loopiness
     -> Track
-    -> ( Loopiness, PostUpdateActions.PostUpdateAction msg)
+    -> ( Loopiness, PostUpdateActions.PostUpdateAction msg )
 update msg settings track =
     case msg of
         CloseTheLoop ->

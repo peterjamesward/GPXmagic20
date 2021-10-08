@@ -102,17 +102,20 @@ viewStraightenTools options wrapper track =
                         "Straighten between markers"
                 }
     in
-    column [ spacing 10, padding 10, alignTop, centerX ]
+    wrappedRow [ spacing 10, padding 10 ]
         [ if track.currentNode /= marker then
             straightenButton
 
           else
-            paragraph [ spacing 10, padding 10, alignTop, centerX ]
+            paragraph [ padding 10 ]
                 [ text "The straighten tool requires a range. "
                 , text "Drop the marker and move it away from the current pointer."
                 ]
         , simplifyButton
-        , text "Simplify works across a range if available,\notherwise the whole track."
+        , paragraph [ padding 10 ]
+            [ text "Simplify works across a range if available,"
+            , text " otherwise the whole track."
+            ]
         ]
 
 
@@ -241,7 +244,7 @@ simplifyTrack options track =
 
         ( startPoint, endPoint ) =
             if track.markedNode == Nothing then
-                ( 0, List.length track.trackPoints - 1)
+                ( 0, List.length track.trackPoints - 1 )
 
             else if track.currentNode.index <= marker.index then
                 ( track.currentNode.index, marker.index )

@@ -530,24 +530,21 @@ viewBendFixerPane bendOptions wrap =
                 , label = text "Smooth current point"
                 }
     in
-    column [ spacing 10, padding 10, alignTop, centerX ]
-        [ case bendOptions.smoothedBend of
+    wrappedRow [ spacing 10, padding 10 ] <|
+        case bendOptions.smoothedBend of
             Just smooth ->
-                row [ spacing 10, padding 10, alignTop ]
-                    [ bendSmoothnessSlider bendOptions wrap
-                    , fixBendButton smooth
-                    ]
+                [ bendSmoothnessSlider bendOptions wrap
+                , fixBendButton smooth
+                , segmentSlider bendOptions wrap
+                , softenButton
+                ]
 
             Nothing ->
-                column [ spacing 10, padding 10, alignTop, centerX ]
-                    [ text "Sorry, failed to find a nice bend."
-                    , text "Try re-positioning the current pointer or marker."
-                    ]
-        , row [ spacing 10, padding 10, alignTop ]
-            [ segmentSlider bendOptions wrap
-            , softenButton
-            ]
-        ]
+                [ text "Sorry, failed to find a nice bend."
+                , text "Try re-positioning the current pointer or marker."
+                , segmentSlider bendOptions wrap
+                , softenButton
+                ]
 
 
 bendSmoothnessSlider : BendOptions -> (Msg -> msg) -> Element msg
