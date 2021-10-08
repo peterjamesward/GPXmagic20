@@ -13,8 +13,7 @@ Padding on About pane is wrong when second pane open.
 
 # TODO
 
-2. Dragging splitter resizes view panes. If possible.
-   Option to have multiple views one-up or two-up. 
+2. Option to have multiple views one-up or two-up. 
 
 3. **Review all tool panels for optimising use of available width.**
 

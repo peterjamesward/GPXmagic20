@@ -30,13 +30,12 @@ type ViewPaneMessage
     | ImageMessage Int ScenePainterCommon.ImageMsg
     | AddPane
     | RemovePane Int
-    | EnlargePanes
-    | DiminishPanes
     | LinkPane Int Bool
+    | ToggleColumns
 
 
 type ViewPaneAction msg
-    = ApplyToAllPanes (ViewPane -> ViewPane)
+    = PaneLayoutChange (ViewPane -> ViewPane)
     | ImageAction (PostUpdateActions.PostUpdateAction msg)
     | PaneNoOp
 
@@ -52,6 +51,7 @@ type alias ViewPane =
     , mapContext : ViewingContext
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
     , paneLinked : Bool
+    , useTwoColumnLayout : Bool
     }
 
 
@@ -67,6 +67,7 @@ defaultViewPane =
     , mapContext = newViewingContext ViewMap
     , viewPixels = ( pixels 800, pixels 500 )
     , paneLinked = True
+    , useTwoColumnLayout = False
     }
 
 
@@ -145,51 +146,26 @@ setSize size context =
     { context | size = size }
 
 
-enlargePane : ViewPane -> ViewPane
-enlargePane pane =
-    let
-        ( width, height ) =
-            pane.viewPixels
-
-        newSize =
-            ( width |> Quantity.plus (pixels 80)
-            , height |> Quantity.plus (pixels 50)
-            )
-    in
-    { pane
-        | viewPixels = newSize
-    }
-        |> mapOverPaneContexts (setSize newSize)
-
-
-diminishPane : ViewPane -> ViewPane
-diminishPane pane =
-    let
-        ( width, height ) =
-            pane.viewPixels
-
-        newSize =
-            ( width |> Quantity.minus (pixels 80)
-            , height |> Quantity.minus (pixels 50)
-            )
-    in
-    { pane
-        | viewPixels = newSize
-    }
-        |> mapOverPaneContexts (setSize newSize)
+toggleTwoColumnLayout : ViewPane -> ViewPane
+toggleTwoColumnLayout pane =
+    { pane | useTwoColumnLayout = not pane.useTwoColumnLayout }
 
 
 setViewPaneSize : Int -> ViewPane -> ViewPane
 setViewPaneSize split pane =
     let
         newSize =
-            ( pixels <| split - 20
-            , pixels <| (split - 20) * 500 // 800
-            )
+            if pane.useTwoColumnLayout then
+                ( pixels <| (split - 40) // 2
+                , pixels <| (split - 40) // 2 * 500 // 800
+                )
+
+            else
+                ( pixels <| split - 40
+                , pixels <| (split - 40) * 500 // 800
+                )
     in
-    { pane
-        | viewPixels = newSize
-    }
+    { pane | viewPixels = newSize }
         |> mapOverPaneContexts (setSize newSize)
 
 
@@ -405,7 +381,7 @@ viewPaneTools wrap =
                 }
 
         toggleColumnLayout =
-            makeButton EnlargePanes FeatherIcons.columns
+            makeButton ToggleColumns FeatherIcons.columns
 
         addButton =
             makeButton AddPane FeatherIcons.copy
@@ -567,16 +543,6 @@ update msg panes wrap =
             in
             ( paneHidden, PaneNoOp )
 
-        EnlargePanes ->
-            ( Nothing
-            , ApplyToAllPanes enlargePane
-            )
-
-        DiminishPanes ->
-            ( Nothing
-            , ApplyToAllPanes diminishPane
-            )
-
         LinkPane id isLinked ->
             let
                 paneLinked =
@@ -585,6 +551,11 @@ update msg panes wrap =
                         (List.Extra.getAt id panes)
             in
             ( paneLinked, PaneNoOp )
+
+        ToggleColumns ->
+            ( Nothing
+            , PaneLayoutChange toggleTwoColumnLayout
+            )
 
 
 updatePointerInLinkedPanes : TrackPoint -> ViewPane -> ViewPane

@@ -214,7 +214,7 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
-      , splitter = SplitPane.init Horizontal |> configureSplitter (SplitPane.px 700 (Just ( 0, 1000 )))
+      , splitter = SplitPane.init Horizontal |> configureSplitter (SplitPane.px 700 Nothing)
       , splitInPixels = 700
       }
         |> -- TODO: Fix Fugly Fudge.
@@ -550,7 +550,7 @@ update msg model =
                                         | splitInPixels = pixels
                                         , splitter =
                                             model.splitter
-                                                |> configureSplitter (SplitPane.px pixels (Just ( 0, 1000 )))
+                                                |> configureSplitter (SplitPane.px pixels Nothing)
                                       }
                                     , Cmd.none
                                     )
@@ -850,7 +850,7 @@ update msg model =
                 | splitInPixels = position
                 , viewPanes = ViewPane.mapOverPanes (setViewPaneSize position) model.viewPanes
               }
-            , Cmd.none
+            , Delay.after 50 RepaintMap
             )
 
         StoreSplitterPosition ->
@@ -1125,9 +1125,11 @@ processViewPaneMessage innerMsg model track =
         ViewPane.ImageAction innerAction ->
             processPostUpdateAction updatedModel innerAction
 
-        ViewPane.ApplyToAllPanes f ->
+        ViewPane.PaneLayoutChange f ->
             ( { updatedModel
-                | viewPanes = ViewPane.mapOverPanes f updatedModel.viewPanes
+                | viewPanes = ViewPane.mapOverPanes
+                    (f >> ViewPane.setViewPaneSize model.splitInPixels)
+                    updatedModel.viewPanes
               }
             , Delay.after 50 RepaintMap
             )
