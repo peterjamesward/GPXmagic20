@@ -22,7 +22,7 @@ import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import Vector3d
-import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
+import ViewPureStyles exposing (commonShortHorizontalSliderStyles, conditionallyVisible, prettyButtonStyles)
 
 
 info =
@@ -517,9 +517,14 @@ viewBendFixerPane bendOptions wrap =
                 prettyButtonStyles
                 { onPress = Just <| wrap SmoothBend
                 , label =
-                    text <|
-                        "Smooth between markers\nRadius "
-                            ++ showDecimal2 smooth.radius
+                    case smooth of
+                        Just isSmooth ->
+                            text <|
+                                "Smooth between markers\nRadius "
+                                    ++ showDecimal2 isSmooth.radius
+
+                        Nothing ->
+                            text "No bend found"
                 }
 
         softenButton =
@@ -530,20 +535,11 @@ viewBendFixerPane bendOptions wrap =
                 }
     in
     wrappedRow [ spacing 10, padding 10 ] <|
-        case bendOptions.smoothedBend of
-            Just smooth ->
-                [ bendSmoothnessSlider bendOptions wrap
-                , fixBendButton smooth
-                , segmentSlider bendOptions wrap
-                , softenButton
-                ]
-
-            Nothing ->
-                [ text "Sorry, failed to find a nice bend."
-                , text "Try re-positioning the current pointer or marker."
-                , segmentSlider bendOptions wrap
-                , softenButton
-                ]
+        [ bendSmoothnessSlider bendOptions wrap
+        , fixBendButton bendOptions.smoothedBend
+        , segmentSlider bendOptions wrap
+        , softenButton
+        ]
 
 
 bendSmoothnessSlider : BendOptions -> (Msg -> msg) -> Element msg

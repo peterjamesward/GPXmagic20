@@ -10,7 +10,7 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.0 update 2021-10-tbd
+## 2.4.0 update 2021-10-08
 
 ### Significant changes in managing the workspace
 
@@ -31,9 +31,6 @@ There's still the one above the tools.
 - Open tools do not jump to top of the tool stack but stay in place.
 Favourites will still be at top.
 
-- _Splitter & Joiner_ allows you to request that each section is processed by _One Click Quick Fix_
-before being written (Steve).
-
 ### Bug fixes and small change
 
 - Autofix in Bend Prblems panel uses the number of segments selected in the Bend Smoother Classic panel.
@@ -41,6 +38,9 @@ before being written (Steve).
 - Centroid averaging does not move start and end points in track that's not a loop.
 
 - A situation where the Drop/Clear marker controls were losing their blue colour has been fixed.
+
+- _Splitter & Joiner_ allows you to request that each section is processed by _One Click Quick Fix_
+before being written (Steve).
 
 ## Can I support this work?
 
@@ -84,13 +84,14 @@ viewAboutText view =
         ( w, h ) =
             view.size
     in
-    paragraph
-        [ width <| px (inPixels w)
-        , height <| px (inPixels h)
-        , padding 20
-        , Background.color <| rgb255 220 220 200
-        , clipY
-        , scrollbarY
-        ]
-    <|
-        [ html <| Markdown.toHtml [] aboutText ]
+    el [] <|
+        paragraph
+            [ width <| px (inPixels w)
+            , height <| px (inPixels h)
+            , padding 20
+            , Background.color <| rgb255 220 220 200
+            , clipY
+            , scrollbarY
+            ]
+        <|
+            [ html <| Markdown.toHtml [] aboutText ]

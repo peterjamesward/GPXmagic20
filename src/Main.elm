@@ -1644,6 +1644,7 @@ viewAllPanes panes options ( scene, profile ) wrapper =
             panes
 
 
+
 updatedAccordion :
     List (AccordionEntry Msg)
     -> (Model -> List (AccordionEntry Msg))

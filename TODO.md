@@ -4,9 +4,9 @@
 
 SVG parser should report errors. At least summarise outcome.
 
-# TODO
+Sometimes some buttons losing style.
 
-3. @Steve -- when splitting, have option to 1CQF each section.
+# TODO
 
 4. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
 carried a sequence prefix: 1-Road1, 2-Road2, 3-Road3 etc. 
