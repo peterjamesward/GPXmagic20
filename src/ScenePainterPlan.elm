@@ -60,27 +60,26 @@ viewScene :
     -> (ImageMsg -> msg)
     -> Element msg
 viewScene visible context scene wrapper =
-    row [ spacing 0, padding 0 ]
-        [ if visible then
-            el
-                (withMouseCapture wrapper)
-            <|
-                html <|
-                    Scene3d.sunny
-                        { camera = deriveViewPointAndCamera context
-                        , dimensions = context.size
-                        , background = backgroundColor Color.lightBlue
-                        , clipDepth = Length.meters 1
-                        , entities = scene
-                        , upDirection = positiveZ
-                        , sunlightDirection = negativeZ
-                        , shadows = False
-                        }
+    if visible then
+        el
+            ((inFront <| zoomButtons wrapper)
+                :: withMouseCapture wrapper
+            )
+        <|
+            html <|
+                Scene3d.sunny
+                    { camera = deriveViewPointAndCamera context
+                    , dimensions = context.size
+                    , background = backgroundColor Color.lightBlue
+                    , clipDepth = Length.meters 1
+                    , entities = scene
+                    , upDirection = positiveZ
+                    , sunlightDirection = negativeZ
+                    , shadows = False
+                    }
 
-          else
-            none
-        , zoomButtons wrapper
-        ]
+    else
+        none
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords

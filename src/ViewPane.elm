@@ -300,15 +300,15 @@ view ( scene, profile ) options wrapper pane =
     -- experimentation to make the map behave predictably.
     -- Further complicated by Map sketch mode.
     if pane.visible then
-        column [ paddingEach { top = 5, bottom = 5, left = 0, right = 0 } ]
+        column [  ]
             [ if List.length scene > 0 then
-                row [ width fill ]
+                row [ width fill, spacingXY 10 0 ]
                     [ if pane.paneId == 0 then
                         viewPaneTools wrapper
 
                       else
                         none
-                    , el [ centerX ] <| viewModeChoices pane wrapper
+                    , viewModeChoices pane wrapper
                     , viewPaneControls pane wrapper
                     ]
 
@@ -386,7 +386,7 @@ viewPaneTools wrap =
         addButton =
             makeButton AddPane FeatherIcons.copy
     in
-    row [ padding 10, spacing 10 ]
+    row [ spacingXY 10 0 ]
         [ toggleColumnLayout
         , addButton
         ]
@@ -412,7 +412,7 @@ viewPaneControls pane wrap =
             else
                 makeButton (LinkPane id True) FeatherIcons.unlock
     in
-    row [ spacing 10, alignRight, moveLeft 50 ] <|
+    row [ alignRight ] <|
         if pane.paneId == 0 then
             [ linkButton pane.paneId
             ]

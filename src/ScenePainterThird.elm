@@ -60,35 +60,36 @@ viewScene :
     -> (ImageMsg -> msg)
     -> Element msg
 viewScene visible context options scene wrapper =
-    row []
-        [ if visible then
-            el (withMouseCapture wrapper) <|
-                html <|
-                    if options.withLighting then
-                        Scene3d.sunny
-                            { camera = deriveViewPointAndCamera context
-                            , dimensions = context.size
-                            , background = backgroundColor Color.lightBlue
-                            , clipDepth = Length.meters 1
-                            , entities = scene
-                            , upDirection = positiveZ
-                            , sunlightDirection = negativeZ
-                            , shadows = False
-                            }
+    if visible then
+        el
+            ((inFront <| zoomButtons wrapper)
+                :: withMouseCapture wrapper
+            )
+        <|
+            html <|
+                if options.withLighting then
+                    Scene3d.sunny
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        , upDirection = positiveZ
+                        , sunlightDirection = negativeZ
+                        , shadows = False
+                        }
 
-                    else
-                        Scene3d.unlit
-                            { camera = deriveViewPointAndCamera context
-                            , dimensions = context.size
-                            , background = backgroundColor Color.lightBlue
-                            , clipDepth = Length.meters 1
-                            , entities = scene
-                            }
+                else
+                    Scene3d.unlit
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        }
 
-          else
-            none
-        , zoomButtons wrapper
-        ]
+    else
+        none
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
@@ -190,7 +191,7 @@ update msg view wrap =
                     let
                         shiftVector =
                             Vector3d.meters
-                                ((startY - dy)* Angle.sin view.elevation)
+                                ((startY - dy) * Angle.sin view.elevation)
                                 (startX - dx)
                                 ((dy - startY) * Angle.cos view.elevation)
                                 |> Vector3d.rotateAround Axis3d.z view.azimuth

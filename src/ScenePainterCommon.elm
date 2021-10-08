@@ -58,8 +58,9 @@ withMouseCapture wrap =
 zoomButtons wrap =
     column
         [ alignTop
+        , alignRight
         , moveDown 5
-        , moveLeft 40
+        , moveLeft 5
         , Background.color white
         , Font.size 40
         , padding 6

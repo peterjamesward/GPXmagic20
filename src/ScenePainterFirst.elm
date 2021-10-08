@@ -8,7 +8,7 @@ import Delay
 import Direction3d exposing (negativeZ, positiveZ)
 import DisplayOptions exposing (DisplayOptions)
 import EarthConstants exposing (metresPerPixel)
-import Element exposing (Element, el, html, none, row)
+import Element exposing (Element, el, html, inFront, none, row)
 import Flythrough exposing (eyeHeight)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import Length exposing (meters)
@@ -215,35 +215,36 @@ viewScene :
     -> (ImageMsg -> msg)
     -> Element msg
 viewScene visible context options scene wrapper =
-    row []
-        [ if visible then
-            el (withMouseCapture wrapper) <|
-                html <|
-                    if options.withLighting then
-                        Scene3d.sunny
-                            { camera = deriveViewPointAndCamera context
-                            , dimensions = context.size
-                            , background = backgroundColor Color.lightBlue
-                            , clipDepth = Length.meters 1
-                            , entities = scene
-                            , upDirection = positiveZ
-                            , sunlightDirection = negativeZ
-                            , shadows = False
-                            }
+    if visible then
+        el
+            ((inFront <| zoomButtons wrapper)
+                :: withMouseCapture wrapper
+            )
+        <|
+            html <|
+                if options.withLighting then
+                    Scene3d.sunny
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        , upDirection = positiveZ
+                        , sunlightDirection = negativeZ
+                        , shadows = False
+                        }
 
-                    else
-                        Scene3d.unlit
-                            { camera = deriveViewPointAndCamera context
-                            , dimensions = context.size
-                            , background = backgroundColor Color.lightBlue
-                            , clipDepth = Length.meters 1
-                            , entities = scene
-                            }
+                else
+                    Scene3d.unlit
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        }
 
-          else
-            none
-        , zoomButtons wrapper
-        ]
+    else
+        none
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords

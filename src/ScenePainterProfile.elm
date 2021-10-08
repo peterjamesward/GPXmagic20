@@ -98,24 +98,23 @@ viewScene :
     -> (ImageMsg -> msg)
     -> Element msg
 viewScene visible context options scene wrapper =
-    row [ spacing 0, padding 0 ]
-        [ if visible then
-            el
-                (withMouseCapture wrapper)
-            <|
-                html <|
-                    Scene3d.unlit
-                        { camera = deriveViewPointAndCamera context
-                        , dimensions = context.size
-                        , background = Scene3d.backgroundColor Color.lightCharcoal
-                        , clipDepth = Length.meters 1
-                        , entities = scene
-                        }
+    if visible then
+        el
+            ((inFront <| zoomButtons wrapper)
+                :: withMouseCapture wrapper
+            )
+        <|
+            html <|
+                Scene3d.unlit
+                    { camera = deriveViewPointAndCamera context
+                    , dimensions = context.size
+                    , background = Scene3d.backgroundColor Color.lightCharcoal
+                    , clipDepth = Length.meters 1
+                    , entities = scene
+                    }
 
-          else
-            none
-        , zoomButtons wrapper
-        ]
+    else
+        none
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords

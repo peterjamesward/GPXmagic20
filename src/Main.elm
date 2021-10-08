@@ -1588,8 +1588,6 @@ contentArea model =
         leftPaneHtml =
             layout
                 [ width fill
-                , padding 10
-                , spacing 10
                 , Font.size 16
                 , height fill
                 ]
@@ -1641,7 +1639,7 @@ contentArea model =
 
 viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
 viewAllPanes panes options ( scene, profile ) wrapper =
-    wrappedRow [ width fill ] <|
+    wrappedRow [ width fill, spacing 10 ] <|
         List.map
             (ViewPane.view ( scene, profile ) options wrapper)
             panes

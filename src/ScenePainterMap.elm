@@ -10,8 +10,8 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
 import Html.Attributes exposing (id)
-import PortController
 import Pixels exposing (Pixels, inPixels)
+import PortController
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
@@ -99,8 +99,9 @@ viewScene visible context scene wrapper =
             -- Might put the "click to drag" option here.
             column
                 [ alignTop
+                , alignRight
                 , moveDown 100
-                , moveLeft 40
+                , moveLeft 10
                 , Background.color white
                 , Font.size 40
                 , padding 6
@@ -118,7 +119,7 @@ viewScene visible context scene wrapper =
                     }
                 ]
     in
-    row [ spacing 0, padding 0 ]
+    row [ spacing 0, padding 0, inFront handyMapControls ]
         [ el
             [ width <| px <| inPixels viewWidth
             , height <| px <| inPixels viewHeight
@@ -127,5 +128,6 @@ viewScene visible context scene wrapper =
             , htmlAttribute (id "map")
             ]
             none
-        , handyMapControls
+
+        --, handyMapControls
         ]
