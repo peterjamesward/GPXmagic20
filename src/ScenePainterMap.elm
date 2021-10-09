@@ -96,7 +96,6 @@ viewScene visible context scene wrapper =
             context.size
 
         handyMapControls =
-            -- Might put the "click to drag" option here.
             column
                 [ alignTop
                 , alignRight
@@ -128,6 +127,4 @@ viewScene visible context scene wrapper =
             , htmlAttribute (id "map")
             ]
             none
-
-        --, handyMapControls
         ]

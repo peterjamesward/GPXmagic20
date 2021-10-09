@@ -221,7 +221,7 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
-      , splitInPixels = 500
+      , splitInPixels = maximumLeftPane
       }
         |> -- TODO: Fix Fugly Fudge.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -230,7 +230,6 @@ init mflags origin navigationKey =
         , Task.perform AdjustTimeZone Time.here
         , Task.perform Tick Time.now
         , PortController.storageGetItem "accordion"
-        , PortController.storageGetItem "splitter"
         ]
     )
 
@@ -1062,7 +1061,9 @@ applyTrack model track =
         ( newViewPanes, mapCommands ) =
             ( List.map (ViewPane.resetAllViews track) model.viewPanes
             , ViewPane.initialiseMap track model.viewPanes
-                ++ [ Delay.after 50 RepaintMap ]
+                ++ [ Delay.after 50 RepaintMap
+                   , PortController.storageGetItem "splitter"
+                   ]
             )
     in
     ( { model
@@ -1554,12 +1555,17 @@ buyMeACoffeeButton =
         }
 
 
+minimumLeftPane =
+    600
+
+
+maximumLeftPane =
+    1400
+
+
 contentArea : Model -> Element Msg
 contentArea model =
     let
-        ( minimumLeftPane, maximumLeftPane ) =
-            ( 600, 1400 )
-
         leftPane =
             column
                 [ width fill, alignTop ]

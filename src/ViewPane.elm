@@ -300,7 +300,7 @@ view ( scene, profile ) options wrapper pane =
     -- experimentation to make the map behave predictably.
     -- Further complicated by Map sketch mode.
     if pane.visible then
-        column [  ]
+        column [ ]
             [ if List.length scene > 0 then
                 row [ width fill, spacingXY 10 0 ]
                     [ if pane.paneId == 0 then
