@@ -1964,10 +1964,9 @@ redo model =
 
 undoRedoButtons model =
     row
-        [ spacing 10
-        , padding 10
-        , centerX
-        , width fill
+        [ centerX
+        , spacing 20
+        , paddingXY 20 0
         ]
         [ button
             (width fill :: prettyButtonStyles)

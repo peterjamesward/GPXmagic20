@@ -28,15 +28,15 @@ defaultColumnLayout =
 prettyButtonStyles =
     [ padding 10
     , Border.width 2
-    , Border.rounded 16
+    , Border.rounded 10
     , Border.color buttonBackground
     , Background.color buttonBackground
-    , Font.color <| buttonText
+    , Font.color buttonText
     , Font.size 16
-    , mouseOver
-        [ Background.color buttonText, Font.color buttonBackground ]
-    , focused
-        [ Border.shadow { offset = ( 4, 0 ), size = 3, blur = 5, color = buttonShadow } ]
+    --, mouseOver
+    --    [ Background.color buttonText, Font.color buttonBackground ]
+    --, focused
+    --    [ Border.shadow { offset = ( 4, 0 ), size = 3, blur = 5, color = buttonShadow } ]
     ]
 
 
