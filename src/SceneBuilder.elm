@@ -142,16 +142,6 @@ renderMarkers track =
                     { radius = meters <| 6.0
                     , length = meters <| 20.0
                     }
-            , cone (Material.color Color.lightOrange) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 20.1)
-                        point.xyz
-                    )
-                    positiveZ
-                    { radius = meters <| 5.5
-                    , length = meters <| 100.0
-                    }
             ]
 
         markedNode point =
@@ -164,16 +154,6 @@ renderMarkers track =
                     negativeZ
                     { radius = meters <| 7.0
                     , length = meters <| 18.0
-                    }
-            , cone (Material.color Color.purple) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 18.1)
-                        point.xyz
-                    )
-                    positiveZ
-                    { radius = meters <| 6.5
-                    , length = meters <| 100.0
                     }
             ]
     in

@@ -5,13 +5,19 @@
 SVG parser should report errors. At least summarise outcome.
 
 Sometimes some buttons losing style.
+Also notice major rendering differences with optimised JS, which is bizarre.
+Optimised code is shit on Chrome as well.
+Is it the splitter?
+**Try** https://stackoverflow.com/questions/64016466/how-can-i-make-a-draggable-split-panel-with-elm-preferably-elm-ui
+
+Too fing confusing. Can I do my own splitter? Can I just use a scroll with custom thumb? Anything?
 
 # TODO
 
-4. @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
+@Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
 carried a sequence prefix: 1-Road1, 2-Road2, 3-Road3 etc. 
 
-5. Store various minor control settings, now we know how.
+Store various minor control settings, now we know how.
 
 Clean up splitter code with less swapping between HTML and elm-ui?
 

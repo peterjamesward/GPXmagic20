@@ -42,6 +42,8 @@ Favourites will still be at top.
 - _Splitter & Joiner_ allows you to request that each section is processed by _One Click Quick Fix_
 before being written (Steve).
 
+- Reverted to more subtle marker cones in third person view, as the big ones could obscure features.
+
 ## Can I support this work?
 
 **YES, PLEASE!!**

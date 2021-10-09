@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Accordion exposing (AccordionEntry, AccordionState(..), Model, defaultState, view)
+import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
@@ -41,7 +41,6 @@ import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
-import SplitPane exposing (CustomSplitter, Orientation(..), SizeUnit(..), State, UpdateConfig, ViewConfig, configureSplitter, createCustomSplitter, createUpdateConfig, createViewConfig)
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
@@ -55,7 +54,7 @@ import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoint
 import TrackSplitter
 import Url exposing (Url)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
-import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, displayName, prettyButtonStyles, toolRowLayout)
+import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
 
@@ -97,8 +96,7 @@ type Msg
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
-    | SplitterMsg SplitPane.Msg
-    | ResizeViews SizeUnit
+    | ResizeViews Int
     | StoreSplitterPosition
 
 
@@ -159,7 +157,6 @@ type alias Model =
     , mapElevations : List Float
     , mapSketchMode : Bool
     , accordionState : Accordion.Model
-    , splitter : SplitPane.State
     , splitInPixels : Int
     }
 
@@ -214,8 +211,7 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
-      , splitter = SplitPane.init Horizontal |> configureSplitter (SplitPane.px 700 Nothing)
-      , splitInPixels = 700
+      , splitInPixels = 500
       }
         |> -- TODO: Fix Fugly Fudge.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -546,13 +542,7 @@ update msg model =
                             in
                             case p of
                                 Ok pixels ->
-                                    ( { model
-                                        | splitInPixels = pixels
-                                        , splitter =
-                                            model.splitter
-                                                |> configureSplitter (SplitPane.px pixels Nothing)
-                                        , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
-                                      }
+                                    ( model
                                     , Cmd.none
                                     )
 
@@ -820,36 +810,10 @@ update msg model =
                     , PortController.exitSketchMode
                     )
 
-        SplitterMsg paneMsg ->
-            -- Need to store on (e.g.) SplitterLeftAlone { x = 672, y = 104 }
-            -- We can put that into the Splitter module if we fork it.
-            let
-                ( updatedSplitter, whatHappened ) =
-                    SplitPane.customUpdate updateConfig paneMsg model.splitter
-
-                updatedModel =
-                    { model | splitter = updatedSplitter }
-            in
-            case whatHappened of
-                Nothing ->
-                    ( updatedModel, Cmd.none )
-
-                Just m ->
-                    update m updatedModel
-
         ResizeViews newPosition ->
-            let
-                position =
-                    case newPosition of
-                        Percentage ( p, _ ) ->
-                            p * 800.0 |> round
-
-                        Px ( p, _ ) ->
-                            p
-            in
             ( { model
-                | splitInPixels = position
-                , viewPanes = ViewPane.mapOverPanes (setViewPaneSize position) model.viewPanes
+                | splitInPixels = newPosition
+                , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
               }
             , Delay.after 50 RepaintMap
             )
@@ -858,15 +822,6 @@ update msg model =
             ( model
             , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
             )
-
-
-updateConfig : UpdateConfig Msg
-updateConfig =
-    createUpdateConfig
-        { onResize = \s -> Just (ResizeViews s)
-        , onResizeStarted = Nothing
-        , onResizeEnded = Just StoreSplitterPosition
-        }
 
 
 draggedOnMap : Encode.Value -> Track -> Maybe Track
@@ -1585,55 +1540,38 @@ buyMeACoffeeButton =
 
 contentArea : Model -> Element Msg
 contentArea model =
-    --TODO: It's fugly that the splitter is HTML based. Yet, this works.
     let
-        leftPaneHtml =
-            layout
-                [ width fill
-                , Font.size 16
-                , height fill
+        leftPane =
+            column
+                [ width fill, alignTop ]
+                [ viewAllPanes
+                    model.viewPanes
+                    model.displayOptions
+                    ( model.completeScene, model.completeProfile )
+                    ViewPaneMessage
+                , viewTrackControls MarkerMessage model.track
+                , footer model
                 ]
-            <|
-                column
-                    [ width fill, alignTop ]
-                    [ viewAllPanes
-                        model.viewPanes
-                        model.displayOptions
-                        ( model.completeScene, model.completeProfile )
-                        ViewPaneMessage
+
+        rightPane =
+            if model.track /= Nothing then
+                column [ spacing 5, padding 5, alignTop, centerX ]
+                    [ markerButton model.track MarkerMessage
                     , viewTrackControls MarkerMessage model.track
-                    , footer model
+                    , undoRedoButtons model
+                    , Accordion.view
+                        model.accordionState
+                        (updatedAccordion model.toolsAccordion toolsAccordion model)
+                        AccordionMessage
                     ]
 
-        rightPaneHtml =
-            layout
-                [ width fill
-                , padding 10
-                , spacing 10
-                , Font.size 16
-                , height fill
-                ]
-            <|
-                if model.track /= Nothing then
-                    column [ spacing 5, padding 5, alignTop, centerX ]
-                        [ markerButton model.track MarkerMessage
-                        , viewTrackControls MarkerMessage model.track
-                        , undoRedoButtons model
-                        , Accordion.view
-                            model.accordionState
-                            (updatedAccordion model.toolsAccordion toolsAccordion model)
-                            AccordionMessage
-                        ]
-
-                else
-                    none
+            else
+                none
     in
-    E.html <|
-        SplitPane.view
-            viewConfig
-            leftPaneHtml
-            rightPaneHtml
-            model.splitter
+    row [ width fill ]
+        [ el [ width <| fillPortion 2, alignTop ] leftPane
+        , el [ width <| fillPortion 1, alignTop ] rightPane
+        ]
 
 
 viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
@@ -1642,7 +1580,6 @@ viewAllPanes panes options ( scene, profile ) wrapper =
         List.map
             (ViewPane.view ( scene, profile ) options wrapper)
             panes
-
 
 
 updatedAccordion :
@@ -1670,14 +1607,12 @@ subscriptions model =
             [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
-            , Sub.map SplitterMsg <| SplitPane.subscriptions model.splitter
             ]
 
     else
         Sub.batch
             [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-            , Sub.map SplitterMsg <| SplitPane.subscriptions model.splitter
             ]
 
 
@@ -2097,29 +2032,3 @@ outputGPX model =
                     "NOFILENAME"
     in
     Download.string outputFilename "text/gpx" gpxString
-
-
-myCustomSplitter : CustomSplitter Msg
-myCustomSplitter =
-    createCustomSplitter SplitterMsg
-        { attributes =
-            asStyles
-                [ ( "width", "5px" )
-                , ( "height", "100%" )
-                , ( "background", "lightcoral" )
-                , ( "cursor", "col-resize" )
-                ]
-        , children = []
-        }
-
-
-asStyles =
-    List.map (\( a, b ) -> style a b)
-
-
-viewConfig : ViewConfig Msg
-viewConfig =
-    createViewConfig
-        { toMsg = SplitterMsg
-        , customSplitter = Just myCustomSplitter
-        }
