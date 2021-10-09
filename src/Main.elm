@@ -4,6 +4,8 @@ import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import Color
+import ColourPalette exposing (scrollbarBackground)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
@@ -18,6 +20,8 @@ import File.Download as Download
 import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
+import FlatColors.ChinesePalette exposing (white)
+import FlatColors.FlatUIPalette exposing (silver)
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
@@ -1510,8 +1514,8 @@ footer model =
             ]
         , conditionallyVisible model.mapSketchMode <|
             el
-                [ width <| px 800
-                , height <| px 600
+                [ width <| px <| model.splitInPixels - 20
+                , height <| px <| model.splitInPixels - 20
                 , alignLeft
                 , alignTop
                 , Border.width 1
@@ -1553,6 +1557,9 @@ buyMeACoffeeButton =
 contentArea : Model -> Element Msg
 contentArea model =
     let
+        ( minimumLeftPane, maximumLeftPane ) =
+            ( 600, 1400 )
+
         leftPane =
             column
                 [ width fill, alignTop ]
@@ -1583,45 +1590,53 @@ contentArea model =
         splitter =
             Input.slider
                 [ height <| px 30
-                , width <| px 1000
-                , centerY
+                , width <| px <| maximumLeftPane - minimumLeftPane
                 , behindContent <|
                     -- Slider track
                     el
                         [ width fill
-                        , height <| px 1
+                        , height <| px 5
                         , centerY
                         , centerX
+                        , Background.color silver
                         ]
                         none
                 ]
                 { onChange = ResizeViews << round
                 , label =
                     Input.labelHidden "Splitter"
-                , min = 0.0
-                , max = toFloat 1000
+                , min = toFloat minimumLeftPane
+                , max = toFloat maximumLeftPane
                 , step = Just 1
-                , value = toFloat model.splitInPixels
+                , value = toFloat <| model.splitInPixels
                 , thumb = customThumb
                 }
 
         customThumb =
             Input.thumb
                 [ width (px 50)
-                , height (px 30)
+                , height (px 24)
                 , Border.rounded 1
                 , Border.width 1
                 , Border.color (rgb 0.5 0.5 0.5)
                 , Background.color FlatColors.BritishPalette.seabrook
+                , Font.color FlatColors.ChinesePalette.white
                 , inFront <| row [ centerX ] [ useIcon FeatherIcons.chevronsLeft, useIcon FeatherIcons.chevronsRight ]
                 ]
     in
-    column [ width fill, spacing 5, padding 5 ]
-        [ splitter
+    column [ width fill, padding 5 ]
+        [ row []
+            [ el [ width <| px minimumLeftPane ] none
+            , splitter
+            ]
         , row [ width fill, spacing 5, padding 5 ]
             [ el [ width <| px model.splitInPixels, alignTop ] leftPane
             , el [ width <| px 4, height fill, Background.color FlatColors.BritishPalette.seabrook ] none
             , el [ width fill, alignTop ] rightPane
+            ]
+        , row []
+            [ el [ width <| px minimumLeftPane ] none
+            , splitter
             ]
         ]
 

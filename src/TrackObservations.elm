@@ -280,7 +280,7 @@ deriveProblems track options =
 
 overviewSummary : TrackObservations -> Element msg
 overviewSummary obs =
-    wrappedRow [ spacing 10, padding 10 ]
+    wrappedRow [ spacing 10, padding 10, width fill ]
         [ showLabelledValues
             [ ( "Highest point", showDecimal2 <| obs.highestMetres )
             , ( "Lowest point", showDecimal2 <| obs.lowestMetres )

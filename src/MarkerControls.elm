@@ -66,16 +66,13 @@ markerButton track messageWrapper =
                             , False
                             )
             in
-            column [ spacing 5, padding 5, alignTop, width fill, centerX ]
+            column  [ spacing 5, padding 5, alignTop, width fill, centerX ]
                 [ row
                     [ spacing 10
                     , padding 10
                     , centerX
                     ]
-                    [ if isDropped then
-                        none
-
-                      else
+                    [ conditionallyVisible isDropped <|
                         button
                             prettyButtonStyles
                             { onPress = Just <| messageWrapper MarkerBackOne
@@ -87,10 +84,7 @@ markerButton track messageWrapper =
 
                         else
                             "Drop marker"
-                    , if isDropped then
-                        none
-
-                      else
+                    , conditionallyVisible isDropped <|
                         button
                             prettyButtonStyles
                             { onPress = Just <| messageWrapper MarkerForwardOne

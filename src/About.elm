@@ -10,16 +10,17 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.0 update 2021-10-08
+## 2.4.0 update 2021-10-09
 
 ### Significant changes in managing the workspace
 
-- Prominent pink vertical divider can be dragged sideways to change the amount of screen space
-given to the track views and the tools. The location is saved between sessions.
+- Prominent vertical divider can be dragged sideways using controls at top and bottom
+ to change the amount of screen space given to the track views and the tools.
+ The location is saved between sessions.
 
 - The course view panes size automatically to fill space available.
 
-- Button at top left of the first pane toggles between having one column of views or two columns.
+- Button at top left of the first pane toggles between having one or two columns of views.
 
 - There is a secondary position control below the views, where it was in V1.
 There's still the one above the tools.
@@ -33,7 +34,8 @@ Favourites will still be at top.
 
 ### Bug fixes and small change
 
-- Autofix in Bend Prblems panel uses the number of segments selected in the Bend Smoother Classic panel.
+- _Smoothe these points in 3D_ button in _Bend Problems panel_ uses the number of segments
+selected in the _Bend Smoother Classic_ panel.
 
 - Centroid averaging does not move start and end points in track that's not a loop.
 
@@ -42,7 +44,7 @@ Favourites will still be at top.
 - _Splitter & Joiner_ allows you to request that each section is processed by _One Click Quick Fix_
 before being written (Steve).
 
-- Reverted to more subtle marker cones in third person view, as the big ones could obscure features.
+- Reverted to more subtle marker cones in third person view, as the big ones sometimes obscure features.
 
 ## Can I support this work?
 
