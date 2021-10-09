@@ -1627,16 +1627,26 @@ contentArea model =
     column [ width fill, padding 5 ]
         [ row []
             [ el [ width <| px minimumLeftPane ] none
-            , splitter
+            , conditionallyVisible (model.track /= Nothing) splitter
             ]
         , row [ width fill, spacing 5, padding 5 ]
             [ el [ width <| px model.splitInPixels, alignTop ] leftPane
-            , el [ width <| px 4, height fill, Background.color FlatColors.BritishPalette.seabrook ] none
+            , el
+                [ width <| px 4
+                , height fill
+                , Background.color <|
+                    if model.track == Nothing then
+                        ColourPalette.white
+
+                    else
+                        FlatColors.BritishPalette.seabrook
+                ]
+                none
             , el [ width fill, alignTop ] rightPane
             ]
         , row []
             [ el [ width <| px minimumLeftPane ] none
-            , splitter
+            , conditionallyVisible (model.track /= Nothing) splitter
             ]
         ]
 

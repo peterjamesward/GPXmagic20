@@ -6,13 +6,15 @@ SVG parser should report errors. At least summarise outcome.
 
 Sometimes some buttons losing style.
 Also notice major rendering differences with optimised JS, which is bizarre.
-Optimised code is shit on Chrome as well.
-Is it the splitter?
-**Try** https://stackoverflow.com/questions/64016466/how-can-i-make-a-draggable-split-panel-with-elm-preferably-elm-ui
+Optimised code is shit on Chrome as well. No, not so much.
 
 Too fing confusing. Can I do my own splitter? Can I just use a scroll with custom thumb? Anything?
 
 # TODO
+
+Save pane layout and views.
+
+Can the split element itself be draggable?
 
 @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
 carried a sequence prefix: 1-Road1, 2-Road2, 3-Road3 etc. 
