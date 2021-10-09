@@ -8,13 +8,16 @@ import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input exposing (button)
+import Element.Input as Input exposing (button, thumb)
+import FeatherIcons
 import File exposing (File)
 import File.Download as Download
 import File.Select as Select
 import Filters
+import FlatColors.BritishPalette
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
@@ -44,6 +47,8 @@ import SceneBuilderProfile
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
+import Svg exposing (polygon, svg)
+import Svg.Attributes as S exposing (points, stroke, strokeWidth, viewBox, x, x1, x2, y, y1, y2)
 import SvgPathExtractor
 import Task
 import Time
@@ -53,6 +58,7 @@ import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
 import Url exposing (Url)
+import Utils exposing (useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
@@ -542,8 +548,11 @@ update msg model =
                             in
                             case p of
                                 Ok pixels ->
-                                    ( model
-                                    , Cmd.none
+                                    ( { model
+                                        | splitInPixels = pixels
+                                        , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
+                                      }
+                                    , Delay.after 50 RepaintMap
                                     )
 
                                 _ ->
@@ -815,7 +824,10 @@ update msg model =
                 | splitInPixels = newPosition
                 , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
               }
-            , Delay.after 50 RepaintMap
+            , Cmd.batch
+                [ Delay.after 50 RepaintMap
+                , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
+                ]
             )
 
         StoreSplitterPosition ->
@@ -1569,35 +1581,47 @@ contentArea model =
                 none
 
         splitter =
-             Input.slider
-                    [ height <| px 1
-                    , width fill
-                    , centerY
-                    , behindContent <|
-                        -- Slider track
-                        el
-                            [ width fill
-                            , height <| px 1
-                            , centerY
-                            , centerX
-                            ]
-                            none
-                    ]
-                    { onChange = ResizeViews << round
-                    , label =
-                        Input.labelHidden "Splitter"
-                    , min = 0.0
-                    , max = toFloat 1000
-                    , step = Just 1
-                    , value = toFloat model.splitInPixels
-                    , thumb = Input.defaultThumb
-                    }
+            Input.slider
+                [ height <| px 30
+                , width <| px 1000
+                , centerY
+                , behindContent <|
+                    -- Slider track
+                    el
+                        [ width fill
+                        , height <| px 1
+                        , centerY
+                        , centerX
+                        ]
+                        none
+                ]
+                { onChange = ResizeViews << round
+                , label =
+                    Input.labelHidden "Splitter"
+                , min = 0.0
+                , max = toFloat 1000
+                , step = Just 1
+                , value = toFloat model.splitInPixels
+                , thumb = customThumb
+                }
+
+        customThumb =
+            Input.thumb
+                [ width (px 50)
+                , height (px 30)
+                , Border.rounded 1
+                , Border.width 1
+                , Border.color (rgb 0.5 0.5 0.5)
+                , Background.color FlatColors.BritishPalette.seabrook
+                , inFront <| row [ centerX ] [ useIcon FeatherIcons.chevronsLeft, useIcon FeatherIcons.chevronsRight ]
+                ]
     in
-    column [ width fill, spacing 10 ]
+    column [ width fill, spacing 5, padding 5 ]
         [ splitter
-        , row [ width fill, spacing 10 ]
-            [ el [ width <| fillPortion model.splitInPixels, alignTop ] leftPane
-            , el [ width <| fillPortion (1000 - model.splitInPixels), alignTop ] rightPane
+        , row [ width fill, spacing 5, padding 5 ]
+            [ el [ width <| px model.splitInPixels, alignTop ] leftPane
+            , el [ width <| px 4, height fill, Background.color FlatColors.BritishPalette.seabrook ] none
+            , el [ width fill, alignTop ] rightPane
             ]
         ]
 
