@@ -1567,10 +1567,38 @@ contentArea model =
 
             else
                 none
+
+        splitter =
+             Input.slider
+                    [ height <| px 1
+                    , width fill
+                    , centerY
+                    , behindContent <|
+                        -- Slider track
+                        el
+                            [ width fill
+                            , height <| px 1
+                            , centerY
+                            , centerX
+                            ]
+                            none
+                    ]
+                    { onChange = ResizeViews << round
+                    , label =
+                        Input.labelHidden "Splitter"
+                    , min = 0.0
+                    , max = toFloat 1000
+                    , step = Just 1
+                    , value = toFloat model.splitInPixels
+                    , thumb = Input.defaultThumb
+                    }
     in
-    row [ width fill ]
-        [ el [ width <| fillPortion 2, alignTop ] leftPane
-        , el [ width <| fillPortion 1, alignTop ] rightPane
+    column [ width fill, spacing 10 ]
+        [ splitter
+        , row [ width fill, spacing 10 ]
+            [ el [ width <| fillPortion model.splitInPixels, alignTop ] leftPane
+            , el [ width <| fillPortion (1000 - model.splitInPixels), alignTop ] rightPane
+            ]
         ]
 
 
