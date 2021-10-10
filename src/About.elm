@@ -10,9 +10,11 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.0 update 2021-10-09
+## 2.4.0 update 2021-10-10
 
 ### Significant changes in managing the workspace
+
+** https://youtu.be/iTw_Ssoe41Q **
 
 - Prominent vertical divider can be dragged sideways using controls at top and bottom
  to change the amount of screen space given to the track views and the tools.
