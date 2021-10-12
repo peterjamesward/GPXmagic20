@@ -522,6 +522,7 @@ update msg model =
                     )
 
                 ( Ok "storage.got", _ ) ->
+                    --TODO: Please factor this out of here.
                     let
                         key =
                             D.decodeValue (D.field "key" D.string) json
@@ -1099,13 +1100,19 @@ processViewPaneMessage innerMsg model track =
             processPostUpdateAction updatedModel innerAction
 
         ViewPane.PaneLayoutChange f ->
-            ( { updatedModel
-                | viewPanes =
+            let
+                updatedPanes =
                     ViewPane.mapOverPanes
                         (f >> ViewPane.setViewPaneSize model.splitInPixels)
                         updatedModel.viewPanes
+            in
+            ( { updatedModel
+                | viewPanes = updatedPanes
               }
-            , Delay.after 50 RepaintMap
+            , Cmd.batch
+                [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout updatedPanes)
+                , Delay.after 50 RepaintMap
+                ]
             )
 
         ViewPane.PaneNoOp ->
@@ -1604,7 +1611,6 @@ contentArea model =
                         , height <| px 5
                         , centerY
                         , centerX
-                        , Background.color silver
                         ]
                         none
                 ]

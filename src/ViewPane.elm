@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Border as Border
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import Json.Encode as E
 import List.Extra
 import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
@@ -52,6 +53,13 @@ type alias ViewPane =
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
     , paneLinked : Bool
     , useTwoColumnLayout : Bool
+    }
+
+
+type alias SavedPaneState =
+    -- This is all we need to restore views; split location is elsewhere.
+    { twoColumns : Bool
+    , views : List ViewingMode
     }
 
 
@@ -300,7 +308,7 @@ view ( scene, profile ) options wrapper pane =
     -- experimentation to make the map behave predictably.
     -- Further complicated by Map sketch mode.
     if pane.visible then
-        column [ ]
+        column []
             [ if List.length scene > 0 then
                 row [ width fill, spacingXY 10 0 ]
                     [ if pane.paneId == 0 then
@@ -438,7 +446,7 @@ update msg panes wrap =
             case currentPane of
                 Just pane ->
                     ( Just { pane | activeContext = mode }
-                    , ImageAction ActionRepaintMap
+                    , PaneLayoutChange identity
                     )
 
                 Nothing ->
@@ -527,7 +535,9 @@ update msg panes wrap =
                 paneMadeVisible =
                     Maybe.map (\pane -> { pane | visible = True }) firstHiddenPane
             in
-            ( paneMadeVisible, PaneNoOp )
+            ( paneMadeVisible
+            , PaneLayoutChange identity
+            )
 
         RemovePane id ->
             let
@@ -541,7 +551,9 @@ update msg panes wrap =
                 paneHidden =
                     Maybe.map (\pane -> { pane | visible = False }) currentPane
             in
-            ( paneHidden, PaneNoOp )
+            ( paneHidden
+            , PaneLayoutChange identity
+            )
 
         LinkPane id isLinked ->
             let
@@ -550,7 +562,9 @@ update msg panes wrap =
                         (\pane -> { pane | paneLinked = isLinked })
                         (List.Extra.getAt id panes)
             in
-            ( paneLinked, PaneNoOp )
+            ( paneLinked
+            , PaneNoOp
+            )
 
         ToggleColumns ->
             ( Nothing
@@ -576,3 +590,40 @@ updatePointerInLinkedPanes tp pane =
 mapPaneIsLinked : List ViewPane -> Bool
 mapPaneIsLinked panes =
     List.head panes |> Maybe.map .paneLinked |> Maybe.withDefault False
+
+
+storePaneLayout : List ViewPane -> E.Value
+storePaneLayout panes =
+    let
+        storageFormat : SavedPaneState
+        storageFormat =
+            { twoColumns = List.any .useTwoColumnLayout panes
+            , views = List.map .activeContext <| List.filter .visible panes
+            }
+
+        encodeView : ViewingMode -> E.Value
+        encodeView v =
+            E.string <|
+                case v of
+                    ViewThirdPerson ->
+                        "third"
+
+                    ViewFirstPerson ->
+                        "first"
+
+                    ViewProfile ->
+                        "profile"
+
+                    ViewPlan ->
+                        "plan"
+
+                    ViewMap ->
+                        "map"
+
+                    ViewAbout ->
+                        "about"
+    in
+    E.object
+        [ ( "twocolumns", E.bool storageFormat.twoColumns )
+        , ( "views", E.list identity <| List.map encodeView storageFormat.views )
+        ]

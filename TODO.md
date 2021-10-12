@@ -7,6 +7,7 @@ SVG parser should report errors. At least summarise outcome.
 Sometimes some buttons losing style.
 Also notice major rendering differences with optimised JS, which is bizarre.
 Optimised code is shit on Chrome as well. No, not so much.
+This has been remarked by others on Slack elm-ui channel.
 
 # TODO
 
@@ -31,9 +32,9 @@ Better terrain by slightly smarter rendering of each quadrant based on its conte
 
 Working offline? (Mongoose server?)
 
-Touch screen? No.
+Touch screen.
 
-LIDAR? No.
+LIDAR.
 
 --- Also not doing, as unlikely to be any better than Bezier apprx.
 
