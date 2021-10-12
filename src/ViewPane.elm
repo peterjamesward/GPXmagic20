@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Border as Border
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import Json.Decode as D
 import Json.Encode as E
 import List.Extra
 import Pixels exposing (Pixels, pixels)
@@ -59,7 +60,7 @@ type alias ViewPane =
 type alias SavedPaneState =
     -- This is all we need to restore views; split location is elsewhere.
     { twoColumns : Bool
-    , views : List ViewingMode
+    , views : List String
     }
 
 
@@ -598,32 +599,92 @@ storePaneLayout panes =
         storageFormat : SavedPaneState
         storageFormat =
             { twoColumns = List.any .useTwoColumnLayout panes
-            , views = List.map .activeContext <| List.filter .visible panes
+            , views = List.map (encodeView << .activeContext) <| List.filter .visible panes
             }
 
-        encodeView : ViewingMode -> E.Value
+        encodeView : ViewingMode -> String
         encodeView v =
-            E.string <|
-                case v of
-                    ViewThirdPerson ->
-                        "third"
+            case v of
+                ViewThirdPerson ->
+                    "third"
 
-                    ViewFirstPerson ->
-                        "first"
+                ViewFirstPerson ->
+                    "first"
 
-                    ViewProfile ->
-                        "profile"
+                ViewProfile ->
+                    "profile"
 
-                    ViewPlan ->
-                        "plan"
+                ViewPlan ->
+                    "plan"
 
-                    ViewMap ->
-                        "map"
+                ViewMap ->
+                    "map"
 
-                    ViewAbout ->
-                        "about"
+                ViewAbout ->
+                    "about"
     in
     E.object
         [ ( "twocolumns", E.bool storageFormat.twoColumns )
-        , ( "views", E.list identity <| List.map encodeView storageFormat.views )
+        , ( "views", E.list E.string storageFormat.views )
         ]
+
+
+restorePaneState : E.Value -> List ViewPane -> List ViewPane
+restorePaneState saved viewPanes =
+    let
+        storage =
+            D.decodeValue storageFormatDecode saved
+
+        decodeView s =
+            case s of
+                "third" ->
+                    ViewThirdPerson
+
+                "first" ->
+                    ViewFirstPerson
+
+                "profile" ->
+                    ViewProfile
+
+                "plan" ->
+                    ViewPlan
+
+                "map" ->
+                    ViewMap
+
+                _ ->
+                    ViewAbout
+    in
+    case storage of
+        Ok recovered ->
+            let
+                ( visible, hidden ) =
+                    List.Extra.splitAt (List.length recovered.views) viewPanes
+            in
+            List.map2
+                (\original mode ->
+                    { original
+                        | visible = True
+                        , activeContext = decodeView mode
+                        , useTwoColumnLayout = recovered.twoColumns
+                    }
+                )
+                visible
+                recovered.views
+                ++ List.map
+                    (\v ->
+                        { v
+                            | visible = False
+                            , useTwoColumnLayout = recovered.twoColumns
+                        }
+                    )
+                    hidden
+
+        _ ->
+            viewPanes
+
+
+storageFormatDecode =
+    D.map2 SavedPaneState
+        (D.field "twocolumns" D.bool)
+        (D.field "views" (D.list D.string))

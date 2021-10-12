@@ -10,9 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.0 update 2021-10-10
+## 2.4.1 update 2021-10-12
 
-### Significant changes in managing the workspace
+### 2.4 introduced significant changes in managing the workspace
 
 ** https://youtu.be/iTw_Ssoe41Q **
 
@@ -36,17 +36,7 @@ Favourites will still be at top.
 
 ### Bug fixes and small change
 
-- _Smoothe these points in 3D_ button in _Bend Problems panel_ uses the number of segments
-selected in the _Bend Smoother Classic_ panel.
-
-- Centroid averaging does not move start and end points in track that's not a loop.
-
-- A situation where the Drop/Clear marker controls were losing their blue colour has been fixed.
-
-- _Splitter & Joiner_ allows you to request that each section is processed by _One Click Quick Fix_
-before being written (Steve).
-
-- Reverted to more subtle marker cones in third person view, as the big ones sometimes obscure features.
+- Your choice of Views is saved between sessions. Let me know if this is good or bad.
 
 ## Can I support this work?
 

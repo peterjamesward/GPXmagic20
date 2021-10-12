@@ -556,11 +556,22 @@ update msg model =
                                         | splitInPixels = pixels
                                         , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
                                       }
-                                    , Delay.after 50 RepaintMap
+                                    , Cmd.none
                                     )
 
                                 _ ->
                                     ( model, Cmd.none )
+
+                        ( Ok "panes", Ok saved ) ->
+                            let
+                                newPanes =
+                                    ViewPane.restorePaneState saved model.viewPanes
+                            in
+                            ( { model
+                                | viewPanes = ViewPane.mapOverPanes (setViewPaneSize model.splitInPixels) newPanes
+                              }
+                            , Cmd.none
+                            )
 
                         _ ->
                             ( model, Cmd.none )
@@ -1062,16 +1073,15 @@ applyTrack model track =
         ( newViewPanes, mapCommands ) =
             ( List.map (ViewPane.resetAllViews track) model.viewPanes
             , ViewPane.initialiseMap track model.viewPanes
-                ++ [ Delay.after 50 RepaintMap
+                ++ [ PortController.storageGetItem "panes"
                    , PortController.storageGetItem "splitter"
+                   , Delay.after 500 RepaintMap
                    ]
             )
     in
     ( { model
         | track = Just track
         , renderingContext = Just defaultRenderingContext
-
-        --, toolsAccordion = toolsAccordion model
         , viewPanes = newViewPanes
         , gpxSource = GpxLocalFile
         , undoStack = []

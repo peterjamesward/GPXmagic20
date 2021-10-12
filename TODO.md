@@ -11,8 +11,6 @@ This has been remarked by others on Slack elm-ui channel.
 
 # TODO
 
-Save pane layout and view selections (really, why not?).
-
 Store various minor control settings, now we know how.
 
 @Steve -- When splitting roads for output, I think it would be useful to the end user if each road 
