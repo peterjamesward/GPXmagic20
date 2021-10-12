@@ -16,26 +16,6 @@ aboutText =
 
 ** https://youtu.be/iTw_Ssoe41Q **
 
-- Prominent vertical divider can be dragged sideways using controls at top and bottom
- to change the amount of screen space given to the track views and the tools.
- The location is saved between sessions.
-
-- The course view panes size automatically to fill space available.
-
-- Button at top left of the first pane toggles between having one or two columns of views.
-
-- There is a secondary position control below the views, where it was in V1.
-There's still the one above the tools.
-
-- Tool information now obscures the tools. Such is the price of having the splitter.
-
-- Each tool pane will try to make best use of available width.
-
-- Open tools do not jump to top of the tool stack but stay in place.
-Favourites will still be at top.
-
-### Bug fixes and small change
-
 - Your choice of Views is saved between sessions. Let me know if this is good or bad.
 
 ## Can I support this work?
