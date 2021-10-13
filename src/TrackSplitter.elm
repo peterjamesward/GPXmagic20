@@ -18,7 +18,7 @@ import Track exposing (Track)
 import TrackEditType exposing (TrackEditType(..))
 import TrackObservations
 import TrackPoint
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, withLeadingZeros)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
 import WriteGPX
 
@@ -42,7 +42,7 @@ This will **not** adjust the locations of either route; you can use Shift & Rota
 type Msg
     = SplitTrack
     | SetSplitLimit Int
-    | WriteSection (List ( Float, Float ))
+    | WriteSection (List ( Int, Float, Float ))
     | ToggleBuffers Bool
     | AppendFile
     | FileSelected File
@@ -174,27 +174,18 @@ update msg settings observations mTrack msgWrapper =
 
         WriteSection sections ->
             case ( mTrack, sections ) of
-                ( Just track, ( start, end ) :: rest ) ->
+                ( Just track, ( index, start, end ) :: rest ) ->
                     let
-                        metricStart =
-                            Length.meters <|
-                                start
-                                    - (if settings.addBuffers then
-                                        60.0
+                        ( metricStart, metricEnd ) =
+                            if settings.addBuffers then
+                                ( Length.meters (start - 60.0)
+                                , Length.meters (end + 140.0)
+                                )
 
-                                       else
-                                        0.0
-                                      )
-
-                        metricEnd =
-                            Length.meters <|
-                                end
-                                    + (if settings.addBuffers then
-                                        140.0
-
-                                       else
-                                        0.0
-                                      )
+                            else
+                                ( Length.meters start
+                                , Length.meters end
+                                )
 
                         trackName =
                             track.trackName |> Maybe.withDefault "track"
@@ -202,9 +193,7 @@ update msg settings observations mTrack msgWrapper =
                         filename =
                             trackName
                                 ++ "_"
-                                ++ showDecimal0 start
-                                ++ "_"
-                                ++ showDecimal0 end
+                                ++ withLeadingZeros 2 (String.fromInt index)
                                 ++ ".gpx"
 
                         trackExtract =
@@ -239,7 +228,7 @@ update msg settings observations mTrack msgWrapper =
                     ( settings, ActionNoOp )
 
 
-writeSections : Track -> Float -> Options -> List ( Float, Float )
+writeSections : Track -> Float -> Options -> List ( Int, Float, Float )
 writeSections track length options =
     -- Doesn't *actually* split the track, just writes out the files.
     -- This function works out where the splits are, then each section is
@@ -261,7 +250,11 @@ writeSections track length options =
         splitPoints =
             List.map (toFloat >> (*) splitLength) (List.range 0 splitCount)
     in
-    List.map2 Tuple.pair splitPoints (List.drop 1 splitPoints)
+    List.map3
+        (\a b c -> ( a, b, c ))
+        (List.range 1 splitCount)
+        splitPoints
+        (List.drop 1 splitPoints)
 
 
 view : Options -> TrackObservations.TrackObservations -> (Msg -> msg) -> Track -> Element msg

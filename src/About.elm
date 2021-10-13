@@ -10,13 +10,13 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.1 update 2021-10-12
+## 2.4.2 update 2021-10-13
 
 ### 2.4 introduced significant changes in managing the workspace
 
 ** https://youtu.be/iTw_Ssoe41Q **
 
-- Your choice of Views is saved between sessions. Let me know if this is good or bad.
+- Track splitter distinguishes output files with a simple "01" style suffix.
 
 ## Can I support this work?
 

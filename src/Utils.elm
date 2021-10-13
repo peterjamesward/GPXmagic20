@@ -225,3 +225,9 @@ showLabelledValues pairs =
         [ column [ spacing 5 ] <| List.map (Tuple.first >> showLabel) pairs
         , column [ spacing 5 ] <| List.map (Tuple.second >> showValue) pairs
         ]
+
+
+withLeadingZeros : Int -> String -> String
+withLeadingZeros beforePoint raw =
+    String.repeat (beforePoint - String.length raw) "0"
+        ++ raw
