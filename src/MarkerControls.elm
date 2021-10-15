@@ -11,7 +11,7 @@ import Length
 import List.Extra
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Track exposing (Track)
-import Utils exposing (scrollbarThickness, showDecimal2, useIcon)
+import Utils exposing (scrollbarThickness, showDecimal2, showDistance, useIcon)
 import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
 
 
@@ -29,8 +29,8 @@ viewTrackControls wrap track =
     Maybe.map (positionControls wrap) track |> Maybe.withDefault none
 
 
-markerButton : Maybe Track -> (Msg -> msg) -> Element msg
-markerButton track messageWrapper =
+markerButton : Maybe Track -> (Msg -> msg) -> Bool -> Element msg
+markerButton track messageWrapper imperial =
     let
         makeButton label =
             button
@@ -49,24 +49,25 @@ markerButton track messageWrapper =
                 ( positionText, isDropped ) =
                     case isTrack.markedNode of
                         Just markedTP ->
-                            ( text <|
-                                "Orange: "
-                                    ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)
-                                    ++ "m. Purple: "
-                                    ++ (showDecimal2 <| Length.inMeters markedTP.distanceFromStart)
-                                    ++ "m."
+                            ( wrappedRow [ spacing 5 ]
+                                [ text <|
+                                    "Orange: "
+                                        ++ showDistance imperial isTrack.currentNode.distanceFromStart
+                                , text <|
+                                    " Purple: "
+                                        ++ showDistance imperial markedTP.distanceFromStart
+                                ]
                             , True
                             )
 
                         Nothing ->
                             ( text <|
                                 "Orange: "
-                                    ++ (showDecimal2 <| Length.inMeters isTrack.currentNode.distanceFromStart)
-                                    ++ "m."
+                                    ++ showDistance imperial isTrack.currentNode.distanceFromStart
                             , False
                             )
             in
-            column  [ spacing 5, padding 5, alignTop, width fill, centerX ]
+            column [ spacing 5, padding 5, alignTop, width fill, centerX ]
                 [ row
                     [ spacing 10
                     , padding 10

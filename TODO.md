@@ -9,6 +9,8 @@ This has been remarked by others on Slack elm-ui channel.
 
 # TODO
 
+Imperial measure option. (Stored, see below.)
+
 Store various minor control settings, now we know how.
 
 Plan from one route, elevation from another?

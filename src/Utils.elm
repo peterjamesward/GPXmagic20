@@ -8,7 +8,8 @@ import FeatherIcons
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
-import Quantity
+import Length exposing (Meters)
+import Quantity exposing (Quantity)
 
 
 type alias Point =
@@ -75,6 +76,36 @@ terrainColourFromHeight height =
 
 scrollbarThickness =
     20
+
+
+showDistance : Bool -> Length.Length -> String
+showDistance imperial distance =
+    if imperial then
+        let
+            miles =
+                truncate <| Length.inMiles distance
+
+            yards =
+                truncate <| Length.inYards distance
+
+            feet =
+                truncate <| Length.inFeet distance
+
+            inches =
+                truncate <| Length.inInches distance
+        in
+        String.fromInt miles
+            ++ "m "
+            ++ String.fromInt (modBy 1760 yards)
+            ++ "yd "
+            ++ String.fromInt (modBy 3 feet)
+            ++ "' "
+            ++ String.fromInt (modBy 12 inches)
+            ++ "\""
+
+    else
+        (showDecimal2 <| Length.inMeters distance)
+            ++ "m"
 
 
 showDecimal2 x =

@@ -25,6 +25,7 @@ type CurtainStyle
 
 type Msg
     = TogglePillars Bool
+    | ToggleImperial Bool
     | ToggleLighting Bool
     | ToggleSeaLevel Bool
     | ToggleRoad Bool
@@ -41,6 +42,11 @@ type Action
     | ProfileChange Float
 
 
+type Measurements
+    = Imperial
+    | Metric
+
+
 type alias DisplayOptions =
     { roadPillars : Bool
     , roadCones : Bool
@@ -53,6 +59,7 @@ type alias DisplayOptions =
     , withLighting : Bool
     , verticalExaggeration : Float
     , terrainFineness : Int
+    , imperialMeasure : Bool
     }
 
 
@@ -69,6 +76,7 @@ defaultDisplayOptions =
     , withLighting = True
     , verticalExaggeration = 1.0
     , terrainFineness = 4
+    , imperialMeasure = False
     }
 
 
@@ -117,6 +125,12 @@ viewDisplayOptions options wrap =
                 , icon = checkboxIcon
                 , checked = options.withLighting
                 , label = Input.labelRight [ centerY ] (text "Lighting")
+                }
+            , Input.checkbox []
+                { onChange = wrap << ToggleImperial
+                , icon = checkboxIcon
+                , checked = options.imperialMeasure
+                , label = Input.labelRight [ centerY ] (text "Imperial")
                 }
             , Input.slider commonShortHorizontalSliderStyles
                 { onChange = wrap << TerrainFineness << round
@@ -189,6 +203,11 @@ update options dispMsg wrap =
 
         ToggleCentreLine newState ->
             ( { options | centreLine = newState }
+            , NoOp
+            )
+
+        ToggleImperial newState ->
+            ( { options | imperialMeasure = newState }
             , NoOp
             )
 

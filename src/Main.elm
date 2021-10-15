@@ -4,8 +4,6 @@ import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
-import Color
-import ColourPalette exposing (scrollbarBackground)
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
@@ -21,13 +19,13 @@ import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
 import FlatColors.ChinesePalette exposing (white)
-import FlatColors.FlatUIPalette exposing (silver)
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GradientLimiter
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id, style)
+import Html.Events.Extra.Pointer as Pointer
 import Http
 import Interpolate
 import Json.Decode as D
@@ -51,8 +49,6 @@ import SceneBuilderProfile
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
-import Svg exposing (polygon, svg)
-import Svg.Attributes as S exposing (points, stroke, strokeWidth, viewBox, x, x1, x2, y, y1, y2)
 import SvgPathExtractor
 import Task
 import Time
@@ -1598,7 +1594,7 @@ contentArea model =
         rightPane =
             if model.track /= Nothing then
                 column [ spacing 5, padding 5, alignTop, centerX ]
-                    [ markerButton model.track MarkerMessage
+                    [ markerButton model.track MarkerMessage model.displayOptions.imperialMeasure
                     , viewTrackControls MarkerMessage model.track
                     , undoRedoButtons model
                     , Accordion.view
@@ -1649,26 +1645,33 @@ contentArea model =
     column [ width fill, padding 5 ]
         [ row []
             [ el [ width <| px minimumLeftPane ] none
-            , conditionallyVisible (model.track /= Nothing) splitter
+            , if model.track /= Nothing then
+                splitter
+
+              else
+                none
             ]
         , row [ width fill, spacing 5, padding 5 ]
             [ el [ width <| px model.splitInPixels, alignTop ] leftPane
-            , el
-                [ width <| px 4
-                , height fill
-                , Background.color <|
-                    if model.track == Nothing then
-                        ColourPalette.white
+            , if model.track /= Nothing then
+                el
+                    [ width <| px 4
+                    , height fill
+                    , Background.color FlatColors.BritishPalette.seabrook
+                    ]
+                    none
 
-                    else
-                        FlatColors.BritishPalette.seabrook
-                ]
+              else
                 none
             , el [ width fill, alignTop ] rightPane
             ]
         , row []
             [ el [ width <| px minimumLeftPane ] none
-            , conditionallyVisible (model.track /= Nothing) splitter
+            , if model.track /= Nothing then
+                splitter
+
+              else
+                none
             ]
         ]
 
