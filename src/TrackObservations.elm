@@ -13,7 +13,7 @@ import Quantity exposing (zero)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
-import Utils exposing (showDecimal0, showDecimal2, showLabelledValues)
+import Utils exposing (showDecimal0, showDecimal2, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -278,20 +278,20 @@ deriveProblems track options =
     }
 
 
-overviewSummary : TrackObservations -> Element msg
-overviewSummary obs =
+overviewSummary : Bool -> TrackObservations -> Element msg
+overviewSummary imperial obs =
     wrappedRow [ spacing 10, padding 10, width fill ]
         [ showLabelledValues
-            [ ( "Highest point", showDecimal2 <| obs.highestMetres )
-            , ( "Lowest point", showDecimal2 <| obs.lowestMetres )
+            [ ( "Highest point", showShortMeasure imperial (Length.meters obs.highestMetres) )
+            , ( "Lowest point", showShortMeasure imperial (Length.meters obs.lowestMetres) )
             ]
         , showLabelledValues
-            [ ( "Elevation gain ",  showDecimal2 <| obs.climbingDistance )
-            , ( "Elevation loss ",  showDecimal2 <| obs.descendingDistance )
+            [ ( "Elevation gain ", showShortMeasure imperial (Length.meters obs.climbingDistance) )
+            , ( "Elevation loss ", showShortMeasure imperial (Length.meters obs.descendingDistance) )
             ]
         , showLabelledValues
-            [ ( "Climbing distance ",  showDecimal2 <| obs.trackLength )
-            , ( "Descending distance ", showDecimal2 <| obs.totalClimbing )
+            [ ( "Climbing distance ", showLongMeasure imperial (Length.meters obs.trackLength) )
+            , ( "Descending distance ", showLongMeasure imperial (Length.meters obs.totalClimbing) )
             ]
         ]
 
@@ -325,8 +325,8 @@ viewSteepClimbs options wrap track =
         ]
 
 
-viewGradientChanges : Options -> TrackObservations -> (Msg -> msg) -> Element msg
-viewGradientChanges options obs wrap =
+viewGradientChanges : Bool -> Options -> TrackObservations -> (Msg -> msg) -> Element msg
+viewGradientChanges imperial options obs wrap =
     let
         exceeds b a =
             a > b
@@ -342,7 +342,7 @@ viewGradientChanges options obs wrap =
         linkButton point =
             button prettyButtonStyles
                 { onPress = Just (wrap <| LocateProblem point)
-                , label = text <| showDecimal0 <| inMeters point.distanceFromStart
+                , label = text <| showLongMeasure imperial point.distanceFromStart
                 }
 
         autosmoothButton =
@@ -363,8 +363,8 @@ viewGradientChanges options obs wrap =
             ++ List.map linkButton exceedingThreshold
 
 
-viewBearingChanges : Options -> TrackObservations -> (Msg -> msg) -> Element msg
-viewBearingChanges options obs wrap =
+viewBearingChanges : Bool -> Options -> TrackObservations -> (Msg -> msg) -> Element msg
+viewBearingChanges imperial options obs wrap =
     let
         exceeds b a =
             a > b
@@ -380,7 +380,7 @@ viewBearingChanges options obs wrap =
         linkButton point =
             button prettyButtonStyles
                 { onPress = Just (wrap <| LocateProblem point)
-                , label = text <| showDecimal0 <| inMeters point.distanceFromStart
+                , label = text <| showLongMeasure imperial point.distanceFromStart
                 }
 
         autosmoothButton =

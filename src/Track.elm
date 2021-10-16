@@ -15,7 +15,7 @@ import Point3d exposing (Point3d)
 import SketchPlane3d
 import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
-import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6, showLabelledValues)
+import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d exposing (..)
 
 
@@ -235,8 +235,8 @@ prevPointOn track from =
         |> Maybe.withDefault from
 
 
-summaryData : Track -> Element msg
-summaryData track =
+summaryData : Bool -> Track -> Element msg
+summaryData imperial track =
     let
         pt =
             track.currentNode
@@ -252,10 +252,10 @@ summaryData track =
     wrappedRow [ spacing 10, padding 10 ]
         [ showLabelledValues
             [ ( "Start index", String.fromInt pt.index )
-            , ( "From start ", showDecimal2 <| inMeters pt.distanceFromStart )
+            , ( "From start ", showLongMeasure imperial pt.distanceFromStart )
             ]
         , showLabelledValues
-            [ ( "Length", showDecimal2 <| inMeters <| pt.length )
+            [ ( "Length", showShortMeasure imperial pt.length )
             , ( "Gradient", showDecimal2 gradient )
             ]
         , showLabelledValues
@@ -263,7 +263,7 @@ summaryData track =
             , ( "Longitude ", showDecimal6 <| Angle.inDegrees lon )
             ]
         , showLabelledValues
-            [ ( "Elevation ", showDecimal2 <| inMeters <| Point3d.zCoordinate pt.xyz )
+            [ ( "Elevation ", showShortMeasure imperial (Point3d.zCoordinate pt.xyz) )
             , ( "Bearing"
               , bearingToDisplayDegrees <|
                     Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy) <|

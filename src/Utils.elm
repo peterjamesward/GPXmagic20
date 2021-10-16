@@ -10,6 +10,7 @@ import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
 import Length exposing (Meters)
 import Quantity exposing (Quantity)
+import Speed exposing (Speed)
 
 
 type alias Point =
@@ -98,6 +99,15 @@ showShortMeasure imperial distance =
         (showDecimal2 <| Length.inMeters distance)
             ++ "m"
 
+showSpeed : Bool -> Speed -> String
+showSpeed imperial speed =
+    if imperial then
+        showDecimal2 (Speed.inMilesPerHour speed)
+            ++ "mph"
+
+    else
+        showDecimal2 (Speed.inKilometersPerHour speed)
+            ++ "kph"
 
 showDecimal2 x =
     let

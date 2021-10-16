@@ -18,7 +18,7 @@ import Track exposing (Track)
 import TrackEditType exposing (TrackEditType(..))
 import TrackObservations
 import TrackPoint
-import Utils exposing (showDecimal0, showDecimal2, withLeadingZeros)
+import Utils exposing (showDecimal0, showDecimal2, showLongMeasure, withLeadingZeros)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
 import WriteGPX
 
@@ -41,7 +41,7 @@ This will **not** adjust the locations of either route; you can use Shift & Rota
 
 type Msg
     = SplitTrack
-    | SetSplitLimit Int
+    | SetSplitLimit Length.Length
     | WriteSection (List ( Int, Float, Float ))
     | ToggleBuffers Bool
     | AppendFile
@@ -51,7 +51,7 @@ type Msg
 
 
 type alias Options =
-    { splitLimit : Int
+    { splitLimit : Length.Length
     , addBuffers : Bool
     , applyAutofix : Bool
     }
@@ -59,7 +59,7 @@ type alias Options =
 
 defaultOptions : Options
 defaultOptions =
-    { splitLimit = 100
+    { splitLimit = Length.kilometers 100.0
     , addBuffers = False
     , applyAutofix = False
     }
@@ -163,7 +163,7 @@ update msg settings observations mTrack msgWrapper =
                                 WriteSection <|
                                     writeSections
                                         track
-                                        observations.trackLength
+                                        (Length.meters observations.trackLength)
                                         settings
                     )
 
@@ -228,7 +228,7 @@ update msg settings observations mTrack msgWrapper =
                     ( settings, ActionNoOp )
 
 
-writeSections : Track -> Float -> Options -> List ( Int, Float, Float )
+writeSections : Track -> Length.Length -> Options -> List ( Int, Float, Float )
 writeSections track length options =
     -- Doesn't *actually* split the track, just writes out the files.
     -- This function works out where the splits are, then each section is
@@ -236,19 +236,25 @@ writeSections track length options =
     let
         effectiveLength =
             if options.addBuffers then
-                toFloat options.splitLimit * 1000.0 - 200
+                options.splitLimit |> Quantity.minus (Length.meters 200.0)
 
             else
-                toFloat options.splitLimit * 1000.0
+                options.splitLimit
 
         splitCount =
-            ceiling (length / effectiveLength)
+            ceiling <| Quantity.ratio length effectiveLength
 
         splitLength =
-            length / toFloat splitCount
+            length |> Quantity.divideBy (toFloat splitCount)
 
         splitPoints =
-            List.map (toFloat >> (*) splitLength) (List.range 0 splitCount)
+            List.map
+                (\n ->
+                    splitLength
+                        |> Quantity.multiplyBy (toFloat n)
+                        |> Length.inMeters
+                )
+                (List.range 0 splitCount)
     in
     List.map3
         (\a b c -> ( a, b, c ))
@@ -257,38 +263,46 @@ writeSections track length options =
         (List.drop 1 splitPoints)
 
 
-view : Options -> TrackObservations.TrackObservations -> (Msg -> msg) -> Track -> Element msg
-view options observations wrapper track =
+view : Bool -> Options -> TrackObservations.TrackObservations -> (Msg -> msg) -> Track -> Element msg
+view imperial options observations wrapper track =
     let
         effectiveLength =
             if options.addBuffers then
-                toFloat options.splitLimit * 1000.0 - 200
+                options.splitLimit |> Quantity.minus (Length.meters 200.0)
 
             else
-                toFloat options.splitLimit * 1000.0
+                options.splitLimit
 
         splitCount =
-            ceiling (observations.trackLength / effectiveLength)
+            ceiling <| Quantity.ratio (Length.meters observations.trackLength) effectiveLength
 
         splitLength =
-            observations.trackLength / toFloat splitCount
+            Length.meters observations.trackLength |> Quantity.divideBy (toFloat splitCount)
 
         partsSlider =
-            Input.slider
-                commonShortHorizontalSliderStyles
-                { onChange = wrapper << SetSplitLimit << round
-                , label =
-                    Input.labelBelow [] <|
-                        text <|
-                            "Max length: "
-                                ++ String.fromInt options.splitLimit
-                                ++ "km"
-                , min = 20
-                , max = 100
-                , step = Just 5.0
-                , value = toFloat options.splitLimit
-                , thumb = Input.defaultThumb
-                }
+            if imperial then
+                Input.slider
+                    commonShortHorizontalSliderStyles
+                    { onChange = wrapper << SetSplitLimit << Length.miles
+                    , label = Input.labelBelow [] <| text <| "Max: " ++ showLongMeasure True options.splitLimit
+                    , min =  12.0
+                    , max = 65.0
+                    , step = Just 1.0
+                    , value = Length.inMiles options.splitLimit
+                    , thumb = Input.defaultThumb
+                    }
+
+            else
+                Input.slider
+                    commonShortHorizontalSliderStyles
+                    { onChange = wrapper << SetSplitLimit << Length.kilometers
+                    , label = Input.labelBelow [] <| text <| "Max : " ++ showLongMeasure imperial options.splitLimit
+                    , min = 20.0
+                    , max = 100.0
+                    , step = Just 1.0
+                    , value = Length.inKilometers options.splitLimit
+                    , thumb = Input.defaultThumb
+                    }
 
         endPenCheckbox =
             Input.checkbox []
@@ -316,8 +330,8 @@ view options observations wrapper track =
                             ++ String.fromInt splitCount
                             ++ " files\n"
                             ++ "each "
-                            ++ showDecimal0 splitLength
-                            ++ "m long."
+                            ++ showLongMeasure imperial splitLength
+                            ++ " long."
                 }
 
         appendFileButton =

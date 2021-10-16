@@ -9,7 +9,7 @@ import PostUpdateActions
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (temporaryIndices, trackPointFromPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -66,22 +66,18 @@ update msg settings track =
             )
 
 
-viewTools : Options -> (Msg -> msg) -> Element msg
-viewTools options wrap =
+viewTools : Bool -> Options -> (Msg -> msg) -> Element msg
+viewTools imperial options wrap =
     let
         splitSlider =
             Input.slider
                 commonShortHorizontalSliderStyles
                 { onChange = wrap << SetMaxSpacing
-                , label =
-                    Input.labelBelow [] <|
-                        text <|
-                            "Maximum gap "
-                                ++ showDecimal2 options.maxSpacing
-                                ++ "m"
-                , min = 1.0
-                , max = 50.0
-                , step = Just 1.0
+                , label = Input.labelBelow [] <| text <| "Maximum gap "
+                    ++ showShortMeasure imperial (Length.meters options.maxSpacing)
+                , min = Length.inMeters <| if imperial then Length.feet 3.0 else Length.meters 1.0
+                , max = Length.inMeters <| if imperial then Length.feet 160.0 else Length.meters 50.0
+                , step = Nothing
                 , value = options.maxSpacing
                 , thumb = Input.defaultThumb
                 }

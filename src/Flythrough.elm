@@ -9,10 +9,11 @@ import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import PostUpdateActions exposing (PostUpdateAction)
 import Quantity
+import Speed
 import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, useIcon)
+import Utils exposing (showDecimal0, showShortMeasure, showSpeed, useIcon)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -153,19 +154,18 @@ flythrough newTime flying speed =
                 Nothing
 
 
-flythroughControls : Options -> (Msg -> msg) -> Element msg
-flythroughControls options wrapper =
+flythroughControls : Bool -> Options -> (Msg -> msg) -> Element msg
+flythroughControls imperial options wrapper =
     let
+        speed =
+            Speed.metersPerSecond (10.0 ^ options.flythroughSpeed)
+
         flythroughSpeedSlider =
             Input.slider
                 commonShortHorizontalSliderStyles
                 { onChange = wrapper << SetFlythroughSpeed
                 , label =
-                    Input.labelBelow [] <|
-                        text <|
-                            "Fly-through speed = "
-                                ++ showDecimal0 (10.0 ^ options.flythroughSpeed)
-                                ++ " m/sec"
+                    Input.labelBelow [] <| text <| "Fly-through speed = " ++ showSpeed imperial speed
                 , min = 1.0 -- i.e. 1
                 , max = 3.0 -- i.e. 1000
                 , step = Nothing

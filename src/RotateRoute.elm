@@ -21,7 +21,7 @@ import SketchPlane3d
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showLongMeasure)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
 
@@ -207,8 +207,8 @@ rescale settings track =
     )
 
 
-view : Options -> (Msg -> msg) -> Track -> Element msg
-view options wrapper track =
+view : Bool -> Options -> (Msg -> msg) -> Track -> Element msg
+view imperial options wrapper track =
     let
         rotationSlider =
             Input.slider
@@ -282,8 +282,7 @@ view options wrapper track =
                 , label =
                     text <|
                         "Scale track to "
-                            ++ showDecimal2 (options.scaleFactor * trackLength)
-                            ++ "m"
+                            ++ showLongMeasure imperial (Length.meters <| options.scaleFactor * trackLength)
                 }
 
         elevationFetchButton =

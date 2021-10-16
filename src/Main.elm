@@ -1739,14 +1739,23 @@ toolsAccordion model =
       }
     , { label = "LoopedTrack maker"
       , state = Contracted
-      , content = LoopedTrack.viewLoopTools model.observations.loopiness model.track LoopMsg
+      , content =
+            LoopedTrack.viewLoopTools
+                model.displayOptions.imperialMeasure
+                model.observations.loopiness
+                model.track
+                LoopMsg
       , info = LoopedTrack.info
       , video = Just "https://youtu.be/B3SGh8KhDu0"
       , isFavourite = False
       }
     , { label = "Bend smoother classic"
       , state = Contracted
-      , content = BendSmoother.viewBendFixerPane model.bendOptions BendSmoothMessage
+      , content =
+            BendSmoother.viewBendFixerPane
+                model.displayOptions.imperialMeasure
+                model.bendOptions
+                BendSmoothMessage
       , info = BendSmoother.info
       , video = Just "https://youtu.be/VO5jsOZmTIg"
       , isFavourite = False
@@ -1781,7 +1790,11 @@ toolsAccordion model =
       }
     , { label = "Nudge"
       , state = Contracted
-      , content = viewNudgeTools model.nudgeSettings NudgeMessage
+      , content =
+            viewNudgeTools
+                model.displayOptions.imperialMeasure
+                model.nudgeSettings
+                NudgeMessage
       , info = Nudge.info
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
@@ -1806,6 +1819,7 @@ toolsAccordion model =
             case model.track of
                 Just _ ->
                     Interpolate.viewTools
+                        model.displayOptions.imperialMeasure
                         model.insertOptions
                         InsertMessage
 
@@ -1824,7 +1838,11 @@ toolsAccordion model =
       }
     , { label = "Fly-through"
       , state = Contracted
-      , content = Flythrough.flythroughControls model.flythrough FlythroughMessage
+      , content =
+            Flythrough.flythroughControls
+                model.displayOptions.imperialMeasure
+                model.flythrough
+                FlythroughMessage
       , info = Flythrough.info
       , video = Just "https://youtu.be/lRukK-do_dE"
       , isFavourite = False
@@ -1856,7 +1874,10 @@ toolsAccordion model =
       }
     , { label = "Route summary"
       , state = Contracted
-      , content = TrackObservations.overviewSummary model.observations
+      , content =
+            TrackObservations.overviewSummary
+                model.displayOptions.imperialMeasure
+                model.observations
       , info = "Data about the route."
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
@@ -1864,7 +1885,7 @@ toolsAccordion model =
     , { label = "Road segment"
       , state = Contracted
       , content =
-            Maybe.map summaryData model.track
+            Maybe.map (summaryData model.displayOptions.imperialMeasure) model.track
                 |> Maybe.withDefault none
       , info = "Data about the road at the orange marker."
       , video = Just "https://youtu.be/w5rfsmTF08o"
@@ -1888,6 +1909,7 @@ toolsAccordion model =
       , state = Contracted
       , content =
             TrackObservations.viewGradientChanges
+                model.displayOptions.imperialMeasure
                 model.problemOptions
                 model.observations
                 ProblemMessage
@@ -1899,6 +1921,7 @@ toolsAccordion model =
       , state = Contracted
       , content =
             TrackObservations.viewBearingChanges
+                model.displayOptions.imperialMeasure
                 model.problemOptions
                 model.observations
                 ProblemMessage
@@ -1921,7 +1944,7 @@ toolsAccordion model =
       , state = Contracted
       , content =
             Maybe.map
-                (RotateRoute.view model.rotateOptions RotateMessage)
+                (RotateRoute.view model.displayOptions.imperialMeasure model.rotateOptions RotateMessage)
                 model.track
                 |> Maybe.withDefault none
       , info = RotateRoute.info
@@ -1932,7 +1955,12 @@ toolsAccordion model =
       , state = Contracted
       , content =
             Maybe.map
-                (TrackSplitter.view model.splitterOptions model.observations SplitterMessage)
+                (TrackSplitter.view
+                    model.displayOptions.imperialMeasure
+                    model.splitterOptions
+                    model.observations
+                    SplitterMessage
+                )
                 model.track
                 |> Maybe.withDefault none
       , info = TrackSplitter.info

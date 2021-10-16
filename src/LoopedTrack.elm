@@ -11,7 +11,7 @@ import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
 
@@ -47,8 +47,8 @@ type Msg
     | ChangeLoopStart TrackPoint
 
 
-viewLoopTools : Loopiness -> Maybe Track -> (Msg -> msg) -> Element msg
-viewLoopTools loopiness track wrap =
+viewLoopTools : Bool -> Loopiness -> Maybe Track -> (Msg -> msg) -> Element msg
+viewLoopTools imperial loopiness track wrap =
     case track of
         Nothing ->
             none
@@ -87,8 +87,8 @@ viewLoopTools loopiness track wrap =
                     AlmostLoop gap ->
                         [ text <|
                             "This track is "
-                                ++ showDecimal0 (inMeters gap)
-                                ++ "m\naway from a loop"
+                                ++ showShortMeasure imperial gap
+                                ++ " away from a loop"
                         , loopButton
                         , reverseButton
                         ]

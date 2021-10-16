@@ -13,7 +13,7 @@ import Quantity
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (..)
 
@@ -207,7 +207,7 @@ computeNudgedPoints settings track =
             nudgeTrackPoint settings fade point
     in
     List.map nudge track.trackPoints
-    |> TrackPoint.prepareTrackPoints
+        |> TrackPoint.prepareTrackPoints
 
 
 previewNudgeNodes : NudgeSettings -> Track -> NudgeSettings
@@ -260,71 +260,91 @@ previewNudgeNodes settings track =
     { settings | preview = previewZone }
 
 
-viewNudgeTools : NudgeSettings -> (NudgeMsg -> msg) -> Element msg
-viewNudgeTools settings msgWrapper =
+viewNudgeTools : Bool -> NudgeSettings -> (NudgeMsg -> msg) -> Element msg
+viewNudgeTools imperial settings msgWrapper =
     row [ width fill, spaceEvenly, paddingXY 10 10, spacingXY 10 10 ]
-        [ verticalNudgeSlider settings.vertical msgWrapper
+        [ verticalNudgeSlider imperial settings.vertical msgWrapper
         , column [ width fill, spaceEvenly, centerX, paddingXY 10 10, spacingXY 10 10 ]
-            [ horizontalNudgeSlider settings.horizontal msgWrapper
+            [ horizontalNudgeSlider imperial settings.horizontal msgWrapper
             , row [ paddingXY 10 10, spacingXY 10 10 ]
                 [ nudgeButton settings msgWrapper
                 , zeroButton msgWrapper
                 ]
             , row [ paddingXY 10 10, spacingXY 10 10 ]
                 [ text "Fade in/out"
-                , fadeSlider settings.fadeExtent msgWrapper
+                , fadeSlider imperial settings.fadeExtent msgWrapper
                 ]
             ]
         ]
 
 
-horizontalNudgeSlider : Length -> (NudgeMsg -> msg) -> Element msg
-horizontalNudgeSlider value wrap =
+horizontalNudgeSlider : Bool -> Length.Length -> (NudgeMsg -> msg) -> Element msg
+horizontalNudgeSlider imperial value wrap =
     Input.slider
         commonShortHorizontalSliderStyles
         { onChange = Length.meters >> SetHorizontalNudgeFactor >> wrap
-        , label =
-            Input.labelBelow [ centerX ] <|
-                text <|
-                    (showDecimal2 <| Length.inMeters value)
-        , min = -5.0
-        , max = 5.0
+        , label = Input.labelBelow [ centerX ] <| text <| showShortMeasure imperial value
+        , min =
+            Length.inMeters <|
+                if imperial then
+                    Length.feet -16.0
+
+                else
+                    Length.meters -5.0
+        , max =
+            Length.inMeters <|
+                if imperial then
+                    Length.feet 16.0
+
+                else
+                    Length.meters 5.0
         , step = Nothing
         , value = Length.inMeters value
         , thumb = Input.defaultThumb
         }
 
 
-fadeSlider : Length -> (NudgeMsg -> msg) -> Element msg
-fadeSlider value wrap =
+fadeSlider : Bool -> Length.Length -> (NudgeMsg -> msg) -> Element msg
+fadeSlider imperial value wrap =
     Input.slider
         commonShortHorizontalSliderStyles
         { onChange = Length.meters >> SetFadeExtent >> wrap
-        , label =
-            Input.labelBelow [ centerX ] <|
-                text <|
-                    (showDecimal2 <| Length.inMeters value)
+        , label = Input.labelBelow [ centerX ] <| text <| showShortMeasure imperial value
         , min = 0.0
-        , max = 50.0
-        , step = Just 5.0
+        , max =
+            Length.inMeters <|
+                if imperial then
+                    Length.feet 160.0
+
+                else
+                    Length.meters 50.0
+        , step = Nothing
         , value = Length.inMeters value
         , thumb = Input.defaultThumb
         }
 
 
-verticalNudgeSlider : Length -> (NudgeMsg -> msg) -> Element msg
-verticalNudgeSlider value wrap =
+verticalNudgeSlider : Bool -> Length.Length -> (NudgeMsg -> msg) -> Element msg
+verticalNudgeSlider imperial value wrap =
     el [ width <| px 80, centerX ] <|
         Input.slider
             commonShortVerticalSliderStyles
             { onChange = Length.meters >> SetVerticalNudgeFactor >> wrap
-            , label =
-                Input.labelLeft [ centerY ] <|
-                    text <|
-                        showDecimal2 <|
-                            Length.inMeters value
-            , min = -5.0
-            , max = 5.0
+            , label = Input.labelLeft [ centerY ] <| text <| showShortMeasure imperial value
+            , min =
+                Length.inMeters <|
+                    if imperial then
+                        Length.feet -16.0
+
+                    else
+                        Length.meters -5.0
+            , max =
+                Length.inMeters <|
+                    if imperial then
+                        Length.feet 16.0
+
+                    else
+                        Length.meters 5.0
             , step = Nothing
             , value = Length.inMeters value
             , thumb = Input.defaultThumb

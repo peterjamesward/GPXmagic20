@@ -20,7 +20,7 @@ import PostUpdateActions
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, conditionallyVisible, prettyButtonStyles)
 
@@ -509,8 +509,8 @@ parallelFindSemicircle r1 r2 =
             Nothing
 
 
-viewBendFixerPane : BendOptions -> (Msg -> msg) -> Element msg
-viewBendFixerPane bendOptions wrap =
+viewBendFixerPane : Bool -> BendOptions -> (Msg -> msg) -> Element msg
+viewBendFixerPane imperial bendOptions wrap =
     let
         fixBendButton smooth =
             button
@@ -521,7 +521,7 @@ viewBendFixerPane bendOptions wrap =
                         Just isSmooth ->
                             text <|
                                 "Smooth between markers\nRadius "
-                                    ++ showDecimal2 isSmooth.radius
+                                    ++ showShortMeasure imperial (Length.meters isSmooth.radius)
 
                         Nothing ->
                             text "No bend found"
@@ -535,15 +535,15 @@ viewBendFixerPane bendOptions wrap =
                 }
     in
     wrappedRow [ spacing 10, padding 10 ] <|
-        [ bendSmoothnessSlider bendOptions wrap
+        [ bendSmoothnessSlider imperial bendOptions wrap
         , fixBendButton bendOptions.smoothedBend
         , segmentSlider bendOptions wrap
         , softenButton
         ]
 
 
-bendSmoothnessSlider : BendOptions -> (Msg -> msg) -> Element msg
-bendSmoothnessSlider model wrap =
+bendSmoothnessSlider : Bool -> BendOptions -> (Msg -> msg) -> Element msg
+bendSmoothnessSlider imperial model wrap =
     Input.slider
         commonShortHorizontalSliderStyles
         { onChange = wrap << SetBendTrackPointSpacing
@@ -551,11 +551,10 @@ bendSmoothnessSlider model wrap =
             Input.labelBelow [] <|
                 text <|
                     "Spacing: "
-                        ++ showDecimal0 model.bendTrackPointSpacing
-                        ++ "m"
-        , min = 1.0
-        , max = 10.0
-        , step = Just 1.0
+                        ++ showShortMeasure imperial (Length.meters model.bendTrackPointSpacing)
+        , min = Length.inMeters <| if imperial then Length.feet 3.0 else Length.meters 1.0
+        , max = Length.inMeters <| if imperial then Length.feet 30.0 else Length.meters 10.0
+        , step = Nothing
         , value = model.bendTrackPointSpacing
         , thumb = Input.defaultThumb
         }
