@@ -10,13 +10,11 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.2 update 2021-10-13
+## 2.4.3 update 2021-10-16
 
-### 2.4 introduced significant changes in managing the workspace
+- Option under _Visual styles_ to select Imperial measurements.
 
-** https://youtu.be/iTw_Ssoe41Q **
-
-- Track splitter distinguishes output files with a simple "01" style suffix.
+- Visual style selections persist between sessions.
 
 ## Can I support this work?
 
