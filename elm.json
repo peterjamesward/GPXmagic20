@@ -8,6 +8,7 @@
         "direct": {
             "Garados007/elm-svg-parser": "1.0.0",
             "JohnBugner/elm-loop": "2.1.0",
+            "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "andrewMacmurray/elm-delay": "4.0.0",
             "avh4/elm-color": "1.0.0",
             "chelovek0v/bbase64": "1.0.1",

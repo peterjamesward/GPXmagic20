@@ -78,30 +78,21 @@ scrollbarThickness =
     20
 
 
-showDistance : Bool -> Length.Length -> String
-showDistance imperial distance =
+showLongMeasure : Bool -> Length.Length -> String
+showLongMeasure imperial distance =
     if imperial then
-        let
-            miles =
-                truncate <| Length.inMiles distance
+        showDecimal2 (Length.inMiles distance)
+            ++ " miles"
 
-            yards =
-                truncate <| Length.inYards distance
+    else
+        (showDecimal2 <| Length.inMeters distance)
+            ++ "m"
 
-            feet =
-                truncate <| Length.inFeet distance
-
-            inches =
-                truncate <| Length.inInches distance
-        in
-        String.fromInt miles
-            ++ "m "
-            ++ String.fromInt (modBy 1760 yards)
-            ++ "yd "
-            ++ String.fromInt (modBy 3 feet)
-            ++ "' "
-            ++ String.fromInt (modBy 12 inches)
-            ++ "\""
+showShortMeasure : Bool -> Length.Length -> String
+showShortMeasure imperial distance =
+    if imperial then
+        showDecimal2 (Length.inFeet distance)
+            ++ " feet"
 
     else
         (showDecimal2 <| Length.inMeters distance)

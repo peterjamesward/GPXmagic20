@@ -226,6 +226,7 @@ init mflags origin navigationKey =
         , Task.perform AdjustTimeZone Time.here
         , Task.perform Tick Time.now
         , PortController.storageGetItem "accordion"
+        , PortController.storageGetItem "display"
         ]
     )
 
@@ -564,8 +565,16 @@ update msg model =
                                     ViewPane.restorePaneState saved model.viewPanes
                             in
                             ( { model
-                                | viewPanes = ViewPane.mapOverPanes (setViewPaneSize model.splitInPixels) newPanes
+                                | viewPanes =
+                                    ViewPane.mapOverPanes
+                                        (setViewPaneSize model.splitInPixels)
+                                        newPanes
                               }
+                            , Cmd.none
+                            )
+
+                        ( Ok "display", Ok saved ) ->
+                            ( { model | displayOptions = DisplayOptions.decodeOptions saved }
                             , Cmd.none
                             )
 
@@ -603,7 +612,7 @@ update msg model =
                 , viewPanes = viewPanes
               }
                 |> renderTrackSceneElements
-            , Cmd.none
+            , PortController.storageSetItem "display" (DisplayOptions.encodeOptions newOptions)
             )
 
         BendSmoothMessage bendMsg ->
@@ -1594,7 +1603,7 @@ contentArea model =
         rightPane =
             if model.track /= Nothing then
                 column [ spacing 5, padding 5, alignTop, centerX ]
-                    [ markerButton model.track MarkerMessage model.displayOptions.imperialMeasure
+                    [ markerButton model.displayOptions.imperialMeasure model.track MarkerMessage
                     , viewTrackControls MarkerMessage model.track
                     , undoRedoButtons model
                     , Accordion.view

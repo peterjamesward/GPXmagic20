@@ -2,6 +2,9 @@ module DisplayOptions exposing (..)
 
 import Element exposing (..)
 import Element.Input as Input exposing (button)
+import Json.Decode as Decode exposing (Decoder, bool, decodeValue, field, float, int)
+import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as E
 import Utils exposing (showDecimal2)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, radioButton)
 
@@ -230,3 +233,108 @@ update options dispMsg wrap =
             ( { options | terrainFineness = fine }
             , NoOp
             )
+
+
+encodeCurtain c =
+    case c of
+        NoCurtain ->
+            0
+
+        PlainCurtain ->
+            1
+
+        RainbowCurtain ->
+            2
+
+        PastelCurtain ->
+            3
+
+
+encodeOptions : DisplayOptions -> E.Value
+encodeOptions options =
+    E.object
+        [ ( "roadPillars", E.bool options.roadPillars )
+        , ( "roadCones", E.bool options.roadCones )
+        , ( "roadTrack", E.bool options.roadTrack )
+        , ( "problems", E.bool options.problems )
+        , ( "centreLine", E.bool options.centreLine )
+        , ( "terrainOn", E.bool options.terrainOn )
+        , ( "seaLevel", E.bool options.seaLevel )
+        , ( "withLighting", E.bool options.withLighting )
+        , ( "terrainFineness", E.int options.terrainFineness )
+        , ( "imperialMeasure", E.bool options.imperialMeasure )
+        , ( "verticalExaggeration", E.float options.verticalExaggeration )
+        , ( "curtainStyle", E.int (encodeCurtain options.curtainStyle) )
+        ]
+
+
+decodeOptions : E.Value -> DisplayOptions
+decodeOptions json =
+    let
+        decoded =
+            decodeValue temporaryDecoder json
+    in
+    case decoded of
+        Ok restore ->
+            { defaultDisplayOptions
+                | roadPillars = restore.roadPillars
+                , roadCones = restore.roadCones
+                , roadTrack = restore.roadTrack
+                , problems = restore.problems
+                , centreLine = restore.centreLine
+                , terrainOn = restore.terrainOn
+                , seaLevel = restore.seaLevel
+                , withLighting = restore.withLighting
+                , terrainFineness = restore.terrainFineness
+                , imperialMeasure = restore.imperialMeasure
+                , verticalExaggeration = restore.verticalExaggeration
+                , curtainStyle =
+                    case restore.curtainStyle of
+                        1 ->
+                            PlainCurtain
+
+                        2 ->
+                            RainbowCurtain
+
+                        3 ->
+                            PastelCurtain
+
+                        _ ->
+                            NoCurtain
+            }
+
+        _ ->
+            defaultDisplayOptions
+
+
+type alias DecodeTemporary =
+    { roadPillars : Bool
+    , roadCones : Bool
+    , roadTrack : Bool
+    , problems : Bool
+    , centreLine : Bool
+    , terrainOn : Bool
+    , seaLevel : Bool
+    , withLighting : Bool
+    , terrainFineness : Int
+    , imperialMeasure : Bool
+    , verticalExaggeration : Float
+    , curtainStyle : Int
+    }
+
+
+temporaryDecoder : Decoder DecodeTemporary
+temporaryDecoder =
+    Decode.succeed DecodeTemporary
+        |> optional "roadPillars" bool defaultDisplayOptions.roadPillars
+        |> optional "roadCones" bool defaultDisplayOptions.roadCones
+        |> optional "roadTrack" bool defaultDisplayOptions.roadTrack
+        |> optional "problems" bool defaultDisplayOptions.problems
+        |> optional "centreLine" bool defaultDisplayOptions.centreLine
+        |> optional "terrainOn" bool defaultDisplayOptions.terrainOn
+        |> optional "seaLevel" bool defaultDisplayOptions.seaLevel
+        |> optional "withLighting" bool defaultDisplayOptions.withLighting
+        |> optional "terrainFineness" int defaultDisplayOptions.terrainFineness
+        |> optional "imperialMeasure" bool defaultDisplayOptions.imperialMeasure
+        |> optional "verticalExaggeration" float defaultDisplayOptions.verticalExaggeration
+        |> optional "curtainStyle" int (encodeCurtain defaultDisplayOptions.curtainStyle)

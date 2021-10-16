@@ -11,7 +11,7 @@ import Length
 import List.Extra
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Track exposing (Track)
-import Utils exposing (scrollbarThickness, showDecimal2, showDistance, useIcon)
+import Utils exposing (scrollbarThickness, showDecimal2, showLongMeasure, useIcon)
 import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
 
 
@@ -29,8 +29,8 @@ viewTrackControls wrap track =
     Maybe.map (positionControls wrap) track |> Maybe.withDefault none
 
 
-markerButton : Maybe Track -> (Msg -> msg) -> Bool -> Element msg
-markerButton track messageWrapper imperial =
+markerButton : Bool -> Maybe Track -> (Msg -> msg) -> Element msg
+markerButton imperial track messageWrapper  =
     let
         makeButton label =
             button
@@ -52,10 +52,10 @@ markerButton track messageWrapper imperial =
                             ( wrappedRow [ spacing 5 ]
                                 [ text <|
                                     "Orange: "
-                                        ++ showDistance imperial isTrack.currentNode.distanceFromStart
+                                        ++ showLongMeasure imperial isTrack.currentNode.distanceFromStart
                                 , text <|
                                     " Purple: "
-                                        ++ showDistance imperial markedTP.distanceFromStart
+                                        ++ showLongMeasure imperial markedTP.distanceFromStart
                                 ]
                             , True
                             )
@@ -63,7 +63,7 @@ markerButton track messageWrapper imperial =
                         Nothing ->
                             ( text <|
                                 "Orange: "
-                                    ++ showDistance imperial isTrack.currentNode.distanceFromStart
+                                    ++ showLongMeasure imperial isTrack.currentNode.distanceFromStart
                             , False
                             )
             in
