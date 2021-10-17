@@ -10,8 +10,9 @@ May not be fixable. Maybe isolate test case?
 
 # TODO
 
-Forward & Back buttons could auto-repeat (with acceleration?) if held down. (So, not E.Button.)
+Forward & Back buttons should auto-repeat (with acceleration?) if held down. (So, not E.Button.)
 Can do this cheekily, without acceleration, by using timer messages while 'button' is down.
+State machine for 0.5s delay then 0.1s repeat (?) and no advance on final release once repeating.
 
 # Not doing
 

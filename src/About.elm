@@ -10,9 +10,11 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.5 update 2021-10-17
+## 2.4.6 update 2021-10-17
 
-- Route summary now includes Total route length (again).
+- Fixed: After loading new track, zoom in profile does not centre on the marker.
+
+- Fixed: Profile zoom not respecting Profile Scale value.
 
 ## Can I support this work?
 
