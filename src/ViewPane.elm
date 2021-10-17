@@ -434,10 +434,11 @@ viewPaneControls pane wrap =
 
 update :
     ViewPaneMessage
+    -> DisplayOptions
     -> List ViewPane
     -> (ViewPaneMessage -> msg)
     -> ( Maybe ViewPane, ViewPaneAction (Cmd msg) )
-update msg panes wrap =
+update msg options panes wrap =
     case msg of
         ChooseViewMode paneId mode ->
             let
@@ -503,6 +504,7 @@ update msg panes wrap =
                                     ScenePainterProfile.update
                                         imageMsg
                                         pane.profileContext
+                                        options
                                         (wrap << imageMessageWrapper pane.paneId)
                             in
                             ( Just { pane | profileContext = newContext }

@@ -47,7 +47,7 @@ initialiseView viewSize track oldContext =
             profileZoomLevelFromBoundingBox viewSize profileTrack
     in
     { oldContext
-        | focalPoint = centralPoint
+        | focalPoint = track.currentNode.xyz
         , sceneSearcher = profilePointNearestRay profileTrack
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
@@ -106,7 +106,7 @@ viewScene visible context options scene wrapper =
         <|
             html <|
                 Scene3d.unlit
-                    { camera = deriveViewPointAndCamera context
+                    { camera = deriveViewPointAndCamera context options
                     , dimensions = context.size
                     , background = Scene3d.backgroundColor Color.lightCharcoal
                     , clipDepth = Length.meters 1
@@ -117,8 +117,8 @@ viewScene visible context options scene wrapper =
         none
 
 
-deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
-deriveViewPointAndCamera view =
+deriveViewPointAndCamera : ViewingContext -> DisplayOptions -> Camera3d Length.Meters LocalCoords
+deriveViewPointAndCamera view options =
     let
         lookingAtBeforeScaling =
             case view.flythrough of
@@ -133,7 +133,7 @@ deriveViewPointAndCamera view =
                     Point3d.toRecord inMeters view.focalPoint
 
         scaledFocus =
-            { lookingAtBeforeScaling | z = lookingAtBeforeScaling.z * view.verticalExaggeration }
+            { lookingAtBeforeScaling | z = lookingAtBeforeScaling.z * options.verticalExaggeration }
                 |> Point3d.fromRecord meters
 
         eyePoint =
@@ -162,9 +162,10 @@ deriveViewPointAndCamera view =
 update :
     ImageMsg
     -> ViewingContext
+    -> DisplayOptions
     -> (ImageMsg -> msg)
     -> ( ViewingContext, PostUpdateAction (Cmd msg) )
-update msg view wrap =
+update msg view options wrap =
     -- Second return value indicates whether selection needs to change.
     case msg of
         ImageGrab event ->
@@ -227,7 +228,7 @@ update msg view wrap =
 
         ImageClick event ->
             if view.waitingForClickDelay then
-                case detectHit view event of
+                case detectHit view options event of
                     Just tp ->
                         ( view, ActionPointerMove tp )
 
@@ -238,7 +239,7 @@ update msg view wrap =
                 ( view, ActionNoOp )
 
         ImageDoubleClick event ->
-            case detectHit view event of
+            case detectHit view options event of
                 Just tp ->
                     ( { view | focalPoint = tp.profileXZ }
                     , ActionFocusMove tp
@@ -271,8 +272,8 @@ update msg view wrap =
             ( view, ActionNoOp )
 
 
-detectHit : ViewingContext -> Mouse.Event -> Maybe TrackPoint
-detectHit context event =
+detectHit : ViewingContext -> DisplayOptions ->Mouse.Event -> Maybe TrackPoint
+detectHit context options event =
     let
         ( x, y ) =
             event.offsetPos
@@ -292,7 +293,7 @@ detectHit context event =
                 (Point2d.xy wFloat Quantity.zero)
 
         camera =
-            deriveViewPointAndCamera context
+            deriveViewPointAndCamera context options
 
         ray =
             Camera3d.ray camera screenRectangle screenPoint

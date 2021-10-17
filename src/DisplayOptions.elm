@@ -40,9 +40,12 @@ type Msg
     | TerrainFineness Int
 
 
-type Action
-    = NoOp
-    | ProfileChange Float
+
+--
+--type Action
+--    = NoOp
+--    | ProfileChange Float
+--
 
 
 type Measurements
@@ -176,63 +179,41 @@ viewDisplayOptions options wrap =
         ]
 
 
-update : DisplayOptions -> Msg -> (Msg -> msg) -> ( DisplayOptions, Action )
+update : DisplayOptions -> Msg -> (Msg -> msg) -> DisplayOptions
 update options dispMsg wrap =
     case dispMsg of
         TogglePillars newState ->
-            ( { options | roadPillars = newState }
-            , NoOp
-            )
+            { options | roadPillars = newState }
 
         ToggleLighting newState ->
-            ( { options | withLighting = newState }
-            , NoOp
-            )
+            { options | withLighting = newState }
 
         ToggleSeaLevel newState ->
-            ( { options | seaLevel = newState }
-            , NoOp
-            )
+            { options | seaLevel = newState }
 
         ToggleRoad newState ->
-            ( { options | roadTrack = newState }
-            , NoOp
-            )
+            { options | roadTrack = newState }
 
         ToggleCones newState ->
-            ( { options | roadCones = newState }
-            , NoOp
-            )
+            { options | roadCones = newState }
 
         ToggleCentreLine newState ->
-            ( { options | centreLine = newState }
-            , NoOp
-            )
+            { options | centreLine = newState }
 
         ToggleImperial newState ->
-            ( { options | imperialMeasure = newState }
-            , NoOp
-            )
+            { options | imperialMeasure = newState }
 
         SetCurtainStyle newStyle ->
-            ( { options | curtainStyle = newStyle }
-            , NoOp
-            )
+            { options | curtainStyle = newStyle }
 
         SetVerticalExaggeration value ->
-            ( { options | verticalExaggeration = value }
-            , ProfileChange value
-            )
+            { options | verticalExaggeration = value }
 
         Terrain on ->
-            ( { options | terrainOn = on }
-            , NoOp
-            )
+            { options | terrainOn = on }
 
         TerrainFineness fine ->
-            ( { options | terrainFineness = fine }
-            , NoOp
-            )
+            { options | terrainFineness = fine }
 
 
 encodeCurtain c =

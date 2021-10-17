@@ -284,8 +284,6 @@ update msg model =
             ( { model
                 | time = newTime
                 , flythrough = updatedFlythrough
-
-                -- This passing through time is perhaps not the best idea.
                 , viewPanes =
                     ViewPane.mapOverAllContexts
                         (passFlythroughToContext updatedFlythrough.flythrough)
@@ -591,25 +589,14 @@ update msg model =
 
         DisplayOptionsMessage dispMsg ->
             let
-                ( newOptions, action ) =
+                newOptions =
                     DisplayOptions.update
                         model.displayOptions
                         dispMsg
                         DisplayOptionsMessage
-
-                viewPanes =
-                    case action of
-                        DisplayOptions.ProfileChange value ->
-                            ViewPane.mapOverProfileContexts
-                                (ViewingContext.setExaggeration value)
-                                model.viewPanes
-
-                        DisplayOptions.NoOp ->
-                            model.viewPanes
             in
             ( { model
                 | displayOptions = newOptions
-                , viewPanes = viewPanes
               }
                 |> renderTrackSceneElements
             , PortController.storageSetItem "display" (DisplayOptions.encodeOptions newOptions)
@@ -1102,7 +1089,7 @@ processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg model track =
     let
         ( newPane, postUpdateAction ) =
-            ViewPane.update innerMsg model.viewPanes ViewPaneMessage
+            ViewPane.update innerMsg model.displayOptions model.viewPanes ViewPaneMessage
 
         updatedViewPanes =
             ViewPane.updateViewPanes newPane model.viewPanes

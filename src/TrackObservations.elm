@@ -286,12 +286,13 @@ overviewSummary imperial obs =
             , ( "Lowest point", showShortMeasure imperial (Length.meters obs.lowestMetres) )
             ]
         , showLabelledValues
-            [ ( "Elevation gain ", showShortMeasure imperial (Length.meters obs.climbingDistance) )
-            , ( "Elevation loss ", showShortMeasure imperial (Length.meters obs.descendingDistance) )
+            [ ( "Elevation gain ", showShortMeasure imperial (Length.meters obs.totalClimbing) )
+            , ( "Elevation loss ", showShortMeasure imperial (Length.meters obs.totalDescending) )
             ]
         , showLabelledValues
-            [ ( "Climbing distance ", showLongMeasure imperial (Length.meters obs.trackLength) )
-            , ( "Descending distance ", showLongMeasure imperial (Length.meters obs.totalClimbing) )
+            [ ( "Climbing distance ", showLongMeasure imperial (Length.meters obs.climbingDistance) )
+            , ( "Descending distance ", showLongMeasure imperial (Length.meters obs.descendingDistance) )
+            , ( "Total distance ", showLongMeasure imperial (Length.meters obs.trackLength) )
             ]
         ]
 

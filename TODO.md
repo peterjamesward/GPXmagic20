@@ -11,6 +11,7 @@ May not be fixable. Maybe isolate test case?
 # TODO
 
 Forward & Back buttons could auto-repeat (with acceleration?) if held down. (So, not E.Button.)
+Can do this cheekily, without acceleration, by using timer messages while 'button' is down.
 
 # Not doing
 

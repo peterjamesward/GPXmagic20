@@ -27,7 +27,7 @@ type alias ViewingContext =
     , viewingMode : ViewingMode
     , contextId : Int -- ( 0 = Plan, 1 = First Person, 2 = Profile, 3 = Third person)
     , size : (Quantity Int Pixels, Quantity Int Pixels)
-    , verticalExaggeration : Float
+    --, verticalExaggeration : Float
     , flythrough : Maybe Flythrough
     , waitingForClickDelay : Bool
     , mapClickToDrag : Bool
@@ -58,7 +58,7 @@ defaultViewingContext =
     , viewingMode = ViewPlan
     , contextId = 0
     , size = (pixels 800, pixels 500)
-    , verticalExaggeration = 1.0
+    --, verticalExaggeration = 1.0
     , flythrough = Nothing
     , waitingForClickDelay = False
     , mapClickToDrag = True
@@ -71,6 +71,6 @@ newViewingContext mode =
     { defaultViewingContext | viewingMode = mode }
 
 
-setExaggeration : Float -> ViewingContext -> ViewingContext
-setExaggeration scale context =
-    { context | verticalExaggeration = scale }
+--setExaggeration : Float -> ViewingContext -> ViewingContext
+--setExaggeration scale context =
+--    { context | verticalExaggeration = scale }

@@ -10,11 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.3 update 2021-10-16
+## 2.4.5 update 2021-10-17
 
-- Option under _Visual styles_ to select Imperial measurements.
-
-- Visual style selections persist between sessions.
+- Route summary now includes Total route length (again).
 
 ## Can I support this work?
 
