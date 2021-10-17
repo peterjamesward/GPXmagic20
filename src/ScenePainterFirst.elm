@@ -48,7 +48,7 @@ initialiseView viewSize track oldContext =
                         |> Maybe.map Direction3d.reverse
                         |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
                         |> Maybe.withDefault Quantity.zero
-                , elevation = Angle.degrees 0
+                , elevation = Angle.degrees 10
                 , sceneSearcher = trackPointNearestRay track.trackPoints
                 , zoomLevel = 14.0
                 , defaultZoomLevel = 14.0
@@ -56,6 +56,11 @@ initialiseView viewSize track oldContext =
 
         _ ->
             oldContext
+
+
+changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
+changeFocusTo tp context =
+    { context | focalPoint = tp.xyz }
 
 
 update :
@@ -254,15 +259,32 @@ deriveViewPointAndCamera view =
             pointInEarthCoordinates view.focalPoint
 
         cameraViewpoint =
-            case view.flythrough of
-                Just flying ->
+            case ( view.flythrough, view.currentPoint ) of
+                ( Just flying, _ ) ->
                     Viewpoint3d.lookAt
                         { eyePoint = flying.cameraPosition
                         , focalPoint = flying.focusPoint
                         , upDirection = Direction3d.positiveZ
                         }
 
-                Nothing ->
+                ( Nothing, Just current ) ->
+                    Viewpoint3d.orbitZ
+                        { focalPoint = current.xyz
+                        , azimuth =
+                            case current.afterDirection of
+                                Just direction ->
+                                    direction
+                                    |> Direction3d.reverse
+                                    |> Direction3d.azimuthIn SketchPlane3d.xy
+
+
+                                Nothing ->
+                                    Angle.degrees 0
+                        , elevation = Angle.degrees 10.0
+                        , distance = Length.meters 50
+                        }
+
+                _ ->
                     Viewpoint3d.orbitZ
                         { focalPoint =
                             view.focalPoint
@@ -270,8 +292,6 @@ deriveViewPointAndCamera view =
                         , azimuth = view.azimuth
                         , elevation = view.elevation
                         , distance = Length.meters 50.0
-
-                        --* metresPerPixel view.zoomLevel (degrees latitude)
                         }
     in
     Camera3d.perspective

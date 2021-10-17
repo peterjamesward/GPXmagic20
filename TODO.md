@@ -1,27 +1,20 @@
 
-
 # BUGS
 
-SVG parser should report errors. At least summarise outcome.
+SVG parser should report errors. 
+At least summarise outcome.
 
 Sometimes some buttons losing style in Safari 15.0.
 This has been remarked by others on Slack elm-ui channel.
+May not be fixable. Maybe isolate test case?
 
 # TODO
 
-Imperial measure option. (Stored, see below.)
-
-Store various minor control settings, now we know how.
-
-Plan from one route, elevation from another?
-
-Appended route elevation adjusted and contiguous.
-
-Strava segment blend elevation rather than just Paste (optional).
-
-? Flythrough to respect any azimuth & elevation applied when stationery.
+Forward & Back buttons could auto-repeat (with acceleration?) if held down. (So, not E.Button.)
 
 # Not doing
+
+Strava segment blend elevation rather than just Paste (optional).
 
 Better terrain by slightly smarter rendering of each quadrant based on its context.
 
@@ -30,6 +23,8 @@ Working offline? (Mongoose server?)
 Touch screen.
 
 LIDAR.
+
+Flythrough to respect any azimuth & elevation applied when stationery.
 
 --- Also not doing, as unlikely to be any better than Bezier apprx.
 

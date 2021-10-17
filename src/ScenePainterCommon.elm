@@ -133,4 +133,7 @@ trackPointNearestRay track ray =
 
 changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
 changeFocusTo tp context =
-    { context | focalPoint = tp.xyz }
+    { context
+        | focalPoint = tp.xyz
+        , currentPoint = Just tp
+    }

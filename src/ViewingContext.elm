@@ -31,6 +31,7 @@ type alias ViewingContext =
     , flythrough : Maybe Flythrough
     , waitingForClickDelay : Bool
     , mapClickToDrag : Bool
+    , currentPoint : Maybe TrackPoint
     }
 
 
@@ -61,6 +62,7 @@ defaultViewingContext =
     , flythrough = Nothing
     , waitingForClickDelay = False
     , mapClickToDrag = True
+    , currentPoint = Nothing
     }
 
 
