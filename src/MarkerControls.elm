@@ -134,7 +134,7 @@ positionControls wrap track =
              ]
                 ++ prettyButtonStyles
             )
-            (useIcon FeatherIcons.skipForward)
+            (useIcon FeatherIcons.skipBack)
         , el
             ([ htmlAttribute <| Mouse.onDown (always PositionForwardMouseDown >> wrap)
              , htmlAttribute <| Mouse.onUp (always PositionForwardMouseUp >> wrap)
