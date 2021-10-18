@@ -10,7 +10,7 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.7 update 2021-10-18
+## 2.4.8 update 2021-10-18
 
 - Logos
 
