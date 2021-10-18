@@ -10,11 +10,14 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.6 update 2021-10-17
+## 2.4.7 update 2021-10-18
 
-- Fixed: After loading new track, zoom in profile does not centre on the marker.
+- Enhancement to moving the orange marker. Hold down the forward or back button for a second
+to engage auto-repeat. This will speed up progressively to a maximum of ten trackpoints per second.
 
-- Fixed: Profile zoom not respecting Profile Scale value.
+(If you move your pointer away from the button and release it, the motion will continue.
+This is then like Flythough but the pointer moves. You can even switch views while it continues.
+Click either forward or back to stop it.)
 
 ## Can I support this work?
 

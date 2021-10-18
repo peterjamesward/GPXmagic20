@@ -164,6 +164,7 @@ type alias Model =
     , mapSketchMode : Bool
     , accordionState : Accordion.Model
     , splitInPixels : Int
+    , markerOptions : MarkerControls.Options
     }
 
 
@@ -218,6 +219,7 @@ init mflags origin navigationKey =
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
       , splitInPixels = maximumLeftPane
+      , markerOptions = MarkerControls.defaultOptions
       }
         |> -- TODO: Fix Fugly Fudge.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -352,11 +354,13 @@ update msg model =
 
         MarkerMessage markerMsg ->
             let
-                action =
-                    Maybe.map (MarkerControls.update markerMsg) model.track
-                        |> Maybe.withDefault ActionNoOp
+                (newOptions, action) =
+                    Maybe.map (MarkerControls.update markerMsg model.markerOptions MarkerMessage) model.track
+                        |> Maybe.withDefault (model.markerOptions, ActionNoOp)
+
+                newModel = { model | markerOptions = newOptions}
             in
-            processPostUpdateAction model action
+            processPostUpdateAction newModel action
 
         NudgeMessage nudgeMsg ->
             let
@@ -1705,12 +1709,14 @@ subscriptions model =
             [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
             , Time.every 50 Tick
+            , MarkerControls.subscription model.markerOptions MarkerMessage
             ]
 
     else
         Sub.batch
             [ PortController.messageReceiver PortMessage
             , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , MarkerControls.subscription model.markerOptions MarkerMessage
             ]
 
 

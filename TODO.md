@@ -8,11 +8,11 @@ Sometimes some buttons losing style in Safari 15.0.
 This has been remarked by others on Slack elm-ui channel.
 May not be fixable. Maybe isolate test case?
 
-# TODO
+---
 
-Forward & Back buttons should auto-repeat (with acceleration?) if held down. (So, not E.Button.)
-Can do this cheekily, without acceleration, by using timer messages while 'button' is down.
-State machine for 0.5s delay then 0.1s repeat (?) and no advance on final release once repeating.
+# TO-DO
+
+---
 
 # Not doing
 

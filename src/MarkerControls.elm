@@ -7,9 +7,11 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import Html.Events.Extra.Mouse as Mouse
 import Length
 import List.Extra
 import PostUpdateActions exposing (PostUpdateAction(..))
+import Time
 import Track exposing (Track)
 import Utils exposing (scrollbarThickness, showDecimal2, showLongMeasure, useIcon)
 import ViewPureStyles exposing (conditionallyVisible, defaultColumnLayout, defaultRowLayout, prettyButtonStyles, toolRowLayout)
@@ -22,6 +24,28 @@ type Msg
     | PositionForwardOne
     | PositionBackOne
     | PositionSlider Int
+    | PositionForwardMouseDown
+    | PositionForwardMouseUp
+    | PositionTimer
+    | PositionBackMouseDown
+    | PositionBackMouseUp
+
+
+type ButtonState
+    = Idle
+    | Down Int
+
+
+type alias Options =
+    { forwardButton : ButtonState
+    , reverseButton : ButtonState
+    }
+
+
+defaultOptions =
+    { forwardButton = Idle
+    , reverseButton = Idle
+    }
 
 
 viewTrackControls : (Msg -> msg) -> Maybe Track -> Element msg
@@ -30,7 +54,7 @@ viewTrackControls wrap track =
 
 
 markerButton : Bool -> Maybe Track -> (Msg -> msg) -> Element msg
-markerButton imperial track messageWrapper  =
+markerButton imperial track messageWrapper =
     let
         makeButton label =
             button
@@ -105,16 +129,20 @@ positionControls wrap track =
         , centerY
         ]
         [ positionSlider wrap track
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrap PositionBackOne
-            , label = useIcon FeatherIcons.skipBack
-            }
-        , button
-            prettyButtonStyles
-            { onPress = Just <| wrap PositionForwardOne
-            , label = useIcon FeatherIcons.skipForward
-            }
+        , el
+            ([ htmlAttribute <| Mouse.onDown (always PositionBackMouseDown >> wrap)
+             , htmlAttribute <| Mouse.onUp (always PositionBackMouseUp >> wrap)
+             ]
+                ++ prettyButtonStyles
+            )
+            (useIcon FeatherIcons.skipForward)
+        , el
+            ([ htmlAttribute <| Mouse.onDown (always PositionForwardMouseDown >> wrap)
+             , htmlAttribute <| Mouse.onUp (always PositionForwardMouseUp >> wrap)
+             ]
+                ++ prettyButtonStyles
+            )
+            (useIcon FeatherIcons.skipForward)
         ]
 
 
@@ -147,8 +175,13 @@ positionSlider wrap track =
         }
 
 
-update : Msg -> Track -> PostUpdateActions.PostUpdateAction msg
-update msg track =
+update :
+    Msg
+    -> Options
+    -> (Msg -> msg)
+    -> Track
+    -> ( Options, PostUpdateActions.PostUpdateAction (Cmd msg) )
+update msg options wrap track =
     let
         safeNewNode newIndex =
             case List.Extra.getAt newIndex track.trackPoints of
@@ -160,33 +193,79 @@ update msg track =
     in
     case ( msg, track.markedNode ) of
         ( PositionForwardOne, _ ) ->
-            safeNewNode <| track.currentNode.index + 1
+            ( options, safeNewNode <| track.currentNode.index + 1 )
+
+        ( PositionForwardMouseDown, _ ) ->
+            ( { options | forwardButton = Down 1 }
+            , ActionNoOp
+            )
+
+        ( PositionBackMouseDown, _ ) ->
+            ( { options | reverseButton = Down 1 }
+            , ActionNoOp
+            )
+
+        ( PositionTimer, _ ) ->
+            case (options.forwardButton, options.reverseButton) of
+                (Down n, Idle) ->
+                    ( { options | forwardButton = Down (min (n + 1) 10) }
+                    , safeNewNode <| track.currentNode.index + 1
+                    )
+
+                (Idle, Down n) ->
+                    ( { options | reverseButton = Down (min (n + 1) 10) }
+                    , safeNewNode <| track.currentNode.index - 1
+                    )
+
+                _ ->
+                    ( options, ActionNoOp )
+
+        ( PositionForwardMouseUp, _ ) ->
+            ( { options | forwardButton = Idle }
+            , safeNewNode <| track.currentNode.index + 1
+            )
+
+        ( PositionBackMouseUp, _ ) ->
+            ( { options | reverseButton = Idle }
+            , safeNewNode <| track.currentNode.index - 1
+            )
 
         ( PositionBackOne, _ ) ->
-            safeNewNode <| track.currentNode.index - 1
+            ( options, safeNewNode <| track.currentNode.index - 1 )
 
         ( PositionSlider index, _ ) ->
-            safeNewNode index
+            ( defaultOptions, safeNewNode index )
 
         ( ToggleMarker, Just _ ) ->
-            ActionMarkerMove Nothing
+            ( defaultOptions, ActionMarkerMove Nothing )
 
         ( ToggleMarker, Nothing ) ->
-            ActionMarkerMove <| Just track.currentNode
+            ( defaultOptions, ActionMarkerMove <| Just track.currentNode )
 
         ( MarkerForwardOne, Just mark ) ->
             let
                 wrapped =
                     (mark.index + 1) |> modBy (List.length track.trackPoints)
             in
-            ActionMarkerMove <| List.Extra.getAt wrapped track.trackPoints
+            ( defaultOptions, ActionMarkerMove <| List.Extra.getAt wrapped track.trackPoints )
 
         ( MarkerBackOne, Just mark ) ->
             let
                 wrapped =
                     (mark.index - 1) |> modBy (List.length track.trackPoints)
             in
-            ActionMarkerMove <| List.Extra.getAt wrapped track.trackPoints
+            ( defaultOptions, ActionMarkerMove <| List.Extra.getAt wrapped track.trackPoints )
 
         _ ->
-            ActionNoOp
+            ( defaultOptions, ActionNoOp )
+
+subscription : Options -> (Msg -> msg) -> Sub msg
+subscription options wrap =
+    case (options.forwardButton, options.reverseButton) of
+        (Down n, Idle) ->
+            Time.every (1000.0 / toFloat n) (always PositionTimer >> wrap)
+
+        (Idle, Down n) ->
+            Time.every (1000.0 / toFloat n) (always PositionTimer >> wrap)
+
+        _ -> Sub.none
