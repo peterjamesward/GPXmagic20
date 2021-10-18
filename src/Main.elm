@@ -354,11 +354,12 @@ update msg model =
 
         MarkerMessage markerMsg ->
             let
-                (newOptions, action) =
+                ( newOptions, action ) =
                     Maybe.map (MarkerControls.update markerMsg model.markerOptions MarkerMessage) model.track
-                        |> Maybe.withDefault (model.markerOptions, ActionNoOp)
+                        |> Maybe.withDefault ( model.markerOptions, ActionNoOp )
 
-                newModel = { model | markerOptions = newOptions}
+                newModel =
+                    { model | markerOptions = newOptions }
             in
             processPostUpdateAction newModel action
 
@@ -1521,7 +1522,10 @@ footer : Model -> Element Msg
 footer model =
     -- Rather hacky addition of secondary map here.
     column [ spacing 20, padding 10 ]
-        [ text "Experimental zone"
+        [ image []
+            { src = "images/smooth-with-gpxmagic-ride-with-rgt.svg"
+            , description = "Smooth with GPXmagic"
+            }
         , row [ spacing 20, padding 10 ]
             [ SvgPathExtractor.view SvgMessage
             , mapSketchEnable model
