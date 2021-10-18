@@ -10,13 +10,10 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.8 update 2021-10-18
+## 2.4.9 update 2021-10-18
 
-- Logos
-
-(If you move your pointer away from the button and release it, the motion will continue.
-This is then like Flythough but the pointer moves. You can even switch views while it continues.
-Click either forward or back to stop it.)
+- Revert to old back & forward buttons. As @Samir points out, you get auto-repeat for
+free just by using the space bar. Silly me!
 
 ## Can I support this work?
 

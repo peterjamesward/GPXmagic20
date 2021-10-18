@@ -128,20 +128,16 @@ positionControls wrap track =
         , centerY
         ]
         [ positionSlider wrap track
-        , el
-            ([ htmlAttribute <| Mouse.onDown (always PositionBackMouseDown >> wrap)
-             , htmlAttribute <| Mouse.onUp (always PositionBackMouseUp >> wrap)
-             ]
-                ++ prettyButtonStyles
-            )
-            (useIcon FeatherIcons.skipBack)
-        , el
-            ([ htmlAttribute <| Mouse.onDown (always PositionForwardMouseDown >> wrap)
-             , htmlAttribute <| Mouse.onUp (always PositionForwardMouseUp >> wrap)
-             ]
-                ++ prettyButtonStyles
-            )
-            (useIcon FeatherIcons.skipForward)
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrap PositionBackOne
+            , label = useIcon FeatherIcons.skipBack
+            }
+        , button
+            prettyButtonStyles
+            { onPress = Just <| wrap PositionForwardOne
+            , label = useIcon FeatherIcons.skipForward
+            }
         ]
 
 
