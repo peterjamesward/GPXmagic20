@@ -3,8 +3,11 @@ module Utils exposing (..)
 import Angle exposing (Angle)
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color)
+import ColourPalette
 import Element exposing (..)
+import Element.Background as Background
 import FeatherIcons
+import FlatColors.AmericanPalette
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
@@ -89,6 +92,7 @@ showLongMeasure imperial distance =
         (showDecimal2 <| Length.inMeters distance)
             ++ "m"
 
+
 showShortMeasure : Bool -> Length.Length -> String
 showShortMeasure imperial distance =
     if imperial then
@@ -99,6 +103,7 @@ showShortMeasure imperial distance =
         (showDecimal2 <| Length.inMeters distance)
             ++ "m"
 
+
 showSpeed : Bool -> Speed -> String
 showSpeed imperial speed =
     if imperial then
@@ -108,6 +113,7 @@ showSpeed imperial speed =
     else
         showDecimal2 (Speed.inKilometersPerHour speed)
             ++ "kph"
+
 
 showDecimal2 x =
     let
@@ -263,3 +269,26 @@ withLeadingZeros : Int -> String -> String
 withLeadingZeros beforePoint raw =
     String.repeat (beforePoint - String.length raw) "0"
         ++ raw
+
+
+showLogos : Element msg
+showLogos =
+    column
+        [ padding 20
+        , spacing 20
+        , moveDown 30
+        , moveRight 30
+        , alignBottom
+        , alignLeft
+        , Background.color FlatColors.AmericanPalette.soothingBreeze
+        ]
+        [ paragraph [] <| [ text "Please use these logos to promote GPXmagic" ]
+        , image [ width <| px 200 ]
+            { src = "images/smooth-with-gpxmagic-ride-with-rgt.svg"
+            , description = "Smooth with GPXmagic"
+            }
+        , image [ width <| px 200 ] { src = "images/made with black.png", description = "Black logo" }
+        , image [ width <| px 200 ] { src = "images/made with purple.png", description = "Purple logo" }
+        , image [ width <| px 200 ] { src = "images/made with white.png", description = "White logo" }
+        , image [ width <| px 200 ] { src = "images/made with 3 colour.png", description = "3 colour logo" }
+        ]

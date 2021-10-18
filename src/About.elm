@@ -12,8 +12,7 @@ aboutText =
 
 ## 2.4.7 update 2021-10-18
 
-- Enhancement to moving the orange marker. Hold down the forward or back button for a second
-to engage auto-repeat. This will speed up progressively to a maximum of ten trackpoints per second.
+- Logos
 
 (If you move your pointer away from the button and release it, the motion will continue.
 This is then like Flythough but the pointer moves. You can even switch views while it continues.

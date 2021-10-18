@@ -218,7 +218,7 @@ init mflags origin navigationKey =
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
-      , splitInPixels = maximumLeftPane
+      , splitInPixels = 800
       , markerOptions = MarkerControls.defaultOptions
       }
         |> -- TODO: Fix Fugly Fudge.
@@ -1475,6 +1475,7 @@ view model =
                 [ width fill ]
                 [ topLoadingBar model
                 , contentArea model
+                , footer model
                 ]
         ]
     }
@@ -1522,11 +1523,7 @@ footer : Model -> Element Msg
 footer model =
     -- Rather hacky addition of secondary map here.
     column [ spacing 20, padding 10 ]
-        [ image []
-            { src = "images/smooth-with-gpxmagic-ride-with-rgt.svg"
-            , description = "Smooth with GPXmagic"
-            }
-        , row [ spacing 20, padding 10 ]
+        [  row [ spacing 20, padding 10 ]
             [ SvgPathExtractor.view SvgMessage
             , mapSketchEnable model
             ]
@@ -1592,12 +1589,11 @@ contentArea model =
                     ( model.completeScene, model.completeProfile )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
-                , footer model
                 ]
 
         rightPane =
             if model.track /= Nothing then
-                column [ spacing 5, padding 5, alignTop, centerX ]
+                column [ spacing 5, padding 5, alignTop ]
                     [ markerButton model.displayOptions.imperialMeasure model.track MarkerMessage
                     , viewTrackControls MarkerMessage model.track
                     , undoRedoButtons model
@@ -1608,7 +1604,7 @@ contentArea model =
                     ]
 
             else
-                none
+                Utils.showLogos
 
         splitter =
             Input.slider
@@ -1645,37 +1641,39 @@ contentArea model =
                 , Font.color FlatColors.ChinesePalette.white
                 , inFront <| row [ centerX ] [ useIcon FeatherIcons.chevronsLeft, useIcon FeatherIcons.chevronsRight ]
                 ]
+
+        verticalBar =
+            if model.track /= Nothing then
+              el
+                  [ width <| px 4
+                  , height fill
+                  , Background.color FlatColors.BritishPalette.seabrook
+                  ]
+                  none
+
+            else
+              none
+
+        showSplitControl =
+            if model.track /= Nothing then
+              splitter
+
+            else
+              none
     in
     column [ width fill, padding 5 ]
         [ row []
             [ el [ width <| px minimumLeftPane ] none
-            , if model.track /= Nothing then
-                splitter
-
-              else
-                none
+            , showSplitControl
             ]
         , row [ width fill, spacing 5, padding 5 ]
             [ el [ width <| px model.splitInPixels, alignTop ] leftPane
-            , if model.track /= Nothing then
-                el
-                    [ width <| px 4
-                    , height fill
-                    , Background.color FlatColors.BritishPalette.seabrook
-                    ]
-                    none
-
-              else
-                none
-            , el [ width fill, alignTop ] rightPane
+            , verticalBar
+            , el [  alignTop ] rightPane
             ]
         , row []
             [ el [ width <| px minimumLeftPane ] none
-            , if model.track /= Nothing then
-                splitter
-
-              else
-                none
+            , showSplitControl
             ]
         ]
 
