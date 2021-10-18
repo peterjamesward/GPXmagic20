@@ -33,18 +33,17 @@ type Msg
 
 type ButtonState
     = Idle
-    | Down Int
+    | ForwardDown Int
+    | ReverseDown Int
 
 
 type alias Options =
-    { forwardButton : ButtonState
-    , reverseButton : ButtonState
+    { state : ButtonState
     }
 
 
 defaultOptions =
-    { forwardButton = Idle
-    , reverseButton = Idle
+    { state = Idle
     }
 
 
@@ -196,24 +195,24 @@ update msg options wrap track =
             ( options, safeNewNode <| track.currentNode.index + 1 )
 
         ( PositionForwardMouseDown, _ ) ->
-            ( { options | forwardButton = Down 1 }
+            ( { options | state = ForwardDown 1 }
             , ActionNoOp
             )
 
         ( PositionBackMouseDown, _ ) ->
-            ( { options | reverseButton = Down 1 }
+            ( { options | state = ReverseDown 1 }
             , ActionNoOp
             )
 
         ( PositionTimer, _ ) ->
-            case (options.forwardButton, options.reverseButton) of
-                (Down n, Idle) ->
-                    ( { options | forwardButton = Down (min (n + 1) 10) }
+            case options.state of
+                ForwardDown n ->
+                    ( { options | state = ForwardDown (min (n + 1) 10) }
                     , safeNewNode <| track.currentNode.index + 1
                     )
 
-                (Idle, Down n) ->
-                    ( { options | reverseButton = Down (min (n + 1) 10) }
+                ReverseDown n ->
+                    ( { options | state = ReverseDown (min (n + 1) 10) }
                     , safeNewNode <| track.currentNode.index - 1
                     )
 
@@ -221,12 +220,12 @@ update msg options wrap track =
                     ( options, ActionNoOp )
 
         ( PositionForwardMouseUp, _ ) ->
-            ( { options | forwardButton = Idle }
+            ( { options | state = Idle }
             , safeNewNode <| track.currentNode.index + 1
             )
 
         ( PositionBackMouseUp, _ ) ->
-            ( { options | reverseButton = Idle }
+            ( { options | state = Idle }
             , safeNewNode <| track.currentNode.index - 1
             )
 
@@ -259,13 +258,15 @@ update msg options wrap track =
         _ ->
             ( defaultOptions, ActionNoOp )
 
+
 subscription : Options -> (Msg -> msg) -> Sub msg
 subscription options wrap =
-    case (options.forwardButton, options.reverseButton) of
-        (Down n, Idle) ->
+    case options.state of
+        ForwardDown n ->
             Time.every (1000.0 / toFloat n) (always PositionTimer >> wrap)
 
-        (Idle, Down n) ->
+        ReverseDown n ->
             Time.every (1000.0 / toFloat n) (always PositionTimer >> wrap)
 
-        _ -> Sub.none
+        _ ->
+            Sub.none
