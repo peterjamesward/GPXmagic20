@@ -12,6 +12,10 @@ May not be fixable. Maybe isolate test case?
 
 # TO-DO
 
+Try to isolate Safari problem.
+
+Try electron for native wrapper. See if multiple windows possible.
+
 ---
 
 # Not doing

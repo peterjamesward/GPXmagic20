@@ -1,16 +1,13 @@
 module SvgPathExtractor exposing (..)
 
-import ColourPalette exposing (buttonText)
 import CubicSpline3d
 import Delay
 import Element exposing (Element, alignTop, centerX, column, fill, padding, row, spacing, spacingXY, text)
-import Element.Background as Background
-import Element.Font as Font
 import Element.Input as Input
 import File exposing (File)
 import File.Download
 import File.Select as Select
-import FlatColors.FlatUIPalette
+import GpxParser exposing (asRegex)
 import Length exposing (Meters)
 import LineSegment3d
 import Path.LowLevel exposing (DrawTo(..), Mode(..), MoveTo(..), SubPath)
@@ -18,8 +15,9 @@ import Path.LowLevel.Parser as PathParser
 import Point3d exposing (Point3d)
 import Polyline3d
 import Quantity exposing (Quantity(..))
+import Regex
 import Spherical exposing (metresPerDegree)
-import SvgParser exposing (SvgNode(..), parseToNode)
+import SvgParser exposing (SvgNode(..))
 import Task
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
@@ -53,6 +51,12 @@ type Msg
     | WritePaths (List (List (Point3d Meters LocalCoords)))
 
 
+type alias Path =
+    { style : String
+    , d : String
+    }
+
+
 update : Msg -> Options -> (Msg -> msg) -> ( Options, Cmd msg )
 update msg model wrap =
     case msg of
@@ -68,34 +72,48 @@ update msg model wrap =
 
         FileLoaded content ->
             let
-                svg =
-                    parseToNode content
+                --TODO: Must keep paths in separate output files.
+                --TODO: Some of the curve following code is close, but wrong.
+
+                pathStrings =
+                    Regex.find (asRegex "\\sd=\\\"(.*)\\\"") content
+                        |> List.map .submatches
+                        |> List.concat
+                        |> List.map (Maybe.withDefault "")
 
                 paths =
-                    case svg of
-                        Ok isSvg ->
-                            parsePaths isSvg
+                    pathStrings |> List.map PathParser.parse
 
-                        _ ->
-                            []
+                _ =
+                    Debug.log "Paths" paths
+
+                subPaths =
+                    paths
+                        |> List.filterMap
+                            (\p ->
+                                case p of
+                                    Ok isPath ->
+                                        Just isPath
+
+                                    _ ->
+                                        Nothing
+                            )
 
                 points =
-                    List.map convertToPoints paths
+                    subPaths
+                        |> List.concat
+                        |> convertToPoints
             in
-            ( { model
-                | svg = svg
-                , paths = paths
-                , points = points
-              }
-            , Delay.after 100 <| (wrap << WritePaths) points
+            ( model
+            , Delay.after 100 <| (wrap << WritePaths) [points]
             )
 
         WritePaths paths ->
             case paths of
-                path :: rest ->
+                path1 :: rest ->
                     let
                         content =
-                            drawPath path
+                            drawPath path1
                     in
                     ( model
                     , Cmd.batch
@@ -115,48 +133,6 @@ view wrap =
         { onPress = Just (wrap ReadFile)
         , label = text "Extract paths from SVG file"
         }
-
-
-parsePaths : SvgNode -> List (List SubPath)
-parsePaths svg =
-    -- We know that Autotrace should give a list of child elements for subpaths.
-    case svg of
-        SvgElement svgElement ->
-            List.map parseChild svgElement.children
-
-        _ ->
-            []
-
-
-parseChild : SvgNode -> List SubPath
-parseChild svg =
-    -- Autotrace encodes draw command for subpath in second element of attribute list.
-    case svg of
-        SvgElement svgElement ->
-            case svgElement.attributes of
-                _ :: ( key, value ) :: _ ->
-                    case key of
-                        "d" ->
-                            parseOnePath value
-
-                        _ ->
-                            []
-
-                _ ->
-                    []
-
-        _ ->
-            []
-
-
-parseOnePath : String -> List SubPath
-parseOnePath path =
-    case PathParser.parse path of
-        Ok a ->
-            a
-
-        _ ->
-            []
 
 
 drawPaths : List (List (Point3d Meters LocalCoords)) -> Element Msg
@@ -199,6 +175,9 @@ followSubPath sub state =
             case sub.moveto of
                 MoveTo Absolute ( x, y ) ->
                     let
+                        _ =
+                            Debug.log "MoveAbsolute" newPoint
+
                         newPoint =
                             Point3d.meters x y 0.0
                     in
@@ -209,6 +188,9 @@ followSubPath sub state =
 
                 MoveTo Relative ( dx, dy ) ->
                     let
+                        _ =
+                            Debug.log "MoveRelative" newPoint
+
                         newPoint =
                             state.currentPoint
                                 |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
@@ -232,24 +214,97 @@ drawCommand command state =
             in
             { state | outputs = newPoint :: state.outputs }
 
-        CurveTo Absolute [ ( ( x1, y1 ), ( x2, y2 ), ( xN, yN ) ) ] ->
+        LineTo Relative points ->
+            -- This is a fold over the list of points.
             let
-                spline =
-                    CubicSpline3d.fromControlPoints
-                        state.currentPoint
-                        (Point3d.meters x1 y1 0.0)
-                        (Point3d.meters x2 y2 0.0)
-                        (Point3d.meters xN yN 0.0)
+                initialState =
+                    -- Current point and list of outputs
+                    ( state.currentPoint, [] )
+
+                finalState =
+                    List.foldl relativeLine initialState points
+
+                relativeLine ( dx, dy ) ( lastPoint, outputs ) =
+                    let
+                        nextPoint =
+                            lastPoint |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
+                    in
+                    ( nextPoint, nextPoint :: outputs )
             in
             { state
-                | currentPoint = CubicSpline3d.endPoint spline
+                | currentPoint = Tuple.first finalState
+                , outputs = Tuple.second finalState ++ state.outputs
+            }
+
+        CurveTo Relative triples ->
+            let
+                curveRelativeInitialState =
+                    ( state.currentPoint, [] )
+
+                curveRelativeFinalState =
+                    List.foldl curveRelative curveRelativeInitialState triples
+
+                curveRelative ( ( dx1, dy1 ), ( dx2, dy2 ), ( dxN, dyN ) ) ( lastPoint, outputs ) =
+                    let
+                        ( c1, c2, cN ) =
+                            ( state.currentPoint |> Point3d.translateBy (Vector3d.meters dx1 dy1 0.0)
+                            , state.currentPoint |> Point3d.translateBy (Vector3d.meters dx2 dy2 0.0)
+                            , state.currentPoint |> Point3d.translateBy (Vector3d.meters dxN dyN 0.0)
+                            )
+
+                        spline =
+                            -- Should we be using lastPoint or currentPoint??
+                            CubicSpline3d.fromControlPoints state.currentPoint c1 c2 cN
+
+                        splinePoints =
+                            spline
+                                |> CubicSpline3d.approximate (Quantity 1.0)
+                                |> Polyline3d.segments
+                                |> List.map LineSegment3d.endPoint
+                                |> List.reverse
+                    in
+                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs)
+            in
+            { state
+                | currentPoint = Tuple.first curveRelativeFinalState
                 , outputs =
-                    (spline
-                        |> CubicSpline3d.approximate (Quantity 1.0)
-                        |> Polyline3d.segments
-                        |> List.map LineSegment3d.endPoint
-                        |> List.reverse
-                    )
+                    Tuple.second curveRelativeFinalState
+                        ++ state.outputs
+            }
+
+        CurveTo Absolute triples ->
+            let
+                curveAbsoluteInitialState =
+                    ( state.currentPoint, [] )
+
+                curveAbsoluteFinalState =
+                    List.foldl curveAbsolute curveAbsoluteInitialState triples
+
+                curveAbsolute ( ( dx1, dy1 ), ( dx2, dy2 ), ( dxN, dyN ) ) ( lastPoint, outputs ) =
+                    let
+                        ( c1, c2, cN ) =
+                            ( Point3d.meters dx1 dy1 0.0
+                            , Point3d.meters dx2 dy2 0.0
+                            , Point3d.meters dxN dyN 0.0
+                            )
+
+                        spline =
+                            -- Should we be using lastPoint or currentPoint??
+                            CubicSpline3d.fromControlPoints state.currentPoint c1 c2 cN
+
+                        splinePoints =
+                            spline
+                                |> CubicSpline3d.approximate (Quantity 1.0)
+                                |> Polyline3d.segments
+                                |> List.map LineSegment3d.endPoint
+                                |> List.reverse
+                    in
+                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs)
+            in
+            { state
+                | currentPoint = Tuple.first curveAbsoluteFinalState
+                , outputs =
+                    Tuple.second curveAbsoluteFinalState
                         ++ state.outputs
             }
 
