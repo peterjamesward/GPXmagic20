@@ -1528,7 +1528,7 @@ footer : Model -> Element Msg
 footer model =
     -- Rather hacky addition of secondary map here.
     column [ spacing 20, padding 10 ]
-        [  row [ spacing 20, padding 10 ]
+        [ row [ spacing 20, padding 10 ]
             [ SvgPathExtractor.view SvgMessage
             , mapSketchEnable model
             ]
@@ -1649,22 +1649,22 @@ contentArea model =
 
         verticalBar =
             if model.track /= Nothing then
-              el
-                  [ width <| px 4
-                  , height fill
-                  , Background.color FlatColors.BritishPalette.seabrook
-                  ]
-                  none
+                el
+                    [ width <| px 4
+                    , height fill
+                    , Background.color FlatColors.BritishPalette.seabrook
+                    ]
+                    none
 
             else
-              none
+                none
 
         showSplitControl =
             if model.track /= Nothing then
-              splitter
+                splitter
 
             else
-              none
+                none
     in
     column [ width fill, padding 5 ]
         [ row []
@@ -1674,7 +1674,7 @@ contentArea model =
         , row [ width fill, spacing 5, padding 5 ]
             [ el [ width <| px model.splitInPixels, alignTop ] leftPane
             , verticalBar
-            , el [  alignTop, width fill ] rightPane
+            , el [ alignTop, width fill ] rightPane
             ]
         , row []
             [ el [ width <| px minimumLeftPane ] none
@@ -1944,7 +1944,12 @@ toolsAccordion model =
       , state = Contracted
       , content =
             Maybe.map
-                (RotateRoute.view model.displayOptions.imperialMeasure model.rotateOptions RotateMessage)
+                (RotateRoute.view
+                    model.displayOptions.imperialMeasure
+                    model.rotateOptions
+                    model.lastMapClick
+                    RotateMessage
+                )
                 model.track
                 |> Maybe.withDefault none
       , info = RotateRoute.info

@@ -2,11 +2,9 @@ module SvgPathExtractor exposing (..)
 
 import BoundingBox3d
 import CubicSpline3d
-import Delay
-import Element exposing (Element, alignTop, centerX, column, fill, padding, row, spacing, spacingXY, text)
+import Element exposing (Element, text)
 import Element.Input as Input
 import File exposing (File)
-import File.Download
 import File.Select as Select
 import GpxParser exposing (asRegex)
 import Length exposing (Meters)
@@ -14,12 +12,11 @@ import LineSegment3d
 import LocalCoords exposing (LocalCoords)
 import Path.LowLevel exposing (DrawTo(..), Mode(..), MoveTo(..), SubPath)
 import Path.LowLevel.Parser as PathParser
+import Plane3d
 import Point3d exposing (Point3d)
 import Polyline3d
 import Quantity exposing (Quantity(..))
 import Regex
-import Spherical exposing (metresPerDegree)
-import SvgParser exposing (SvgNode(..))
 import Task
 import Track exposing (Track)
 import TrackPoint
@@ -44,7 +41,6 @@ type Msg
     = ReadFile
     | FileSelected File
     | FileLoaded String
-    | WritePaths (List (List (Point3d Meters LocalCoords)))
 
 
 type alias Path =
@@ -116,25 +112,8 @@ update msg model wrap =
                     }
             in
             ( { model | track = Just newTrack }
-            , Delay.after 100 <| (wrap << WritePaths) [ points ]
+            , Cmd.none
             )
-
-        WritePaths paths ->
-            case paths of
-                path1 :: rest ->
-                    let
-                        content =
-                            drawPath path1
-                    in
-                    ( model
-                    , Cmd.batch
-                        [ File.Download.string (model.svgFilename ++ ".gpx") "text/xml" content
-                        , Delay.after 1000 <| (wrap << WritePaths) rest
-                        ]
-                    )
-
-                _ ->
-                    ( model, Cmd.none )
 
 
 view : (Msg -> msg) -> Element msg
@@ -144,17 +123,6 @@ view wrap =
         { onPress = Just (wrap ReadFile)
         , label = text "Extract paths from SVG file"
         }
-
-
-drawPaths : List (List (Point3d Meters LocalCoords)) -> Element Msg
-drawPaths paths =
-    column [ spacing 10, padding 10 ] <|
-        List.map (drawPath >> text) paths
-
-
-drawPath : List (Point3d Meters LocalCoords) -> String
-drawPath path =
-    path |> writeGPX
 
 
 type alias PathState =
@@ -177,6 +145,12 @@ convertToPoints path =
     List.foldl followSubPath pathState path
         |> .outputs
         |> List.reverse
+        |> List.map flipY
+
+
+flipY : Point3d Meters LocalCoords -> Point3d Meters LocalCoords
+flipY =
+    Point3d.mirrorAcross Plane3d.zx
 
 
 followSubPath : SubPath -> PathState -> PathState
@@ -295,7 +269,7 @@ drawCommand command state =
 
                         spline =
                             -- Should we be using lastPoint or currentPoint??
-                            CubicSpline3d.fromControlPoints state.currentPoint c1 c2 cN
+                            CubicSpline3d.fromControlPoints lastPoint c1 c2 cN
 
                         splinePoints =
                             spline
@@ -315,75 +289,3 @@ drawCommand command state =
 
         _ ->
             state
-
-
-
-{- i know this should be combined with the main WriteGPX but I lack the will. -}
-
-
-preamble =
-    """<?xml version='1.0' encoding='UTF-8'?>
-<gpx version="1.1"
-  creator="https://www.stepwiserefinement.co.uk"
-  xmlns="http://www.topografix.com/GPX/1/1"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.topografix.com/GPX/1/1
-  http://www.topografix.com/GPX/1/1/gpx.xsd">
-  <metadata>
-    <name>Cycling</name>
-    <author>
-      <link href="https://www.stepwiserefinement.co.uk">
-        <text>GPXmagic 2.0</text>
-        <type>text/html</type>
-      </link>
-    </author>
-  </metadata>
-"""
-
-
-writePreamble =
-    preamble
-
-
-writeTrackPoint : Point3d Meters LocalCoords -> String
-writeTrackPoint p =
-    let
-        ( lat, lon, ele ) =
-            Point3d.toTuple Length.inMeters p
-    in
-    -- The +1.0 here is to avoid scientific notation.
-    "<trkpt lat=\""
-        ++ String.fromFloat (lat / metresPerDegree + 1.0)
-        ++ "\" lon=\""
-        ++ String.fromFloat (lon / metresPerDegree + 1.0)
-        ++ "\">"
-        ++ "<ele>"
-        ++ String.fromFloat ele
-        ++ "</ele>"
-        ++ "</trkpt>\n"
-
-
-writeTrack : String -> List (Point3d Meters LocalCoords) -> String
-writeTrack name trackPoints =
-    """
-  <trk>
-    <name>"""
-        ++ name
-        ++ """</name>
-    <trkseg>
-"""
-        ++ String.concat (List.map writeTrackPoint trackPoints)
-        ++ """    </trkseg>
-  </trk>
- """
-
-
-writeFooter =
-    "</gpx>"
-
-
-writeGPX : List (Point3d Meters LocalCoords) -> String
-writeGPX points =
-    writePreamble
-        ++ writeTrack "Track from SVG" points
-        ++ writeFooter

@@ -207,8 +207,8 @@ rescale settings track =
     )
 
 
-view : Bool -> Options -> (Msg -> msg) -> Track -> Element msg
-view imperial options wrapper track =
+view : Bool -> Options -> (Float, Float) -> (Msg -> msg) -> Track -> Element msg
+view imperial options (lastX, lastY) wrapper track =
     let
         rotationSlider =
             Input.slider
@@ -269,9 +269,9 @@ view imperial options wrapper track =
                 , label =
                     text <|
                         "Recentre at\n("
-                            ++ String.fromFloat lon
+                            ++ String.fromFloat lastX
                             ++ ", "
-                            ++ String.fromFloat lat
+                            ++ String.fromFloat lastY
                             ++ ")"
                 }
 

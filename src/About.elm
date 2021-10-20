@@ -10,9 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.10 update 2021-10-20
+## 2.4.12 update 2021-10-20
 
-- FIXED: Right hand splitter pane had lost its elasticity.
+- FIXED: Fixed error in SVG absolute spline rendering. (Yeah, I know.)
 
 - UPDATE: SVG import is better, at least for some files. It will extract "path" information and
 load directly into the track editor. You'll want to use _Lift & Shift_ to move, rotate and scale.
