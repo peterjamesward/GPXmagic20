@@ -10,10 +10,13 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.9 update 2021-10-18
+## 2.4.10 update 2021-10-20
 
-- Revert to old back & forward buttons. As @Samir points out, you get auto-repeat for
-free just by using the space bar. Silly me!
+- FIXED: Right hand splitter pane had lost its elasticity.
+
+- UPDATE: SVG import is better, at least for some files. It will extract "path" information and
+load directly into the track editor. You'll want to use _Lift & Shift_ to move, rotate and scale.
+Only supports M,m,L,l,C and c SVG commands, until someone needs more.
 
 ## Can I support this work?
 

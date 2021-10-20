@@ -1,5 +1,6 @@
 module SvgPathExtractor exposing (..)
 
+import BoundingBox3d
 import CubicSpline3d
 import Delay
 import Element exposing (Element, alignTop, centerX, column, fill, padding, row, spacing, spacingXY, text)
@@ -10,6 +11,7 @@ import File.Select as Select
 import GpxParser exposing (asRegex)
 import Length exposing (Meters)
 import LineSegment3d
+import LocalCoords exposing (LocalCoords)
 import Path.LowLevel exposing (DrawTo(..), Mode(..), MoveTo(..), SubPath)
 import Path.LowLevel.Parser as PathParser
 import Point3d exposing (Point3d)
@@ -19,27 +21,21 @@ import Regex
 import Spherical exposing (metresPerDegree)
 import SvgParser exposing (SvgNode(..))
 import Task
+import Track exposing (Track)
+import TrackPoint
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
 
 
 type alias Options =
-    { svg : Result String SvgNode
-    , paths : List (List SubPath)
-    , points : List (List (Point3d Meters LocalCoords))
+    { track : Maybe Track
     , svgFilename : String
     }
 
 
-type LocalCoords
-    = LocalCoords
-
-
 empty : Options
 empty =
-    { svg = Err "Hello world"
-    , paths = []
-    , points = []
+    { track = Nothing
     , svgFilename = "SVG"
     }
 
@@ -61,7 +57,7 @@ update : Msg -> Options -> (Msg -> msg) -> ( Options, Cmd msg )
 update msg model wrap =
     case msg of
         ReadFile ->
-            ( model
+            ( { model | track = Nothing }
             , Select.file [ "text/svg" ] (wrap << FileSelected)
             )
 
@@ -72,20 +68,16 @@ update msg model wrap =
 
         FileLoaded content ->
             let
-                --TODO: Must keep paths in separate output files.
-                --TODO: Some of the curve following code is close, but wrong.
-
+                --TODO: Combine paths and open directly in GPX editor.
                 pathStrings =
+                    -- Not bothering with XML/SVG parser, go straight to low-level parser.
                     Regex.find (asRegex "\\sd=\\\"(.*)\\\"") content
                         |> List.map .submatches
                         |> List.concat
-                        |> List.map (Maybe.withDefault "")
+                        |> List.filterMap identity
 
                 paths =
                     pathStrings |> List.map PathParser.parse
-
-                _ =
-                    Debug.log "Paths" paths
 
                 subPaths =
                     paths
@@ -103,9 +95,28 @@ update msg model wrap =
                     subPaths
                         |> List.concat
                         |> convertToPoints
+
+                trackPoints =
+                    List.map TrackPoint.trackPointFromPoint points
+                        |> TrackPoint.prepareTrackPoints
+
+                newTrack =
+                    { trackPoints = trackPoints
+                    , trackName = Just model.svgFilename
+                    , currentNode =
+                        List.head trackPoints
+                            |> Maybe.withDefault (TrackPoint.trackPointFromPoint Point3d.origin)
+                    , markedNode = Nothing
+                    , graph = Nothing
+                    , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
+                    , box =
+                        points
+                            |> BoundingBox3d.hullN
+                            |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                    }
             in
-            ( model
-            , Delay.after 100 <| (wrap << WritePaths) [points]
+            ( { model | track = Just newTrack }
+            , Delay.after 100 <| (wrap << WritePaths) [ points ]
             )
 
         WritePaths paths ->
@@ -175,9 +186,6 @@ followSubPath sub state =
             case sub.moveto of
                 MoveTo Absolute ( x, y ) ->
                     let
-                        _ =
-                            Debug.log "MoveAbsolute" newPoint
-
                         newPoint =
                             Point3d.meters x y 0.0
                     in
@@ -188,9 +196,6 @@ followSubPath sub state =
 
                 MoveTo Relative ( dx, dy ) ->
                     let
-                        _ =
-                            Debug.log "MoveRelative" newPoint
-
                         newPoint =
                             state.currentPoint
                                 |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
@@ -205,7 +210,7 @@ followSubPath sub state =
 
 drawCommand : DrawTo -> PathState -> PathState
 drawCommand command state =
-    -- Handling only Absolute variants and simple Bezier.
+    --TODO: ClosePath.
     case command of
         LineTo Absolute [ ( x, y ) ] ->
             let
@@ -247,14 +252,14 @@ drawCommand command state =
                 curveRelative ( ( dx1, dy1 ), ( dx2, dy2 ), ( dxN, dyN ) ) ( lastPoint, outputs ) =
                     let
                         ( c1, c2, cN ) =
-                            ( state.currentPoint |> Point3d.translateBy (Vector3d.meters dx1 dy1 0.0)
-                            , state.currentPoint |> Point3d.translateBy (Vector3d.meters dx2 dy2 0.0)
-                            , state.currentPoint |> Point3d.translateBy (Vector3d.meters dxN dyN 0.0)
+                            ( lastPoint |> Point3d.translateBy (Vector3d.meters dx1 dy1 0.0)
+                            , lastPoint |> Point3d.translateBy (Vector3d.meters dx2 dy2 0.0)
+                            , lastPoint |> Point3d.translateBy (Vector3d.meters dxN dyN 0.0)
                             )
 
                         spline =
                             -- Should we be using lastPoint or currentPoint??
-                            CubicSpline3d.fromControlPoints state.currentPoint c1 c2 cN
+                            CubicSpline3d.fromControlPoints lastPoint c1 c2 cN
 
                         splinePoints =
                             spline
@@ -263,7 +268,7 @@ drawCommand command state =
                                 |> List.map LineSegment3d.endPoint
                                 |> List.reverse
                     in
-                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs)
+                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs )
             in
             { state
                 | currentPoint = Tuple.first curveRelativeFinalState
@@ -299,7 +304,7 @@ drawCommand command state =
                                 |> List.map LineSegment3d.endPoint
                                 |> List.reverse
                     in
-                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs)
+                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs )
             in
             { state
                 | currentPoint = Tuple.first curveAbsoluteFinalState

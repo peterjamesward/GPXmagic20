@@ -803,9 +803,14 @@ update msg model =
                         model.svgData
                         SvgMessage
             in
-            ( { model | svgData = newData }
-            , cmd
-            )
+            case newData.track of
+                Just isTrack ->
+                    isTrack |> applyTrack model
+
+                Nothing ->
+                    ( { model | svgData = newData }
+                    , cmd
+                    )
 
         EnableMapSketchMode ->
             let
@@ -1669,7 +1674,7 @@ contentArea model =
         , row [ width fill, spacing 5, padding 5 ]
             [ el [ width <| px model.splitInPixels, alignTop ] leftPane
             , verticalBar
-            , el [  alignTop ] rightPane
+            , el [  alignTop, width fill ] rightPane
             ]
         , row []
             [ el [ width <| px minimumLeftPane ] none
