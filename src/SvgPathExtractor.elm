@@ -64,7 +64,6 @@ update msg model wrap =
 
         FileLoaded content ->
             let
-                --TODO: Combine paths and open directly in GPX editor.
                 pathStrings =
                     -- Not bothering with XML/SVG parser, go straight to low-level parser.
                     Regex.find (asRegex "\\sd=\\\"(.*)\\\"") content
@@ -165,7 +164,7 @@ followSubPath sub state =
                     in
                     { state
                         | currentPoint = newPoint
-                        , outputs = [ newPoint ]
+                        , outputs = newPoint :: state.outputs
                     }
 
                 MoveTo Relative ( dx, dy ) ->
@@ -176,7 +175,7 @@ followSubPath sub state =
                     in
                     { state
                         | currentPoint = newPoint
-                        , outputs = [ newPoint ]
+                        , outputs = newPoint :: state.outputs
                     }
     in
     List.foldl drawCommand subPathState sub.drawtos
@@ -185,13 +184,31 @@ followSubPath sub state =
 drawCommand : DrawTo -> PathState -> PathState
 drawCommand command state =
     --TODO: ClosePath.
+    --let
+    --    _ =
+    --        Debug.log "Command" command
+    --in
     case command of
-        LineTo Absolute [ ( x, y ) ] ->
+        LineTo Absolute points ->
             let
-                newPoint =
-                    Point3d.meters x y 0.0
+                initialState =
+                    -- Current point and list of outputs
+                    ( state.currentPoint, [] )
+
+                finalState =
+                    List.foldl absoluteLine initialState points
+
+                absoluteLine ( x, y ) ( lastPoint, outputs ) =
+                    let
+                        nextPoint =
+                            Point3d.meters x y 0.0
+                    in
+                    ( nextPoint, nextPoint :: outputs )
             in
-            { state | outputs = newPoint :: state.outputs }
+            { state
+                | currentPoint = Tuple.first finalState
+                , outputs = Tuple.second finalState ++ state.outputs
+            }
 
         LineTo Relative points ->
             -- This is a fold over the list of points.
@@ -214,6 +231,34 @@ drawCommand command state =
                 | currentPoint = Tuple.first finalState
                 , outputs = Tuple.second finalState ++ state.outputs
             }
+
+        Horizontal Absolute xs ->
+            let
+                pairs =
+                    xs |> List.map (\x -> ( x, 0 ))
+            in
+            drawCommand (LineTo Absolute pairs) state
+
+        Horizontal Relative dxs ->
+            let
+                pairs =
+                    dxs |> List.map (\dx -> ( dx, 0 ))
+            in
+            drawCommand (LineTo Relative pairs) state
+
+        Vertical Absolute ys ->
+            let
+                pairs =
+                    ys |> List.map (\y -> ( 0, y ))
+            in
+            drawCommand (LineTo Absolute pairs) state
+
+        Vertical Relative dys ->
+            let
+                pairs =
+                    dys |> List.map (\dy -> ( 0, dy ))
+            in
+            drawCommand (LineTo Relative pairs) state
 
         CurveTo Relative triples ->
             let
