@@ -12,6 +12,8 @@ May not be fixable. Maybe isolate test case?
 
 # TO-DO
 
+Factor the PortMessage handling out of main::update.
+
 Try to isolate Safari problem.
 
 Try electron for native wrapper. See if multiple windows possible.

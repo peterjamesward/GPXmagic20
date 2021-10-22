@@ -10,9 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.13 update 2021-10-21
+## 2.4.14 update 2021-10-22
 
-- SVG now supports H, h, V and v commands, because InkScape uses them.
+- SVG seems to do a better job of handling multiple "path" segments, at least for InkScape.
 
 ## Can I support this work?
 

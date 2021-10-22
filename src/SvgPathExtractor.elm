@@ -67,12 +67,15 @@ update msg model wrap =
                 pathStrings =
                     -- Not bothering with XML/SVG parser, go straight to low-level parser.
                     Regex.find (asRegex "\\sd=\\\"(.*)\\\"") content
+
+                submatches =
+                    pathStrings
                         |> List.map .submatches
                         |> List.concat
                         |> List.filterMap identity
 
                 paths =
-                    pathStrings |> List.map PathParser.parse
+                    submatches |> List.map PathParser.parse
 
                 subPaths =
                     paths
@@ -170,8 +173,12 @@ followSubPath sub state =
                 MoveTo Relative ( dx, dy ) ->
                     let
                         newPoint =
-                            state.currentPoint
-                                |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
+                            --- This feels like the wrong fix but the relative MoveTo is
+                            -- not relative to what I think it is!!
+                            Point3d.meters dx dy 0.0
+
+                        --state.currentPoint
+                        --    |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
                     in
                     { state
                         | currentPoint = newPoint
@@ -277,7 +284,6 @@ drawCommand command state =
                             )
 
                         spline =
-                            -- Should we be using lastPoint or currentPoint??
                             CubicSpline3d.fromControlPoints lastPoint c1 c2 cN
 
                         splinePoints =
@@ -287,7 +293,7 @@ drawCommand command state =
                                 |> List.map LineSegment3d.endPoint
                                 |> List.reverse
                     in
-                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs )
+                    ( cN, splinePoints ++ outputs )
             in
             { state
                 | currentPoint = Tuple.first curveRelativeFinalState
@@ -323,7 +329,7 @@ drawCommand command state =
                                 |> List.map LineSegment3d.endPoint
                                 |> List.reverse
                     in
-                    ( CubicSpline3d.endPoint spline, splinePoints ++ outputs )
+                    ( cN, splinePoints ++ outputs )
             in
             { state
                 | currentPoint = Tuple.first curveAbsoluteFinalState
