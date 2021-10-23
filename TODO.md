@@ -5,9 +5,7 @@
 
 # TO-DO
 
-WIP: Show road info (esp. Gradient) in Flythrough. (Don't update ViewContext, pass through whatever is needed.)
-
-First person view does not work well on descents.
+Interpolate uphill colouring.
 
 SVG: Try fabric.js or https://github.com/Pomax/js-svg-path to improve SVG.
 

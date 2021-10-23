@@ -3,7 +3,6 @@ module Utils exposing (..)
 import Angle exposing (Angle)
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color)
-import ColourPalette
 import Element exposing (..)
 import Element.Background as Background
 import FeatherIcons
@@ -59,20 +58,21 @@ gradientHue2 slope =
     if slope < 0 then
         gradientHue slope
 
-    else if slope <= 3.0 then
-        hueOf Color.lightGreen
-
     else if slope <= 6.0 then
-        hueOf Color.yellow
+        interpolate (slope / 6.0) (hueOf Color.lightGreen) (hueOf Color.yellow)
 
     else if slope <= 9.0 then
-        hueOf Color.orange
+        interpolate ((slope - 6.0) / 3.0) (hueOf Color.yellow) (hueOf Color.orange)
 
     else if slope <= 12.0 then
-        hueOf Color.red
+        interpolate ((slope - 9.0) / 3.0) (hueOf Color.orange) (hueOf Color.red)
 
     else
-        hueOf Color.black
+        interpolate ((clamp 12 30 slope - 12.0) / 18.0) (hueOf Color.red) (hueOf Color.black)
+
+
+interpolate x a b =
+    x * a + (1.0 - x) * b
 
 
 gradientColourPastel : Float -> Color.Color

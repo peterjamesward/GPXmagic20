@@ -25,7 +25,7 @@ import Scene3d exposing (backgroundColor)
 import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
 import SketchPlane3d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackPoint exposing (TrackPoint, gradientFromPoint, pointInEarthCoordinates)
 import Vector3d
 import ViewingContext exposing (DragAction(..), ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
@@ -221,13 +221,13 @@ viewScene :
     -> Element msg
 viewScene visible context options scene wrapper =
     let
-        flythroughHUD = case context.flythrough of
-            Just flythrough ->
-                (inFront <| headUpDisplay flythrough.gradient)
+        flythroughHUD =
+            case context.flythrough of
+                Just flythrough ->
+                    inFront <| headUpDisplay flythrough.gradient
 
-            Nothing ->
-                (inFront none)
-
+                Nothing ->
+                    inFront none
     in
     if visible then
         el
@@ -278,6 +278,11 @@ deriveViewPointAndCamera view =
                         }
 
                 ( Nothing, Just current ) ->
+                    let
+                        localGradient =
+                            Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy) current.beforeDirection
+                                |> Maybe.withDefault (Angle.degrees 0.0)
+                    in
                     Viewpoint3d.orbitZ
                         { focalPoint = current.xyz
                         , azimuth =
@@ -289,8 +294,8 @@ deriveViewPointAndCamera view =
 
                                 Nothing ->
                                     Angle.degrees 0
-                        , elevation = Angle.degrees 10.0
-                        , distance = Length.meters 50
+                        , elevation = Angle.degrees 10.0 |> Quantity.minus localGradient
+                        , distance = Length.meters 5
                         }
 
                 _ ->
@@ -305,7 +310,7 @@ deriveViewPointAndCamera view =
     in
     Camera3d.perspective
         { viewpoint = cameraViewpoint
-        , verticalFieldOfView = Angle.degrees <| 120.0 - view.zoomLevel * 4.0
+        , verticalFieldOfView = Angle.degrees <| 120.0 - view.zoomLevel * 2.0
         }
 
 

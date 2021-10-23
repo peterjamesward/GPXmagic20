@@ -12,7 +12,11 @@ aboutText =
 
 ## 2.4.14 update 2021-10-22
 
-- SVG seems to do a better job of handling multiple "path" segments, at least for InkScape.
+- Adjusted elevation in 1st person view to reduce the road obscuring the view in descents.
+
+- Added gradient display in 1st person, effective only during Flythrough.
+
+- Adjusted gradient colouring, more in line with other tools.
 
 ## Can I support this work?
 
