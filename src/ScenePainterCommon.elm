@@ -96,6 +96,8 @@ headUpDisplay gradient =
         , width <| px 100
         , height <| px 100
         , Border.rounded 100
+        , Border.width 2
+        , Border.color white
         ]
     <|
         el [ centerX, centerY ] <|

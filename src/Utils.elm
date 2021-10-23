@@ -33,15 +33,8 @@ showMaybe mi =
 gradientHue : Float -> Float
 gradientHue slope =
     let
-        fudge raw =
-            if raw >= 0 then
-                sqrt raw
-
-            else
-                -1.0 * sqrt (abs raw)
-
         x =
-            (clamp -5.0 5.0 (fudge slope) + 5.0) / 10.0
+            (clamp -20.0 20.0 slope + 20.0) / 40.0
 
         steepestAscentHue =
             (Color.toHsla Color.red).hue
@@ -52,14 +45,44 @@ gradientHue slope =
     x * steepestAscentHue + (1.0 - x) * steepestDescentHue
 
 
+gradientHue2 : Float -> Float
+gradientHue2 slope =
+    let
+        hueOf col =
+            let
+                { hue, saturation, lightness, alpha } =
+                    Color.toHsla col
+            in
+            hue
+    in
+    -- Closer to "standard" colouring.
+    if slope < 0 then
+        gradientHue slope
+
+    else if slope <= 3.0 then
+        hueOf Color.lightGreen
+
+    else if slope <= 6.0 then
+        hueOf Color.yellow
+
+    else if slope <= 9.0 then
+        hueOf Color.orange
+
+    else if slope <= 12.0 then
+        hueOf Color.red
+
+    else
+        hueOf Color.black
+
+
 gradientColourPastel : Float -> Color.Color
 gradientColourPastel slope =
-    Color.hsl (gradientHue slope) 0.6 0.7
+    Color.hsl (gradientHue2 slope) 0.6 0.7
 
 
 gradientColourVivid : Float -> Color.Color
 gradientColourVivid slope =
-    Color.hsl (gradientHue slope) 1.0 0.4
+    Color.hsl (gradientHue2 slope) 1.0 0.4
 
 
 elmuiColour : Color.Color -> Element.Color
