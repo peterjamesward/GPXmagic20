@@ -30,40 +30,45 @@ showMaybe mi =
             "----"
 
 
-gradientColourPastel : Float -> Color.Color
-gradientColourPastel slope =
+gradientHue : Float -> Float
+gradientHue slope =
     let
+        fudge raw =
+            if raw >= 0 then
+                sqrt raw
+
+            else
+                -1.0 * sqrt (abs raw)
+
         x =
-            (clamp -20.0 20.0 slope + 20.0) / 40.0
+            (clamp -5.0 5.0 (fudge slope) + 5.0) / 10.0
 
         steepestAscentHue =
             (Color.toHsla Color.red).hue
 
         steepestDescentHue =
             (Color.toHsla Color.purple).hue
-
-        hue =
-            x * steepestAscentHue + (1.0 - x) * steepestDescentHue
     in
-    Color.hsl hue 0.6 0.7
+    x * steepestAscentHue + (1.0 - x) * steepestDescentHue
+
+
+gradientColourPastel : Float -> Color.Color
+gradientColourPastel slope =
+    Color.hsl (gradientHue slope) 0.6 0.7
 
 
 gradientColourVivid : Float -> Color.Color
 gradientColourVivid slope =
+    Color.hsl (gradientHue slope) 1.0 0.4
+
+
+elmuiColour : Color.Color -> Element.Color
+elmuiColour c =
     let
-        x =
-            (clamp -20.0 20.0 slope + 20.0) / 40.0
-
-        steepestAscentHue =
-            (Color.toHsla Color.red).hue
-
-        steepestDescentHue =
-            (Color.toHsla Color.purple).hue
-
-        hue =
-            x * steepestAscentHue + (1.0 - x) * steepestDescentHue
+        { red, green, blue, alpha } =
+            Color.toRgba c
     in
-    Color.hsl hue 1.0 0.4
+    Element.rgb red green blue
 
 
 terrainColourFromHeight : Float -> Color.Color
@@ -132,6 +137,18 @@ showDecimal0 x =
         locale =
             { usLocale
                 | decimals = Exact 0
+                , thousandSeparator = ""
+                , negativePrefix = "-"
+            }
+    in
+    format locale x
+
+
+showDecimal1 x =
+    let
+        locale =
+            { usLocale
+                | decimals = Exact 1
                 , thousandSeparator = ""
                 , negativePrefix = "-"
             }

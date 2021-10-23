@@ -307,6 +307,7 @@ view : ( Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPan
 view ( scene, profile ) options wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
+    -- Essentially, do not create and destroy the map DIV.
     -- Further complicated by Map sketch mode.
     if pane.visible then
         column []

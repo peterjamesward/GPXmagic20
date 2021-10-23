@@ -22,7 +22,7 @@ import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
 import Scene3d exposing (backgroundColor)
-import ScenePainterCommon exposing (ImageMsg(..), trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
+import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
@@ -220,9 +220,19 @@ viewScene :
     -> (ImageMsg -> msg)
     -> Element msg
 viewScene visible context options scene wrapper =
+    let
+        flythroughHUD = case context.flythrough of
+            Just flythrough ->
+                (inFront <| headUpDisplay flythrough.gradient)
+
+            Nothing ->
+                (inFront none)
+
+    in
     if visible then
         el
             ((inFront <| zoomButtons wrapper)
+                :: flythroughHUD
                 :: withMouseCapture wrapper
             )
         <|
@@ -274,9 +284,8 @@ deriveViewPointAndCamera view =
                             case current.afterDirection of
                                 Just direction ->
                                     direction
-                                    |> Direction3d.reverse
-                                    |> Direction3d.azimuthIn SketchPlane3d.xy
-
+                                        |> Direction3d.reverse
+                                        |> Direction3d.azimuthIn SketchPlane3d.xy
 
                                 Nothing ->
                                     Angle.degrees 0

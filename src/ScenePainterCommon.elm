@@ -1,11 +1,13 @@
 module ScenePainterCommon exposing (..)
 
+import Angle
 import Axis3d exposing (Axis3d)
 import BoundingBox3d
 import ColourPalette exposing (white)
 import EarthConstants exposing (metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
-import Element.Background as Background
+import Element.Background as Background exposing (color)
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
@@ -21,7 +23,7 @@ import Pixels exposing (Pixels, inPixels)
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
-import Utils exposing (useIcon)
+import Utils exposing (elmuiColour, showDecimal0, showDecimal1, useIcon)
 import ViewingContext exposing (ViewingContext)
 
 
@@ -79,6 +81,25 @@ zoomButtons wrap =
             , label = useIcon FeatherIcons.maximize
             }
         ]
+
+
+headUpDisplay gradient =
+    el
+        [ alignTop
+        , alignLeft
+        , moveDown 10
+        , moveRight 10
+        , Background.color <| elmuiColour <| Utils.gradientColourPastel gradient
+        , Font.size 30
+        , Font.color white
+        , padding 6
+        , width <| px 100
+        , height <| px 100
+        , Border.rounded 100
+        ]
+    <|
+        el [ centerX, centerY ] <|
+            text (showDecimal1 gradient)
 
 
 onContextMenu : a -> Element.Attribute a

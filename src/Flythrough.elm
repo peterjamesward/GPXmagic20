@@ -1,5 +1,7 @@
 module Flythrough exposing (..)
 
+import Angle
+import Direction3d
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import FeatherIcons
@@ -9,10 +11,11 @@ import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import PostUpdateActions exposing (PostUpdateAction)
 import Quantity
+import SketchPlane3d
 import Speed
 import Time
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Utils exposing (showDecimal0, showShortMeasure, showSpeed, useIcon)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -44,6 +47,7 @@ type alias Flythrough =
     , pointsRemaining : List TrackPoint -- (could be a smart move O Pete)
     , lastUpdated : Time.Posix
     , running : Bool
+    , gradient : Float
     }
 
 
@@ -144,6 +148,7 @@ flythrough newTime flying speed =
                 Just
                     { flying
                         | metresFromRouteStart = newDistance
+                        , gradient = gradientFromPoint pointBehind
                         , lastUpdated = newTime
                         , cameraPosition = camera3d
                         , focusPoint = lookingAt
@@ -281,6 +286,7 @@ prepareFlythrough track options =
                 , cameraPosition = eyePoint
                 , focusPoint = focusPoint
                 , lastUpdated = options.modelTime
+                , gradient = gradientFromPoint pt1
                 }
 
         _ ->

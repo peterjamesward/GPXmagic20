@@ -1,18 +1,19 @@
 
 # BUGS
 
-SVG parser should report errors. 
-At least summarise outcome.
-
-Sometimes some buttons losing style in Safari 15.0.
-This has been remarked by others on Slack elm-ui channel.
-May not be fixable. Maybe isolate test case?
-
 ---
 
 # TO-DO
 
-Factor the PortMessage handling out of main::update.
+WIP: Show road info (esp. Gradient) in Flythrough. (Don't update ViewContext, pass through whatever is needed.)
+
+First person view does not work well on descents.
+
+SVG: Try fabric.js or https://github.com/Pomax/js-svg-path to improve SVG.
+
+DEBT: Factor the PortMessage handling out of main::update.
+
+DEBT: Revert currentPoint to : Int, avoid stale state worries.
 
 Try to isolate Safari problem.
 
