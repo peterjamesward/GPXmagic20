@@ -284,8 +284,6 @@ convertToPoints : PathAndTransform -> PathState -> PathState
 convertToPoints pathAndTransform pathState =
     -- We now fold this over the paths so need to track current point externally.
     let
-        _ = Debug.log "transform" pathAndTransform.transform
-
         applyTransform : Point3d Meters LocalCoords -> Point3d Meters LocalCoords
         applyTransform before =
             before
