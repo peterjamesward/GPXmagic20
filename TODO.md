@@ -5,13 +5,20 @@
 
 # TO-DO
 
-Interpolate uphill colouring.
-
-SVG: Try fabric.js or https://github.com/Pomax/js-svg-path to improve SVG.
+SVG: Implement:
+- transform="scale(0.26458333)
+- transform="matrix(0.26458333,0,0,0.26458333,90.802455,0.5260581)
+- 
+- drawing-1 is not good, despite no transforms. 
+- Think the initial 'm' is not what I think, second path is "m [ x,y ]"
 
 DEBT: Factor the PortMessage handling out of main::update.
 
 DEBT: Revert currentPoint to : Int, avoid stale state worries.
+
+Use elevation from second route, starting at marker.
+
+Detect crossings and insert under/overpass.
 
 Try to isolate Safari problem.
 

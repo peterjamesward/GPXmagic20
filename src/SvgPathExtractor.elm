@@ -1,14 +1,15 @@
 module SvgPathExtractor exposing (..)
 
+import AltMath.Matrix4 as AltMath
 import BoundingBox3d
 import CubicSpline3d
 import Element exposing (Element, text)
 import Element.Input as Input
 import File exposing (File)
 import File.Select as Select
-import GpxParser exposing (asRegex)
 import Length exposing (Meters)
 import LineSegment3d
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Path.LowLevel exposing (DrawTo(..), Mode(..), MoveTo(..), SubPath)
 import Path.LowLevel.Parser as PathParser
@@ -16,12 +17,12 @@ import Plane3d
 import Point3d exposing (Point3d)
 import Polyline3d
 import Quantity exposing (Quantity(..))
-import Regex
 import Task
 import Track exposing (Track)
 import TrackPoint
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
+import XmlParser exposing (Node(..))
 
 
 type alias Options =
@@ -63,59 +64,141 @@ update msg model wrap =
             )
 
         FileLoaded content ->
-            let
-                pathStrings =
-                    -- Not bothering with XML/SVG parser, go straight to low-level parser.
-                    Regex.find (asRegex "\\sd=\\\"(.*)\\\"") content
+            processXML model content
 
-                submatches =
-                    pathStrings
-                        |> List.map .submatches
-                        |> List.concat
-                        |> List.filterMap identity
 
-                paths =
-                    submatches |> List.map PathParser.parse
+type alias PathInfo =
+    { d : Maybe String
+    , transform : Maybe String
+    }
 
-                subPaths =
-                    paths
-                        |> List.filterMap
-                            (\p ->
-                                case p of
-                                    Ok isPath ->
-                                        Just isPath
 
-                                    _ ->
-                                        Nothing
-                            )
+type alias PathAndTransform =
+    { subpaths : List SubPath
+    , transform : AltMath.Mat4
+    }
 
-                points =
-                    subPaths
-                        |> List.concat
-                        |> convertToPoints
 
-                trackPoints =
-                    List.map TrackPoint.trackPointFromPoint points
-                        |> TrackPoint.prepareTrackPoints
+identityTransform =
+    AltMath.identity
 
-                newTrack =
-                    { trackPoints = trackPoints
-                    , trackName = Just model.svgFilename
-                    , currentNode =
-                        List.head trackPoints
-                            |> Maybe.withDefault (TrackPoint.trackPointFromPoint Point3d.origin)
-                    , markedNode = Nothing
-                    , graph = Nothing
-                    , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
-                    , box =
-                        points
-                            |> BoundingBox3d.hullN
-                            |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
-                    }
-            in
-            ( { model | track = Just newTrack }
-            , Cmd.none
-            )
+
+parseTransform : String -> AltMath.Mat4
+parseTransform =
+    always identityTransform
+
+
+parsePathInfo : PathInfo -> PathAndTransform
+parsePathInfo { d, transform } =
+    let
+        parsedPath =
+            case Maybe.map PathParser.parse d |> Maybe.withDefault (Err []) of
+                Ok subpaths ->
+                    subpaths
+
+                Err _ ->
+                    []
+
+        parsedTransform =
+            transform |> Maybe.map parseTransform |> Maybe.withDefault identityTransform
+    in
+    { subpaths = parsedPath
+    , transform = parsedTransform
+    }
+
+
+processXML model content =
+    let
+        xmlParse =
+            XmlParser.parse content
+    in
+    case xmlParse of
+        Ok { processingInstructions, docType, root } ->
+            case root of
+                XmlParser.Element tag attributes children ->
+                    let
+                        _ =
+                            Debug.log "paths" pathInfos
+
+                        pathNodes =
+                            root
+                                |> getAllXmlTags
+                                |> List.filter (\( t, _ ) -> t == "path")
+
+                        pathInfos : List PathInfo
+                        pathInfos =
+                            -- This works.
+                            pathNodes
+                                |> List.map
+                                    (\( _, node ) ->
+                                        { d = node |> getAttribute "d"
+                                        , transform = node |> getAttribute "transform"
+                                        }
+                                    )
+
+                        untransformedPaths =
+                            pathInfos |> List.map parsePathInfo
+
+                        untransformedPoints =
+                            -- Now back where we were, add in the transforms.
+                            untransformedPaths
+                                |> List.map (.subpaths >> convertToPoints)
+                                |> List.concat
+                                |> List.map flipY
+
+                        trackPoints =
+                            untransformedPoints
+                                |> List.map TrackPoint.trackPointFromPoint
+                                |> TrackPoint.prepareTrackPoints
+
+                        newTrack =
+                            { trackPoints = trackPoints
+                            , trackName = Just model.svgFilename
+                            , currentNode =
+                                List.head trackPoints
+                                    |> Maybe.withDefault (TrackPoint.trackPointFromPoint Point3d.origin)
+                            , markedNode = Nothing
+                            , graph = Nothing
+                            , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
+                            , box =
+                                untransformedPoints
+                                    |> BoundingBox3d.hullN
+                                    |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                            }
+                    in
+                    ( { model | track = Just newTrack }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+getAllXmlTags : XmlParser.Node -> List ( String, XmlParser.Node )
+getAllXmlTags node =
+    case node of
+        XmlParser.Element tag attributes children ->
+            ( tag, node )
+                :: List.concatMap getAllXmlTags children
+
+        Text string ->
+            []
+
+
+getAttribute : String -> XmlParser.Node -> Maybe String
+getAttribute attribute node =
+    case node of
+        XmlParser.Element _ attributes _ ->
+            attributes
+                |> List.Extra.find
+                    (\{ name, value } -> name == attribute)
+                |> Maybe.map .value
+
+        Text _ ->
+            Nothing
 
 
 view : (Msg -> msg) -> Element msg
@@ -147,7 +230,6 @@ convertToPoints path =
     List.foldl followSubPath pathState path
         |> .outputs
         |> List.reverse
-        |> List.map flipY
 
 
 flipY : Point3d Meters LocalCoords -> Point3d Meters LocalCoords
@@ -167,21 +249,19 @@ followSubPath sub state =
                     in
                     { state
                         | currentPoint = newPoint
+                        , startPoint = newPoint
                         , outputs = newPoint :: state.outputs
                     }
 
                 MoveTo Relative ( dx, dy ) ->
                     let
                         newPoint =
-                            --- This feels like the wrong fix but the relative MoveTo is
-                            -- not relative to what I think it is!!
-                            Point3d.meters dx dy 0.0
-
-                        --state.currentPoint
-                        --    |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
+                            state.currentPoint
+                                |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
                     in
                     { state
                         | currentPoint = newPoint
+                        , startPoint = newPoint
                         , outputs = newPoint :: state.outputs
                     }
     in
@@ -336,6 +416,12 @@ drawCommand command state =
                 , outputs =
                     Tuple.second curveAbsoluteFinalState
                         ++ state.outputs
+            }
+
+        ClosePath ->
+            { state
+                | currentPoint = state.startPoint
+                , outputs = state.startPoint :: state.outputs
             }
 
         _ ->

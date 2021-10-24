@@ -295,7 +295,7 @@ deriveViewPointAndCamera view =
                                 Nothing ->
                                     Angle.degrees 0
                         , elevation = Angle.degrees 10.0 |> Quantity.minus localGradient
-                        , distance = Length.meters 5
+                        , distance = Length.meters 10
                         }
 
                 _ ->
@@ -305,7 +305,7 @@ deriveViewPointAndCamera view =
                                 |> Point3d.translateBy (Vector3d.meters 0 0 1.8)
                         , azimuth = view.azimuth
                         , elevation = view.elevation
-                        , distance = Length.meters 50.0
+                        , distance = Length.meters 10.0
                         }
     in
     Camera3d.perspective
