@@ -180,6 +180,7 @@ processXML model content =
                         pathNodes =
                             root
                                 |> getAllXmlTags
+                                |> List.reverse
                                 |> List.filter (\( t, _ ) -> t == "path")
 
                         pathInfos : List PathInfo
@@ -195,9 +196,6 @@ processXML model content =
                         untransformedPaths : List PathAndTransform
                         untransformedPaths =
                             pathInfos |> List.map parsePathInfo
-
-                        _ =
-                            Debug.log "paths" untransformedPaths
 
                         pathState : PathState
                         pathState =

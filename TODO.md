@@ -5,13 +5,6 @@
 
 # TO-DO
 
-SVG: Implement:
-- transform="scale(0.26458333)
-- transform="matrix(0.26458333,0,0,0.26458333,90.802455,0.5260581)
-- 
-- drawing-1 is not good, despite no transforms. 
-- Think the initial 'm' is not what I think, second path is "m [ x,y ]"
-
 DEBT: Factor the PortMessage handling out of main::update.
 
 DEBT: Revert currentPoint to : Int, avoid stale state worries.
