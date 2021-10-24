@@ -1,13 +1,15 @@
 module SvgPathExtractor exposing (..)
 
 import AltMath.Matrix4 as AltMath
+import AltMath.Vector3
 import BoundingBox3d
 import CubicSpline3d
 import Element exposing (Element, text)
 import Element.Input as Input
 import File exposing (File)
 import File.Select as Select
-import Length exposing (Meters)
+import GpxParser exposing (asRegex)
+import Length exposing (Meters, inMeters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -17,6 +19,7 @@ import Plane3d
 import Point3d exposing (Point3d)
 import Polyline3d
 import Quantity exposing (Quantity(..))
+import Regex
 import Task
 import Track exposing (Track)
 import TrackPoint
@@ -84,8 +87,63 @@ identityTransform =
 
 
 parseTransform : String -> AltMath.Mat4
-parseTransform =
-    always identityTransform
+parseTransform text =
+    let
+        value x =
+            case x of
+                Just val ->
+                    String.toFloat val
+
+                _ ->
+                    Nothing
+
+        hasScale =
+            --TODO: Optional y scale value!
+            text
+                |> Regex.find (asRegex "scale\\((-?\\d*\\.?\\d*)\\)")
+                |> List.map .submatches
+                |> List.concat
+                |> List.filterMap value
+                |> List.head
+
+        hasMatrix =
+            text
+                |> Regex.find (asRegex "matrix\\((-?\\d*\\.?\\d*),(-?\\d*\\.?\\d*),(-?\\d*\\.?\\d*),(-?\\d*\\.?\\d*),(-?\\d*\\.?\\d*),(-?\\d*\\.?\\d*)\\)")
+                |> List.map .submatches
+                |> List.concat
+                |> List.filterMap value
+
+        applyScale baseMatrix =
+            case hasScale of
+                Just scale ->
+                    baseMatrix |> AltMath.scale3 scale scale 1.0
+
+                Nothing ->
+                    baseMatrix
+
+        applyMatrix baseMatrix =
+            case hasMatrix of
+                [ a, b, c, d, e, f ] ->
+                    let
+                        matrix =
+                            -- Careful, it's a 4x4.
+                            { identityTransform
+                                | m11 = a
+                                , m21 = b
+                                , m12 = c
+                                , m22 = d
+                                , m14 = e
+                                , m24 = f
+                            }
+                    in
+                    baseMatrix |> AltMath.mul matrix
+
+                _ ->
+                    baseMatrix
+    in
+    identityTransform
+        |> applyMatrix
+        |> applyScale
 
 
 parsePathInfo : PathInfo -> PathAndTransform
@@ -100,7 +158,9 @@ parsePathInfo { d, transform } =
                     []
 
         parsedTransform =
-            transform |> Maybe.map parseTransform |> Maybe.withDefault identityTransform
+            transform
+                |> Maybe.map parseTransform
+                |> Maybe.withDefault identityTransform
     in
     { subpaths = parsedPath
     , transform = parsedTransform
@@ -117,9 +177,6 @@ processXML model content =
             case root of
                 XmlParser.Element tag attributes children ->
                     let
-                        _ =
-                            Debug.log "paths" pathInfos
-
                         pathNodes =
                             root
                                 |> getAllXmlTags
@@ -127,7 +184,6 @@ processXML model content =
 
                         pathInfos : List PathInfo
                         pathInfos =
-                            -- This works.
                             pathNodes
                                 |> List.map
                                     (\( _, node ) ->
@@ -136,18 +192,27 @@ processXML model content =
                                         }
                                     )
 
+                        untransformedPaths : List PathAndTransform
                         untransformedPaths =
                             pathInfos |> List.map parsePathInfo
 
-                        untransformedPoints =
+                        _ =
+                            Debug.log "paths" untransformedPaths
+
+                        pathState : PathState
+                        pathState =
+                            { startPoint = Point3d.origin
+                            , currentPoint = Point3d.origin
+                            , outputs = []
+                            }
+
+                        finalPathState =
                             -- Now back where we were, add in the transforms.
                             untransformedPaths
-                                |> List.map (.subpaths >> convertToPoints)
-                                |> List.concat
-                                |> List.map flipY
+                                |> List.foldl convertToPoints pathState
 
                         trackPoints =
-                            untransformedPoints
+                            finalPathState.outputs
                                 |> List.map TrackPoint.trackPointFromPoint
                                 |> TrackPoint.prepareTrackPoints
 
@@ -161,7 +226,7 @@ processXML model content =
                             , graph = Nothing
                             , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
                             , box =
-                                untransformedPoints
+                                finalPathState.outputs
                                     |> BoundingBox3d.hullN
                                     |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
                             }
@@ -217,19 +282,37 @@ type alias PathState =
     }
 
 
-convertToPoints : List SubPath -> List (Point3d Meters LocalCoords)
-convertToPoints path =
+convertToPoints : PathAndTransform -> PathState -> PathState
+convertToPoints pathAndTransform pathState =
+    -- We now fold this over the paths so need to track current point externally.
     let
-        pathState : PathState
-        pathState =
-            { startPoint = Point3d.origin
-            , currentPoint = Point3d.origin
-            , outputs = []
-            }
+        _ = Debug.log "transform" pathAndTransform.transform
+
+        applyTransform : Point3d Meters LocalCoords -> Point3d Meters LocalCoords
+        applyTransform before =
+            before
+                |> Point3d.toRecord inMeters
+                |> AltMath.Vector3.fromRecord
+                |> AltMath.transform pathAndTransform.transform
+                |> AltMath.Vector3.toRecord
+                |> Point3d.fromRecord meters
+
+        localPathState =
+            { pathState | outputs = [] }
+
+        newLocalPathState =
+            List.foldl followSubPath localPathState pathAndTransform.subpaths
+
+        pointsFromThisPath =
+            newLocalPathState
+                |> .outputs
+                |> List.map applyTransform
+                |> List.map flipY
     in
-    List.foldl followSubPath pathState path
-        |> .outputs
-        |> List.reverse
+    { pathState
+        | currentPoint = pathState.currentPoint --applyTransform newLocalPathState.currentPoint
+        , outputs = pathState.outputs ++ pointsFromThisPath
+    }
 
 
 flipY : Point3d Meters LocalCoords -> Point3d Meters LocalCoords
@@ -240,37 +323,33 @@ flipY =
 followSubPath : SubPath -> PathState -> PathState
 followSubPath sub state =
     let
-        subPathState =
+        newPoint =
             case sub.moveto of
                 MoveTo Absolute ( x, y ) ->
-                    let
-                        newPoint =
-                            Point3d.meters x y 0.0
-                    in
-                    { state
-                        | currentPoint = newPoint
-                        , startPoint = newPoint
-                        , outputs = newPoint :: state.outputs
-                    }
+                    Point3d.meters x y 0.0
 
                 MoveTo Relative ( dx, dy ) ->
-                    let
-                        newPoint =
-                            state.currentPoint
-                                |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
-                    in
-                    { state
-                        | currentPoint = newPoint
-                        , startPoint = newPoint
-                        , outputs = newPoint :: state.outputs
-                    }
+                    state.currentPoint
+                        |> Point3d.translateBy (Vector3d.meters dx dy 0.0)
+
+        subPathState =
+            { state
+                | currentPoint = newPoint
+                , startPoint = newPoint
+                , outputs = [ newPoint ]
+            }
+
+        endSubPathState =
+            List.foldl drawCommand subPathState sub.drawtos
     in
-    List.foldl drawCommand subPathState sub.drawtos
+    { state
+        | currentPoint = endSubPathState.currentPoint
+        , outputs = state.outputs ++ List.reverse endSubPathState.outputs
+    }
 
 
 drawCommand : DrawTo -> PathState -> PathState
 drawCommand command state =
-    --TODO: ClosePath.
     --let
     --    _ =
     --        Debug.log "Command" command
