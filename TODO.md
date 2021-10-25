@@ -2,6 +2,7 @@
 # BUGS
 
 GRAPH: Can't add traversal of edges with no points (or one, perhaps).
+  - Should these exist even?
 
 ---
 

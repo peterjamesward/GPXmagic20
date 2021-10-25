@@ -12,15 +12,7 @@ aboutText =
 
 ## 2.4.16 update 2021-10-24
 
-- Reverse track applies between markers, or whole track if no purple marker.
-
-- Adjusted elevation in 1st person view to reduce the road obscuring the view in descents.
-
-- Added gradient display in 1st person, effective only during Flythrough.
-
-- Adjusted gradient colouring, more in line with other tools.
-
-- Much better handling of SVG files output from InkScape (handles scale and matrix transforms).
+- More reliable finding graph edges to append to route. (As if anyone would notice.)
 
 ## Can I support this work?
 

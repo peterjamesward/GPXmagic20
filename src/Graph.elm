@@ -59,8 +59,6 @@ type alias Graph =
     , canonicalRoute : List Traversal
     , centreLineOffset : Length.Length
     , trackPointToCanonical : Dict XY PointType
-
-    --, nodePairsInRoute : List ( Int, Int )
     , selectedTraversal : Maybe Traversal
     }
 
@@ -80,8 +78,6 @@ emptyGraph =
     , canonicalRoute = []
     , centreLineOffset = Length.meters 0.0
     , trackPointToCanonical = Dict.empty
-
-    --, nodePairsInRoute = []
     , selectedTraversal = Nothing
     }
 
@@ -439,7 +435,7 @@ deriveTrackPointGraph trackPoints =
         singlePointLinearEdges : Dict EdgeKey (List TrackPoint)
         singlePointLinearEdges =
             -- Edges with one waypoint sometimes result from manually placed track points
-            -- during the route planning. Removing these can result in avoiding the formation
+            -- during the route planning. Removing these can in avoid the formation
             -- of spurious nodes either side (the extra point fools the neighbour count).
             -- We spot that if there is only one point, it must be the waypoint.
             canonicalEdges
@@ -467,8 +463,6 @@ deriveTrackPointGraph trackPoints =
                 , edges = canonicalEdges
                 , userRoute = canonicalRoute
                 , canonicalRoute = canonicalRoute
-
-                --, nodePairsInRoute = nodePairs
             }
     in
     case annoyingTrackPoints of
@@ -876,7 +870,7 @@ walkTheRoute graph =
         |> List.map Tuple.first
 
 
-applyCentreLineOffset : Length -> TrackPoint -> TrackPoint
+applyCentreLineOffset : Length.Length -> TrackPoint -> TrackPoint
 applyCentreLineOffset offset trackpoint =
     let
         offsetDirection =
@@ -1103,7 +1097,7 @@ addTraversalFromCurrent graph current =
                     (\edgeKey points ->
                         points
                             |> List.find
-                                (\p -> p.index == current.index)
+                                (\p -> trackPointComparable p == trackPointComparable current)
                             |> (/=) Nothing
                     )
 
@@ -1148,10 +1142,10 @@ addTraversalFromCurrent graph current =
             )
 
         _ ->
-            let
-                _ =
-                    Debug.log "Edge not found for" current
-            in
+            --let
+            --    _ =
+            --        Debug.log "Edge not found for" current
+            --in
             ( Just graph, GraphNoAction )
 
 
@@ -1163,14 +1157,24 @@ addFirstTraversal graph orange purple =
         edgeContainingOrange =
             graph.edges
                 |> Dict.Extra.find
-                    (\edgeKey points -> List.member orange points)
+                    (\edgeKey points ->
+                        points
+                            |> List.find
+                                (\p -> trackPointComparable p == trackPointComparable orange)
+                            |> (/=) Nothing
+                    )
 
         edgeContainingPurple =
             case purple of
                 Just isPurple ->
                     graph.edges
                         |> Dict.Extra.find
-                            (\edgeKey points -> List.member isPurple points)
+                            (\edgeKey points ->
+                                points
+                                    |> List.find
+                                        (\p -> trackPointComparable p == trackPointComparable isPurple)
+                                    |> (/=) Nothing
+                            )
 
                 Nothing ->
                     Nothing
@@ -1180,12 +1184,12 @@ addFirstTraversal graph orange purple =
             if newEdgeKey == purpleEdgeKey then
                 let
                     ( orangeIndex, purpleIndex ) =
-                        ( List.findIndex
-                            (.xyz >> Point3d.equalWithin (meters 0.01) orange.xyz)
-                            pointsOnEdge
-                        , List.findIndex
-                            (.xyz >> Point3d.equalWithin (meters 0.01) isPurple.xyz)
-                            pointsOnEdge
+                        ( pointsOnEdge
+                            |> List.findIndex
+                                (\p -> trackPointComparable p == trackPointComparable orange)
+                        , pointsOnEdge
+                            |> List.findIndex
+                                (\p -> trackPointComparable p == trackPointComparable isPurple)
                         )
 
                     newSegment =
