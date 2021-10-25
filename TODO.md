@@ -2,13 +2,15 @@
 # BUGS
 
 GRAPH: Can't add traversal of edges with no points (or one, perhaps).
-  - Should these exist even?
+  -- Must be able to click on the "far" node.
 
 ---
 
 # TO-DO
 
 NEW: Use elevation from second route, starting at marker.
+  -- This should be a neat two-way merge sort of track points based on distance from start.
+  -- We have interpolation code in Flythrough, so it's a doddle.
 
 DEBT: Factor the PortMessage handling out of main::update.
 
