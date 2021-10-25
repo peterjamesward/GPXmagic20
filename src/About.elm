@@ -10,7 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.15 update 2021-10-24
+## 2.4.16 update 2021-10-24
+
+- Reverse track applies between markers, or whole track if no purple marker.
 
 - Adjusted elevation in 1st person view to reduce the road obscuring the view in descents.
 

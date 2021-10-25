@@ -66,7 +66,14 @@ viewLoopTools imperial loopiness track wrap =
                     button
                         prettyButtonStyles
                         { onPress = Just <| wrap ReverseTrack
-                        , label = text "Reverse the track"
+                        , label =
+                            text <|
+                                case isTrack.markedNode of
+                                    Just _ ->
+                                        "Reverse the track\nbetween the markers"
+
+                                    Nothing ->
+                                        "Reverse the track"
                         }
 
                 changeStartButton c =
@@ -122,7 +129,7 @@ update msg settings track =
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
-                { track | trackPoints = List.reverse track.trackPoints }
+                (reverseTrackSection track)
                 "reverse track"
             )
 
@@ -139,6 +146,41 @@ update msg settings track =
                     ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
                 )
             )
+
+
+reverseTrackSection : Track -> Track
+reverseTrackSection track =
+    case track.markedNode of
+        Just marker ->
+            let
+                ( current, marked ) =
+                    ( track.currentNode.index, marker.index )
+
+                ( start, end ) =
+                    ( min current marked, max current marked )
+
+                ( beforeEnd, afterEnd ) =
+                    track.trackPoints |> List.Extra.splitAt (end - 1)
+
+                ( beforeStart, middle ) =
+                    beforeEnd |> List.Extra.splitAt start
+
+                newPoints =
+                    beforeStart ++ List.reverse middle ++ afterEnd
+
+                ( newOrange, newPurple ) =
+                    ( newPoints |> List.Extra.getAt current |> Maybe.withDefault track.currentNode
+                    , newPoints |> List.Extra.getAt marked
+                    )
+            in
+            { track
+                | trackPoints = newPoints
+                , currentNode = newOrange
+                , markedNode = newPurple
+            }
+
+        Nothing ->
+            { track | trackPoints = List.reverse track.trackPoints }
 
 
 closeTheLoop : Track -> Loopiness -> Track

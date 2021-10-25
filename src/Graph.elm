@@ -18,7 +18,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as I
 import GeometryShared exposing (arc3dFromThreePoints)
-import Length exposing (Length, Meters, inMeters, meters)
+import Length exposing (Length, Meters, inFeet, inMeters, meters)
 import LineSegment3d
 import List.Extra as List
 import LocalCoords exposing (LocalCoords)
@@ -59,6 +59,7 @@ type alias Graph =
     , canonicalRoute : List Traversal
     , centreLineOffset : Length.Length
     , trackPointToCanonical : Dict XY PointType
+
     --, nodePairsInRoute : List ( Int, Int )
     , selectedTraversal : Maybe Traversal
     }
@@ -79,6 +80,7 @@ emptyGraph =
     , canonicalRoute = []
     , centreLineOffset = Length.meters 0.0
     , trackPointToCanonical = Dict.empty
+
     --, nodePairsInRoute = []
     , selectedTraversal = Nothing
     }
@@ -465,6 +467,7 @@ deriveTrackPointGraph trackPoints =
                 , edges = canonicalEdges
                 , userRoute = canonicalRoute
                 , canonicalRoute = canonicalRoute
+
                 --, nodePairsInRoute = nodePairs
             }
     in
@@ -529,7 +532,7 @@ walkTheRouteInternal graph route =
         |> .points
 
 
-nodePairsFromRoute : Graph -> List (Int, Int)
+nodePairsFromRoute : Graph -> List ( Int, Int )
 nodePairsFromRoute graph =
     -- This list is used to locate an edited track section by comparing the track point indices
     -- with the addresses of edge start and end pairs.
@@ -542,25 +545,28 @@ nodePairsFromRoute graph =
                 (\traversal ->
                     case Dict.get traversal.edge graph.edges of
                         Just edge ->
-                            ((+) (1 + List.length edge))
+                            (+) (1 + List.length edge)
 
                         Nothing ->
-                            ((+) 0)
-
+                            (+) 0
                 )
                 0
                 graph.canonicalRoute
     in
-    List.zip (endNodes) (List.drop 1 endNodes)
+    List.zip endNodes (List.drop 1 endNodes)
+
 
 trackPointComparable : TrackPoint -> XY
 trackPointComparable tp =
     -- An important part of the graph is to remove height differences on repeated passes.
     let
         ( x, y, _ ) =
-            Point3d.toTuple inMeters tp.xyz
+            Point3d.toTuple inFeet tp.xyz
+
+        ( xRounded, yRounded ) =
+            ( toFloat <| round x, toFloat <| round y )
     in
-    ( x, y )
+    ( xRounded, yRounded )
 
 
 endPoints tps =
@@ -1094,7 +1100,12 @@ addTraversalFromCurrent graph current =
         edgeContainingCurrent =
             graph.edges
                 |> Dict.Extra.find
-                    (\edgeKey points -> List.member current points)
+                    (\edgeKey points ->
+                        points
+                            |> List.find
+                                (\p -> p.index == current.index)
+                            |> (/=) Nothing
+                    )
 
         lastTraversalOfRoute =
             List.last graph.userRoute
@@ -1137,6 +1148,10 @@ addTraversalFromCurrent graph current =
             )
 
         _ ->
+            let
+                _ =
+                    Debug.log "Edge not found for" current
+            in
             ( Just graph, GraphNoAction )
 
 

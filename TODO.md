@@ -1,17 +1,17 @@
 
 # BUGS
 
+GRAPH: Can't add traversal of edges with no points (or one, perhaps).
+
 ---
 
 # TO-DO
 
+NEW: Use elevation from second route, starting at marker.
+
 DEBT: Factor the PortMessage handling out of main::update.
 
 DEBT: Revert currentPoint to : Int, avoid stale state worries.
-
-Use elevation from second route, starting at marker.
-
-Detect crossings and insert under/overpass.
 
 Try to isolate Safari problem.
 
