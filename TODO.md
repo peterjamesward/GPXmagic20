@@ -1,9 +1,6 @@
 
 # BUGS
 
-GRAPH: Can't add traversal of edges with no points (or one, perhaps).
-  -- Must be able to click on the "far" node.
-
 ---
 
 # TO-DO

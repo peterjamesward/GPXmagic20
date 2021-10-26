@@ -10,7 +10,7 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.16 update 2021-10-24
+## 2.4.17 update 2021-10-26
 
 - More reliable finding graph edges to append to route. (As if anyone would notice.)
 

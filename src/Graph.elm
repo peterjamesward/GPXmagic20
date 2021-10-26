@@ -1092,6 +1092,7 @@ addTraversalFromCurrent graph current =
     -- If it's accessible from the end of the current route, add it to the route.
     let
         edgeContainingCurrent =
+            -- Has user clicked on a trackpoint along an edge?
             graph.edges
                 |> Dict.Extra.find
                     (\edgeKey points ->
@@ -1103,8 +1104,56 @@ addTraversalFromCurrent graph current =
 
         lastTraversalOfRoute =
             List.last graph.userRoute
+
+        endNodeOfLastTraversal =
+            case lastTraversalOfRoute of
+                Just isTraversal ->
+                    let
+                        ( p1, pN, p2 ) =
+                            isTraversal.edge
+                    in
+                    case isTraversal.direction of
+                        Forwards ->
+                            Just pN
+
+                        Backwards ->
+                            Just p1
+
+                Nothing ->
+                    Nothing
+
+        edgeDefinedByTwoNodes =
+            -- Or has user clicked on the 'far' node of an edge adjoining?
+            case endNodeOfLastTraversal of
+                Just farNodeKey ->
+                    -- Pick one of possibly several edges with matching pair.
+                    findMatchingEdges (trackPointComparable current) farNodeKey
+                        |> List.head
+
+                Nothing ->
+                    Nothing
+
+        findMatchingEdges : XY -> XY -> List ( EdgeKey, List TrackPoint )
+        findMatchingEdges a b =
+            graph.edges
+                |> Dict.filter
+                    (\( start, end, _ ) edge ->
+                        (start == a && end == b) || (start == b && end == a)
+                    )
+                |> Dict.toList
+
+        likelyLookingEdge =
+            case ( edgeContainingCurrent, edgeDefinedByTwoNodes ) of
+                ( Just edge, Nothing ) ->
+                    Just edge
+
+                ( Nothing, Just edge ) ->
+                    Just edge
+
+                _ ->
+                    Nothing
     in
-    case ( edgeContainingCurrent, lastTraversalOfRoute ) of
+    case ( likelyLookingEdge, lastTraversalOfRoute ) of
         ( Just ( newEdgeKey, _ ), Just lastTraversal ) ->
             let
                 ( lastStart, lastEnd, _ ) =
