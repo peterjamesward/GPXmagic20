@@ -12,7 +12,8 @@ aboutText =
 
 ## 2.4.17 update 2021-10-26
 
-- More reliable finding graph edges to append to route. (As if anyone would notice.)
+- Rotation slider restricted to -30 to +30 degrees because it was hard to select a
+desired value and it's easy enough to repeat for larger rotations.
 
 ## Can I support this work?
 

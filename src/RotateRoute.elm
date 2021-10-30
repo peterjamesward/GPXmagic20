@@ -219,8 +219,8 @@ view imperial options (lastX, lastY) wrapper track =
                         text <|
                             "Rotation: "
                                 ++ (showDecimal0 <| Angle.inDegrees options.rotateAngle)
-                , min = -180.0
-                , max = 180.0
+                , min = -30.0
+                , max = 30.0
                 , step = Just 1.0
                 , value = Angle.inDegrees <| options.rotateAngle
                 , thumb = Input.defaultThumb

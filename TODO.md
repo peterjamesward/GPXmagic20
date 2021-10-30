@@ -5,21 +5,65 @@
 
 # TO-DO
 
-NEW: Use elevation from second route, starting at marker.
-  -- This should be a neat two-way merge sort of track points based on distance from start.
-  -- We have interpolation code in Flythrough, so it's a doddle.
+**Fix git** <sad>
 
-DEBT: Factor the PortMessage handling out of main::update.
+**Anchored Rotate**
+Recentre and Rotate easier to use if they use Orange marker as focus.
+Clarify: Place purple on track feature, use Orange to click on Map. Consistent with current 'click' logic.
+(If no Purple marker, same as current Recentre?)
+~~Option to "scissor" two ends relative to Orange marker (inspired by Oatley)~~. (Obviated by Move & Stretch.)
 
-DEBT: Revert currentPoint to : Int, avoid stale state worries.
+**New control** = 2D drag area (using Pointer msg), like goniometer,
+Use this for Nudge, labelled Up, Right, Down, Left from 12 o'clock.
+Maybe logarithmic so as to work for fine control and large moves.
+
+**New _Move & Stretch_ tool**
+Use 2D drag with labels N, E, S, W.
+Stretch acts progressively over the region (stretch & turn), move moves and keeps shape.
+Uses third marker, say Cyan. So action is between Orange amd Puple,
+Cyan defines the transformation vector.
+~~Possibly, "preserve length" option reduces deviation from control vector.~~
+Slider moves Cyan between the two normal markers.
+Preview is also cyan (will it show on Map?).
+Adding Up & Down hence apply to elevation, proportional to distance on track.
+(Does not obviate Nudge, as that is path-relative.)
+
+**NOTE**: I may have just realised that intersection testing is not completely dissimilar to
+terrain generation with recursion, bounding boxes and cheap BB overlap tests.
+Only need segment intersection at the last stage. Not sure what to do with this thought ...
+
+**THOUGHT**: New tab for Overlaps (initially 2D, maybe 3D aware later). **I LIKE THIS**
+- Highlights overlapping sections (perhaps just white circles or bbox)
+- Possible adjustments by moving sections up/down/left/right (arrow keys?) (at some quadtree level?)
+- Possible adjustments by pivoting around marker.
+- For road intersections, move up/down/match, or create common TP for graph node.
+- With expanded bounding boxes, can test for close roads also.
++ **NOTE** most of this is obviated by new Move and Stretch, apart from common TP.
+
+**NEW**: Use elevation from second route, starting at marker.
+- This should be a neat two-way merge sort of track points based on distance from start.
+- We have interpolation code in Flythrough, so it's a doddle.
+- Applies elevation relative to start elevation, of course.
+- Option to have "cross-fade" at the end (possibly hundred of metres).
+
+Timestamps: Is it possible to preserve GPX time stamps? **DO THIS**
+Obvs certain edits will largely invalidate, but we could preserve any we read in.
+<trkpt lat="51.6159740" lon="-0.3014110">
+<ele>97.4</ele>
+<time>2021-10-28T07:53:33Z</time>
+
+
+**DEBT**: Factor the PortMessage handling out of main::update.
+
+**DEBT**: Revert currentPoint to : Int, avoid stale state worries.
 
 Try to isolate Safari problem.
-
-Try electron for native wrapper. See if multiple windows possible.
 
 ---
 
 # Not doing
+
+Try electron for native wrapper. See if multiple windows possible.
 
 Strava segment blend elevation rather than just Paste (optional).
 
