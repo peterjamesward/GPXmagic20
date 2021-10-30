@@ -7,11 +7,13 @@
 
 **New _Move & Stretch_ tool**
 First, simply translate marked section by vector.
+Move _includes_ marker points; but they are _anchors_ for Stretch.
 Second, Stretch acts progressively over the region (stretch & turn), move moves and keeps shape.
-Uses third marker, say Cyan. So action is between Orange amd Puple,
-Cyan defines the transformation vector.
-Slider moves Cyan between the two normal markers.
+Uses third marker, say Blue. So action is between Orange amd Puple,
+Blue defines the transformation vector.
+Slider moves Blue between the two normal markers.
 Adding Up & Down hence apply to elevation, proportional to distance on track.
+Don't forget map preview.
 
 **NOTE**: I may have just realised that intersection testing is not completely dissimilar to
 terrain generation with recursion, bounding boxes and cheap BB overlap tests.

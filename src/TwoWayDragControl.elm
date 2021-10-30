@@ -284,7 +284,7 @@ computeNewPoints model track =
             )
 
         ( beforeEnd, afterEnd ) =
-            List.Extra.splitAt (to - 1) track.trackPoints
+            List.Extra.splitAt (to + 1) track.trackPoints
 
         ( beforeStart, affectedRegion ) =
             List.Extra.splitAt from beforeEnd
