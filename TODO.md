@@ -6,7 +6,7 @@
 # TO-DO
 
 **New control** = 2D drag area (using Pointer msg), like goniometer,
-Use this for Nudge, labelled Up, Right, Down, Left from 12 o'clock.
+~~Use this for Nudge, labelled Up, Right, Down, Left from 12 o'clock.~~
 Maybe logarithmic so as to work for fine control and large moves.
 
 **New _Move & Stretch_ tool**

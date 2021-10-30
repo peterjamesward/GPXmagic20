@@ -57,6 +57,7 @@ import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
+import TwoWayDragControl
 import Url exposing (Url)
 import Utils exposing (useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
@@ -104,6 +105,7 @@ type Msg
     | EnableMapSketchMode
     | ResizeViews Int
     | StoreSplitterPosition
+    | TwoWayDragMsg TwoWayDragControl.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -165,6 +167,7 @@ type alias Model =
     , accordionState : Accordion.Model
     , splitInPixels : Int
     , markerOptions : MarkerControls.Options
+    , twoWayDrag : TwoWayDragControl.Model
     }
 
 
@@ -220,8 +223,9 @@ init mflags origin navigationKey =
       , accordionState = Accordion.defaultState
       , splitInPixels = 800
       , markerOptions = MarkerControls.defaultOptions
+      , twoWayDrag = TwoWayDragControl.defaultModel
       }
-        |> -- TODO: Fix Fugly Fudge.
+        |> -- TODO: Fix Fugly Fudge. Here to make sure function is applied to model state.
            (\m -> { m | toolsAccordion = toolsAccordion m })
     , Cmd.batch
         [ authCmd
@@ -851,6 +855,22 @@ update msg model =
             ( model
             , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
             )
+
+        TwoWayDragMsg dragMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (TwoWayDragControl.update
+                            dragMsg
+                            model.twoWayDrag
+                            TwoWayDragMsg
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.twoWayDrag, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | twoWayDrag = newOptions }
+                action
 
 
 draggedOnMap : Encode.Value -> Track -> Maybe Track
@@ -1797,6 +1817,17 @@ toolsAccordion model =
                 NudgeMessage
       , info = Nudge.info
       , video = Just "https://youtu.be/HsH7R9SGaSs"
+      , isFavourite = False
+      }
+    , { label = "Stretch & Move"
+      , state = Contracted
+      , content =
+            TwoWayDragControl.view
+                model.displayOptions.imperialMeasure
+                model.twoWayDrag
+                TwoWayDragMsg
+      , info = TwoWayDragControl.info
+      , video = Nothing
       , isFavourite = False
       }
     , { label = "Straighten"
