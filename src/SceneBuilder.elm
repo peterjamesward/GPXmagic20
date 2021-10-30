@@ -128,8 +128,8 @@ renderTrack options track =
     scene
 
 
-renderMarkers : Track -> Scene
-renderMarkers track =
+renderMarkers : Maybe TrackPoint -> Track -> Scene
+renderMarkers stretchMarker track =
     let
         currentPositionDisc point =
             [ cone (Material.color Color.lightOrange) <|
@@ -156,9 +156,28 @@ renderMarkers track =
                     , length = meters <| 18.0
                     }
             ]
+
+        stretch =
+            case stretchMarker of
+                Just pt ->
+                    [ cone (Material.color Color.white) <|
+                        Cone3d.startingAt
+                            (Point3d.translateBy
+                                (Vector3d.meters 0.0 0.0 18.1)
+                                pt.xyz
+                            )
+                            negativeZ
+                            { radius = meters <| 5.0
+                            , length = meters <| 22.0
+                            }
+                    ]
+
+                Nothing ->
+                    []
     in
     currentPositionDisc track.currentNode
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
+        ++ stretch
 
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)

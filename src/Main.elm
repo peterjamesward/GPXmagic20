@@ -33,7 +33,7 @@ import Json.Encode as Encode
 import List.Extra
 import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
-import Maybe.Extra
+import Maybe.Extra as Maybe
 import MyIP
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuth.GpxSource exposing (GpxSource(..))
@@ -1361,8 +1361,14 @@ composeScene model =
 renderVaryingSceneElements : Model -> Model
 renderVaryingSceneElements model =
     let
+        stretchMarker =
+            Maybe.map (TwoWayDragControl.getStretchPointer model.twoWayDrag)
+                model.track
+                |> Maybe.join
+
         updatedMarkers =
-            Maybe.map SceneBuilder.renderMarkers model.track
+            -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
+            Maybe.map (SceneBuilder.renderMarkers stretchMarker) model.track
                 |> Maybe.withDefault []
 
         updatedProfileMarkers =
@@ -2174,7 +2180,7 @@ viewAndEditFilename model =
 
         trackName =
             Maybe.map .trackName model.track
-                |> Maybe.Extra.join
+                |> Maybe.join
     in
     case model.gpxSource of
         GpxNone ->

@@ -17,10 +17,10 @@ import Svg.Attributes as SA
 import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showAngle, showDecimal2, showShortMeasure)
+import Utils exposing (showAngle, showShortMeasure)
 import Vector2d
 import Vector3d
-import ViewPureStyles exposing (checkboxIcon, edges, prettyButtonStyles)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
 
 
 type Mode
@@ -56,6 +56,7 @@ type Msg
     | DraggerRelease Point
     | DraggerModeToggle Bool
     | DraggerReset
+    | DraggerMarker Int
 
 
 radius =
@@ -185,11 +186,21 @@ update message model wrapper track =
             , PostUpdateActions.ActionPreview
             )
 
+        DraggerMarker int ->
+            ( { model | stretchPointer = Just int }
+            , PostUpdateActions.ActionPreview
+            )
+
 
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
 view imperial model wrapper track =
-    -- TODO: Try with linear vector, switch to log or something else if needed.
+    -- Try with linear vector, switch to log or something else if needed.
     let
+        minmax a b =
+            ( toFloat <| min a b
+            , toFloat <| max a b
+            )
+
         directionString =
             case Vector2d.direction model.vector of
                 Just direction ->
@@ -203,7 +214,11 @@ view imperial model wrapper track =
     in
     row [ paddingEach { edges | right = 10 } ]
         [ twoWayDragControl model wrapper
-        , column [ Element.alignLeft, Element.width Element.fill ]
+        , column
+            [ Element.alignLeft
+            , Element.width Element.fill
+            , spacing 5
+            ]
             [ markerTextHelper track
             , Input.checkbox []
                 { onChange = wrapper << DraggerModeToggle
@@ -211,6 +226,26 @@ view imperial model wrapper track =
                 , checked = model.mode == Stretch
                 , label = Input.labelRight [ centerY ] (text "Stretch")
                 }
+            , case ( model.mode, track.markedNode ) of
+                ( Stretch, Just purple ) ->
+                    let
+                        ( from, to ) =
+                            minmax track.currentNode.index purple.index
+                    in
+                    Input.slider commonShortHorizontalSliderStyles
+                        { onChange = wrapper << DraggerMarker << round
+                        , label =
+                            Input.labelBelow []
+                                (text "Choose the point to drag")
+                        , min = from
+                        , max = to
+                        , step = Just 1.0
+                        , value = model.stretchPointer |> Maybe.withDefault 0 |> toFloat
+                        , thumb = Input.defaultThumb
+                        }
+
+                _ ->
+                    none
             , Input.button prettyButtonStyles
                 { label = text "Reset", onPress = Just <| wrapper DraggerReset }
             , Element.text magnitudeString
@@ -246,7 +281,12 @@ preview model track =
             )
 
         previewTrackPoints =
-            computeNewPoints model track
+            case model.mode of
+                Translate ->
+                    movePoints model track
+
+                Stretch ->
+                    stretchPoints model track
 
         ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
             List.Extra.splitAt (to + 2) previewTrackPoints
@@ -257,8 +297,8 @@ preview model track =
     { model | preview = previewZone }
 
 
-computeNewPoints : Model -> Track -> List TrackPoint
-computeNewPoints model track =
+movePoints : Model -> Track -> List TrackPoint
+movePoints model track =
     -- This used by preview and action.
     let
         ( x, y ) =
@@ -293,3 +333,51 @@ computeNewPoints model track =
             List.map newPoint affectedRegion
     in
     beforeStart ++ adjustedPoints ++ afterEnd
+
+
+stretchPoints : Model -> Track -> List TrackPoint
+stretchPoints model track =
+    -- This used by preview and action.
+    let
+        ( x, y ) =
+            Vector2d.components model.vector
+
+        translation =
+            -- Negate y because SVG coordinates go downards.
+            Point3d.translateBy (Vector3d.xyz x (Quantity.negate y) (meters 0))
+
+        newPoint trackpoint =
+            let
+                newXYZ =
+                    translation trackpoint.xyz
+            in
+            { trackpoint | xyz = newXYZ }
+
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
+            )
+
+        ( beforeEnd, afterEnd ) =
+            List.Extra.splitAt (to + 1) track.trackPoints
+
+        ( beforeStart, affectedRegion ) =
+            List.Extra.splitAt from beforeEnd
+
+        adjustedPoints =
+            List.map newPoint affectedRegion
+    in
+    beforeStart ++ adjustedPoints ++ afterEnd
+
+
+getStretchPointer : Model -> Track -> Maybe TrackPoint
+getStretchPointer model track =
+    case ( model.mode, model.stretchPointer ) of
+        ( Stretch, Just n ) ->
+            List.Extra.getAt n track.trackPoints
+
+        _ ->
+            Nothing
