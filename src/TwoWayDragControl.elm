@@ -6,8 +6,10 @@ import Element.Input as Input
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point2d
+import Point3d
 import PostUpdateActions
 import Quantity
 import Svg
@@ -17,6 +19,7 @@ import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showAngle, showDecimal2, showShortMeasure)
 import Vector2d
+import Vector3d
 import ViewPureStyles exposing (checkboxIcon, edges)
 
 
@@ -218,7 +221,7 @@ separating hairpins, or just to avoid a close pass, or because you can.
 
 
 preview : Model -> Track -> Model
-preview settings track =
+preview model track =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
     let
@@ -236,5 +239,49 @@ preview settings track =
 
             else
                 ( markerPosition, track.currentNode )
+
+        previewTrackPoints =
+            computeNewPoints model track
+
+        ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
+            List.Extra.splitAt (to + 2) previewTrackPoints
+
+        ( trackBeforePreviewStart, previewZone ) =
+            List.Extra.splitAt (from - 1) trackBeforePreviewEnd
     in
-    { settings | preview = [] }
+    { model | preview = previewZone }
+
+
+computeNewPoints : Model -> Track -> List TrackPoint
+computeNewPoints model track =
+    -- This used by preview and action.
+    let
+        ( x, y ) =
+            Vector2d.components model.vector
+
+        newPoint trackpoint =
+            let
+                newXYZ =
+                    trackpoint.xyz
+                        |> Point3d.translateBy (Vector3d.xyz x y (meters 0))
+            in
+            { trackpoint | xyz = newXYZ }
+
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
+            )
+
+        ( beforeEnd, afterEnd ) =
+            List.Extra.splitAt (to - 1) track.trackPoints
+
+        ( beforeStart, affectedRegion ) =
+            List.Extra.splitAt from beforeEnd
+
+        adjustedPoints =
+            List.map newPoint affectedRegion
+    in
+    beforeStart ++ adjustedPoints ++ afterEnd
