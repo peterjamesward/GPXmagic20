@@ -1345,6 +1345,7 @@ composeScene model =
     { model
         | completeScene =
             model.visibleMarkers
+                ++ model.moveAndStretchPreview
                 ++ model.nudgePreview
                 ++ model.bendPreview
                 ++ model.stravaSegmentPreview

@@ -233,13 +233,6 @@ preview model track =
             , max track.currentNode.index markerPosition.index
             )
 
-        ( fromNode, toNode ) =
-            if track.currentNode.index <= markerPosition.index then
-                ( track.currentNode, markerPosition )
-
-            else
-                ( markerPosition, track.currentNode )
-
         previewTrackPoints =
             computeNewPoints model track
 
@@ -259,11 +252,13 @@ computeNewPoints model track =
         ( x, y ) =
             Vector2d.components model.vector
 
+        translation =
+            Point3d.translateBy (Vector3d.xyz x y (meters 0))
+
         newPoint trackpoint =
             let
                 newXYZ =
-                    trackpoint.xyz
-                        |> Point3d.translateBy (Vector3d.xyz x y (meters 0))
+                    translation trackpoint.xyz
             in
             { trackpoint | xyz = newXYZ }
 
