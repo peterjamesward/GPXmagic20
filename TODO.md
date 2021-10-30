@@ -5,8 +5,6 @@
 
 # TO-DO
 
-**Fix git** <sad>
-
 **Anchored Rotate**
 Recentre and Rotate easier to use if they use Orange marker as focus.
 Clarify: Place purple on track feature, use Orange to click on Map. Consistent with current 'click' logic.

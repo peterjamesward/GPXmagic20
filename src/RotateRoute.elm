@@ -156,9 +156,12 @@ rotateRoute settings track =
         rotatedRoute =
             List.map rotatePoint track.trackPoints
 
+        axisOfRotation =
+            Axis3d.through track.currentNode.xyz Direction3d.z
+
         rotatePoint =
             .xyz
-                >> Point3d.rotateAround Axis3d.z settings.rotateAngle
+                >> Point3d.rotateAround axisOfRotation settings.rotateAngle
                 >> trackPointFromPoint
     in
     ( { track | trackPoints = rotatedRoute }

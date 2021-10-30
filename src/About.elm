@@ -15,6 +15,8 @@ aboutText =
 - Rotation slider restricted to -30 to +30 degrees because it was hard to select a
 desired value and it's easy enough to repeat for larger rotations.
 
+- Rotate track now rotates about the Orange marker. You can 'anchor' this point on the Map, say.
+
 ## Can I support this work?
 
 **YES, PLEASE!!**
