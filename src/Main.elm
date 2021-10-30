@@ -1819,13 +1819,17 @@ toolsAccordion model =
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
       }
-    , { label = "Stretch & Move"
+    , { label = "Move & Stretch"
       , state = Contracted
       , content =
-            TwoWayDragControl.view
-                model.displayOptions.imperialMeasure
-                model.twoWayDrag
-                TwoWayDragMsg
+            Maybe.map
+                (TwoWayDragControl.view
+                    model.displayOptions.imperialMeasure
+                    model.twoWayDrag
+                    TwoWayDragMsg
+                )
+                model.track
+                |> Maybe.withDefault none
       , info = TwoWayDragControl.info
       , video = Nothing
       , isFavourite = False

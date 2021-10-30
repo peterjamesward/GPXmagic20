@@ -1,17 +1,21 @@
 module TwoWayDragControl exposing (..)
 
 import Angle exposing (Angle)
+import Direction2d
 import Element exposing (..)
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
-import Length
+import Length exposing (meters)
 import LocalCoords exposing (LocalCoords)
 import Point2d
 import PostUpdateActions
+import Quantity
 import Svg exposing (..)
 import Svg.Attributes as S exposing (..)
+import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
 import TrackPoint
+import Utils exposing (showAngle, showDecimal2, showShortMeasure)
 import Vector2d
 
 
@@ -38,7 +42,7 @@ type Msg
 
 
 radius =
-    135
+    100
 
 
 point : ( Float, Float ) -> Point
@@ -60,9 +64,9 @@ twoWayDragControl model wrapper =
                 ]
                 << html
                 << svg
-                    [ viewBox "-200 -200 400 400"
-                    , S.width "300px"
-                    , S.height "300px"
+                    [ viewBox "-150 -150 300 300"
+                    , S.width "140px"
+                    , S.height "140px"
                     ]
 
         ( x, y ) =
@@ -77,8 +81,8 @@ twoWayDragControl model wrapper =
         [ Svg.circle
             [ cx "0"
             , cy "0"
-            , r "140"
-            , stroke "grey"
+            , r <| String.fromInt radius
+            , stroke "black"
             , strokeWidth "1"
             , S.fill "darkslategrey"
             ]
@@ -88,7 +92,7 @@ twoWayDragControl model wrapper =
             , y1 "0"
             , x2 xPoint
             , y2 yPoint
-            , stroke "antiquewhite"
+            , stroke "orange"
             , strokeWidth "10"
             , strokeLinecap "round"
             ]
@@ -116,10 +120,18 @@ update message model wrapper track =
                     , PostUpdateActions.ActionNoOp
                     )
 
-                Just prevDragPoint ->
+                Just dragStart ->
+                    let
+                        newVector =
+                            Vector2d.from dragStart offset
+                    in
                     ( { model
-                        | dragging = Just offset
-                        , vector = Vector2d.from prevDragPoint offset
+                        | vector =
+                            if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
+                                Vector2d.scaleTo (Length.meters 100.0) newVector
+
+                            else
+                                newVector
                       }
                     , PostUpdateActions.ActionNoOp
                     )
@@ -130,9 +142,28 @@ update message model wrapper track =
             )
 
 
-view : Bool -> Model -> (Msg -> msg) -> Element msg
-view imperial model wrapper =
-    Element.text "TODO"
+view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
+view imperial model wrapper track  =
+    let
+        directionString =
+            case Vector2d.direction model.vector of
+                Just direction ->
+                    showAngle <| Direction2d.toAngle direction
+
+                Nothing ->
+                    "none"
+
+        magnitudeString =
+            showShortMeasure imperial <| Vector2d.length model.vector
+    in
+    row [  ]
+        [ twoWayDragControl model wrapper
+        , column [ Element.alignLeft, Element.width Element.fill ]
+            [ markerTextHelper track
+            , Element.text magnitudeString
+            , Element.text directionString
+            ]
+        ]
 
 
 info : String

@@ -121,6 +121,11 @@ showLongMeasure imperial distance =
             ++ "m"
 
 
+showAngle : Angle.Angle -> String
+showAngle angle =
+    showDecimal0 <| Angle.inDegrees angle
+
+
 showShortMeasure : Bool -> Length.Length -> String
 showShortMeasure imperial distance =
     if imperial then
