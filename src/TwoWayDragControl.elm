@@ -1,8 +1,8 @@
 module TwoWayDragControl exposing (..)
 
-import Angle exposing (Angle)
 import Direction2d
 import Element exposing (..)
+import Element.Input as Input
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
@@ -10,18 +10,27 @@ import LocalCoords exposing (LocalCoords)
 import Point2d
 import PostUpdateActions
 import Quantity
-import Svg exposing (..)
-import Svg.Attributes as S exposing (..)
+import Svg
+import Svg.Attributes as SA
 import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
-import TrackPoint
+import TrackPoint exposing (TrackPoint)
 import Utils exposing (showAngle, showDecimal2, showShortMeasure)
 import Vector2d
+import ViewPureStyles exposing (checkboxIcon, edges)
+
+
+type Mode
+    = Translate
+    | Stretch
 
 
 type alias Model =
     { vector : Vector2d.Vector2d Length.Meters LocalCoords
     , dragging : Maybe Point
+    , preview : List TrackPoint
+    , mode : Mode
+    , stretchPointer : Maybe Int
     }
 
 
@@ -32,6 +41,9 @@ type alias Point =
 defaultModel =
     { vector = Vector2d.zero
     , dragging = Nothing
+    , preview = []
+    , mode = Translate
+    , stretchPointer = Nothing
     }
 
 
@@ -39,6 +51,7 @@ type Msg
     = DraggerGrab Point
     | DraggerMove Point
     | DraggerRelease Point
+    | DraggerModeToggle Bool
 
 
 radius =
@@ -48,6 +61,11 @@ radius =
 point : ( Float, Float ) -> Point
 point ( x, y ) =
     Point2d.fromMeters { x = x, y = y }
+
+
+settingNotZero : Model -> Bool
+settingNotZero model =
+    Vector2d.direction model.vector /= Nothing
 
 
 twoWayDragControl : Model -> (Msg -> msg) -> Element msg
@@ -63,10 +81,10 @@ twoWayDragControl model wrapper =
                 , Element.pointer
                 ]
                 << html
-                << svg
-                    [ viewBox "-150 -150 300 300"
-                    , S.width "140px"
-                    , S.height "140px"
+                << Svg.svg
+                    [ SA.viewBox "-150 -150 300 300"
+                    , SA.width "140px"
+                    , SA.height "140px"
                     ]
 
         ( x, y ) =
@@ -79,22 +97,22 @@ twoWayDragControl model wrapper =
     in
     clickableContainer <|
         [ Svg.circle
-            [ cx "0"
-            , cy "0"
-            , r <| String.fromInt radius
-            , stroke "black"
-            , strokeWidth "1"
-            , S.fill "darkslategrey"
+            [ SA.cx "0"
+            , SA.cy "0"
+            , SA.r <| String.fromInt radius
+            , SA.stroke "black"
+            , SA.strokeWidth "1"
+            , SA.fill "darkslategrey"
             ]
             []
         , Svg.line
-            [ x1 "0"
-            , y1 "0"
-            , x2 xPoint
-            , y2 yPoint
-            , stroke "orange"
-            , strokeWidth "10"
-            , strokeLinecap "round"
+            [ SA.x1 "0"
+            , SA.y1 "0"
+            , SA.x2 xPoint
+            , SA.y2 yPoint
+            , SA.stroke "orange"
+            , SA.strokeWidth "10"
+            , SA.strokeLinecap "round"
             ]
             []
         ]
@@ -117,7 +135,7 @@ update message model wrapper track =
             case model.dragging of
                 Nothing ->
                     ( model
-                    , PostUpdateActions.ActionNoOp
+                    , PostUpdateActions.ActionPreview
                     )
 
                 Just dragStart ->
@@ -133,17 +151,31 @@ update message model wrapper track =
                             else
                                 newVector
                       }
-                    , PostUpdateActions.ActionNoOp
+                    , PostUpdateActions.ActionPreview
                     )
 
         DraggerRelease _ ->
             ( { model | dragging = Nothing }
-            , PostUpdateActions.ActionNoOp
+            , PostUpdateActions.ActionPreview
+            )
+
+        DraggerModeToggle bool ->
+            ( { model
+                | mode =
+                    case model.mode of
+                        Translate ->
+                            Stretch
+
+                        Stretch ->
+                            Translate
+              }
+            , PostUpdateActions.ActionPreview
             )
 
 
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
-view imperial model wrapper track  =
+view imperial model wrapper track =
+    -- TODO: Try with linear vector, switch to log or something else if needed.
     let
         directionString =
             case Vector2d.direction model.vector of
@@ -156,10 +188,16 @@ view imperial model wrapper track  =
         magnitudeString =
             showShortMeasure imperial <| Vector2d.length model.vector
     in
-    row [  ]
+    row [ paddingEach { edges | right = 10 } ]
         [ twoWayDragControl model wrapper
         , column [ Element.alignLeft, Element.width Element.fill ]
             [ markerTextHelper track
+            , Input.checkbox []
+                { onChange = wrapper << DraggerModeToggle
+                , icon = checkboxIcon
+                , checked = model.mode == Stretch
+                , label = Input.labelRight [ centerY ] (text "Stretch")
+                }
             , Element.text magnitudeString
             , Element.text directionString
             ]
@@ -177,3 +215,26 @@ In Stretch mode, you see a new Cyan pointer. The control will move the Cyan poin
 sections of track either side will expand or contract to follow it. This could be used for
 separating hairpins, or just to avoid a close pass, or because you can.
 """
+
+
+preview : Model -> Track -> Model
+preview settings track =
+    -- Change the locations of the track points within the closed interval between
+    -- markers, or just the current node if no purple cone.
+    let
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
+            )
+
+        ( fromNode, toNode ) =
+            if track.currentNode.index <= markerPosition.index then
+                ( track.currentNode, markerPosition )
+
+            else
+                ( markerPosition, track.currentNode )
+    in
+    { settings | preview = [] }

@@ -140,6 +140,7 @@ type alias Model =
     , nudgePreview : Scene
     , nudgeProfilePreview : Scene
     , stravaSegmentPreview : Scene
+    , moveAndStretchPreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
@@ -190,6 +191,7 @@ init mflags origin navigationKey =
       , nudgePreview = []
       , nudgeProfilePreview = []
       , stravaSegmentPreview = []
+      , moveAndStretchPreview = []
       , completeScene = []
       , completeProfile = []
       , renderingContext = Nothing
@@ -1366,6 +1368,21 @@ renderVaryingSceneElements model =
             Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
                 |> Maybe.withDefault []
 
+        updatedMoveAndStretchSettings =
+            let
+                settings =
+                    model.twoWayDrag
+            in
+            if
+                Accordion.tabIsOpen "Move & Stretch" model.toolsAccordion
+                    && TwoWayDragControl.settingNotZero settings
+            then
+                Maybe.map (TwoWayDragControl.preview model.twoWayDrag) model.track
+                    |> Maybe.withDefault settings
+
+            else
+                { settings | preview = [] }
+
         updatedNudgeSettings =
             let
                 settings =
@@ -1450,6 +1467,9 @@ renderVaryingSceneElements model =
             SceneBuilderProfile.previewNudge
                 model.displayOptions
                 updatedNudgeSettings.preview
+        , moveAndStretchPreview =
+            SceneBuilder.previewMoveAndStretch
+                updatedMoveAndStretchSettings.preview
         , straightenOptions = updatedStraightenOptions
         , highlightedGraphEdge = SceneBuilder.showGraphEdge graphEdge
     }

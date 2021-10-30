@@ -5,20 +5,13 @@
 
 # TO-DO
 
-**New control** = 2D drag area (using Pointer msg), like goniometer,
-~~Use this for Nudge, labelled Up, Right, Down, Left from 12 o'clock.~~
-Maybe logarithmic so as to work for fine control and large moves.
-
 **New _Move & Stretch_ tool**
-Use 2D drag with labels N, E, S, W.
-Stretch acts progressively over the region (stretch & turn), move moves and keeps shape.
+First, simply translate marked section by vector.
+Second, Stretch acts progressively over the region (stretch & turn), move moves and keeps shape.
 Uses third marker, say Cyan. So action is between Orange amd Puple,
 Cyan defines the transformation vector.
-~~Possibly, "preserve length" option reduces deviation from control vector.~~
 Slider moves Cyan between the two normal markers.
-Preview is also cyan (will it show on Map?).
 Adding Up & Down hence apply to elevation, proportional to distance on track.
-(Does not obviate Nudge, as that is path-relative.)
 
 **NOTE**: I may have just realised that intersection testing is not completely dissimilar to
 terrain generation with recursion, bounding boxes and cheap BB overlap tests.

@@ -46,7 +46,5 @@ markerTextHelper track =
         Nothing ->
             row [ padding 5, spacing 10, Background.color warningColor, width fill ]
                 [ useIcon FeatherIcons.info
-                , paragraph []
-                    [ text "This tool needs the Purple marker."
-                    ]
+                , text "This tool needs the Purple marker."
                 ]

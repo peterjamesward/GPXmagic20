@@ -441,6 +441,19 @@ previewNudge points =
             (List.drop 1 points)
 
 
+previewMoveAndStretch : List TrackPoint -> List (Entity LocalCoords)
+previewMoveAndStretch points =
+    let
+        nudgeElement tp1 tp2 =
+            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightBlue) tp1 tp2
+    in
+    List.concat <|
+        List.map2
+            nudgeElement
+            points
+            (List.drop 1 points)
+
+
 previewBend : List TrackPoint -> List (Entity LocalCoords)
 previewBend points =
     let
