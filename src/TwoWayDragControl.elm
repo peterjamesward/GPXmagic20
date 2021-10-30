@@ -20,7 +20,7 @@ import TrackPoint exposing (TrackPoint)
 import Utils exposing (showAngle, showDecimal2, showShortMeasure)
 import Vector2d
 import Vector3d
-import ViewPureStyles exposing (checkboxIcon, edges)
+import ViewPureStyles exposing (checkboxIcon, edges, prettyButtonStyles)
 
 
 type Mode
@@ -55,6 +55,7 @@ type Msg
     | DraggerMove Point
     | DraggerRelease Point
     | DraggerModeToggle Bool
+    | DraggerReset
 
 
 radius =
@@ -175,6 +176,15 @@ update message model wrapper track =
             , PostUpdateActions.ActionPreview
             )
 
+        DraggerReset ->
+            ( { model
+                | dragging = Nothing
+                , vector = Vector2d.zero
+                , preview = []
+              }
+            , PostUpdateActions.ActionPreview
+            )
+
 
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
 view imperial model wrapper track =
@@ -201,6 +211,8 @@ view imperial model wrapper track =
                 , checked = model.mode == Stretch
                 , label = Input.labelRight [ centerY ] (text "Stretch")
                 }
+            , Input.button prettyButtonStyles
+                { label = text "Reset", onPress = Just <| wrapper DraggerReset }
             , Element.text magnitudeString
             , Element.text directionString
             ]
@@ -253,7 +265,8 @@ computeNewPoints model track =
             Vector2d.components model.vector
 
         translation =
-            Point3d.translateBy (Vector3d.xyz x y (meters 0))
+            -- Negate y because SVG coordinates go downards.
+            Point3d.translateBy (Vector3d.xyz x (Quantity.negate y) (meters 0))
 
         newPoint trackpoint =
             let
