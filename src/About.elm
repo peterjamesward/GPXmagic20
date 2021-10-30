@@ -10,7 +10,7 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.17 update 2021-10-26
+## 2.4.18 update 2021-10-30
 
 - Rotation slider restricted to -30 to +30 degrees because it was hard to select a
 desired value and it's easy enough to repeat for larger rotations.
