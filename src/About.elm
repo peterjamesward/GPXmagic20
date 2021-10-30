@@ -17,6 +17,9 @@ desired value and it's easy enough to repeat for larger rotations.
 
 - Rotate track now rotates about the Orange marker. You can 'anchor' this point on the Map, say.
 
+- If you drop the Purple marker before Recentre, the operation will move this marker to the
+clicked location. Makes it easier to position precisely.
+
 ## Can I support this work?
 
 **YES, PLEASE!!**

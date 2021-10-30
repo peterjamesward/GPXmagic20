@@ -5,12 +5,6 @@
 
 # TO-DO
 
-**Anchored Rotate**
-Recentre and Rotate easier to use if they use Orange marker as focus.
-Clarify: Place purple on track feature, use Orange to click on Map. Consistent with current 'click' logic.
-(If no Purple marker, same as current Recentre?)
-~~Option to "scissor" two ends relative to Orange marker (inspired by Oatley)~~. (Obviated by Move & Stretch.)
-
 **New control** = 2D drag area (using Pointer msg), like goniometer,
 Use this for Nudge, labelled Up, Right, Down, Left from 12 o'clock.
 Maybe logarithmic so as to work for fine control and large moves.

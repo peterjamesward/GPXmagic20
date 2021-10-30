@@ -14,6 +14,7 @@ import LineSegment3d exposing (LineSegment3d)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra
+import Plane3d
 import Point3d
 import PostUpdateActions
 import Quantity
@@ -171,7 +172,57 @@ rotateRoute settings track =
 
 recentre : Options -> ( Float, Float ) -> Track -> ( Track, String )
 recentre settings ( lon, lat ) track =
-    ( { track | earthReferenceCoordinates = ( lon, lat, 0.0 ) }
+    -- To allow us to use the Purple marker as a designated reference,
+    -- we need to move the earth reference coords AND shift the track
+    -- by the opposite of the Purple position (?).
+    let
+        shiftedTrackPoints =
+            List.map shiftPoint track.trackPoints
+
+        shiftBasis =
+            case track.markedNode of
+                Just purple ->
+                    purple.xyz |> Point3d.projectOnto Plane3d.xy
+
+                Nothing ->
+                    Point3d.origin
+
+        shiftVector =
+            Vector3d.from shiftBasis Point3d.origin
+
+        shiftPoint =
+            .xyz
+                >> Point3d.translateBy shiftVector
+                >> trackPointFromPoint
+
+        shiftedTrack =
+            { track
+                | trackPoints = shiftedTrackPoints
+                , box =
+                    BoundingBox3d.hullOfN .xyz shiftedTrackPoints
+                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                , earthReferenceCoordinates = ( lon, lat, 0.0 )
+                , currentNode = newOrange
+                , markedNode = newPurple
+            }
+
+        newOrange =
+            shiftedTrackPoints
+                |> List.Extra.getAt track.currentNode.index
+                |> Maybe.withDefault track.currentNode
+
+        newPurple =
+            case track.markedNode of
+                Just purple ->
+                    shiftedTrackPoints
+                        |> List.Extra.getAt purple.index
+                        |> Maybe.withDefault purple
+                        |> Just
+
+                Nothing ->
+                    Nothing
+    in
+    ( shiftedTrack
     , "recentre"
     )
 
@@ -210,8 +261,8 @@ rescale settings track =
     )
 
 
-view : Bool -> Options -> (Float, Float) -> (Msg -> msg) -> Track -> Element msg
-view imperial options (lastX, lastY) wrapper track =
+view : Bool -> Options -> ( Float, Float ) -> (Msg -> msg) -> Track -> Element msg
+view imperial options ( lastX, lastY ) wrapper track =
     let
         rotationSlider =
             Input.slider
