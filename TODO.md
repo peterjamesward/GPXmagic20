@@ -5,13 +5,20 @@
 
 # TO-DO
 
-DEBT: Refactor PostUpdateAction in Main. (Move & Stretch is cleaner perhaps.)
+**DEBT**: Refactor PostUpdateAction in Main. (Move & Stretch is cleaner perhaps.)
+
+**DEBT**: Don't update state in ViewContext, safer to pass through the data needed.
+
+**DEBT**: Factor the PortMessage handling out of main::update.
+
+**DEBT**: Revert currentPoint to : Int, avoid stale state worries.
 
 **NOTE**: I may have just realised that intersection testing is not completely dissimilar to
 terrain generation with recursion, bounding boxes and cheap BB overlap tests.
-Only need segment intersection at the last stage. Not sure what to do with this thought ...
+Only need segment intersection at the last stage. Not sure what to do with this thought,
+it's a lot of work for slight benefit.
 
-**THOUGHT**: New tab for Overlaps (initially 2D, maybe 3D aware later). **I LIKE THIS**
+**THOUGHT**: New tab for Overlaps (initially 2D, maybe 3D aware later).
 - Highlights overlapping sections (perhaps just white circles or bbox)
 - Possible adjustments by moving sections up/down/left/right (arrow keys?) (at some quadtree level?)
 - Possible adjustments by pivoting around marker.
@@ -25,22 +32,17 @@ Only need segment intersection at the last stage. Not sure what to do with this 
 - Applies elevation relative to start elevation, of course.
 - Option to have "cross-fade" at the end (possibly hundred of metres).
 
-Timestamps: Is it possible to preserve GPX time stamps? **DO THIS**
-Obvs certain edits will largely invalidate, but we could preserve any we read in.
-<trkpt lat="51.6159740" lon="-0.3014110">
-<ele>97.4</ele>
-<time>2021-10-28T07:53:33Z</time>
-
-
-**DEBT**: Factor the PortMessage handling out of main::update.
-
-**DEBT**: Revert currentPoint to : Int, avoid stale state worries.
-
 Try to isolate Safari problem.
 
 ---
 
 # Not doing
+
+Timestamps: Is it possible to preserve GPX time stamps? **DO THIS**
+Obvs certain edits will largely invalidate, but we could preserve any we read in.
+<trkpt lat="51.6159740" lon="-0.3014110">
+<ele>97.4</ele>
+<time>2021-10-28T07:53:33Z</time>
 
 Try electron for native wrapper. See if multiple windows possible.
 
