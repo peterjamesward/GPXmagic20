@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
-import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption)
+import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption, tryBendSmoother)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Delay exposing (after)
@@ -939,7 +939,7 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionWalkGraph ) ->
-            -- Graph settings ghave changed. We must get the new route.
+            -- Graph settings have changed. We must get the new route.
             let
                 newTrackPoints =
                     Maybe.map Graph.walkTheRoute track.graph
@@ -1406,16 +1406,12 @@ renderVaryingSceneElements model =
                 { settings | preview = [] }
 
         updatedBendOptions =
-            let
-                options =
-                    model.bendOptions
-            in
             if Accordion.tabIsOpen "Bend smoother classic" model.toolsAccordion then
-                Maybe.map (tryBendSmoother options) model.track
-                    |> Maybe.withDefault options
+                Maybe.map (tryBendSmoother model.bendOptions) model.track
+                    |> Maybe.withDefault model.bendOptions
 
             else
-                { options | smoothedBend = Nothing }
+                BendSmoother.defaultOptions
 
         updatedStravaOptions =
             -- TODO: ?? Move pointers to discovered paste start and end ??
@@ -2142,30 +2138,6 @@ undoRedoButtons model =
                         E.paragraph [ width fill ] [ E.text "Nothing to redo" ]
             }
         ]
-
-
-tryBendSmoother : BendSmoother.BendOptions -> Track -> BendSmoother.BendOptions
-tryBendSmoother options track =
-    -- This, sadly, still here because import loops.
-    let
-        marker =
-            Maybe.withDefault track.currentNode track.markedNode
-
-        ( startPoint, endPoint ) =
-            if track.currentNode.index <= marker.index then
-                ( track.currentNode, marker )
-
-            else
-                ( marker, track.currentNode )
-    in
-    { options
-        | smoothedBend =
-            if endPoint.index >= startPoint.index + 2 then
-                lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
-
-            else
-                Nothing
-    }
 
 
 

@@ -84,6 +84,32 @@ type alias DrawingRoad =
     }
 
 
+tryBendSmoother : BendOptions -> Track -> BendOptions
+tryBendSmoother options track =
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        ( startPoint, endPoint ) =
+            if track.currentNode.index <= marker.index then
+                ( track.currentNode, marker )
+
+            else
+                ( marker, track.currentNode )
+
+        updatedOptions =
+            { options
+                | smoothedBend =
+                    if endPoint.index >= startPoint.index + 2 then
+                        lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
+
+                    else
+                        Nothing
+            }
+    in
+    updatedOptions
+
+
 update :
     Msg
     -> BendOptions
@@ -552,8 +578,20 @@ bendSmoothnessSlider imperial model wrap =
                 text <|
                     "Spacing: "
                         ++ showShortMeasure imperial (Length.meters model.bendTrackPointSpacing)
-        , min = Length.inMeters <| if imperial then Length.feet 3.0 else Length.meters 1.0
-        , max = Length.inMeters <| if imperial then Length.feet 30.0 else Length.meters 10.0
+        , min =
+            Length.inMeters <|
+                if imperial then
+                    Length.feet 3.0
+
+                else
+                    Length.meters 1.0
+        , max =
+            Length.inMeters <|
+                if imperial then
+                    Length.feet 30.0
+
+                else
+                    Length.meters 10.0
         , step = Nothing
         , value = model.bendTrackPointSpacing
         , thumb = Input.defaultThumb

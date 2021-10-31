@@ -1,6 +1,8 @@
 
 # BUGS
 
+Initial zoom in Profile is broked.
+
 ---
 
 # TO-DO
@@ -13,10 +15,20 @@
 
 **DEBT**: Revert currentPoint to : Int, avoid stale state worries.
 
+**NEW**: Use elevation from second route, starting at marker.
+- This should be a neat two-way merge sort of track points based on distance from start.
+- We have interpolation code in Flythrough, so it's a doddle.
+- Applies elevation relative to start elevation, of course.
+- Option to have "cross-fade" at the end (possibly hundred of metres).
+
+---
+
+# Not doing
+
 **NOTE**: I may have just realised that intersection testing is not completely dissimilar to
 terrain generation with recursion, bounding boxes and cheap BB overlap tests.
 Only need segment intersection at the last stage. Not sure what to do with this thought,
-it's a lot of work for slight benefit.
+it's a lot of work for slight benefit. Might be good coding exercise though.
 
 **THOUGHT**: New tab for Overlaps (initially 2D, maybe 3D aware later).
 - Highlights overlapping sections (perhaps just white circles or bbox)
@@ -26,25 +38,13 @@ it's a lot of work for slight benefit.
 - With expanded bounding boxes, can test for close roads also.
 + **NOTE** most of this is obviated by new Move and Stretch, apart from common TP.
 
-**NEW**: Use elevation from second route, starting at marker.
-- This should be a neat two-way merge sort of track points based on distance from start.
-- We have interpolation code in Flythrough, so it's a doddle.
-- Applies elevation relative to start elevation, of course.
-- Option to have "cross-fade" at the end (possibly hundred of metres).
-
-Try to isolate Safari problem.
-
----
-
-# Not doing
-
-Timestamps: Is it possible to preserve GPX time stamps? **DO THIS**
+**Timestamps**: Is it possible to preserve GPX time stamps? **DO THIS**
 Obvs certain edits will largely invalidate, but we could preserve any we read in.
 <trkpt lat="51.6159740" lon="-0.3014110">
 <ele>97.4</ele>
 <time>2021-10-28T07:53:33Z</time>
 
-Try electron for native wrapper. See if multiple windows possible.
+Try **electron** for native wrapper. See if multiple windows possible.
 
 Strava segment blend elevation rather than just Paste (optional).
 
