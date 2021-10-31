@@ -4,11 +4,13 @@ import BoundingBox3d exposing (BoundingBox3d)
 import Json.Decode exposing (Decoder, field, string)
 import Json.Encode as E
 import Length
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import MapboxKey exposing (mapboxKey)
 import Point3d
 import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
 import TrackPoint exposing (TrackPoint)
+import TwoWayDragControl
 import ViewingContext exposing (ViewingContext)
 
 
@@ -173,8 +175,9 @@ addMarkersToMap :
     Track
     -> Track -- bend smoothing suggestion
     -> Track -- node nudging preview
+    -> TwoWayDragControl.Model -- move and stretch preview
     -> Cmd msg
-addMarkersToMap track smoothBend nudged =
+addMarkersToMap track smoothBend nudged moveAndStretch =
     let
         realWorldPosition tp =
             Track.withoutGhanianTransform track tp.xyz
@@ -186,23 +189,30 @@ addMarkersToMap track smoothBend nudged =
                 ]
     in
     commandPort <|
-        case track.markedNode of
-            Just mark ->
-                E.object
-                    [ ( "Cmd", E.string "Mark" )
-                    , ( "orange", encodePos <| realWorldPosition track.currentNode )
-                    , ( "purple", encodePos <| realWorldPosition mark )
-                    , ( "bend", trackToJSON smoothBend )
-                    , ( "nudge", trackToJSON nudged )
-                    ]
+        E.object
+            [ ( "Cmd", E.string "Mark" )
+            , ( "orange", encodePos <| realWorldPosition track.currentNode )
+            , case track.markedNode of
+                Just mark ->
+                    ( "purple", encodePos <| realWorldPosition mark )
 
-            Nothing ->
-                E.object
-                    [ ( "Cmd", E.string "Mark" )
-                    , ( "orange", encodePos <| realWorldPosition track.currentNode )
-                    , ( "bend", trackToJSON smoothBend )
-                    , ( "nudge", trackToJSON nudged )
-                    ]
+                Nothing ->
+                    ( "ignore", E.null )
+            , case moveAndStretch.stretchPointer of
+                Just idx ->
+                    case track.trackPoints |> List.Extra.getAt idx of
+                        Just white ->
+                            ( "white", encodePos <| realWorldPosition white )
+
+                        Nothing ->
+                            ( "ignore", E.null )
+
+                Nothing ->
+                    ( "ignore", E.null )
+            , ( "bend", trackToJSON smoothBend )
+            , ( "nudge", trackToJSON nudged )
+            , ( "move", trackToJSON { track | trackPoints = moveAndStretch.preview } )
+            ]
 
 
 storageSetItem : String -> E.Value -> Cmd msg

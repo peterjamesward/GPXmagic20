@@ -975,7 +975,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.twoWayDrag ]
             )
 
         ( Just track, ActionFocusMove tp ) ->
@@ -999,7 +999,7 @@ processPostUpdateAction model action =
               }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.twoWayDrag
                 , if ViewPane.mapPaneIsLinked model.viewPanes then
                     PortController.centreMapOnCurrent updatedTrack
 
@@ -1026,7 +1026,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview ]
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.twoWayDrag ]
             )
 
         ( Just track, ActionRepaintMap ) ->
@@ -1067,7 +1067,7 @@ processPostUpdateAction model action =
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap track bendPreview nudgePreview ]
+                [ PortController.addMarkersToMap track bendPreview nudgePreview model.twoWayDrag ]
             )
 
         ( _, ActionCommand a ) ->

@@ -10,15 +10,15 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.4.18 update 2021-10-30
+## 2.5.0 update 2021-10-31
 
-- Rotation slider restricted to -30 to +30 degrees because it was hard to select a
-desired value and it's easy enough to repeat for larger rotations.
+- **New tool alert.** Move and Stretch is nudge, supercharged. In Move mode, you can use the circular control
+to horizontally displace a marked section of track by up to 100m (more than 300ft). In Stretch model, you
+must use the slider to position a new White marker between the Orange and the Purple. The 2D control will
+then move this marker, but all point between it and the Orange and Purple will move in proportion. You can
+use this, for example, to "open up" a set of bends that don't render well in Magic Roads.
 
-- Rotate track now rotates about the Orange marker. You can 'anchor' this point on the Map, say.
-
-- If you drop the Purple marker before Recentre, the operation will move this marker to the
-clicked location. Makes it easier to position precisely.
+- Note: Previews in Map view have a 1/10 second delay, please be patient.
 
 ## Can I support this work?
 

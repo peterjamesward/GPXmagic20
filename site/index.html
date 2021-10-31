@@ -398,6 +398,7 @@ function setClickMode(newMode, points) {
 
 var orangeMarker = new mapboxgl.Marker({ color: "#FFA500" });
 var purpleMarker = new mapboxgl.Marker({ color: "#800080", scale: 0.8 });
+var whiteMarker = new mapboxgl.Marker({ color: "#FFFFFF", scale: 0.8 });
 
 function addOptionals(msg) {
     if (typeof(msg.orange) != 'undefined') {
@@ -411,6 +412,14 @@ function addOptionals(msg) {
     } else {
         purpleMarker
             .setLngLat([msg.purple.lon, msg.purple.lat])
+            .addTo(map);
+    };
+
+    if (typeof(msg.white) === 'undefined') {
+        whiteMarker.remove();
+    } else {
+        whiteMarker
+            .setLngLat([msg.white.lon, msg.white.lat])
             .addTo(map);
     };
 
@@ -460,6 +469,31 @@ function addOptionals(msg) {
             },
             'paint': {
                 'line-color': '#FFA500',
+                'line-width': 5
+            }
+        });
+    };
+
+    if (map.getLayer('move')) map.removeLayer('move');
+    if (map.getSource('move')) map.removeSource('move');
+
+    if (typeof(msg.move) != 'undefined') {
+        map.addSource('move', {
+            'type': 'geojson',
+            'data': msg.move
+            });
+
+        //console.log('adding move');
+        map.addLayer({
+            'id': 'move',
+            'type': 'line',
+            'source': 'move',
+            'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': '#3333FF',
                 'line-width': 5
             }
         });

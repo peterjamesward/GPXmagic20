@@ -17,6 +17,7 @@ import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
+import TwoWayDragControl
 import Utils exposing (useIcon)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
@@ -50,7 +51,10 @@ emptyPreviewCopy track =
 initialiseMap : ViewingContext -> Track -> List (Cmd msg)
 initialiseMap context track =
     [ PortController.addTrackToMap context track
-    , PortController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
+    , PortController.addMarkersToMap track
+        (emptyPreviewCopy track)
+        (emptyPreviewCopy track)
+        TwoWayDragControl.defaultModel
     , PortController.centreMap context track
     , PortController.zoomMap context
     ]
@@ -59,7 +63,10 @@ initialiseMap context track =
 mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)
 mapTrackHasChanged context track =
     [ PortController.addTrackToMap context track
-    , PortController.addMarkersToMap track (emptyPreviewCopy track) (emptyPreviewCopy track)
+    , PortController.addMarkersToMap track
+        (emptyPreviewCopy track)
+        (emptyPreviewCopy track)
+        TwoWayDragControl.defaultModel
     ]
 
 

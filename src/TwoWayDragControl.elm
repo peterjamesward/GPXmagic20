@@ -1,5 +1,6 @@
 module TwoWayDragControl exposing (..)
 
+import Axis3d
 import Direction2d
 import Element exposing (..)
 import Element.Input as Input
@@ -16,8 +17,9 @@ import Svg
 import Svg.Attributes as SA
 import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
+import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showAngle, showShortMeasure)
+import Utils exposing (showAngle, showDecimal0, showLongMeasure, showShortMeasure)
 import Vector2d
 import Vector3d
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
@@ -57,6 +59,7 @@ type Msg
     | DraggerModeToggle Bool
     | DraggerReset
     | DraggerMarker Int
+    | DraggerApply
 
 
 radius =
@@ -148,14 +151,16 @@ update message model wrapper track =
                         newVector =
                             Vector2d.from dragStart offset
                     in
-                    ( { model
-                        | vector =
-                            if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
-                                Vector2d.scaleTo (Length.meters 100.0) newVector
+                    ( track
+                        |> preview
+                            { model
+                                | vector =
+                                    if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
+                                        Vector2d.scaleTo (Length.meters 100.0) newVector
 
-                            else
-                                newVector
-                      }
+                                    else
+                                        newVector
+                            }
                     , PostUpdateActions.ActionPreview
                     )
 
@@ -191,27 +196,46 @@ update message model wrapper track =
             , PostUpdateActions.ActionPreview
             )
 
+        DraggerApply ->
+            ( { model | preview = [] }
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (apply track model)
+                (makeUndoMessage model)
+            )
+
+
+minmax a b =
+    ( toFloat <| min a b
+    , toFloat <| max a b
+    )
+
 
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
 view imperial model wrapper track =
-    -- Try with linear vector, switch to log or something else if needed.
     let
-        minmax a b =
-            ( toFloat <| min a b
-            , toFloat <| max a b
-            )
+        canApply =
+            case track.markedNode of
+                Just purple ->
+                    let
+                        ( from, to ) =
+                            minmax track.currentNode.index purple.index
+                    in
+                    case model.mode of
+                        Translate ->
+                            from < to
 
-        directionString =
-            case Vector2d.direction model.vector of
-                Just direction ->
-                    showAngle <| Direction2d.toAngle direction
+                        Stretch ->
+                            let
+                                drag =
+                                    model.stretchPointer |> Maybe.withDefault 0 |> toFloat
+                            in
+                            from < drag && drag < to
 
                 Nothing ->
-                    "none"
-
-        magnitudeString =
-            showShortMeasure imperial <| Vector2d.length model.vector
+                    False
     in
+    -- Try with linear vector, switch to log or something else if needed.
     row [ paddingEach { edges | right = 10 } ]
         [ twoWayDragControl model wrapper
         , column
@@ -246,10 +270,21 @@ view imperial model wrapper track =
 
                 _ ->
                     none
-            , Input.button prettyButtonStyles
-                { label = text "Reset", onPress = Just <| wrapper DraggerReset }
-            , Element.text magnitudeString
-            , Element.text directionString
+            , row [ spacing 5 ]
+                [ Input.button prettyButtonStyles
+                    { label = text "Zero", onPress = Just <| wrapper DraggerReset }
+                , if canApply then
+                    Input.button prettyButtonStyles
+                        { label = text "Apply"
+                        , onPress = Just <| wrapper DraggerApply
+                        }
+
+                  else
+                    Input.button prettyButtonStyles
+                        { label = text "Not valid"
+                        , onPress = Nothing
+                        }
+                ]
             ]
         ]
 
@@ -265,6 +300,44 @@ In Stretch mode, you see a new Cyan pointer. The control will move the Cyan poin
 sections of track either side will expand or contract to follow it. This could be used for
 separating hairpins, or just to avoid a close pass, or because you can.
 """
+
+
+apply : Track -> Model -> Track
+apply track model =
+    let
+        markerPosition =
+            track.markedNode |> Maybe.withDefault track.currentNode
+
+        ( from, to ) =
+            ( min track.currentNode.index markerPosition.index
+            , max track.currentNode.index markerPosition.index
+            )
+
+        newTrackPoints =
+            case model.mode of
+                Translate ->
+                    movePoints model track
+
+                Stretch ->
+                    stretchPoints model track
+
+        newCurrent =
+            List.Extra.getAt track.currentNode.index newTrackPoints
+                |> Maybe.withDefault track.currentNode
+
+        newMarker =
+            case track.markedNode of
+                Just isMarked ->
+                    List.Extra.getAt isMarked.index newTrackPoints
+
+                Nothing ->
+                    Nothing
+    in
+    { track
+        | trackPoints = newTrackPoints
+        , currentNode = newCurrent
+        , markedNode = newMarker
+    }
 
 
 preview : Model -> Track -> Model
@@ -338,39 +411,105 @@ movePoints model track =
 stretchPoints : Model -> Track -> List TrackPoint
 stretchPoints model track =
     -- This used by preview and action.
+    -- Here we move points either side of the stretch marker.
     let
         ( x, y ) =
             Vector2d.components model.vector
 
         translation =
             -- Negate y because SVG coordinates go downards.
-            Point3d.translateBy (Vector3d.xyz x (Quantity.negate y) (meters 0))
+            Vector3d.xyz x (Quantity.negate y) (meters 0)
 
-        newPoint trackpoint =
-            let
-                newXYZ =
-                    translation trackpoint.xyz
-            in
-            { trackpoint | xyz = newXYZ }
-
-        markerPosition =
+        -- Point2d.signedDistanceAlong and .signedDistanceFrom give axis relative coordinates.
+        -- Then we need only translate along the axis by the proportionate distanceAlong, so we're home.
+        marker =
             track.markedNode |> Maybe.withDefault track.currentNode
 
+        referenceIdx =
+            case model.stretchPointer of
+                Just idx ->
+                    idx
+
+                Nothing ->
+                    -- Won't happen but have to do this
+                    track.currentNode.index
+
+        referencePoint =
+            List.Extra.getAt referenceIdx track.trackPoints
+                |> Maybe.withDefault track.currentNode
+
         ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
+            ( min track.currentNode.index marker.index
+            , max track.currentNode.index marker.index
+            )
+
+        ( startAnchor, endAnchor ) =
+            ( track.trackPoints |> List.Extra.getAt from |> Maybe.withDefault track.currentNode
+            , track.trackPoints |> List.Extra.getAt to |> Maybe.withDefault track.currentNode
             )
 
         ( beforeEnd, afterEnd ) =
-            List.Extra.splitAt (to + 1) track.trackPoints
+            track.trackPoints |> List.Extra.splitAt (to + 1)
 
-        ( beforeStart, affectedRegion ) =
-            List.Extra.splitAt from beforeEnd
+        ( beforeReference, secondPart ) =
+            beforeEnd |> List.Extra.splitAt referenceIdx
 
-        adjustedPoints =
-            List.map newPoint affectedRegion
+        ( beforeStart, firstPart ) =
+            beforeReference |> List.Extra.splitAt from
+
+        ( firstPartAxis, secondPartAxis ) =
+            ( Axis3d.throughPoints startAnchor.xyz referencePoint.xyz
+            , Axis3d.throughPoints endAnchor.xyz referencePoint.xyz
+            )
+
+        ( firstPartDistance, secondPartDistance ) =
+            ( Point3d.distanceFrom startAnchor.xyz referencePoint.xyz
+            , Point3d.distanceFrom endAnchor.xyz referencePoint.xyz
+            )
+
+        distanceAlong maybeAxis p =
+            case maybeAxis of
+                Just axis ->
+                    p |> Point3d.signedDistanceAlong axis
+
+                Nothing ->
+                    Quantity.zero
+
+        ( adjustedFirstPoints, adjustedSecondPoints ) =
+            ( List.map adjustRelativeToStart firstPart
+            , List.map adjustRelativeToEnd secondPart
+            )
+
+        adjustRelativeToStart pt =
+            let
+                proportion =
+                    Quantity.ratio
+                        (pt.xyz |> distanceAlong firstPartAxis)
+                        firstPartDistance
+            in
+            { pt
+                | xyz =
+                    pt.xyz |> Point3d.translateBy (translation |> Vector3d.scaleBy proportion)
+            }
+
+        adjustRelativeToEnd pt =
+            let
+                proportion =
+                    Quantity.ratio
+                        (pt.xyz |> distanceAlong secondPartAxis)
+                        secondPartDistance
+            in
+            { pt
+                | xyz =
+                    pt.xyz |> Point3d.translateBy (translation |> Vector3d.scaleBy proportion)
+            }
     in
-    beforeStart ++ adjustedPoints ++ afterEnd
+    -- Avoid potential division by zero.
+    if from < referenceIdx && referenceIdx < to then
+        beforeStart ++ adjustedFirstPoints ++ adjustedSecondPoints ++ afterEnd
+
+    else
+        track.trackPoints
 
 
 getStretchPointer : Model -> Track -> Maybe TrackPoint
@@ -381,3 +520,13 @@ getStretchPointer model track =
 
         _ ->
             Nothing
+
+
+makeUndoMessage : Model -> String
+makeUndoMessage model =
+    case model.mode of
+        Translate ->
+            "Slide a section of track"
+
+        Stretch ->
+            "Stretch a section of track"
