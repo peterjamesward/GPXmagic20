@@ -1858,7 +1858,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = TwoWayDragControl.info
-      , video = Nothing
+      , video = Just "https://youtu.be/9ag2iSS4OE8"
       , isFavourite = False
       }
     , { label = "Straighten"

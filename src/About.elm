@@ -18,6 +18,8 @@ must use the slider to position a new White marker between the Orange and the Pu
 then move this marker, but all point between it and the Orange and Purple will move in proportion. You can
 use this, for example, to "open up" a set of bends that don't render well in Magic Roads.
 
+Video at https://youtu.be/9ag2iSS4OE8
+
 - Note: Previews in Map view have a 1/10 second delay, please be patient.
 
 ## Can I support this work?
