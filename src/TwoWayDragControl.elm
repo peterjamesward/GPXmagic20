@@ -1,7 +1,6 @@
 module TwoWayDragControl exposing (..)
 
 import Axis3d
-import Direction2d
 import Element exposing (..)
 import Element.Input as Input
 import Html.Attributes
@@ -19,7 +18,6 @@ import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showAngle, showDecimal0, showLongMeasure, showShortMeasure)
 import Vector2d
 import Vector3d
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
@@ -296,7 +294,7 @@ info =
 It's the new Nudge. Bracket some track with the markers and use the cool dragging control to
 move the track section. You will have to fix the transitions later.
 
-In Stretch mode, you see a new Cyan pointer. The control will move the Cyan pointer and the
+In Stretch mode, you see a new White pointer. The control will move the White pointer and the
 sections of track either side will expand or contract to follow it. This could be used for
 separating hairpins, or just to avoid a close pass, or because you can.
 """
