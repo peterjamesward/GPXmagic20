@@ -11,6 +11,7 @@ Move & Stretch white marker does not disappear when tool tab closed.
 
 Do something about out and back routes wrt Intersections !! 
 > Maybe discount colinear segments.
+> Check with the Tuscany course.
 
 **DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
 > Now I know how to write type signatures that don't require the whole Main.Model!

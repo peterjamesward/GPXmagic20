@@ -10,13 +10,11 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.6.0 update 2021-11-01
+## 2.6.1 update 2021-11-01
 
-- **New tab alert** Added _Intersections_ tab to detect and quickly navigate to where the track
-appears to cross itself. Note that the distance on the buttons is the distance to the preceding
-track point, not the actual intersection. This may change.
+- Distance to intersection more accurate, but button will only take you to a nearby track point.
 
-- Fixed distance display on Delete button.
+- Intersection tab will provide scrolling if there are many intersections.
 
 ## Can I support this work?
 

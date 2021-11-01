@@ -5,8 +5,10 @@ import BendSmoother
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (inMeters, meters)
+import LineSegment2d
 import List.Extra
 import LoopedTrack exposing (Loopiness(..))
+import Point2d
 import Point3d
 import PostUpdateActions
 import Quantity exposing (zero)
@@ -411,15 +413,24 @@ viewIntersections imperial options obs wrap =
     let
         linkButton { segments, intersectAt } =
             let
-                point =
-                    segments |> Tuple.first |> .id
+                ( firstSegment, secondSegment ) =
+                    segments
+
+                trackpoint =
+                    firstSegment.id
+
+                offset =
+                    intersectAt |> Point2d.distanceFrom (LineSegment2d.startPoint firstSegment.line)
             in
             button prettyButtonStyles
-                { onPress = Just (wrap <| LocateProblem point)
-                , label = text <| showLongMeasure imperial point.distanceFromStart
+                { onPress = Just (wrap <| LocateProblem trackpoint)
+                , label =
+                    text <|
+                        showLongMeasure imperial <|
+                            Quantity.plus trackpoint.distanceFromStart offset
                 }
     in
-    el [ padding 10 ] <|
+    el [ padding 10, height (fill |> maximum 300), clipY, scrollbarY ] <|
         case obs.intersections of
             [] ->
                 text "No intersections"
