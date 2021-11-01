@@ -1965,6 +1965,18 @@ toolsAccordion model =
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
       }
+    , { label = "Intersections"
+      , state = Contracted
+      , content =
+            TrackObservations.viewIntersections
+                model.displayOptions.imperialMeasure
+                model.problemOptions
+                model.observations
+                ProblemMessage
+      , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
     , { label = "Strava"
       , state = Contracted
       , content =

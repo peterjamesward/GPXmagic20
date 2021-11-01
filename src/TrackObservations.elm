@@ -406,6 +406,26 @@ viewBearingChanges imperial options obs wrap =
             ++ List.map linkButton exceedingThreshold
 
 
+viewIntersections : Bool -> Options -> TrackObservations -> (Msg -> msg) -> Element msg
+viewIntersections imperial options obs wrap =
+    let
+        displayIntersection : Intersection -> Element msg
+        displayIntersection { segments, intersectAt } =
+            button prettyButtonStyles
+                { onPress = Nothing
+                , label = text <| String.fromInt <| .id <| Tuple.first segments
+                }
+    in
+    el [ padding 10 ] <|
+        case obs.intersections of
+            [] ->
+                text "No intersections"
+
+            intersections ->
+                wrappedRow [ spacing 10, padding 10 ] <|
+                    List.map displayIntersection intersections
+
+
 gradientThresholdSlider : Options -> (Msg -> msg) -> Element msg
 gradientThresholdSlider options wrap =
     Input.slider

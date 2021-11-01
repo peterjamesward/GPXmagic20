@@ -7,6 +7,8 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
+Tab to show overlaps. For now, just allow navigation.
+
 **DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
 (Now I know how to write type signatures that don't require the whole Main.Model!)
 
