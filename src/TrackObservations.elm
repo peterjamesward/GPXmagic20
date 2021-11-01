@@ -409,11 +409,14 @@ viewBearingChanges imperial options obs wrap =
 viewIntersections : Bool -> Options -> TrackObservations -> (Msg -> msg) -> Element msg
 viewIntersections imperial options obs wrap =
     let
-        displayIntersection : Intersection -> Element msg
-        displayIntersection { segments, intersectAt } =
+        linkButton { segments, intersectAt } =
+            let
+                point =
+                    segments |> Tuple.first |> .id
+            in
             button prettyButtonStyles
-                { onPress = Nothing
-                , label = text <| String.fromInt <| .id <| Tuple.first segments
+                { onPress = Just (wrap <| LocateProblem point)
+                , label = text <| showLongMeasure imperial point.distanceFromStart
                 }
     in
     el [ padding 10 ] <|
@@ -423,7 +426,7 @@ viewIntersections imperial options obs wrap =
 
             intersections ->
                 wrappedRow [ spacing 10, padding 10 ] <|
-                    List.map displayIntersection intersections
+                    List.map linkButton intersections
 
 
 gradientThresholdSlider : Options -> (Msg -> msg) -> Element msg

@@ -3,14 +3,17 @@
 
 Initial zoom in Profile is broked. Curious.
 
+Move & Stretch white marker does not disappear when tool tab closed.
+
 ---
 
 # TO-DO
 
-Tab to show overlaps. For now, just allow navigation.
+Do something about out and back routes wrt Intersections !! 
+> Maybe discount colinear segments.
 
 **DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
-(Now I know how to write type signatures that don't require the whole Main.Model!)
+> Now I know how to write type signatures that don't require the whole Main.Model!
 
 **DEBT**: Factor the PortMessage handling out of main::update. PortController.update?
 

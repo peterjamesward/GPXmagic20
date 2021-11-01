@@ -396,7 +396,7 @@ update msg model =
         DeleteMessage deleteMsg ->
             let
                 action =
-                    Maybe.map (DeletePoints.update deleteMsg) model.track
+                    Maybe.map (DeletePoints.update model.displayOptions.imperialMeasure deleteMsg) model.track
                         |> Maybe.withDefault ActionNoOp
             in
             processPostUpdateAction model action
@@ -1867,7 +1867,7 @@ toolsAccordion model =
       }
     , { label = "Delete"
       , state = Contracted
-      , content = viewDeleteTools model.track DeleteMessage
+      , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
       , info = DeletePoints.info
       , video = Nothing
       , isFavourite = False

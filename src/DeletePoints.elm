@@ -10,7 +10,7 @@ import Quantity
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2)
+import Utils exposing (showDecimal0, showDecimal2, showLongMeasure)
 import ViewPureStyles exposing (defaultColumnLayout, prettyButtonStyles)
 
 
@@ -38,8 +38,8 @@ It is not possible to delete a Graph Node.
 """
 
 
-viewDeleteTools : Maybe Track -> (Msg -> msg) -> Element msg
-viewDeleteTools track msgWrapper =
+viewDeleteTools : Bool -> Maybe Track -> (Msg -> msg) -> Element msg
+viewDeleteTools imperial track msgWrapper =
     case track of
         Nothing ->
             text "Hmm, we have no track."
@@ -50,7 +50,7 @@ viewDeleteTools track msgWrapper =
                     button
                         prettyButtonStyles
                         { onPress = Just <| msgWrapper DeleteTrackPoints
-                        , label = text <| makeUndoMessage isTrack
+                        , label = text <| makeUndoMessage imperial isTrack
                         }
             in
             column defaultColumnLayout
@@ -58,34 +58,32 @@ viewDeleteTools track msgWrapper =
                 ]
 
 
-makeUndoMessage : Track -> String
-makeUndoMessage track =
+makeUndoMessage : Bool -> Track -> String
+makeUndoMessage imperial track =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( start, finish ) =
-            ( Length.inMeters <|
-                Quantity.min track.currentNode.distanceFromStart marker.distanceFromStart
-            , Length.inMeters <|
-                Quantity.max track.currentNode.distanceFromStart marker.distanceFromStart
+            ( Quantity.min track.currentNode.distanceFromStart marker.distanceFromStart
+            , Quantity.max track.currentNode.distanceFromStart marker.distanceFromStart
             )
     in
     if start == finish then
-        "Delete point at " ++ showDecimal0 start
+        "Delete point at " ++ showLongMeasure imperial start
 
     else
-        "Delete from " ++ showDecimal0 start ++ " to " ++ showDecimal0 finish
+        "Delete from " ++ showLongMeasure imperial start ++ " to " ++ showLongMeasure imperial finish
 
 
-update : Msg -> Track -> PostUpdateAction msg
-update msg track =
+update : Bool -> Msg -> Track -> PostUpdateAction msg
+update imperial msg track =
     case msg of
         DeleteTrackPoints ->
             PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
                 (deletePoints track)
-                (makeUndoMessage track)
+                (makeUndoMessage imperial track)
 
 
 deletePoints : Track -> Track
@@ -102,6 +100,7 @@ deletePoints track =
         safeStart =
             if start == 0 && finish == List.length track.trackPoints - 1 then
                 1
+
             else
                 start
 

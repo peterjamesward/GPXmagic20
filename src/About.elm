@@ -10,17 +10,13 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.5.0 update 2021-10-31
+## 2.6.0 update 2021-11-01
 
-- **New tool alert.** Move and Stretch is nudge, supercharged. In Move mode, you can use the circular control
-to horizontally displace a marked section of track by up to 100m (more than 300ft). In Stretch model, you
-must use the slider to position a new White marker between the Orange and the Purple. The 2D control will
-then move this marker, but all point between it and the Orange and Purple will move in proportion. You can
-use this, for example, to "open up" a set of bends that don't render well in Magic Roads.
+- **New tab alert** Added _Intersections_ tab to detect and quickly navigate to where the track
+appears to cross itself. Note that the distance on the buttons is the distance to the preceding
+track point, not the actual intersection. This may change.
 
-Video at https://youtu.be/9ag2iSS4OE8
-
-- Note: Previews in Map view have a 1/10 second delay, please be patient.
+- Fixed distance display on Delete button.
 
 ## Can I support this work?
 

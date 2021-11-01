@@ -22,7 +22,7 @@ type alias Point =
 
 type alias Segment =
     -- The Int is what allows us to refer back to source Trackpoints
-    { id : Int, line : LineSegment2d.LineSegment2d Length.Meters LocalCoords }
+    { id : TrackPoint, line : LineSegment2d.LineSegment2d Length.Meters LocalCoords }
 
 
 type alias Index =
@@ -40,7 +40,7 @@ intersections trackpoints =
     -- Top level API
     let
         makeSegment tp1 tp2 =
-            { id = tp1.index
+            { id = tp1
             , line =
                 LineSegment2d.from
                     (tp1.xyz |> Point3d.projectInto SketchPlane3d.xy)
