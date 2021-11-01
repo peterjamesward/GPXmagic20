@@ -82,6 +82,9 @@ checkSegmentAndAdd segment ( index, intersects ) =
     -- We look at these overlaps to see if any are real intersections.
     -- We add intersections to the list.
     -- We add this segment to the index.
+    -- TODO: Ignore colinear segments, e.g. on out and back sections. \
+    -- Well, the intersection test already ignores colinear, so I think this is a tolerance thing
+    -- and we'd be safer rejecting sufficiently small triangles.
     let
         prepContent =
             { content = segment
@@ -99,7 +102,6 @@ checkSegmentAndAdd segment ( index, intersects ) =
                 |> List.filterMap checkForIntersect
 
         samePoint p1 p2 =
-            -- TODO: Tolerance should be exposed?
             p1 |> distanceFrom p2 |> Quantity.lessThan (meters 0.1)
 
         checkForIntersect : Segment -> Maybe Intersection
@@ -110,6 +112,8 @@ checkSegmentAndAdd segment ( index, intersects ) =
                     if
                         samePoint (startPoint overlap.line) (endPoint segment.line)
                             || samePoint (startPoint segment.line) (endPoint overlap.line)
+                            || samePoint (startPoint segment.line) (startPoint overlap.line)
+                            || samePoint (endPoint segment.line) (endPoint overlap.line)
                     then
                         Nothing
 

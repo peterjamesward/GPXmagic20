@@ -14,6 +14,8 @@ aboutText =
 
 - Distance to intersection more accurate, but button will only take you to a nearby track point.
 
+- Segments with shared start and end points in any order do not count as intersections.
+
 - Intersection tab will provide scrolling if there are many intersections.
 
 ## Can I support this work?
