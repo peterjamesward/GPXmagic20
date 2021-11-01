@@ -1,19 +1,22 @@
 
 # BUGS
 
-Initial zoom in Profile is broked.
+Initial zoom in Profile is broked. Curious.
 
 ---
 
 # TO-DO
 
-**DEBT**: Refactor PostUpdateAction in Main. (Move & Stretch is cleaner perhaps.)
+**DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
+(Now I know how to write type signatures that don't require the whole Main.Model!)
 
-**DEBT**: Don't update state in ViewContext, safer to pass through the data needed.
+**DEBT**: Factor the PortMessage handling out of main::update. PortController.update?
 
-**DEBT**: Factor the PortMessage handling out of main::update.
+**DEBT**: Switch currentPoint to : Int, avoid stale state worries.
 
-**DEBT**: Revert currentPoint to : Int, avoid stale state worries.
+**DEBT**: I use too many nested 'case' forms. Must learn how to avoid this. (andThen ?)
+
+**DEBT**: Factor out the common pattern of min, max for the pointers.
 
 **NEW**: Use elevation from second route, starting at marker.
 - This should be a neat two-way merge sort of track points based on distance from start.
@@ -24,11 +27,6 @@ Initial zoom in Profile is broked.
 ---
 
 # Not doing
-
-**NOTE**: I may have just realised that intersection testing is not completely dissimilar to
-terrain generation with recursion, bounding boxes and cheap BB overlap tests.
-Only need segment intersection at the last stage. Not sure what to do with this thought,
-it's a lot of work for slight benefit. Might be good coding exercise though.
 
 **THOUGHT**: New tab for Overlaps (initially 2D, maybe 3D aware later).
 - Highlights overlapping sections (perhaps just white circles or bbox)

@@ -25,7 +25,6 @@ import GradientLimiter
 import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id, style)
-import Html.Events.Extra.Pointer as Pointer
 import Http
 import Interpolate
 import Json.Decode as D
@@ -919,6 +918,22 @@ draggedOnMap json track =
                 Nothing
 
 
+updatePreviews model track =
+    -- Interim step in re-factor!
+    let
+        bendPreview =
+            { track
+                | trackPoints =
+                    Maybe.map .nodes model.bendOptions.smoothedBend
+                        |> Maybe.withDefault []
+            }
+
+        nudgePreview =
+            { track | trackPoints = model.nudgeSettings.preview }
+    in
+    ( bendPreview, nudgePreview )
+
+
 processPostUpdateAction : Model -> PostUpdateAction (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
@@ -957,20 +972,12 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionPointerMove tp ) ->
-            --TODO: Remove duplication from following cases.
             let
                 updatedTrack =
                     { track | currentNode = tp }
 
-                bendPreview =
-                    { track
-                        | trackPoints =
-                            Maybe.map .nodes model.bendOptions.smoothedBend
-                                |> Maybe.withDefault []
-                    }
-
-                nudgePreview =
-                    { track | trackPoints = model.nudgeSettings.preview }
+                ( bendPreview, nudgePreview ) =
+                    updatePreviews model updatedTrack
             in
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
@@ -983,15 +990,8 @@ processPostUpdateAction model action =
                 updatedTrack =
                     { track | currentNode = tp }
 
-                bendPreview =
-                    { track
-                        | trackPoints =
-                            Maybe.map .nodes model.bendOptions.smoothedBend
-                                |> Maybe.withDefault []
-                    }
-
-                nudgePreview =
-                    { track | trackPoints = model.nudgeSettings.preview }
+                ( bendPreview, nudgePreview ) =
+                    updatePreviews model updatedTrack
             in
             ( { model
                 | track = Just updatedTrack
@@ -1013,15 +1013,8 @@ processPostUpdateAction model action =
                 updatedTrack =
                     { track | markedNode = maybeTp }
 
-                bendPreview =
-                    { track
-                        | trackPoints =
-                            Maybe.map .nodes model.bendOptions.smoothedBend
-                                |> Maybe.withDefault []
-                    }
-
-                nudgePreview =
-                    { track | trackPoints = model.nudgeSettings.preview }
+                ( bendPreview, nudgePreview ) =
+                    updatePreviews model updatedTrack
             in
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
@@ -1047,23 +1040,8 @@ processPostUpdateAction model action =
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
             let
-                bendPreview =
-                    if Accordion.tabIsOpen "Bend smoother classic" model.toolsAccordion then
-                        { track
-                            | trackPoints =
-                                Maybe.map .nodes model.bendOptions.smoothedBend
-                                    |> Maybe.withDefault []
-                        }
-
-                    else
-                        { track | trackPoints = [] }
-
-                nudgePreview =
-                    if Accordion.tabIsOpen "Nudge" model.toolsAccordion then
-                        { track | trackPoints = model.nudgeSettings.preview }
-
-                    else
-                        { track | trackPoints = [] }
+                ( bendPreview, nudgePreview ) =
+                    updatePreviews model track
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch

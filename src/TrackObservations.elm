@@ -10,6 +10,7 @@ import LoopedTrack exposing (Loopiness(..))
 import Point3d
 import PostUpdateActions
 import Quantity exposing (zero)
+import RoadIndex exposing (Intersection)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
@@ -67,6 +68,7 @@ type alias TrackObservations =
     , totalClimbing : Float
     , totalDescending : Float
     , meanSpacing : Float
+    , intersections : List Intersection
     }
 
 
@@ -84,6 +86,7 @@ defaultObservations =
     , totalClimbing = 0.0
     , totalDescending = 0.0
     , meanSpacing = 0.0
+    , intersections = []
     }
 
 
@@ -275,6 +278,7 @@ deriveProblems track options =
     , totalClimbing = ascent
     , totalDescending = descent
     , meanSpacing = trackLength / (toFloat <| List.length track.trackPoints)
+    , intersections = RoadIndex.intersections track.trackPoints
     }
 
 
