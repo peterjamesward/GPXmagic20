@@ -1340,9 +1340,13 @@ renderVaryingSceneElements : Model -> Model
 renderVaryingSceneElements model =
     let
         stretchMarker =
-            Maybe.map (TwoWayDragControl.getStretchPointer model.twoWayDrag)
-                model.track
-                |> Maybe.join
+            if Accordion.tabIsOpen "Move & Stretch" model.toolsAccordion then
+                Maybe.map (TwoWayDragControl.getStretchPointer model.twoWayDrag)
+                    model.track
+                    |> Maybe.join
+
+            else
+                Nothing
 
         updatedMarkers =
             -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!

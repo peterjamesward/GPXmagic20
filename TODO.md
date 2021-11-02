@@ -3,8 +3,6 @@
 
 Initial zoom in Profile is broked. Curious.
 
-Move & Stretch white marker does not disappear when tool tab closed.
-
 ---
 
 # TO-DO
