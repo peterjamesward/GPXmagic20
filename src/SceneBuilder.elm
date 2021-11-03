@@ -653,7 +653,9 @@ terrainFromIndex box base index =
                     -- This box encloses our points. It defines the top of the frustrum and the base for the next level.
                     content
                         |> BoundingBox2d.aggregateOfN .box
-                        |> Maybe.withDefault (BoundingBox2d.singleton Point2d.origin)
+                        |> Maybe.withDefault box
+                        |> BoundingBox2d.intersection box
+                        |> Maybe.withDefault box
 
                 innerExtrema =
                     BoundingBox2d.extrema actualBox
@@ -685,28 +687,28 @@ terrainFromIndex box base index =
 
                 thisLevelSceneElements =
                     [ Scene3d.quad (Material.matte topColour)
-                        (Point3d.xyz extrema.minX extrema.minY top)
-                        (Point3d.xyz extrema.minX extrema.maxY top)
-                        (Point3d.xyz extrema.maxX extrema.maxY top)
-                        (Point3d.xyz extrema.maxX extrema.minY top)
+                        (Point3d.xyz innerExtrema.minX innerExtrema.minY top)
+                        (Point3d.xyz innerExtrema.minX innerExtrema.maxY top)
+                        (Point3d.xyz innerExtrema.maxX innerExtrema.maxY top)
+                        (Point3d.xyz innerExtrema.maxX innerExtrema.minY top)
                     , Scene3d.quad (Material.matte sideColour)
-                        (Point3d.xyz extrema.minX extrema.minY top)
-                        (Point3d.xyz extrema.minX extrema.maxY top)
+                        (Point3d.xyz innerExtrema.minX innerExtrema.minY top)
+                        (Point3d.xyz innerExtrema.minX innerExtrema.maxY top)
                         (Point3d.xyz extrema.minX extrema.maxY base)
                         (Point3d.xyz extrema.minX extrema.minY base)
                     , Scene3d.quad (Material.matte sideColour)
-                        (Point3d.xyz extrema.maxX extrema.minY top)
-                        (Point3d.xyz extrema.maxX extrema.maxY top)
+                        (Point3d.xyz innerExtrema.maxX innerExtrema.minY top)
+                        (Point3d.xyz innerExtrema.maxX innerExtrema.maxY top)
                         (Point3d.xyz extrema.maxX extrema.maxY base)
                         (Point3d.xyz extrema.maxX extrema.minY base)
                     , Scene3d.quad (Material.matte sideColour)
-                        (Point3d.xyz extrema.minX extrema.minY top)
-                        (Point3d.xyz extrema.maxX extrema.minY top)
+                        (Point3d.xyz innerExtrema.minX innerExtrema.minY top)
+                        (Point3d.xyz innerExtrema.maxX innerExtrema.minY top)
                         (Point3d.xyz extrema.maxX extrema.minY base)
                         (Point3d.xyz extrema.minX extrema.minY base)
                     , Scene3d.quad (Material.matte sideColour)
-                        (Point3d.xyz extrema.minX extrema.maxY top)
-                        (Point3d.xyz extrema.maxX extrema.maxY top)
+                        (Point3d.xyz innerExtrema.minX innerExtrema.maxY top)
+                        (Point3d.xyz innerExtrema.maxX innerExtrema.maxY top)
                         (Point3d.xyz extrema.maxX extrema.maxY base)
                         (Point3d.xyz extrema.minX extrema.maxY base)
                     ]

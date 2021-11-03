@@ -10,13 +10,9 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.6.1 update 2021-11-01
+## 2.6.3 update 2021-11-??
 
-- Distance to intersection more accurate, but button will only take you to a nearby track point.
-
-- Segments with shared start and end points in any order do not count as intersections.
-
-- Intersection tab will provide scrolling if there are many intersections.
+- Somewhat slopey terrain.
 
 ## Can I support this work?
 
