@@ -683,7 +683,7 @@ makeTerrain :
     -> List (Entity LocalCoords)
 makeTerrain _ box points =
     indexTerrain box points
-        |> terrainFromIndex (flatBox box)
+        |> terrainFromIndex (flatBox box) (BoundingBox3d.minZ box)
 
 
 indexTerrain :
@@ -742,9 +742,10 @@ indexTerrain box points =
 
 terrainFromIndex :
     BoundingBox2d.BoundingBox2d Length.Meters LocalCoords
+    -> Quantity Float Meters
     -> SpatialNode (Quantity Float Meters) Meters LocalCoords
     -> List (Entity LocalCoords)
-terrainFromIndex box index =
+terrainFromIndex box base index  =
     case index of
         SpatialNode node ->
             let
@@ -761,18 +762,28 @@ terrainFromIndex box index =
                         |> List.map .content
                         |> Quantity.minimum
                         |> Maybe.withDefault Quantity.negativeInfinity
+                        |> Quantity.minus (meters 0.1)
 
-                { minX, maxX, minY, maxY } =
+                extrema =
                     BoundingBox2d.extrema box
 
                 centre =
                     BoundingBox2d.centerPoint box
 
+                actualBox =
+                    -- This box encloses our points. It defines the top of the frustrum and the base for the next level.
+                    content
+                        |> BoundingBox2d.aggregateOfN .box
+                        |> Maybe.withDefault (BoundingBox2d.singleton Point2d.origin)
+
+                innerExtrema =
+                    BoundingBox2d.extrema actualBox
+
                 { nwChildBox, neChildBox, swChildBox, seChildBox } =
-                    { nwChildBox = BoundingBox2d.from centre (Point2d.xy minX maxY)
-                    , neChildBox = BoundingBox2d.from centre (Point2d.xy maxX maxY)
-                    , swChildBox = BoundingBox2d.from centre (Point2d.xy minX minY)
-                    , seChildBox = BoundingBox2d.from centre (Point2d.xy maxX minY)
+                    { nwChildBox = BoundingBox2d.from centre (Point2d.xy extrema.minX extrema.maxY)
+                    , neChildBox = BoundingBox2d.from centre (Point2d.xy extrema.maxX extrema.maxY)
+                    , swChildBox = BoundingBox2d.from centre (Point2d.xy extrema.minX extrema.minY)
+                    , seChildBox = BoundingBox2d.from centre (Point2d.xy extrema.maxX extrema.minY)
                     }
 
                 isNotTiny bx =
@@ -781,30 +792,53 @@ terrainFromIndex box index =
                             BoundingBox2d.dimensions bx
                     in
                     (width
-                        |> Quantity.greaterThan (meters 1.0)
+                        |> Quantity.greaterThan (meters 4.0)
                     )
                         && (height
-                                |> Quantity.greaterThan (meters 1.0)
+                                |> Quantity.greaterThan (meters 4.0)
                            )
 
                 topColour =
                     terrainColourFromHeight <| inMeters top
 
+                sideColour =
+                    terrainColourFromHeight <| 0.5 * (inMeters top + inMeters base)
+
                 thisLevelSceneElements =
                     [ Scene3d.quad (Material.matte topColour)
-                        (Point3d.xyz minX minY top)
-                        (Point3d.xyz minX maxY top)
-                        (Point3d.xyz maxX maxY top)
-                        (Point3d.xyz maxX minY top)
+                        (Point3d.xyz extrema.minX extrema.minY top)
+                        (Point3d.xyz extrema.minX extrema.maxY top)
+                        (Point3d.xyz extrema.maxX extrema.maxY top)
+                        (Point3d.xyz extrema.maxX extrema.minY top)
+                    , Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz extrema.minX extrema.minY top)
+                        (Point3d.xyz extrema.minX extrema.maxY top)
+                        (Point3d.xyz extrema.minX extrema.maxY base)
+                        (Point3d.xyz extrema.minX extrema.minY base)
+                    , Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz extrema.maxX extrema.minY top)
+                        (Point3d.xyz extrema.maxX extrema.maxY top)
+                        (Point3d.xyz extrema.maxX extrema.maxY base)
+                        (Point3d.xyz extrema.maxX extrema.minY base)
+                    , Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz extrema.minX extrema.minY top)
+                        (Point3d.xyz extrema.maxX extrema.minY top)
+                        (Point3d.xyz extrema.maxX extrema.minY base)
+                        (Point3d.xyz extrema.minX extrema.minY base)
+                    , Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz extrema.minX extrema.maxY top)
+                        (Point3d.xyz extrema.maxX extrema.maxY top)
+                        (Point3d.xyz extrema.maxX extrema.maxY base)
+                        (Point3d.xyz extrema.minX extrema.maxY base)
                     ]
             in
             thisLevelSceneElements
                 ++ -- No point recursing if one element only.
                    (if List.length content > 1 && isNotTiny box then
-                        terrainFromIndex nwChildBox index
-                            ++ terrainFromIndex neChildBox index
-                            ++ terrainFromIndex seChildBox index
-                            ++ terrainFromIndex swChildBox index
+                        terrainFromIndex nwChildBox top index
+                            ++ terrainFromIndex neChildBox top index
+                            ++ terrainFromIndex seChildBox top index
+                            ++ terrainFromIndex swChildBox top index
 
                     else
                         []
