@@ -141,9 +141,9 @@ viewDisplayOptions options wrap =
             , Input.slider commonShortHorizontalSliderStyles
                 { onChange = wrap << TerrainFineness << round
                 , label =
-                    Input.labelBelow [] <| text "Terrain quality"
-                , min = 0.0
-                , max = 7.0
+                    Input.labelBelow [] <| text "Terrain blockiness"
+                , min = 1.0
+                , max = 10.0
                 , step = Just 1.0
                 , value = toFloat options.terrainFineness
                 , thumb = Input.defaultThumb

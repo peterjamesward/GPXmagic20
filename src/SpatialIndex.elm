@@ -1,8 +1,8 @@
-module SpatialIndex exposing (..)
+module SpatialIndex exposing (SpatialContent, SpatialNode, empty, add, query)
 
 {-
    This is a simple quadtree based method for tracking bounding boxes.
-   It's only requirement is to detect overlaps, with reasonable efficiency.
+   Its only requirement is to detect overlaps, with reasonable efficiency.
 -}
 
 import BoundingBox2d

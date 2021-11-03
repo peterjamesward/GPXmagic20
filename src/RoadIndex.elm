@@ -109,11 +109,13 @@ checkSegmentAndAdd segment ( index, intersects ) =
             case LineSegment2d.intersectionPoint overlap.line segment.line of
                 Just crossing ->
                     -- Note that adjacent segment must not be counted!
+                    --TODO: We really need the TP Index here to see if they are
+                    -- adjacent on the route rather than just by chance.
                     if
                         samePoint (startPoint overlap.line) (endPoint segment.line)
                             || samePoint (startPoint segment.line) (endPoint overlap.line)
-                            || samePoint (startPoint segment.line) (startPoint overlap.line)
-                            || samePoint (endPoint segment.line) (endPoint overlap.line)
+                            --|| samePoint (startPoint segment.line) (startPoint overlap.line)
+                            --|| samePoint (endPoint segment.line) (endPoint overlap.line)
                     then
                         Nothing
 

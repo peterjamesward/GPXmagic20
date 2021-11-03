@@ -7,6 +7,12 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
+Terrain slopes can be improved by knowing which quadrant we are in and by
+having a list of previous levels so we can avoid the current overhangs.
+
+Try removing start/end coincidence testing in Intersections.
+> Need the TP Index here to see if they are adjacent on the route rather than just by chance.
+
 **DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
 > Now I know how to write type signatures that don't require the whole Main.Model!
 
@@ -27,14 +33,6 @@ Initial zoom in Profile is broked. Curious.
 ---
 
 # Not doing
-
-**THOUGHT**: New tab for Overlaps (initially 2D, maybe 3D aware later).
-- Highlights overlapping sections (perhaps just white circles or bbox)
-- Possible adjustments by moving sections up/down/left/right (arrow keys?) (at some quadtree level?)
-- Possible adjustments by pivoting around marker.
-- For road intersections, move up/down/match, or create common TP for graph node.
-- With expanded bounding boxes, can test for close roads also.
-+ **NOTE** most of this is obviated by new Move and Stretch, apart from common TP.
 
 **Timestamps**: Is it possible to preserve GPX time stamps? **DO THIS**
 Obvs certain edits will largely invalidate, but we could preserve any we read in.
