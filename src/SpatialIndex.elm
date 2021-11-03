@@ -120,20 +120,18 @@ query :
     -> SpatialContent contentType units coords
     -> List (SpatialContent contentType units coords)
 query current specimen =
-    -- We are only expected to return content whose bounding box overlaps
+    -- We return content whose bounding box intersects
     -- with the bounding box of the specimen. We do this by looking in a relevant child
     -- or in our own list, depending on the extent of the speciment compared to our children.
-    let
-        contentHasOverlap node =
-            BoundingBox2d.intersects node.box specimen.box
-    in
     case current of
         Blank ->
             []
 
         SpatialNode node ->
-            if node.box |> BoundingBox2d.intersects specimen.box then
-                (node.contents |> List.filter contentHasOverlap)
+            if BoundingBox2d.intersects node.box specimen.box then
+                List.filter
+                    (\candidate -> BoundingBox2d.intersects candidate.box specimen.box)
+                    node.contents
                     ++ query node.nw specimen
                     ++ query node.ne specimen
                     ++ query node.se specimen

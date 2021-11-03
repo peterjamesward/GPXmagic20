@@ -4,15 +4,18 @@ import Angle exposing (Angle)
 import BendSmoother
 import Element exposing (..)
 import Element.Input as Input exposing (button)
-import Length exposing (inMeters, meters)
+import Length exposing (Meters, inMeters, meters)
 import LineSegment2d
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import LoopedTrack exposing (Loopiness(..))
 import Point2d
 import Point3d
 import PostUpdateActions
-import Quantity exposing (zero)
+import Quantity exposing (Quantity, zero)
 import RoadIndex exposing (Intersection)
+import SceneBuilder
+import SpatialIndex
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, gradientFromPoint)

@@ -2,6 +2,7 @@ module SceneBuilder exposing (..)
 
 import Angle exposing (Angle)
 import Axis3d
+import BoundingBox2d
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color, black, brown, darkGreen, green)
 import Cone3d
@@ -13,11 +14,14 @@ import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Plane3d
+import Point2d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import Scene3d exposing (Entity, cone, cylinder)
 import Scene3d.Material as Material exposing (Material)
+import SketchPlane3d
+import SpatialIndex exposing (SpatialNode(..))
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
@@ -55,7 +59,7 @@ renderTrack options track =
             if options.terrainOn then
                 makeTerrain
                     options
-                    box
+                    track.box
                     (List.map .xyz track.trackPoints)
 
             else
@@ -525,12 +529,12 @@ showGraphEdge points =
         (List.drop 1 points)
 
 
-makeTerrain :
+makeTerrain1 :
     DisplayOptions
     -> BoundingBox3d Length.Meters LocalCoords
     -> List (Point3d Length.Meters LocalCoords)
     -> List (Entity LocalCoords)
-makeTerrain options box points =
+makeTerrain1 options box points =
     -- Define boxes that fit underneath the track, recursively.
     -- Tediously written out "long hand".
     let
@@ -640,6 +644,174 @@ makeTerrain options box points =
         , recurse seBox sePoints
         , recurse swBox swPoints
         ]
+
+
+
+-- Try with SpatialIndex
+
+
+type alias Point =
+    Point3d.Point3d Length.Meters LocalCoords
+
+
+type alias Line =
+    LineSegment3d.LineSegment3d Length.Meters LocalCoords
+
+
+type alias IndexEntry =
+    { content : Quantity Float Meters
+    , box : BoundingBox2d.BoundingBox2d Meters LocalCoords
+    }
+
+
+type alias Index =
+    SpatialIndex.SpatialNode (Quantity Float Meters) Length.Meters LocalCoords
+
+
+flatBox box3d =
+    let
+        { minX, maxX, minY, maxY, minZ, maxZ } =
+            BoundingBox3d.extrema box3d
+    in
+    BoundingBox2d.fromExtrema { minX = minX, maxX = maxX, minY = minY, maxY = maxY }
+
+
+makeTerrain :
+    DisplayOptions
+    -> BoundingBox3d Length.Meters LocalCoords
+    -> List (Point3d Length.Meters LocalCoords)
+    -> List (Entity LocalCoords)
+makeTerrain _ box points =
+    indexTerrain box points
+        |> terrainFromIndex (flatBox box)
+
+
+indexTerrain :
+    BoundingBox3d Length.Meters LocalCoords
+    -> List (Point3d Length.Meters LocalCoords)
+    -> Index
+indexTerrain box points =
+    let
+        emptyIndex =
+            SpatialIndex.empty (flatBox box) (Length.meters 10.0)
+
+        makeRoadBox pt1 pt2 =
+            let
+                halfWidthVector =
+                    Vector3d.from pt1 pt2
+                        |> Vector3d.projectOnto Plane3d.xy
+                        |> Vector3d.scaleTo roadWidth
+
+                ( leftKerbVector, rightKerbVector ) =
+                    ( Vector3d.rotateAround Axis3d.z (Angle.degrees 90) halfWidthVector
+                    , Vector3d.rotateAround Axis3d.z (Angle.degrees -90) halfWidthVector
+                    )
+
+                ( leftNearKerb, rightNearKerb ) =
+                    ( Point3d.translateBy leftKerbVector pt1
+                    , Point3d.translateBy rightKerbVector pt1
+                    )
+
+                ( leftFarKerb, rightFarKerb ) =
+                    ( Point3d.translateBy leftKerbVector pt2
+                    , Point3d.translateBy rightKerbVector pt2
+                    )
+            in
+            BoundingBox3d.hull leftNearKerb [ leftFarKerb, rightFarKerb, rightNearKerb ]
+
+        tarmac =
+            List.map2
+                makeRoadBox
+                points
+                (List.drop 1 points)
+
+        indexContent =
+            List.map
+                (\abox ->
+                    { content = abox |> BoundingBox3d.minZ
+                    , box = flatBox abox
+                    }
+                )
+                tarmac
+
+        indexedContent =
+            List.foldl SpatialIndex.add emptyIndex indexContent
+    in
+    indexedContent
+
+
+terrainFromIndex :
+    BoundingBox2d.BoundingBox2d Length.Meters LocalCoords
+    -> SpatialNode (Quantity Float Meters) Meters LocalCoords
+    -> List (Entity LocalCoords)
+terrainFromIndex box index =
+    case index of
+        SpatialNode node ->
+            let
+                thisQuery =
+                    { content = Quantity.zero
+                    , box = box
+                    }
+
+                content =
+                    SpatialIndex.query index thisQuery
+
+                top =
+                    content
+                        |> List.map .content
+                        |> Quantity.minimum
+                        |> Maybe.withDefault Quantity.negativeInfinity
+
+                { minX, maxX, minY, maxY } =
+                    BoundingBox2d.extrema box
+
+                centre =
+                    BoundingBox2d.centerPoint box
+
+                { nwChildBox, neChildBox, swChildBox, seChildBox } =
+                    { nwChildBox = BoundingBox2d.from centre (Point2d.xy minX maxY)
+                    , neChildBox = BoundingBox2d.from centre (Point2d.xy maxX maxY)
+                    , swChildBox = BoundingBox2d.from centre (Point2d.xy minX minY)
+                    , seChildBox = BoundingBox2d.from centre (Point2d.xy maxX minY)
+                    }
+
+                isNotTiny bx =
+                    let
+                        ( width, height ) =
+                            BoundingBox2d.dimensions bx
+                    in
+                    (width
+                        |> Quantity.greaterThan (meters 1.0)
+                    )
+                        && (height
+                                |> Quantity.greaterThan (meters 1.0)
+                           )
+
+                topColour =
+                    terrainColourFromHeight <| inMeters top
+
+                thisLevelSceneElements =
+                    [ Scene3d.quad (Material.matte topColour)
+                        (Point3d.xyz minX minY top)
+                        (Point3d.xyz minX maxY top)
+                        (Point3d.xyz maxX maxY top)
+                        (Point3d.xyz maxX minY top)
+                    ]
+            in
+            thisLevelSceneElements
+                ++ -- No point recursing if one element only.
+                   (if List.length content > 1 && isNotTiny box then
+                        terrainFromIndex nwChildBox index
+                            ++ terrainFromIndex neChildBox index
+                            ++ terrainFromIndex seChildBox index
+                            ++ terrainFromIndex swChildBox index
+
+                    else
+                        []
+                   )
+
+        Blank ->
+            []
 
 
 
