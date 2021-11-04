@@ -22,7 +22,7 @@ import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
 import Scene3d exposing (backgroundColor)
-import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
+import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestFromIndexFor3d, trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint, pointInEarthCoordinates)
@@ -49,7 +49,7 @@ initialiseView viewSize track oldContext =
                         |> Maybe.map (Direction3d.azimuthIn SketchPlane3d.xy)
                         |> Maybe.withDefault Quantity.zero
                 , elevation = Angle.degrees 10
-                , sceneSearcher = trackPointNearestRay track.trackPoints
+                , sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex
                 , zoomLevel = 14.0
                 , defaultZoomLevel = 14.0
             }

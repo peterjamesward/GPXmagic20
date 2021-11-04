@@ -44,7 +44,7 @@ initialiseView viewSize track oldContext =
     in
     { oldContext
         | focalPoint = centralPoint
-        , sceneSearcher = trackPointNearestRay track.trackPoints
+        , sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
     }

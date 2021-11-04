@@ -263,7 +263,7 @@ refreshSceneSearcher track context =
             { context | sceneSearcher = ScenePainterProfile.profilePointNearestRay track.trackPoints }
 
         ViewPlan ->
-            { context | sceneSearcher = trackPointNearestFromIndexForPlan track.spatialIndex }
+            { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex }
 
         ViewMap ->
             context

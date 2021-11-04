@@ -9,7 +9,7 @@ Initial zoom in Profile is broked. Curious.
 
 -- Internal optimisation of spatial query to eliminate concatenation and copying.
 
--- Put new ray searcher in 3D (1st and 3rd views).
+-- In the query for Plan click detect, move work into the Index like we do for 3d.
 
 Try removing start/end coincidence testing in Intersections.
 > Need the TP Index here to see if they are adjacent on the route rather than just by chance.
