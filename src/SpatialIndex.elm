@@ -135,7 +135,7 @@ query :
 query current queryArea =
     -- I think it may be much faster with deep trees to avoid all the
     -- internal concatenation at every level and do it once here.
-    queryInternal current queryArea
+    queryInternal current queryArea []
         |> List.concat
 
 
@@ -143,27 +143,42 @@ queryInternal :
     SpatialNode contentType units coords
     -> BoundingBox2d.BoundingBox2d units coords
     -> List (List (SpatialContent contentType units coords))
-queryInternal current queryArea =
+    -> List (List (SpatialContent contentType units coords))
+queryInternal current queryArea accumulator =
     -- We return content whose bounding box intersects
     -- with the bounding box of the specimen. We do this by looking in a relevant child
     -- or in our own list, depending on the extent of the speciment compared to our children.
     case current of
         Blank ->
-            []
+            accumulator
 
         SpatialNode node ->
-            if BoundingBox2d.intersects node.box queryArea then
-                [ List.filter
-                    (\candidate -> BoundingBox2d.intersects candidate.box queryArea)
-                    node.contents
-                , query node.nw queryArea
-                , query node.ne queryArea
-                , query node.se queryArea
-                , query node.sw queryArea
-                ]
+            -- Longhand writing a depth-first traversal using the accumulator.
+            if queryArea |> BoundingBox2d.intersects node.box then
+                let
+                    fromThisNode : List (SpatialContent contentType units coords)
+                    fromThisNode =
+                            List.filter
+                                (.box >> BoundingBox2d.intersects queryArea)
+                                node.contents
+
+                    fromNW =
+                        queryInternal node.nw queryArea (fromThisNode :: accumulator)
+
+                    fromNE =
+                        queryInternal node.ne queryArea fromNW
+
+                    fromSE =
+                        queryInternal node.se queryArea fromNE
+
+                    fromSW =
+                        queryInternal node.sw queryArea fromSE
+                in
+                fromSW
+
 
             else
-                []
+                accumulator
 
 
 queryAllContaining :

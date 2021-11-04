@@ -154,6 +154,7 @@ zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
 
 trackPointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
 trackPointNearestRay track ray =
+    -- This predates the spatial index and remains as a possible fallback.
     track
         |> List.Extra.minimumBy
             (Length.inMeters << distanceFromAxis ray << .xyz)

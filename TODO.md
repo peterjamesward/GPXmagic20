@@ -7,18 +7,7 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
-Internal optimisation of spatial query to reduce concatenation and copying.
-> Each node has 5 lists.
-> We need a tree traversal fold that pushes these onto a list of lists.
-> Single concat at the end.
-> Easy to say, confusing to write.
-
-Try removing start/end coincidence testing in Intersections.
-> Need the TP Index here to see if they are adjacent on the route rather than just by chance.
-> Simply, if you get an intersection with the one just added (previous id), ignore it.
-> Better, still too many now.
-
-Profile click detect should not do a linear search. 
+**Profile** click detect should not do a linear search.
 > Just work the projection backwards!
 > Or recursively split the list, that would do it.
 
@@ -27,6 +16,11 @@ Why not have **Terrain** draw the road segments? (If we are in Terrain drawing m
 Then can drop sidewalls better.
 And centre line, and suppress track points and pillars, indeed.
 Subtle optional direction markers. White triangles?
+
+Try **improving** start/end coincidence testing in Intersections.
+> Need the TP Index here to see if they are adjacent on the route rather than just by chance.
+> Simply, if you get an intersection with the one just added (previous id), ignore it.
+> Better, still too many now.
 
 **DEBT**: At least three similar forms of new Track creation.
 

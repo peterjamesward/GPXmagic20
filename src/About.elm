@@ -14,7 +14,9 @@ aboutText =
 
 - Somewhat slopey terrain.
 
-## Can I support this work?
+- Detection of clicked track points faster for routes with many many track points.
+
+## "I know it's free, but I'd like to make a donation"
 
 **YES, PLEASE!!**
 
@@ -24,7 +26,7 @@ Use the not so subtle yellow button at the top.
 
 ## Guidance on use
 
-Load a local GPX file by clicking on the aptly-labelled button.
+Load a local GPX file by clicking on the thus-labelled button.
 
 Or connect to Strava by clicking on the equally-apt brand-compliant button and
 authorize GPXmagic to access your routes. You can then paste in a URL for a
