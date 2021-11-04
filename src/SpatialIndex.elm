@@ -1,14 +1,27 @@
-module SpatialIndex exposing (SpatialContent, SpatialNode, add, empty, query)
+module SpatialIndex exposing
+    ( SpatialContent
+    , SpatialNode
+    , add
+    , empty
+    , query
+    , queryAllContaining
+    , queryNearestToAxisUsing
+    )
 
 {-
    This is a simple quadtree based method for tracking bounding boxes.
    Its only requirement is to detect overlaps, with reasonable efficiency.
 -}
 
+import Axis2d
 import BoundingBox2d
+import LineSegment2d
+import List.Extra
 import Point2d
+import Polygon2d
 import Quantity exposing (Quantity(..))
 import Quantity.Interval as Interval
+import Rectangle2d
 
 
 type alias SpatialContent contentType units coords =
@@ -117,20 +130,20 @@ add content current =
 
 query :
     SpatialNode contentType units coords
-    -> SpatialContent contentType units coords
+    -> BoundingBox2d.BoundingBox2d units coords
     -> List (SpatialContent contentType units coords)
-query current specimen =
+query current queryArea =
     -- I think it may be much faster with deep trees to avoid all the
     -- internal concatenation at every level and do it once here.
-    queryInternal current specimen
+    queryInternal current queryArea
         |> List.concat
 
 
 queryInternal :
     SpatialNode contentType units coords
-    -> SpatialContent contentType units coords
+    -> BoundingBox2d.BoundingBox2d units coords
     -> List (List (SpatialContent contentType units coords))
-queryInternal current specimen =
+queryInternal current queryArea =
     -- We return content whose bounding box intersects
     -- with the bounding box of the specimen. We do this by looking in a relevant child
     -- or in our own list, depending on the extent of the speciment compared to our children.
@@ -139,15 +152,77 @@ queryInternal current specimen =
             []
 
         SpatialNode node ->
-            if BoundingBox2d.intersects node.box specimen.box then
+            if BoundingBox2d.intersects node.box queryArea then
                 [ List.filter
-                    (\candidate -> BoundingBox2d.intersects candidate.box specimen.box)
+                    (\candidate -> BoundingBox2d.intersects candidate.box queryArea)
                     node.contents
-                , query node.nw specimen
-                , query node.ne specimen
-                , query node.se specimen
-                , query node.sw specimen
+                , query node.nw queryArea
+                , query node.ne queryArea
+                , query node.se queryArea
+                , query node.sw queryArea
                 ]
 
             else
                 []
+
+
+queryAllContaining :
+    SpatialNode contentType units coords
+    -> Point2d.Point2d units coords
+    -> List (SpatialContent contentType units coords)
+queryAllContaining current point =
+    case current of
+        Blank ->
+            []
+
+        SpatialNode node ->
+            if node.box |> BoundingBox2d.contains point then
+                [ List.filter
+                    (.box >> BoundingBox2d.contains point)
+                    node.contents
+                , queryAllContaining node.nw point
+                , queryAllContaining node.ne point
+                , queryAllContaining node.se point
+                , queryAllContaining node.sw point
+                ]
+                    |> List.concat
+
+            else
+                []
+
+
+queryNearestToAxisUsing :
+    SpatialNode contentType units coords
+    -> Axis2d.Axis2d units coords
+    -> (contentType -> Float)
+    -> Maybe (SpatialContent contentType units coords)
+queryNearestToAxisUsing current axis valuation =
+    case current of
+        Blank ->
+            Nothing
+
+        SpatialNode node ->
+            let
+                boxSides =
+                    node.box
+                        |> Rectangle2d.fromBoundingBox
+                        |> Rectangle2d.toPolygon
+                        |> Polygon2d.edges
+
+                intersected =
+                    List.any
+                        (\edge -> LineSegment2d.intersectionWithAxis axis edge /= Nothing)
+                        boxSides
+            in
+            if intersected then
+                [ List.Extra.minimumBy (.content >> valuation) node.contents ]
+                    ++ [ queryNearestToAxisUsing node.nw axis valuation
+                       , queryNearestToAxisUsing node.ne axis valuation
+                       , queryNearestToAxisUsing node.se axis valuation
+                       , queryNearestToAxisUsing node.sw axis valuation
+                       ]
+                    |> List.filterMap identity
+                    |> List.Extra.minimumBy (.content >> valuation)
+
+            else
+                Nothing

@@ -93,7 +93,7 @@ checkSegmentAndAdd segment ( index, intersects ) =
 
         overlaps : List Segment
         overlaps =
-            SpatialIndex.query index prepContent
+            SpatialIndex.query index prepContent.box
                 |> List.map .content
 
         intersectingLines : List Intersection

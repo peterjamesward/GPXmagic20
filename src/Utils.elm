@@ -1,6 +1,7 @@
 module Utils exposing (..)
 
 import Angle exposing (Angle)
+import BoundingBox2d
 import BoundingBox3d exposing (BoundingBox3d)
 import Color exposing (Color)
 import Element exposing (..)
@@ -296,6 +297,14 @@ squareAspect box =
         centre
 
 
+flatBox box =
+    let
+        { minX, maxX, minY, maxY, minZ, maxZ } =
+            BoundingBox3d.extrema box
+    in
+    BoundingBox2d.fromExtrema { minX = minX, maxX = maxX, minY = minY, maxY = maxY }
+
+
 showLabelledValues pairs =
     let
         showLabel label =
@@ -308,6 +317,10 @@ showLabelledValues pairs =
         [ column [ spacing 5 ] <| List.map (Tuple.first >> showLabel) pairs
         , column [ spacing 5 ] <| List.map (Tuple.second >> showValue) pairs
         ]
+
+
+clickTolerance =
+    ( Length.meters 200.0, Length.meters 200.0 )
 
 
 withLeadingZeros : Int -> String -> String

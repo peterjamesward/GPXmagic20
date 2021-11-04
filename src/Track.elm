@@ -1,6 +1,7 @@
 module Track exposing (..)
 
 import Angle
+import BoundingBox2d
 import BoundingBox3d exposing (BoundingBox3d)
 import Direction3d
 import EarthConstants exposing (metresPerDegree)
@@ -13,9 +14,10 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
 import SketchPlane3d
+import SpatialIndex
 import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
-import Utils exposing (bearingToDisplayDegrees, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
+import Utils exposing (bearingToDisplayDegrees, clickTolerance, flatBox, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d exposing (..)
 
 
@@ -27,6 +29,7 @@ type alias Track =
     , graph : Maybe Graph
     , earthReferenceCoordinates : ( Float, Float, Float ) -- (lon, lat, ele)
     , box : BoundingBox3d Meters LocalCoords
+    , spatialIndex : SpatialIndex.SpatialNode TrackPoint Length.Meters LocalCoords
     }
 
 
@@ -70,21 +73,46 @@ trackFromGpx content =
             Nothing
 
         n1 :: _ ->
+            let
+                points =
+                    prepareTrackPoints centredPoints
+
+                box =
+                    BoundingBox3d.hullOfN .xyz points
+                        |> Maybe.withDefault (BoundingBox3d.singleton n1.xyz)
+
+                emptyIndex =
+                    -- Large split threshold to avoid excessive depth.
+                    SpatialIndex.empty (flatBox box) (Length.meters 100.0)
+
+                index =
+                    List.foldl
+                        (\point ->
+                            SpatialIndex.add
+                                { content = point
+                                , box =
+                                    BoundingBox2d.withDimensions clickTolerance
+                                        (point.xyz |> Point3d.projectInto SketchPlane3d.xy)
+                                }
+                        )
+                        emptyIndex
+                        points
+            in
             Just
                 { trackName = GpxParser.parseTrackName content
-                , trackPoints = prepareTrackPoints centredPoints
+                , trackPoints = points
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
                 , earthReferenceCoordinates = basePoint
-                , box =
-                    BoundingBox3d.hullOfN .xyz centredPoints
-                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                , box = box
+                , spatialIndex = index
                 }
 
 
 trackFromMap : List ( Float, Float, Float ) -> Maybe Track
 trackFromMap trackPoints =
+    --TODO: This is almost exactly the same as the function above.
     let
         lons =
             List.map (\( lon, lat, ele ) -> lon) trackPoints
@@ -126,17 +154,42 @@ trackFromMap trackPoints =
             Nothing
 
         n1 :: _ ->
+            let
+                points =
+                    prepareTrackPoints centredPoints
+
+                box =
+                    BoundingBox3d.hullOfN .xyz points
+                        |> Maybe.withDefault (BoundingBox3d.singleton n1.xyz)
+
+                emptyIndex =
+                    -- Large split threshold to avoid excessive depth.
+                    SpatialIndex.empty (flatBox box) (Length.meters 100.0)
+
+                index =
+                    List.foldl
+                        (\point ->
+                            SpatialIndex.add
+                                { content = point
+                                , box =
+                                    BoundingBox2d.withDimensions clickTolerance
+                                        (point.xyz |> Point3d.projectInto SketchPlane3d.xy)
+                                }
+                        )
+                        emptyIndex
+                        points
+            in
             Just
                 { trackName = Just "from-sketch"
-                , trackPoints = prepareTrackPoints centredPoints
+                , trackPoints = points
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
                 , earthReferenceCoordinates = basePoint
-                , box =
-                    BoundingBox3d.hullOfN .xyz centredPoints
-                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                , box = box
+                , spatialIndex = index
                 }
+
 
 
 removeGhanianTransform : Track -> List ( Float, Float, Float )

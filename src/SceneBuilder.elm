@@ -628,13 +628,8 @@ terrainFromIndex :
     -> List (Entity LocalCoords)
 terrainFromIndex box fineness base index =
     let
-        thisQuery =
-            { content = Quantity.zero
-            , box = box
-            }
-
         content =
-            SpatialIndex.query index thisQuery
+            SpatialIndex.query index box
 
         top =
             content

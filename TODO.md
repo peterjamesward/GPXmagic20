@@ -7,26 +7,21 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
--- Query internally uses list of list of content.
-
--- Add "allContainingPoint" query,
-
--- Add "nearestBy" query,
-
--- Put index in track again,
-
--- Put new ray searcher in Plan (why is this set in two places?),
+-- Internal optimisation of spatial query to eliminate concatenation and copying.
 
 -- Put new ray searcher in 3D (1st and 3rd views).
 
 Try removing start/end coincidence testing in Intersections.
 > Need the TP Index here to see if they are adjacent on the route rather than just by chance.
+> Simply, if you get an intersection with the one just added (previous id), ignore it.
 
 Why not have **Terrain** draw the road segments? (If we are in Terrain drawing mode.)
 >Could store a Rectangle3d for this; bounding box is trivial.
 Then can drop sidewalls better.
 And centre line, and suppress track points and pillars, indeed.
 Subtle optional direction markers. White triangles?
+
+**DEBT**: At least three similar forms of new Track creation.
 
 **DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
 > Now I know how to write type signatures that don't require the whole Main.Model!

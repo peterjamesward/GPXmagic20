@@ -20,8 +20,12 @@ import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
+import Plane3d
+import Point2d
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
+import SketchPlane3d
+import SpatialIndex
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (elmuiColour, showDecimal0, showDecimal1, useIcon)
 import ViewingContext exposing (ViewingContext)
@@ -152,6 +156,32 @@ trackPointNearestRay track ray =
     track
         |> List.Extra.minimumBy
             (Length.inMeters << distanceFromAxis ray << .xyz)
+
+
+trackPointNearestFromIndex :
+    SpatialIndex.SpatialNode TrackPoint Length.Meters LocalCoords
+    -> Axis3d Meters LocalCoords
+    -> Maybe TrackPoint
+trackPointNearestFromIndex index ray =
+    let
+        groundZero =
+            ray
+                |> Axis3d.intersectionWithPlane Plane3d.xy
+                |> Maybe.withDefault Point3d.origin
+                |> Point3d.projectInto SketchPlane3d.xy
+
+        nearbyPoints =
+            SpatialIndex.queryAllContaining index groundZero
+    in
+    List.Extra.minimumBy
+        (.content
+            >> .xyz
+            >> Point3d.projectInto SketchPlane3d.xy
+            >> Point2d.distanceFrom groundZero
+            >> Length.inMeters
+        )
+        nearbyPoints
+        |> Maybe.map .content
 
 
 changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext

@@ -2,6 +2,7 @@ module SvgPathExtractor exposing (..)
 
 import AltMath.Matrix4 as AltMath
 import AltMath.Vector3
+import BoundingBox2d
 import BoundingBox3d
 import CubicSpline3d
 import Element exposing (Element, text)
@@ -20,9 +21,12 @@ import Point3d exposing (Point3d)
 import Polyline3d
 import Quantity exposing (Quantity(..))
 import Regex
+import SketchPlane3d
+import SpatialIndex
 import Task
 import Track exposing (Track)
 import TrackPoint
+import Utils exposing (clickTolerance, flatBox)
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
 import XmlParser exposing (Node(..))
@@ -215,18 +219,38 @@ processXML model content =
                                 |> TrackPoint.prepareTrackPoints
 
                         newTrack =
-                            { trackPoints = trackPoints
-                            , trackName = Just model.svgFilename
+                            let
+                                box =
+                                    BoundingBox3d.hullOfN .xyz trackPoints
+                                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+
+                                emptyIndex =
+                                    -- Large split threshold to avoid excessive depth.
+                                    SpatialIndex.empty (flatBox box) (Length.meters 100.0)
+
+                                index =
+                                    List.foldl
+                                        (\point ->
+                                            SpatialIndex.add
+                                                { content = point
+                                                , box =
+                                                    BoundingBox2d.withDimensions clickTolerance
+                                                        (point.xyz |> Point3d.projectInto SketchPlane3d.xy)
+                                                }
+                                        )
+                                        emptyIndex
+                                        trackPoints
+                            in
+                            { trackName = Just model.svgFilename
+                            , trackPoints = trackPoints
                             , currentNode =
                                 List.head trackPoints
                                     |> Maybe.withDefault (TrackPoint.trackPointFromPoint Point3d.origin)
                             , markedNode = Nothing
                             , graph = Nothing
                             , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
-                            , box =
-                                finalPathState.outputs
-                                    |> BoundingBox3d.hullN
-                                    |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+                            , box = box
+                            , spatialIndex = index
                             }
                     in
                     ( { model | track = Just newTrack }
