@@ -2,20 +2,14 @@
 # BUGS
 
 Initial zoom in Profile is broked. Curious.
+> Possibly fixed.
+
+With terrain, are we rendering it redundantly when focus changes?
+> No. Checked.
 
 ---
 
 # TO-DO
-
-**Profile** click detect should not do a linear search.
-> Just work the projection backwards!
-> Or recursively split the list, that would do it.
-
-Why not have **Terrain** draw the road segments? (If we are in Terrain drawing mode.)
->Could store a Rectangle3d for this; bounding box is trivial.
-Then can drop sidewalls better.
-And centre line, and suppress track points and pillars, indeed.
-Subtle optional direction markers. White triangles?
 
 Try **improving** start/end coincidence testing in Intersections.
 > Need the TP Index here to see if they are adjacent on the route rather than just by chance.
@@ -45,7 +39,11 @@ Try **improving** start/end coincidence testing in Intersections.
 
 # Not doing
 
-**Spatial Index** for click detection; tried it but disappointly not much faster then crude search.
+Why not have **Terrain** draw the road segments? (If we are in Terrain drawing mode.)
+> Because, why?
+
+**Profile** click detect should not do a linear search.
+> It's just not necessary. It's stupidly fast anyway.
 
 **Timestamps**: Is it possible to preserve GPX time stamps? **DO THIS**
 Obvs certain edits will largely invalidate, but we could preserve any we read in.

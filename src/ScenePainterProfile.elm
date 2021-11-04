@@ -49,8 +49,8 @@ initialiseView viewSize track oldContext =
     { oldContext
         | focalPoint = track.currentNode.xyz
         , sceneSearcher = profilePointNearestRay profileTrack
-        , zoomLevel = 12 --- zoom
-        , defaultZoomLevel = 12 --zoom
+        , zoomLevel = zoom
+        , defaultZoomLevel = zoom
         , viewingMode = ViewProfile
     }
 
