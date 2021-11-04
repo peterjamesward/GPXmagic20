@@ -13,7 +13,7 @@ import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg, trackPointNearestFromIndex, trackPointNearestRay)
+import ScenePainterCommon exposing (ImageMsg, trackPointNearestFromIndexFor3d, trackPointNearestFromIndexForPlan, trackPointNearestRay)
 import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
@@ -254,16 +254,16 @@ refreshSceneSearcher track context =
     -- the latest version of Track available for searching.
     case context.viewingMode of
         ViewThirdPerson ->
-            { context | sceneSearcher = trackPointNearestRay track.trackPoints }
+            { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex  }
 
         ViewFirstPerson ->
-            { context | sceneSearcher = trackPointNearestRay track.trackPoints }
+            { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex }
 
         ViewProfile ->
             { context | sceneSearcher = ScenePainterProfile.profilePointNearestRay track.trackPoints }
 
         ViewPlan ->
-            { context | sceneSearcher = trackPointNearestFromIndex track.spatialIndex }
+            { context | sceneSearcher = trackPointNearestFromIndexForPlan track.spatialIndex }
 
         ViewMap ->
             context

@@ -1,6 +1,7 @@
 module ScenePainterCommon exposing (..)
 
 import Angle
+import Axis2d
 import Axis3d exposing (Axis3d)
 import BoundingBox3d
 import ColourPalette exposing (white)
@@ -158,11 +159,31 @@ trackPointNearestRay track ray =
             (Length.inMeters << distanceFromAxis ray << .xyz)
 
 
-trackPointNearestFromIndex :
+trackPointNearestFromIndexFor3d :
     SpatialIndex.SpatialNode TrackPoint Length.Meters LocalCoords
     -> Axis3d Meters LocalCoords
     -> Maybe TrackPoint
-trackPointNearestFromIndex index ray =
+trackPointNearestFromIndexFor3d index ray =
+    let
+        rayShadow =
+            ray
+                |> Axis3d.projectInto SketchPlane3d.xy
+                |> Maybe.withDefault Axis2d.x
+
+        distanceFunction =
+            .xyz
+                >> Point3d.distanceFromAxis ray
+                >> Length.inMeters
+    in
+    SpatialIndex.queryNearestToAxisUsing index rayShadow distanceFunction
+        |> Maybe.map .content
+
+
+trackPointNearestFromIndexForPlan :
+    SpatialIndex.SpatialNode TrackPoint Length.Meters LocalCoords
+    -> Axis3d Meters LocalCoords
+    -> Maybe TrackPoint
+trackPointNearestFromIndexForPlan index ray =
     let
         groundZero =
             ray

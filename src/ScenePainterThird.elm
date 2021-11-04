@@ -24,12 +24,10 @@ import Rectangle2d
 import Scene exposing (Scene)
 import Scene3d exposing (Entity, backgroundColor)
 import ScenePainterCommon exposing (..)
-import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Vector3d
 import ViewingContext exposing (DragAction(..), ViewingContext, newViewingContext)
-import ViewingMode exposing (ViewingMode(..))
 import Viewpoint3d exposing (Viewpoint3d)
 
 
