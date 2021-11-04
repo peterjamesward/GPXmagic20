@@ -112,10 +112,8 @@ checkSegmentAndAdd segment ( index, intersects ) =
                     --TODO: We really need the TP Index here to see if they are
                     -- adjacent on the route rather than just by chance.
                     if
-                        samePoint (startPoint overlap.line) (endPoint segment.line)
-                            || samePoint (startPoint segment.line) (endPoint overlap.line)
-                            --|| samePoint (startPoint segment.line) (startPoint overlap.line)
-                            --|| samePoint (endPoint segment.line) (endPoint overlap.line)
+                        samePoint (startPoint segment.line) (endPoint overlap.line)
+                        && segment.id.index == overlap.id.index + 1
                     then
                         Nothing
 

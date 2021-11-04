@@ -7,13 +7,20 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
--- Internal optimisation of spatial query to eliminate concatenation and copying.
-
--- In the query for Plan click detect, move work into the Index like we do for 3d.
+Internal optimisation of spatial query to reduce concatenation and copying.
+> Each node has 5 lists.
+> We need a tree traversal fold that pushes these onto a list of lists.
+> Single concat at the end.
+> Easy to say, confusing to write.
 
 Try removing start/end coincidence testing in Intersections.
 > Need the TP Index here to see if they are adjacent on the route rather than just by chance.
 > Simply, if you get an intersection with the one just added (previous id), ignore it.
+> Better, still too many now.
+
+Profile click detect should not do a linear search. 
+> Just work the projection backwards!
+> Or recursively split the list, that would do it.
 
 Why not have **Terrain** draw the road segments? (If we are in Terrain drawing mode.)
 >Could store a Rectangle3d for this; bounding box is trivial.
