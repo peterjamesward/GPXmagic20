@@ -7,11 +7,26 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
-Terrain slopes can be improved by knowing which quadrant we are in and by
-having a list of previous levels so we can avoid the current overhangs.
+-- Query internally uses list of list of content.
+
+-- Add "allContainingPoint" query,
+
+-- Add "nearestBy" query,
+
+-- Put index in track again,
+
+-- Put new ray searcher in Plan (why is this set in two places?),
+
+-- Put new ray searcher in 3D (1st and 3rd views).
 
 Try removing start/end coincidence testing in Intersections.
 > Need the TP Index here to see if they are adjacent on the route rather than just by chance.
+
+Why not have **Terrain** draw the road segments? (If we are in Terrain drawing mode.)
+>Could store a Rectangle3d for this; bounding box is trivial.
+Then can drop sidewalls better.
+And centre line, and suppress track points and pillars, indeed.
+Subtle optional direction markers. White triangles?
 
 **DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
 > Now I know how to write type signatures that don't require the whole Main.Model!
@@ -33,6 +48,8 @@ Try removing start/end coincidence testing in Intersections.
 ---
 
 # Not doing
+
+**Spatial Index** for click detection; tried it but disappointly not much faster then crude search.
 
 **Timestamps**: Is it possible to preserve GPX time stamps? **DO THIS**
 Obvs certain edits will largely invalidate, but we could preserve any we read in.

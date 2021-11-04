@@ -1,4 +1,4 @@
-module SpatialIndex exposing (SpatialContent, SpatialNode, empty, add, query)
+module SpatialIndex exposing (SpatialContent, SpatialNode, add, empty, query)
 
 {-
    This is a simple quadtree based method for tracking bounding boxes.
@@ -120,6 +120,17 @@ query :
     -> SpatialContent contentType units coords
     -> List (SpatialContent contentType units coords)
 query current specimen =
+    -- I think it may be much faster with deep trees to avoid all the
+    -- internal concatenation at every level and do it once here.
+    queryInternal current specimen
+        |> List.concat
+
+
+queryInternal :
+    SpatialNode contentType units coords
+    -> SpatialContent contentType units coords
+    -> List (List (SpatialContent contentType units coords))
+queryInternal current specimen =
     -- We return content whose bounding box intersects
     -- with the bounding box of the specimen. We do this by looking in a relevant child
     -- or in our own list, depending on the extent of the speciment compared to our children.
@@ -129,13 +140,14 @@ query current specimen =
 
         SpatialNode node ->
             if BoundingBox2d.intersects node.box specimen.box then
-                List.filter
+                [ List.filter
                     (\candidate -> BoundingBox2d.intersects candidate.box specimen.box)
                     node.contents
-                    ++ query node.nw specimen
-                    ++ query node.ne specimen
-                    ++ query node.se specimen
-                    ++ query node.sw specimen
+                , query node.nw specimen
+                , query node.ne specimen
+                , query node.se specimen
+                , query node.sw specimen
+                ]
 
             else
                 []
