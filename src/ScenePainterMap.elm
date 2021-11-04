@@ -48,16 +48,17 @@ emptyPreviewCopy track =
     { track | trackPoints = [] }
 
 
-initialiseMap : ViewingContext -> Track -> List (Cmd msg)
+initialiseMap : ViewingContext -> Track -> Cmd msg
 initialiseMap context track =
-    [ PortController.addTrackToMap context track
-    , PortController.addMarkersToMap track
-        (emptyPreviewCopy track)
-        (emptyPreviewCopy track)
-        TwoWayDragControl.defaultModel
-    , PortController.centreMap context track
-    , PortController.zoomMap context
-    ]
+    Cmd.batch
+        [ PortController.addTrackToMap context track
+        , PortController.addMarkersToMap track
+            (emptyPreviewCopy track)
+            (emptyPreviewCopy track)
+            TwoWayDragControl.defaultModel
+        , PortController.centreMap context track
+        , PortController.zoomMap context
+        ]
 
 
 mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)

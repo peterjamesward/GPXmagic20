@@ -59,7 +59,7 @@ import TrackSplitter
 import TwoWayDragControl
 import Url exposing (Url)
 import Utils exposing (useIcon)
-import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
@@ -194,7 +194,7 @@ init mflags origin navigationKey =
       , completeScene = []
       , completeProfile = []
       , renderingContext = Nothing
-      , viewPanes = ViewPane.defaultViewPanes
+      , viewPanes = ViewPane.viewPanesWhenNoTrack
       , toolsAccordion = []
       , nudgeSettings = defaultNudgeSettings
       , undoStack = []
@@ -234,6 +234,8 @@ init mflags origin navigationKey =
         , Task.perform Tick Time.now
         , PortController.storageGetItem "accordion"
         , PortController.storageGetItem "display"
+
+        --, PortController.storageGetItem "panes"
         ]
     )
 
@@ -571,15 +573,16 @@ update msg model =
                             let
                                 newPanes =
                                     ViewPane.restorePaneState saved model.viewPanes
+
+                                newModel =
+                                    { model
+                                        | viewPanes =
+                                            ViewPane.mapOverPanes
+                                                (setViewPaneSize model.splitInPixels)
+                                                newPanes
+                                    }
                             in
-                            ( { model
-                                | viewPanes =
-                                    ViewPane.mapOverPanes
-                                        (setViewPaneSize model.splitInPixels)
-                                        newPanes
-                              }
-                            , Cmd.none
-                            )
+                            processPostUpdateAction newModel ActionRerender
 
                         ( Ok "display", Ok saved ) ->
                             ( { model | displayOptions = DisplayOptions.decodeOptions saved }
@@ -778,9 +781,10 @@ update msg model =
                                 |> renderTrackSceneElements
                     in
                     ( newModel
-                    , Cmd.batch <|
-                        outputGPX newModel
-                            :: ViewPane.makeMapCommands newTrack model.viewPanes
+                    , Cmd.batch
+                        [ outputGPX newModel
+                        , ViewPane.makeMapCommands newTrack model.viewPanes
+                        ]
                     )
 
                 Nothing ->
@@ -943,14 +947,20 @@ processPostUpdateAction model action =
             ( model
                 |> addToUndoStack undoMsg
                 |> reflectNewTrackViaGraph newTrack editType
-            , Cmd.batch <| ViewPane.makeMapCommands newTrack model.viewPanes
+            , Cmd.batch
+                [ ViewPane.makeMapCommands newTrack model.viewPanes
+                , Delay.after 50 RepaintMap
+                ]
             )
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
             ( model
                 |> reflectNewTrackViaGraph track EditNoOp
-            , Cmd.batch <| ViewPane.makeMapCommands track model.viewPanes
+            , Cmd.batch
+                [ ViewPane.makeMapCommands track model.viewPanes
+                , Delay.after 50 RepaintMap
+                ]
             )
 
         ( Just track, ActionWalkGraph ) ->
@@ -968,7 +978,10 @@ processPostUpdateAction model action =
             in
             ( newModel
                 |> reflectNewTrackViaGraph track EditNoOp
-            , Cmd.batch <| ViewPane.makeMapCommands newTrack newModel.viewPanes
+            , Cmd.batch
+                [ ViewPane.makeMapCommands newTrack newModel.viewPanes
+                , Delay.after 50 RepaintMap
+                ]
             )
 
         ( Just track, ActionPointerMove tp ) ->
@@ -1063,7 +1076,17 @@ processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
 processGpxLoaded content model =
     case Track.trackFromGpx content of
         Just track ->
-            applyTrack model track
+            applyTrack
+                { model
+                    | viewPanes =
+                        -- Force third person view on first file load.
+                        if model.track == Nothing then
+                            ViewPane.viewPanesWithTrack
+
+                        else
+                            model.viewPanes
+                }
+                track
 
         Nothing ->
             ( model, Cmd.none )
@@ -1073,12 +1096,13 @@ applyTrack : Model -> Track -> ( Model, Cmd Msg )
 applyTrack model track =
     let
         ( newViewPanes, mapCommands ) =
-            ( List.map (ViewPane.resetAllViews track) model.viewPanes
-            , ViewPane.initialiseMap track model.viewPanes
-                ++ [ PortController.storageGetItem "panes"
-                   , PortController.storageGetItem "splitter"
-                   , Delay.after 500 RepaintMap
-                   ]
+            ( ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
+            , Cmd.batch
+                [ ViewPane.initialiseMap track model.viewPanes
+                , PortController.storageGetItem "panes"
+                , PortController.storageGetItem "splitter"
+                , Delay.after 100 RepaintMap
+                ]
             )
     in
     ( { model
@@ -1091,7 +1115,7 @@ applyTrack model track =
         , changeCounter = 0
       }
         |> repeatTrackDerivations
-    , Cmd.batch mapCommands
+    , mapCommands
     )
 
 
@@ -1117,13 +1141,17 @@ processViewPaneMessage innerMsg model track =
                     ViewPane.mapOverPanes
                         (f >> ViewPane.setViewPaneSize model.splitInPixels)
                         updatedModel.viewPanes
+
+                modelWithNewPanes =
+                    { updatedModel | viewPanes = updatedPanes }
+
+                ( finalModel, commands ) =
+                    processPostUpdateAction modelWithNewPanes ActionRerender
             in
-            ( { updatedModel
-                | viewPanes = updatedPanes
-              }
+            ( finalModel
             , Cmd.batch
                 [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout updatedPanes)
-                , Delay.after 50 RepaintMap
+                , commands
                 ]
             )
 
@@ -1463,21 +1491,23 @@ renderVaryingSceneElements model =
 
 renderTrackSceneElements : Model -> Model
 renderTrackSceneElements model =
-    let
-        updatedScene =
-            Maybe.map
-                (SceneBuilder.renderTrack model.displayOptions)
-                model.track
-                |> Maybe.withDefault []
-
-        updatedProfile =
-            Maybe.map
-                (SceneBuilderProfile.renderTrack model.displayOptions)
-                model.track
-                |> Maybe.withDefault []
-    in
     case model.track of
         Just isTrack ->
+            let
+                updatedScene =
+                    if is3dVisible model.viewPanes then
+                        SceneBuilder.renderTrack model.displayOptions isTrack
+
+                    else
+                        []
+
+                updatedProfile =
+                    if isProfileVisible model.viewPanes then
+                        SceneBuilderProfile.renderTrack model.displayOptions isTrack
+
+                    else
+                        []
+            in
             { model
                 | staticScene = updatedScene
                 , profileScene = updatedProfile

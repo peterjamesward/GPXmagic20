@@ -80,9 +80,18 @@ defaultViewPane =
     }
 
 
-defaultViewPanes : List ViewPane
-defaultViewPanes =
+viewPanesWhenNoTrack : List ViewPane
+viewPanesWhenNoTrack =
     [ { defaultViewPane | activeContext = ViewAbout }
+    , { defaultViewPane | paneId = 1, visible = False }
+    , { defaultViewPane | paneId = 2, visible = False }
+    , { defaultViewPane | paneId = 3, visible = False }
+    ]
+
+
+viewPanesWithTrack : List ViewPane
+viewPanesWithTrack =
+    [ { defaultViewPane | activeContext = ViewThirdPerson }
     , { defaultViewPane | paneId = 1, visible = False }
     , { defaultViewPane | paneId = 2, visible = False }
     , { defaultViewPane | paneId = 3, visible = False }
@@ -121,9 +130,32 @@ updateViewPanes pane panes =
             panes
 
 
-mapOverPanes : (ViewPane -> ViewPane) -> List ViewPane -> List ViewPane
+mapOverPanes : (ViewPane -> a) -> List ViewPane -> List a
 mapOverPanes f panes =
     List.map f panes
+
+
+isViewingModeVisible : ViewingMode -> List ViewPane -> Bool
+isViewingModeVisible mode panes =
+    -- This will allow us to make Scene evaluation lazy.
+    panes |> List.any (\p -> p.activeContext == mode && p.visible)
+
+
+isMapVisible panes =
+    -- Helper
+    isViewingModeVisible ViewMap panes
+
+
+isProfileVisible panes =
+    -- Helper
+    isViewingModeVisible ViewProfile panes
+
+
+is3dVisible panes =
+    -- Helper
+    isViewingModeVisible ViewFirstPerson panes
+        || isViewingModeVisible ViewThirdPerson panes
+        || isViewingModeVisible ViewPlan panes
 
 
 mapOverAllContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
@@ -192,24 +224,28 @@ resetAllViews track pane =
     }
 
 
-makeMapCommands : Track -> List ViewPane -> List (Cmd msg)
+makeMapCommands : Track -> List ViewPane -> Cmd msg
 makeMapCommands track viewPanes =
-    case List.head viewPanes of
-        Just pane ->
-            ScenePainterMap.mapTrackHasChanged pane.mapContext track
+    if isMapVisible viewPanes then
+        case List.head viewPanes of
+            Just pane ->
+                Cmd.batch <| ScenePainterMap.mapTrackHasChanged pane.mapContext track
 
-        Nothing ->
-            []
+            Nothing ->
+                Cmd.none
+
+    else
+        Cmd.none
 
 
-initialiseMap : Track -> List ViewPane -> List (Cmd msg)
+initialiseMap : Track -> List ViewPane -> Cmd msg
 initialiseMap track viewPanes =
     case List.head viewPanes of
         Just pane ->
             ScenePainterMap.initialiseMap pane.mapContext track
 
         Nothing ->
-            []
+            Cmd.none
 
 
 refreshSceneSearcher : Track -> ViewingContext -> ViewingContext

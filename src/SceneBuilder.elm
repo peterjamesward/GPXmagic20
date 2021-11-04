@@ -48,7 +48,6 @@ defaultRenderingContext =
 
 renderTrack : DisplayOptions -> Track -> Scene
 renderTrack options track =
-    --TODO: Implement selective detail (optimisation!) = simpleSelectiveDetail context track
     let
         box =
             track.box
