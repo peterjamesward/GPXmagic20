@@ -41,7 +41,6 @@ defaultRenderingContext =
 renderTrack : DisplayOptions -> Track -> Scene
 renderTrack options track =
     let
-        _ = Debug.log "PROFILE" 1
         mapOverPairs f =
             List.map2 f track.trackPoints (List.drop 1 track.trackPoints)
 
