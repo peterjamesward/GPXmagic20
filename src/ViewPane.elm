@@ -339,8 +339,8 @@ viewModeChoices pane wrapper =
         }
 
 
-view : ( Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
-view ( scene, profile ) options wrapper pane =
+view : ( Scene, Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
+view ( scene, profile, plan ) options wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
@@ -388,7 +388,7 @@ view ( scene, profile ) options wrapper pane =
                         ScenePainterPlan.viewScene
                             (pane.activeContext == ViewPlan)
                             (getActiveContext pane)
-                            scene
+                            plan
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewProfile ->

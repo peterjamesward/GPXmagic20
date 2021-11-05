@@ -142,9 +142,9 @@ viewDisplayOptions options wrap =
                 { onChange = wrap << TerrainFineness << round
                 , label =
                     Input.labelBelow [] <| text "Terrain blockiness"
-                , min = 1.0
-                , max = 10.0
-                , step = Just 1.0
+                , min = 10.0
+                , max = 100.0
+                , step = Just 5.0
                 , value = toFloat options.terrainFineness
                 , thumb = Input.defaultThumb
                 }

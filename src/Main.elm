@@ -129,7 +129,9 @@ type alias Model =
     , visibleMarkers : Scene
     , completeScene : Scene
     , completeProfile : Scene
+    , completeTerrainScene : Scene
     , profileScene : Scene
+    , terrainScene : Scene
     , profileMarkers : Scene
     , renderingContext : Maybe RenderingContext
     , viewPanes : List ViewPane
@@ -185,6 +187,7 @@ init mflags origin navigationKey =
       , track = Nothing
       , staticScene = []
       , profileScene = []
+      , terrainScene = []
       , profileMarkers = []
       , visibleMarkers = []
       , nudgePreview = []
@@ -193,6 +196,7 @@ init mflags origin navigationKey =
       , moveAndStretchPreview = []
       , completeScene = []
       , completeProfile = []
+      , completeTerrainScene = []
       , renderingContext = Nothing
       , viewPanes = ViewPane.viewPanesWhenNoTrack
       , toolsAccordion = []
@@ -1357,6 +1361,19 @@ composeScene model =
                 ++ model.stravaSegmentPreview
                 ++ model.highlightedGraphEdge
                 ++ model.staticScene
+        , completeTerrainScene =
+            model.visibleMarkers
+                ++ model.moveAndStretchPreview
+                ++ model.nudgePreview
+                ++ model.bendPreview
+                ++ model.stravaSegmentPreview
+                ++ model.highlightedGraphEdge
+                ++ (if model.displayOptions.terrainOn then
+                        model.terrainScene
+
+                    else
+                        model.staticScene
+                   )
         , completeProfile =
             model.profileMarkers
                 ++ model.nudgeProfilePreview
@@ -1507,10 +1524,18 @@ renderTrackSceneElements model =
 
                     else
                         []
+
+                updatedTerrain =
+                    if is3dVisible model.viewPanes then
+                        SceneBuilder.renderTerrain model.displayOptions isTrack
+
+                    else
+                        []
             in
             { model
                 | staticScene = updatedScene
                 , profileScene = updatedProfile
+                , terrainScene = updatedTerrain
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
             }
                 |> renderVaryingSceneElements
@@ -1646,7 +1671,7 @@ contentArea model =
                 [ viewAllPanes
                     model.viewPanes
                     model.displayOptions
-                    ( model.completeScene, model.completeProfile )
+                    ( model.completeTerrainScene, model.completeProfile, model.completeScene )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
                 ]
@@ -1738,11 +1763,11 @@ contentArea model =
         ]
 
 
-viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
-viewAllPanes panes options ( scene, profile ) wrapper =
+viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
+viewAllPanes panes options ( scene, profile, plan ) wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
-            (ViewPane.view ( scene, profile ) options wrapper)
+            (ViewPane.view ( scene, profile, plan ) options wrapper)
             panes
 
 

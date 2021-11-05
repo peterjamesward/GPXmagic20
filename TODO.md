@@ -4,17 +4,20 @@
 Initial zoom in Profile is broked. Curious.
 > Possibly fixed.
 
-With terrain, are we rendering it redundantly when focus changes?
-> No. Checked.
-
 ---
 
 # TO-DO
 
+Why show **Terrain** on **Plan** view?
+> I'll turn the current function into the renderer for Plan & 'non-terrain' 3D views.
+> Enhance the terrain renderer with roads and centre line (factored out).
+> Then the 1st and 3rd views can just switch to 'non-terrain' or 'terrain'.
+> The storage cost simply has to be borne; the terrain model can be turned off.
+> Probably should force terrain **off** for every new file load.
+
 Try **improving** start/end coincidence testing in Intersections.
-> Need the TP Index here to see if they are adjacent on the route rather than just by chance.
-> Simply, if you get an intersection with the one just added (previous id), ignore it.
-> Better, still too many now.
+> Uses the TP Index here to see if they are adjacent on the route rather than just by chance.
+> Better, still too many now. Need closer look at Dan's test file.
 
 **DEBT**: At least three similar forms of new Track creation.
 
@@ -34,6 +37,17 @@ Try **improving** start/end coincidence testing in Intersections.
 - We have interpolation code in Flythrough, so it's a doddle.
 - Applies elevation relative to start elevation, of course.
 - Option to have "cross-fade" at the end (possibly hundred of metres).
+ 
+---
+
+# v3 territory
+
+**Investigation** Use of Canvas. 
+> It seem to have performance, but would need to lean 
+> heavily on elm-geometry, elm-camera. Not that it isn't do-able.
+
+- https://github.com/joakin/elm-canvas
+- https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
 ---
 
