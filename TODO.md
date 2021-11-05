@@ -8,13 +8,6 @@ Initial zoom in Profile is broked. Curious.
 
 # TO-DO
 
-Why show **Terrain** on **Plan** view?
-> I'll turn the current function into the renderer for Plan & 'non-terrain' 3D views.
-> Enhance the terrain renderer with roads and centre line (factored out).
-> Then the 1st and 3rd views can just switch to 'non-terrain' or 'terrain'.
-> The storage cost simply has to be borne; the terrain model can be turned off.
-> Probably should force terrain **off** for every new file load.
-
 Try **improving** start/end coincidence testing in Intersections.
 > Uses the TP Index here to see if they are adjacent on the route rather than just by chance.
 > Better, still too many now. Need closer look at Dan's test file.
