@@ -35,19 +35,15 @@ Try **improving** start/end coincidence testing in Intersections.
 
 # v3 territory
 
-**Investigation** Use of Canvas. 
-> It seem to have performance, but would need to lean 
-> heavily on elm-geometry, elm-camera. Not that it isn't do-able.
-
-- https://github.com/joakin/elm-canvas
-- https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
-
 ---
 
 # Not doing
 
-Why not have **Terrain** draw the road segments? (If we are in Terrain drawing mode.)
-> Because, why?
+**Investigation** Use of Canvas.
+> Happy now with spatial index.
+
+- https://github.com/joakin/elm-canvas
+- https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
 **Profile** click detect should not do a linear search.
 > It's just not necessary. It's stupidly fast anyway.

@@ -1,4 +1,42 @@
-module Internal exposing (AuthenticationError, AuthenticationSuccess, Authorization, AuthorizationError, RequestParts, ResponseType(..), authenticationErrorDecoder, authenticationSuccessDecoder, authorizationErrorParser, decoderFromJust, decoderFromResult, errorDecoder, errorDescriptionDecoder, errorDescriptionParser, errorParser, errorUriDecoder, errorUriParser, expiresInDecoder, expiresInParser, extractTokenString, lenientScopeDecoder, makeAuthorizationUrl, makeHeaders, makeRedirectUri, makeRequest, parseUrlQuery, protocolToString, refreshTokenDecoder, responseTypeToString, scopeDecoder, scopeParser, spaceSeparatedListParser, stateParser, tokenDecoder, tokenParser, urlAddList, urlAddMaybe)
+module OAuth.Internal exposing
+    ( AuthenticationError
+    , AuthenticationSuccess
+    , Authorization
+    , AuthorizationError
+    , RequestParts
+    , ResponseType(..)
+    , authenticationErrorDecoder
+    , authenticationSuccessDecoder
+    , authorizationErrorParser
+    , decoderFromJust
+    , decoderFromResult
+    , errorDecoder
+    , errorDescriptionDecoder
+    , errorDescriptionParser
+    , errorParser
+    , errorUriDecoder
+    , errorUriParser
+    , expiresInDecoder
+    , expiresInParser
+    , extractTokenString
+    , lenientScopeDecoder
+    , makeAuthorizationUrl
+    , makeHeaders
+    , makeRedirectUri
+    , makeRequest
+    , parseUrlQuery
+    , protocolToString
+    , refreshTokenDecoder
+    , responseTypeToString
+    , scopeDecoder
+    , scopeParser
+    , spaceSeparatedListParser
+    , stateParser
+    , tokenDecoder
+    , tokenParser
+    , urlAddList
+    , urlAddMaybe
+    )
 
 import Base64.Encode as Base64
 import Http as Http

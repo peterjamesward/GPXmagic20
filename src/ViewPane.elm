@@ -13,7 +13,7 @@ import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg, trackPointNearestFromIndexFor3d, trackPointNearestFromIndexForPlan, trackPointNearestRay)
+import ScenePainterCommon exposing (ImageMsg, trackPointNearestFromIndexFor3d)
 import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
@@ -22,7 +22,7 @@ import ScenePainterThird
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (useIcon)
-import ViewPureStyles exposing (conditionallyVisible, radioButton, toolRowLayout)
+import ViewPureStyles exposing (conditionallyVisible, radioButton)
 import ViewingContext exposing (ViewingContext, newViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 

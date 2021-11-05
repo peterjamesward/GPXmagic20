@@ -80,7 +80,7 @@ request.
 
 import Browser exposing (UrlRequest(..))
 import Http
-import Internal as Internal exposing (..)
+import OAuth.Internal as Internal exposing (..)
 import Json.Decode as Json
 import OAuth exposing (ErrorCode, Token, errorCodeFromString)
 import Url exposing (Url)
