@@ -10,9 +10,10 @@ import ViewingContext exposing (ViewingContext)
 aboutText =
     """## GPXmagic is freely provided without warranty.
 
-## 2.6.3 update 2021-11-??
+## 2.6.3 update 2021-11-05
 
-- Somewhat slopey terrain.
+- Terrain improvements. Seems to yield decent results without impacting performance.
+If you it slows down a lot, use more "block" terrain, or turn it off.
 
 - Detection of clicked track points faster for routes with many many track points.
 

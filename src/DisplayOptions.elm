@@ -81,7 +81,7 @@ defaultDisplayOptions =
     , seaLevel = True
     , withLighting = True
     , verticalExaggeration = 1.0
-    , terrainFineness = 4
+    , terrainFineness = 50
     , imperialMeasure = False
     }
 
@@ -266,7 +266,7 @@ decodeOptions json =
                 , terrainOn = restore.terrainOn
                 , seaLevel = restore.seaLevel
                 , withLighting = restore.withLighting
-                , terrainFineness = restore.terrainFineness
+                --, terrainFineness = restore.terrainFineness
                 , imperialMeasure = restore.imperialMeasure
                 , verticalExaggeration = restore.verticalExaggeration
                 , curtainStyle =

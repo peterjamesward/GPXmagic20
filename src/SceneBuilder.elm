@@ -573,13 +573,37 @@ makeTerrain :
     -> List TrackPoint
     -> List (Entity LocalCoords)
 makeTerrain options box points =
-    indexTerrain box points
-        |> terrainFromIndex
-            (flatBox box)
-            (flatBox box)
-            NoContext
-            options
-            (BoundingBox3d.minZ box)
+    let
+        roads =
+            List.map2
+                paintTheRoad
+                points
+                (List.drop 1 points)
+                |> List.concat
+
+        sidewallBase =
+            BoundingBox3d.minZ box
+
+        paintTheRoad pt1 pt2 =
+            paintSurfaceBetween pt1 pt2
+                ++ sidewall sidewallBase pt1 pt2
+                ++ (if options.centreLine then
+                        centreLineBetween gradientColourPastel pt1 pt2
+
+                    else
+                        []
+                   )
+
+        terrain =
+            indexTerrain box points
+                |> terrainFromIndex
+                    (flatBox box)
+                    (flatBox box)
+                    NoContext
+                    options
+                    (BoundingBox3d.minZ box)
+    in
+    terrain ++ roads
 
 
 indexTerrain :
@@ -661,160 +685,163 @@ terrainFromIndex :
     -> Index
     -> List (Entity LocalCoords)
 terrainFromIndex myBox enclosingBox orientation options baseElevation index =
-    let
-        queryResults =
-            SpatialIndex.query index myBox
+    case SpatialIndex.query index myBox of
+        [] ->
+            []
 
-        top =
-            queryResults
-                |> List.map (.content >> .elevation)
-                |> Quantity.minimum
-                |> Maybe.withDefault Quantity.negativeInfinity
-                |> Quantity.minus (meters 0.1)
-
-        myExtrema =
-            BoundingBox2d.extrema myBox
-
-        parentExtrema =
-            BoundingBox2d.extrema enclosingBox
-
-        centre =
-            BoundingBox2d.centerPoint myBox
-
-        contentBox =
-            -- This box encloses our points. It defines the top of the frustrum and the base for the next level.
-            queryResults
-                |> BoundingBox2d.aggregateOfN .box
-                |> Maybe.withDefault myBox
-                |> BoundingBox2d.intersection myBox
-                |> Maybe.withDefault myBox
-
-        contentExtrema =
-            BoundingBox2d.extrema contentBox
-
-        { nwChildBox, neChildBox, swChildBox, seChildBox } =
-            { nwChildBox = BoundingBox2d.from centre (Point2d.xy myExtrema.minX myExtrema.maxY)
-            , neChildBox = BoundingBox2d.from centre (Point2d.xy myExtrema.maxX myExtrema.maxY)
-            , swChildBox = BoundingBox2d.from centre (Point2d.xy myExtrema.minX myExtrema.minY)
-            , seChildBox = BoundingBox2d.from centre (Point2d.xy myExtrema.maxX myExtrema.minY)
-            }
-
-        isNotTiny bx =
+        queryResults ->
             let
-                ( width, height ) =
-                    BoundingBox2d.dimensions bx
+                top =
+                    queryResults
+                        |> List.map (.content >> .elevation)
+                        |> Quantity.minimum
+                        |> Maybe.withDefault Quantity.negativeInfinity
+                        |> Quantity.minus (meters 0.1)
 
-                splitSize =
-                    meters <| toFloat options.terrainFineness
+                myExtrema =
+                    BoundingBox2d.extrema myBox
+
+                parentExtrema =
+                    BoundingBox2d.extrema enclosingBox
+
+                centre =
+                    BoundingBox2d.centerPoint myBox
+
+                contentBox =
+                    -- This box encloses our points. It defines the top of the frustrum and the base for the next level.
+                    queryResults
+                        |> BoundingBox2d.aggregateOfN .box
+                        |> Maybe.withDefault myBox
+                        |> BoundingBox2d.intersection myBox
+                        |> Maybe.withDefault (BoundingBox2d.singleton centre)
+
+                contentExtrema =
+                    BoundingBox2d.extrema contentBox
+
+                { nwChildBox, neChildBox, swChildBox, seChildBox } =
+                    { nwChildBox =
+                        BoundingBox2d.from centre (Point2d.xy myExtrema.minX myExtrema.maxY)
+                            |> BoundingBox2d.intersection contentBox
+                            |> Maybe.withDefault contentBox
+                    , neChildBox =
+                        BoundingBox2d.from centre (Point2d.xy myExtrema.maxX myExtrema.maxY)
+                            |> BoundingBox2d.intersection contentBox
+                            |> Maybe.withDefault contentBox
+                    , swChildBox =
+                        BoundingBox2d.from centre (Point2d.xy myExtrema.minX myExtrema.minY)
+                            |> BoundingBox2d.intersection contentBox
+                            |> Maybe.withDefault contentBox
+                    , seChildBox =
+                        BoundingBox2d.from centre (Point2d.xy myExtrema.maxX myExtrema.minY)
+                            |> BoundingBox2d.intersection contentBox
+                            |> Maybe.withDefault contentBox
+                    }
+
+                isNotTiny bx =
+                    let
+                        ( width, height ) =
+                            BoundingBox2d.dimensions bx
+
+                        splitSize =
+                            meters <| toFloat options.terrainFineness
+                    in
+                    (width |> Quantity.greaterThan splitSize)
+                        && (height |> Quantity.greaterThan splitSize)
+                        && List.length queryResults
+                        > 1
+
+                topColour =
+                    terrainColourFromHeight <| inMeters top
+
+                sideColour =
+                    terrainColourFromHeight <| 0.5 * (inMeters top + inMeters baseElevation)
+
+                northernBottomEdge =
+                    if orientation == NW || orientation == NE then
+                        parentExtrema.maxY
+
+                    else
+                        myExtrema.maxY
+
+                southernBottomEdge =
+                    if orientation == SW || orientation == SE then
+                        parentExtrema.minY
+
+                    else
+                        myExtrema.minY
+
+                easternBottomEdge =
+                    if orientation == NE || orientation == SE then
+                        parentExtrema.maxX
+
+                    else
+                        myExtrema.maxX
+
+                westernBottomEdge =
+                    if orientation == NW || orientation == SW then
+                        parentExtrema.minX
+
+                    else
+                        myExtrema.minX
+
+                northernSlope =
+                    -- Better to write this slowly. Use inner minX, maxX at top
+                    Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz contentExtrema.minX contentExtrema.maxY top)
+                        (Point3d.xyz contentExtrema.maxX contentExtrema.maxY top)
+                        (Point3d.xyz easternBottomEdge northernBottomEdge baseElevation)
+                        (Point3d.xyz westernBottomEdge northernBottomEdge baseElevation)
+
+                southernSlope =
+                    -- Better to write this slowly. Use inner minX, maxX at top
+                    Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz contentExtrema.minX contentExtrema.minY top)
+                        (Point3d.xyz contentExtrema.maxX contentExtrema.minY top)
+                        (Point3d.xyz easternBottomEdge southernBottomEdge baseElevation)
+                        (Point3d.xyz westernBottomEdge southernBottomEdge baseElevation)
+
+                westernSlope =
+                    -- Better to write this slowly. Use inner minX, maxX at top
+                    Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz contentExtrema.minX contentExtrema.minY top)
+                        (Point3d.xyz contentExtrema.minX contentExtrema.maxY top)
+                        (Point3d.xyz westernBottomEdge northernBottomEdge baseElevation)
+                        (Point3d.xyz westernBottomEdge southernBottomEdge baseElevation)
+
+                easternSlope =
+                    -- Better to write this slowly. Use inner minX, maxX at top
+                    Scene3d.quad (Material.matte sideColour)
+                        (Point3d.xyz contentExtrema.maxX contentExtrema.minY top)
+                        (Point3d.xyz contentExtrema.maxX contentExtrema.maxY top)
+                        (Point3d.xyz easternBottomEdge northernBottomEdge baseElevation)
+                        (Point3d.xyz easternBottomEdge southernBottomEdge baseElevation)
+
+                thisLevelSceneElements =
+                    [ Scene3d.quad (Material.matte topColour)
+                        (Point3d.xyz contentExtrema.maxX contentExtrema.maxY top)
+                        (Point3d.xyz contentExtrema.maxX contentExtrema.minY top)
+                        (Point3d.xyz contentExtrema.minX contentExtrema.minY top)
+                        (Point3d.xyz contentExtrema.minX contentExtrema.maxY top)
+                    , northernSlope
+                    , southernSlope
+                    , westernSlope
+                    , easternSlope
+                    ]
             in
-            (width |> Quantity.greaterThan splitSize)
-                && (height |> Quantity.greaterThan splitSize)
-                && List.length queryResults
-                > 1
-
-        topColour =
-            terrainColourFromHeight <| inMeters top
-
-        sideColour =
-            terrainColourFromHeight <| 0.5 * (inMeters top + inMeters baseElevation)
-
-        paintTheRoad ( pt1, pt2 ) =
-            paintSurfaceBetween pt1 pt2
-                ++ sidewall baseElevation pt1 pt2
-                ++ (if options.centreLine then
-                        centreLineBetween gradientColourPastel pt1 pt2
+            thisLevelSceneElements
+                ++ -- No point recursing if one element only.
+                   (if isNotTiny myBox then
+                        List.concat
+                            [ []
+                            , terrainFromIndex nwChildBox contentBox NW options top index
+                            , terrainFromIndex neChildBox contentBox NE options top index
+                            , terrainFromIndex seChildBox contentBox SE options top index
+                            , terrainFromIndex swChildBox contentBox SW options top index
+                            ]
 
                     else
                         []
                    )
-
-        (northernBottomEdge, northernTopEdge) =
-            if orientation == NW || orientation == NE then
-                (parentExtrema.maxY, contentExtrema.maxY)
-
-            else
-                (myExtrema.maxY, myExtrema.maxY)
-
-        (southernBottomEdge, southernTopEdge) =
-            if orientation == SW || orientation == SE then
-                (parentExtrema.minY, contentExtrema.minY)
-
-            else
-                (myExtrema.minY, myExtrema.minY)
-
-        (easternBottomEdge, easternTopEdge) =
-            if orientation == NE || orientation == SE then
-                (parentExtrema.maxX, contentExtrema.maxX)
-
-            else
-                (myExtrema.maxX, myExtrema.maxX)
-
-        (westernBottomEdge, westernTopEdge) =
-            if orientation == NW || orientation == SW then
-                (parentExtrema.minX, contentExtrema.minX)
-
-            else
-                (myExtrema.minX, myExtrema.minX)
-
-        northernSlope =
-            -- Better to write this slowly. Use inner minX, maxX at top
-            Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz westernTopEdge northernTopEdge top)
-                (Point3d.xyz easternTopEdge northernTopEdge top)
-                (Point3d.xyz easternBottomEdge northernBottomEdge baseElevation)
-                (Point3d.xyz westernBottomEdge northernBottomEdge baseElevation)
-
-        southernSlope =
-            -- Better to write this slowly. Use inner minX, maxX at top
-            Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz westernTopEdge southernTopEdge top)
-                (Point3d.xyz easternTopEdge southernTopEdge top)
-                (Point3d.xyz easternBottomEdge southernBottomEdge baseElevation)
-                (Point3d.xyz westernBottomEdge southernBottomEdge baseElevation)
-
-        westernSlope =
-            -- Better to write this slowly. Use inner minX, maxX at top
-            Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz westernTopEdge southernTopEdge top)
-                (Point3d.xyz westernTopEdge northernTopEdge top)
-                (Point3d.xyz westernBottomEdge northernBottomEdge baseElevation)
-                (Point3d.xyz westernBottomEdge southernBottomEdge baseElevation)
-
-        easternSlope =
-            -- Better to write this slowly. Use inner minX, maxX at top
-            Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz easternTopEdge southernTopEdge top)
-                (Point3d.xyz easternTopEdge northernTopEdge top)
-                (Point3d.xyz easternBottomEdge northernBottomEdge baseElevation)
-                (Point3d.xyz easternBottomEdge southernBottomEdge baseElevation)
-
-        thisLevelSceneElements =
-            [ Scene3d.quad (Material.matte topColour)
-                (Point3d.xyz easternTopEdge northernTopEdge top)
-                (Point3d.xyz westernTopEdge northernTopEdge top)
-                (Point3d.xyz westernTopEdge southernTopEdge top)
-                (Point3d.xyz easternTopEdge southernTopEdge top)
-            , northernSlope
-            , southernSlope
-            , westernSlope
-            , easternSlope
-            ]
-                ++ List.concatMap (.content >> .road >> paintTheRoad) queryResults
-    in
-    thisLevelSceneElements
-        ++ -- No point recursing if one element only.
-           (if isNotTiny myBox then
-                List.concat
-                    [ []
-                    , terrainFromIndex nwChildBox myBox NW options top index
-                    , terrainFromIndex neChildBox myBox NE options top index
-                    , terrainFromIndex seChildBox myBox SE options top index
-                    , terrainFromIndex swChildBox myBox SW options top index
-                    ]
-
-            else
-                []
-           )
 
 
 
