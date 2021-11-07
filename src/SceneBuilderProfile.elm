@@ -9,6 +9,7 @@ import Length exposing (Length, Meters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import MoveAndStretch
 import Plane3d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
@@ -97,8 +98,8 @@ paintCurtainBetween scale colouring pt1 pt2 =
         (Point3d.projectOnto Plane3d.xy pt1.profileXZ)
 
 
-renderMarkers : DisplayOptions -> Track -> Scene
-renderMarkers options track =
+renderMarkers : DisplayOptions -> Maybe TrackPoint -> Track -> Scene
+renderMarkers options stretchMarker track =
     let
         scaledXZ : TrackPoint -> Point3d Meters LocalCoords
         scaledXZ p =
@@ -153,8 +154,27 @@ renderMarkers options track =
                     , length = meters <| 100.0
                     }
             ]
+
+        stretch =
+            case stretchMarker of
+                Just pt ->
+                    [ cone (Material.color Color.white) <|
+                        Cone3d.startingAt
+                            (Point3d.translateBy
+                                (Vector3d.meters 0.0 0.0 18.1)
+                                (scaledXZ pt)
+                            )
+                            negativeZ
+                            { radius = meters <| 5.0
+                            , length = meters <| 22.0
+                            }
+                    ]
+
+                Nothing ->
+                    []
     in
     currentPositionDisc track.currentNode
+        ++ stretch
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
 
 
@@ -278,6 +298,24 @@ previewNudge options points =
     List.concat <|
         List.map2
             nudgeElement
+            points
+            (List.drop 1 points)
+
+
+previewMoveAndStretch : DisplayOptions -> List TrackPoint -> List (Entity LocalCoords)
+previewMoveAndStretch options points =
+    let
+        element tp1 tp2 =
+            paintSomethingBetween
+                options.verticalExaggeration
+                0.5
+                (Material.matte Color.blue)
+                tp1
+                tp2
+    in
+    List.concat <|
+        List.map2
+            element
             points
             (List.drop 1 points)
 

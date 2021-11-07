@@ -80,16 +80,6 @@ oneClickQuickFix originalTrack =
                         |> TrackPoint.prepareTrackPoints
             }
 
-        limitGradients track =
-            { track
-                | trackPoints =
-                    track
-                        |> GradientLimiter.limitGradient GradientLimiter.defaultOptions
-                        |> Tuple.first
-                        |> .trackPoints
-                        |> TrackPoint.prepareTrackPoints
-            }
-
         bezierApprox track =
             Filters.bezierSplineHelper
                 BezierSplines.bezierApproximation

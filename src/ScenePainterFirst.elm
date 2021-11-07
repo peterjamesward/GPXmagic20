@@ -58,10 +58,6 @@ initialiseView viewSize track oldContext =
             oldContext
 
 
-changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
-changeFocusTo tp context =
-    { context | focalPoint = tp.xyz }
-
 
 update :
     ImageMsg

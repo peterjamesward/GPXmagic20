@@ -40,14 +40,6 @@ type Msg
     | TerrainFineness Int
 
 
-
---
---type Action
---    = NoOp
---    | ProfileChange Float
---
-
-
 type Measurements
     = Imperial
     | Metric
@@ -266,6 +258,7 @@ decodeOptions json =
                 , terrainOn = restore.terrainOn
                 , seaLevel = restore.seaLevel
                 , withLighting = restore.withLighting
+
                 --, terrainFineness = restore.terrainFineness
                 , imperialMeasure = restore.imperialMeasure
                 , verticalExaggeration = restore.verticalExaggeration

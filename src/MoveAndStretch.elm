@@ -1,4 +1,4 @@
-module TwoWayDragControl exposing (..)
+module MoveAndStretch exposing (..)
 
 import Axis3d
 import Element exposing (..)
@@ -14,13 +14,14 @@ import PostUpdateActions
 import Quantity
 import Svg
 import Svg.Attributes as SA
-import TabCommonElements exposing (markerTextHelper)
+import TabCommonElements exposing (markerTextHelper, nudgeProfilePreviewNotice)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
+import Utils exposing (showShortMeasure)
 import Vector2d
 import Vector3d
-import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, commonShortVerticalSliderStyles, edges, prettyButtonStyles)
 
 
 type Mode
@@ -34,6 +35,7 @@ type alias Model =
     , preview : List TrackPoint
     , mode : Mode
     , stretchPointer : Maybe Int
+    , heightSliderSetting : Float
     }
 
 
@@ -47,6 +49,7 @@ defaultModel =
     , preview = []
     , mode = Translate
     , stretchPointer = Nothing
+    , heightSliderSetting = 0.0
     }
 
 
@@ -58,10 +61,21 @@ type Msg
     | DraggerReset
     | DraggerMarker Int
     | DraggerApply
+    | StretchHeight Float
 
 
 radius =
     100
+
+
+heightOffset sliderValue =
+    -- Using cube here gives large range, preserves sign, more control in the centre.
+    let
+        clamped =
+            -- Just to be sure.
+            clamp -1.0 1.0 sliderValue
+    in
+    Length.meters <| 100.0 * clamped * clamped * clamped
 
 
 point : ( Float, Float ) -> Point
@@ -71,7 +85,10 @@ point ( x, y ) =
 
 settingNotZero : Model -> Bool
 settingNotZero model =
-    Vector2d.direction model.vector /= Nothing
+    Vector2d.direction model.vector
+        /= Nothing
+        || model.heightSliderSetting
+        /= 0.0
 
 
 twoWayDragControl : Model -> (Msg -> msg) -> Element msg
@@ -83,8 +100,8 @@ twoWayDragControl model wrapper =
                 , htmlAttribute <| Pointer.onMove (.pointer >> .offsetPos >> point >> DraggerMove >> wrapper)
                 , htmlAttribute <| Pointer.onUp (.pointer >> .offsetPos >> point >> DraggerRelease >> wrapper)
                 , htmlAttribute <| Html.Attributes.style "touch-action" "none"
-                , Element.width Element.fill
                 , Element.pointer
+                , Element.alignLeft
                 ]
                 << html
                 << Svg.svg
@@ -184,6 +201,7 @@ update message model wrapper track =
             ( { model
                 | dragging = Nothing
                 , vector = Vector2d.zero
+                , heightSliderSetting = 0.0
                 , preview = []
               }
             , PostUpdateActions.ActionPreview
@@ -200,6 +218,11 @@ update message model wrapper track =
                 PostUpdateActions.EditPreservesIndex
                 (apply track model)
                 (makeUndoMessage model)
+            )
+
+        StretchHeight x ->
+            ( { model | heightSliderSetting = x }
+            , PostUpdateActions.ActionPreview
             )
 
 
@@ -232,23 +255,23 @@ view imperial model wrapper track =
 
                 Nothing ->
                     False
-    in
-    -- Try with linear vector, switch to log or something else if needed.
-    row [ paddingEach { edges | right = 10 } ]
-        [ twoWayDragControl model wrapper
-        , column
-            [ Element.alignLeft
-            , Element.width Element.fill
-            , spacing 5
-            ]
-            [ markerTextHelper track
-            , Input.checkbox []
-                { onChange = wrapper << DraggerModeToggle
-                , icon = checkboxIcon
-                , checked = model.mode == Stretch
-                , label = Input.labelRight [ centerY ] (text "Stretch")
+
+        heightSlider =
+            Input.slider commonShortVerticalSliderStyles
+                { onChange = wrapper << StretchHeight
+                , label =
+                    Input.labelBelow [ alignRight ]
+                        (text <| showShortMeasure imperial (heightOffset model.heightSliderSetting))
+                , min = -1.0
+                , max = 1.0
+                , step = Nothing
+                , value = model.heightSliderSetting
+                , thumb =
+                    Input.defaultThumb
                 }
-            , case ( model.mode, track.markedNode ) of
+
+        showSliderInStretchMode =
+            case ( model.mode, track.markedNode ) of
                 ( Stretch, Just purple ) ->
                     let
                         ( from, to ) =
@@ -268,7 +291,9 @@ view imperial model wrapper track =
 
                 _ ->
                     none
-            , row [ spacing 5 ]
+
+        showActionButtons =
+            row [ spacing 5 ]
                 [ Input.button prettyButtonStyles
                     { label = text "Zero", onPress = Just <| wrapper DraggerReset }
                 , if canApply then
@@ -283,7 +308,29 @@ view imperial model wrapper track =
                         , onPress = Nothing
                         }
                 ]
+
+        showModeSelection =
+            Input.checkbox []
+                { onChange = wrapper << DraggerModeToggle
+                , icon = checkboxIcon
+                , checked = model.mode == Stretch
+                , label = Input.labelRight [ centerY ] (text "Stretch")
+                }
+    in
+    -- Try with linear vector, switch to log or something else if needed.
+    row [ paddingEach { edges | right = 10 }, spacing 5 ]
+        [ twoWayDragControl model wrapper
+        , column
+            [ Element.alignLeft
+            , Element.width Element.fill
+            , spacing 5
             ]
+            [ markerTextHelper track
+            , showModeSelection
+            , showSliderInStretchMode
+            , showActionButtons
+            ]
+        , heightSlider
         ]
 
 
@@ -372,19 +419,27 @@ movePoints : Model -> Track -> List TrackPoint
 movePoints model track =
     -- This used by preview and action.
     let
-        ( x, y ) =
+        ( xShift, yShift ) =
             Vector2d.components model.vector
+
+        zShift =
+            heightOffset model.heightSliderSetting
 
         translation =
             -- Negate y because SVG coordinates go downards.
-            Point3d.translateBy (Vector3d.xyz x (Quantity.negate y) (meters 0))
+            Point3d.translateBy (Vector3d.xyz xShift (Quantity.negate yShift) zShift)
 
         newPoint trackpoint =
             let
                 newXYZ =
                     translation trackpoint.xyz
+
+                newXZ =
+                    -- Ignoring for now the impact on track length.
+                    trackpoint.profileXZ
+                        |> Point3d.translateBy (Vector3d.xyz Quantity.zero Quantity.zero zShift)
             in
-            { trackpoint | xyz = newXYZ }
+            { trackpoint | xyz = newXYZ, profileXZ = newXZ }
 
         markerPosition =
             track.markedNode |> Maybe.withDefault track.currentNode
@@ -411,12 +466,18 @@ stretchPoints model track =
     -- This used by preview and action.
     -- Here we move points either side of the stretch marker.
     let
-        ( x, y ) =
+        ( xShift, yShift ) =
             Vector2d.components model.vector
 
-        translation =
+        zShiftMax =
+            Vector3d.xyz
+                Quantity.zero
+                Quantity.zero
+                (heightOffset model.heightSliderSetting)
+
+        horizontalTranslation =
             -- Negate y because SVG coordinates go downards.
-            Vector3d.xyz x (Quantity.negate y) (meters 0)
+            Vector3d.xyz xShift (Quantity.negate yShift) (meters 0)
 
         -- Point2d.signedDistanceAlong and .signedDistanceFrom give axis relative coordinates.
         -- Then we need only translate along the axis by the proportionate distanceAlong, so we're home.
@@ -474,8 +535,12 @@ stretchPoints model track =
                     Quantity.zero
 
         ( adjustedFirstPoints, adjustedSecondPoints ) =
-            ( List.map adjustRelativeToStart firstPart
-            , List.map adjustRelativeToEnd secondPart
+            ( List.map
+                (adjustRelativeToStart >> adjustRelativeToProfileStart)
+                firstPart
+            , List.map
+                (adjustRelativeToEnd >> adjustRelativeToProfileEnd)
+                secondPart
             )
 
         adjustRelativeToStart pt =
@@ -487,7 +552,9 @@ stretchPoints model track =
             in
             { pt
                 | xyz =
-                    pt.xyz |> Point3d.translateBy (translation |> Vector3d.scaleBy proportion)
+                    pt.xyz
+                        |> Point3d.translateBy (horizontalTranslation |> Vector3d.scaleBy proportion)
+                        |> Point3d.translateBy (zShiftMax |> Vector3d.scaleBy proportion)
             }
 
         adjustRelativeToEnd pt =
@@ -499,7 +566,47 @@ stretchPoints model track =
             in
             { pt
                 | xyz =
-                    pt.xyz |> Point3d.translateBy (translation |> Vector3d.scaleBy proportion)
+                    pt.xyz
+                        |> Point3d.translateBy (horizontalTranslation |> Vector3d.scaleBy proportion)
+                        |> Point3d.translateBy (zShiftMax |> Vector3d.scaleBy proportion)
+            }
+
+        adjustRelativeToProfileStart : TrackPoint -> TrackPoint
+        adjustRelativeToProfileStart pt =
+            let
+                proportion =
+                    Quantity.ratio
+                        (Point3d.xCoordinate pt.profileXZ
+                            |> Quantity.minus (Point3d.xCoordinate startAnchor.profileXZ)
+                        )
+                        (Point3d.xCoordinate referencePoint.profileXZ
+                            |> Quantity.minus (Point3d.xCoordinate startAnchor.profileXZ)
+                        )
+            in
+            { pt
+                | profileXZ =
+                    pt.profileXZ
+                        |> Point3d.translateBy
+                            (zShiftMax |> Vector3d.scaleBy proportion)
+            }
+
+        adjustRelativeToProfileEnd : TrackPoint -> TrackPoint
+        adjustRelativeToProfileEnd pt =
+            let
+                proportion =
+                    Quantity.ratio
+                        (Point3d.xCoordinate endAnchor.profileXZ
+                            |> Quantity.minus (Point3d.xCoordinate pt.profileXZ)
+                        )
+                        (Point3d.xCoordinate endAnchor.profileXZ
+                            |> Quantity.minus (Point3d.xCoordinate referencePoint.profileXZ)
+                        )
+            in
+            { pt
+                | profileXZ =
+                    pt.profileXZ
+                        |> Point3d.translateBy
+                            (zShiftMax |> Vector3d.scaleBy proportion)
             }
     in
     -- Avoid potential division by zero.

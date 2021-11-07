@@ -46,5 +46,13 @@ markerTextHelper track =
         Nothing ->
             row [ padding 5, spacing 10, Background.color warningColor, width fill ]
                 [ useIcon FeatherIcons.info
-                , text "This tool needs the Purple marker."
+                , paragraph [] <| [ text "This tool needs the Purple marker." ]
                 ]
+
+
+nudgeProfilePreviewNotice : Element msg
+nudgeProfilePreviewNotice =
+    row [ padding 5, spacing 10, Background.color warningColor, width fill ]
+        [ useIcon FeatherIcons.info
+        , paragraph [] <| [ text "Preview in profile does not reflect changes in track length." ]
+        ]

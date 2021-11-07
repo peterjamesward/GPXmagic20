@@ -25,6 +25,7 @@ import SpatialIndex exposing (SpatialNode(..))
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
+import MoveAndStretch
 import Utils exposing (gradientColourPastel, gradientColourVivid, squareAspect, terrainColourFromHeight)
 import Vector3d
 

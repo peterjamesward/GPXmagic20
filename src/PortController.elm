@@ -10,7 +10,7 @@ import MapboxKey exposing (mapboxKey)
 import Point3d
 import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
 import TrackPoint exposing (TrackPoint)
-import TwoWayDragControl
+import MoveAndStretch
 import ViewingContext exposing (ViewingContext)
 
 
@@ -175,7 +175,7 @@ addMarkersToMap :
     Track
     -> Track -- bend smoothing suggestion
     -> Track -- node nudging preview
-    -> TwoWayDragControl.Model -- move and stretch preview
+    -> MoveAndStretch.Model -- move and stretch preview
     -> Cmd msg
 addMarkersToMap track smoothBend nudged moveAndStretch =
     let

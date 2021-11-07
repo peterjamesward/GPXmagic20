@@ -2,28 +2,27 @@ module About exposing (..)
 
 import Element exposing (..)
 import Element.Background as Background
+import GeoCodeDecoders exposing (IpInfo)
 import Markdown
 import Pixels exposing (inPixels)
 import ViewingContext exposing (ViewingContext)
 
 
-aboutText =
+aboutText : Maybe IpInfo -> String
+aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.6.3 update 2021-11-05
+## 2.6.5 update 2021-11-07
 
-- Terrain improvements. Seems to yield decent results without impacting performance.
-If you it slows down a lot, use more "block" terrain, or turn it off.
+- Fixed errors in Profile preview of Move & Stretch.
 
-- Detection of clicked track points faster for routes with many many track points.
+## Nice, Pete. I'd buy you a coffee, but I live in """
+        ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a farway land.")
+        ++ """
 
-## "I know it's free, but I'd like to make a donation"
-
-**YES, PLEASE!!**
-
-Donations will be passed on to our local hospice.
-We have changed to "Buy Me a Coffee" as a payment provider.
+Don't worry, it's all possible with the Interthingy.
 Use the not so subtle yellow button at the top.
+Donations will be passed on to our local hospice.
 
 ## Guidance on use
 
@@ -53,8 +52,8 @@ No cookies are used, though many chocolate digestives were consumed whilst writi
 """
 
 
-viewAboutText : ViewingContext -> Element msg
-viewAboutText view =
+viewAboutText : ViewingContext -> Maybe IpInfo -> Element msg
+viewAboutText view ipInfo =
     let
         ( w, h ) =
             view.size
@@ -69,4 +68,4 @@ viewAboutText view =
             , scrollbarY
             ]
         <|
-            [ html <| Markdown.toHtml [] aboutText ]
+            [ html <| Markdown.toHtml [] (aboutText ipInfo) ]

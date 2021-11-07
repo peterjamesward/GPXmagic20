@@ -56,7 +56,7 @@ import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
-import TwoWayDragControl
+import MoveAndStretch
 import Url exposing (Url)
 import Utils exposing (useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
@@ -104,7 +104,7 @@ type Msg
     | EnableMapSketchMode
     | ResizeViews Int
     | StoreSplitterPosition
-    | TwoWayDragMsg TwoWayDragControl.Msg
+    | TwoWayDragMsg MoveAndStretch.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -142,6 +142,7 @@ type alias Model =
     , nudgeProfilePreview : Scene
     , stravaSegmentPreview : Scene
     , moveAndStretchPreview : Scene
+    , moveAndStretchProfilePreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
@@ -169,7 +170,7 @@ type alias Model =
     , accordionState : Accordion.Model
     , splitInPixels : Int
     , markerOptions : MarkerControls.Options
-    , twoWayDrag : TwoWayDragControl.Model
+    , moveAndStretch : MoveAndStretch.Model
     }
 
 
@@ -228,7 +229,8 @@ init mflags origin navigationKey =
       , accordionState = Accordion.defaultState
       , splitInPixels = 800
       , markerOptions = MarkerControls.defaultOptions
-      , twoWayDrag = TwoWayDragControl.defaultModel
+      , moveAndStretch = MoveAndStretch.defaultModel
+      , moveAndStretchProfilePreview = []
       }
         |> -- TODO: Fix Fugly Fudge. Here to make sure function is applied to model state.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -869,16 +871,16 @@ update msg model =
             let
                 ( newOptions, action ) =
                     Maybe.map
-                        (TwoWayDragControl.update
+                        (MoveAndStretch.update
                             dragMsg
-                            model.twoWayDrag
+                            model.moveAndStretch
                             TwoWayDragMsg
                         )
                         model.track
-                        |> Maybe.withDefault ( model.twoWayDrag, ActionNoOp )
+                        |> Maybe.withDefault ( model.moveAndStretch, ActionNoOp )
             in
             processPostUpdateAction
-                { model | twoWayDrag = newOptions }
+                { model | moveAndStretch = newOptions }
                 action
 
 
@@ -999,7 +1001,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.twoWayDrag ]
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch ]
             )
 
         ( Just track, ActionFocusMove tp ) ->
@@ -1016,7 +1018,7 @@ processPostUpdateAction model action =
               }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.twoWayDrag
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
                 , if ViewPane.mapPaneIsLinked model.viewPanes then
                     PortController.centreMapOnCurrent updatedTrack
 
@@ -1036,7 +1038,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.twoWayDrag ]
+                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch ]
             )
 
         ( Just track, ActionRepaintMap ) ->
@@ -1058,11 +1060,12 @@ processPostUpdateAction model action =
             -- We make dummy "Tracks" here for the Map.
             let
                 ( bendPreview, nudgePreview ) =
+                    -- These are passed to the map.
                     updatePreviews model track
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap track bendPreview nudgePreview model.twoWayDrag ]
+                [ PortController.addMarkersToMap track bendPreview nudgePreview model.moveAndStretch ]
             )
 
         ( _, ActionCommand a ) ->
@@ -1376,6 +1379,7 @@ composeScene model =
                    )
         , completeProfile =
             model.profileMarkers
+                ++ model.moveAndStretchProfilePreview
                 ++ model.nudgeProfilePreview
                 ++ model.profileScene
     }
@@ -1386,7 +1390,7 @@ renderVaryingSceneElements model =
     let
         stretchMarker =
             if Accordion.tabIsOpen "Move & Stretch" model.toolsAccordion then
-                Maybe.map (TwoWayDragControl.getStretchPointer model.twoWayDrag)
+                Maybe.map (MoveAndStretch.getStretchPointer model.moveAndStretch)
                     model.track
                     |> Maybe.join
 
@@ -1399,20 +1403,25 @@ renderVaryingSceneElements model =
                 |> Maybe.withDefault []
 
         updatedProfileMarkers =
-            Maybe.map (SceneBuilderProfile.renderMarkers model.displayOptions) model.track
+            Maybe.map
+                (SceneBuilderProfile.renderMarkers
+                    model.displayOptions
+                    stretchMarker
+                )
+                model.track
                 |> Maybe.withDefault []
 
         updatedMoveAndStretchSettings =
             let
                 settings =
-                    model.twoWayDrag
+                    model.moveAndStretch
             in
             if
                 Accordion.tabIsOpen "Move & Stretch" model.toolsAccordion
-                    && TwoWayDragControl.settingNotZero settings
+                    && MoveAndStretch.settingNotZero model.moveAndStretch
             then
-                Maybe.map (TwoWayDragControl.preview model.twoWayDrag) model.track
-                    |> Maybe.withDefault settings
+                Maybe.map (MoveAndStretch.preview model.moveAndStretch) model.track
+                    |> Maybe.withDefault model.moveAndStretch
 
             else
                 { settings | preview = [] }
@@ -1485,6 +1494,7 @@ renderVaryingSceneElements model =
         | visibleMarkers = updatedMarkers
         , profileMarkers = updatedProfileMarkers
         , nudgeSettings = updatedNudgeSettings
+        , moveAndStretch = updatedMoveAndStretchSettings
         , nudgePreview = SceneBuilder.previewNudge updatedNudgeSettings.preview
         , stravaSegmentPreview = SceneBuilder.previewStravaSegment updatedStravaOptions.preview
         , bendOptions = updatedBendOptions
@@ -1499,6 +1509,10 @@ renderVaryingSceneElements model =
                 updatedNudgeSettings.preview
         , moveAndStretchPreview =
             SceneBuilder.previewMoveAndStretch
+                updatedMoveAndStretchSettings.preview
+        , moveAndStretchProfilePreview =
+            SceneBuilderProfile.previewMoveAndStretch
+                model.displayOptions
                 updatedMoveAndStretchSettings.preview
         , straightenOptions = updatedStraightenOptions
         , highlightedGraphEdge = SceneBuilder.showGraphEdge graphEdge
@@ -1670,7 +1684,7 @@ contentArea model =
                 [ width fill, alignTop ]
                 [ viewAllPanes
                     model.viewPanes
-                    model.displayOptions
+                    model
                     ( model.completeTerrainScene, model.completeProfile, model.completeScene )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
@@ -1763,11 +1777,13 @@ contentArea model =
         ]
 
 
-viewAllPanes : List ViewPane -> DisplayOptions -> ( Scene, Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
-viewAllPanes panes options ( scene, profile, plan ) wrapper =
+viewAllPanes : List ViewPane
+    -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
+    -> ( Scene, Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
+viewAllPanes panes model ( scene, profile, plan ) wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
-            (ViewPane.view ( scene, profile, plan ) options wrapper)
+            (ViewPane.view ( scene, profile, plan ) model wrapper)
             panes
 
 
@@ -1883,14 +1899,14 @@ toolsAccordion model =
       , state = Contracted
       , content =
             Maybe.map
-                (TwoWayDragControl.view
+                (MoveAndStretch.view
                     model.displayOptions.imperialMeasure
-                    model.twoWayDrag
+                    model.moveAndStretch
                     TwoWayDragMsg
                 )
                 model.track
                 |> Maybe.withDefault none
-      , info = TwoWayDragControl.info
+      , info = MoveAndStretch.info
       , video = Just "https://youtu.be/9ag2iSS4OE8"
       , isFavourite = False
       }

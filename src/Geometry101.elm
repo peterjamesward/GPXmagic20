@@ -63,20 +63,6 @@ angle v1 v2 =
     atan2 (det v1 v2) (dot v1 v2)
 
 
-circleAngle circ p =
-    atan2 (p.x - circ.centre.x) (p.y - circ.centre.y)
-
-
-pointOnCircle circ a =
-    { x = circ.centre.x + circ.radius * sin a
-    , y = circ.centre.y + circ.radius * cos a
-    }
-
-
-asVector p1 p2 =
-    { x = p2.x - p1.x, y = p2.y - p1.y }
-
-
 distance p1 p2 =
     sqrt <| (p1.x - p2.x) ^ 2.0 + (p1.y - p2.y) ^ 2.0
 
@@ -84,12 +70,6 @@ distance p1 p2 =
 pointsToGeometry : Point -> Point -> Road
 pointsToGeometry p1 p2 =
     { startAt = p1, endsAt = p2 }
-
-
-toPoint location =
-    { x = Length.inMeters <| xCoordinate location
-    , y = Length.inMeters <| yCoordinate location
-    }
 
 
 isBefore : Road -> Point -> Bool
@@ -112,11 +92,6 @@ pointAlongRoad road distanceFromStart =
         (distanceFromStart / roadLength)
         road.startAt
         road.endsAt
-
-
-whatFraction : Point -> Point -> Point -> Float
-whatFraction p pa pb =
-    distance pa p / distance pa pb
 
 
 interpolateScalar fraction a b =
@@ -217,25 +192,6 @@ findIncircleFromTwoRoads r1 r2 =
 
         Nothing ->
             Nothing
-
-
-findTangentPoint : Road -> Circle -> Maybe Point
-findTangentPoint road incircle =
-    {-
-       Given the road's line is Ax + By + C = 0,
-       the radius is perpendicular hence has line Bx - Ay + D = 0
-       and it passes through the circle centre (X, Y) so BX - AY + D = 0
-       or D = AY - BX.
-       Then we can find the intercept point using existing code.
-    -}
-    let
-        roadLine =
-            lineEquationFromTwoPoints road.startAt road.endsAt
-
-        radiusLine =
-            linePerpendicularTo roadLine incircle.centre
-    in
-    lineIntersection roadLine radiusLine
 
 
 findIncircle : Point -> Point -> Point -> Circle

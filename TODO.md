@@ -1,20 +1,23 @@
 
-# BUGS
-
-Initial zoom in Profile is broked. Curious.
-> Possibly fixed.
+# **BUGS**
 
 ---
 
 # TO-DO
 
-Try **improving** start/end coincidence testing in Intersections.
-> Uses the TP Index here to see if they are adjacent on the route rather than just by chance.
+**Interesting** investigate derivatives of Vector3d and see if anything useful emerges.
+
+**Lane separation** on out and back sections (?)
+> Without need for Graph.
+
+**Improve** start/end coincidence testing in Intersections.
+> Uses the TP.index here to see if they are adjacent on the route rather than just by chance.  
 > Better, still too many now. Need closer look at Dan's test file.
 
 **DEBT**: At least three similar forms of new Track creation.
 
-**DEBT**: Don't update state in ViewContext, safer & easier to pass through the data needed.
+**DEBT**: Don't copy information into ViewContext that doesn't belong there.
+> Safer & easier to pass through the data needed.  
 > Now I know how to write type signatures that don't require the whole Main.Model!
 
 **DEBT**: Factor the PortMessage handling out of main::update. PortController.update?
@@ -25,19 +28,20 @@ Try **improving** start/end coincidence testing in Intersections.
 
 **DEBT**: Factor out the common pattern of min, max for the pointers.
 
-**NEW**: Use elevation from second route, starting at marker.
-- This should be a neat two-way merge sort of track points based on distance from start.
-- We have interpolation code in Flythrough, so it's a doddle.
-- Applies elevation relative to start elevation, of course.
-- Option to have "cross-fade" at the end (possibly hundred of metres).
+Use elevation from second route, starting at marker.
+> This should be a neat two-way merge sort of track points based on distance from start.
+> We have interpolation code in Flythrough, so it's a doddle.
+> Applies elevation relative to start elevation, of course.
+> Option to have "cross-fade" at the end (possibly hundred of metres).
  
 ---
 
-# v3 territory
-
----
-
 # Not doing
+
+**Minimum radius**
+> Copious notes on this in my notebook. No pleasing way of smoothing complex bend series
+> whilst preserving end points. If you're not preserving the ends, Stretch does a fair job.
+> Meanwhile, Bend Smoother tells you the radius it's found. More assistance there, perhaps?
 
 **Investigation** Use of Canvas.
 > Happy now with spatial index.

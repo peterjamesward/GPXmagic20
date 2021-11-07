@@ -91,16 +91,6 @@ update msg settings track =
             )
 
 
-averageGradient : TrackPoint -> TrackPoint -> Float
-averageGradient startPoint endPoint =
-    -- This is gradient measured along route, not as the crow flies.
-    Direction3d.from startPoint.profileXZ endPoint.profileXZ
-        |> Maybe.map (Direction3d.elevationFrom SketchPlane3d.xy)
-        |> Maybe.withDefault Quantity.zero
-        |> Angle.tan
-        |> (*) 100.0
-
-
 limitGradient : Options -> Track -> ( Track, String )
 limitGradient settings track =
     let

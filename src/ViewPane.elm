@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Border as Border
 import Element.Input as Input exposing (button)
 import FeatherIcons
+import GeoCodeDecoders exposing (IpInfo)
 import Json.Decode as D
 import Json.Encode as E
 import List.Extra
@@ -339,8 +340,10 @@ viewModeChoices pane wrapper =
         }
 
 
-view : ( Scene, Scene, Scene ) -> DisplayOptions -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
-view ( scene, profile, plan ) options wrapper pane =
+view : ( Scene, Scene, Scene )
+    -> { model | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
+    -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
+view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
@@ -372,7 +375,7 @@ view ( scene, profile, plan ) options wrapper pane =
                         ScenePainterThird.viewScene
                             (pane.activeContext == ViewThirdPerson)
                             (getActiveContext pane)
-                            options
+                            displayOptions
                             scene
                             (imageMessageWrapper pane.paneId >> wrapper)
 
@@ -380,7 +383,7 @@ view ( scene, profile, plan ) options wrapper pane =
                         ScenePainterFirst.viewScene
                             (pane.activeContext == ViewFirstPerson)
                             (getActiveContext pane)
-                            options
+                            displayOptions
                             scene
                             (imageMessageWrapper pane.paneId >> wrapper)
 
@@ -395,13 +398,14 @@ view ( scene, profile, plan ) options wrapper pane =
                         ScenePainterProfile.viewScene
                             (pane.activeContext == ViewProfile)
                             (getActiveContext pane)
-                            options
+                            displayOptions
                             profile
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     _ ->
                         About.viewAboutText
                             pane.thirdPersonContext
+                            ipInfo
 
             -- We leave the Map DIV intact, as destroying and creating is APITA.
             , conditionallyVisible (pane.activeContext == ViewMap) <|
