@@ -4,6 +4,7 @@ import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption, tryBendSmoother)
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import CurveFormer
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
@@ -105,6 +106,7 @@ type Msg
     | ResizeViews Int
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
+    | CurveFormerMsg CurveFormer.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -171,6 +173,7 @@ type alias Model =
     , splitInPixels : Int
     , markerOptions : MarkerControls.Options
     , moveAndStretch : MoveAndStretch.Model
+    , curveFormer : CurveFormer.Model
     }
 
 
@@ -231,6 +234,7 @@ init mflags origin navigationKey =
       , markerOptions = MarkerControls.defaultOptions
       , moveAndStretch = MoveAndStretch.defaultModel
       , moveAndStretchProfilePreview = []
+      , curveFormer = CurveFormer.defaultModel
       }
         |> -- TODO: Fix Fugly Fudge. Here to make sure function is applied to model state.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -882,6 +886,23 @@ update msg model =
             processPostUpdateAction
                 { model | moveAndStretch = newOptions }
                 action
+
+        CurveFormerMsg curveMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (CurveFormer.update
+                            curveMsg
+                            model.curveFormer
+                            CurveFormerMsg
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.curveFormer, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | curveFormer = newOptions }
+                action
+
 
 
 draggedOnMap : Encode.Value -> Track -> Maybe Track
@@ -2095,6 +2116,21 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = TrackSplitter.info
+      , video = Nothing
+      , isFavourite = False
+      }
+    , { label = CurveFormer.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (CurveFormer.view
+                    model.displayOptions.imperialMeasure
+                    model.curveFormer
+                    CurveFormerMsg
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = CurveFormer.info
       , video = Nothing
       , isFavourite = False
       }
