@@ -37,6 +37,7 @@ type alias Model =
     , circle : List TrackPoint
     , smoothGradient : GradientSmoothing
     , radius : Length.Length
+    , spacing : Length.Length
     }
 
 
@@ -56,6 +57,7 @@ defaultModel =
     , circle = []
     , smoothGradient = Piecewise
     , radius = Length.meters 10.0
+    , spacing = Length.meters 5.0
     }
 
 
@@ -67,10 +69,11 @@ type Msg
     | DraggerReset
     | DraggerApply
     | SetRadius Float
+    | SetSpacing Float
 
 
-setRadius : Float -> Length.Length
-setRadius sliderValue =
+toLength : Float -> Length.Length
+toLength sliderValue =
     Length.meters sliderValue
 
 
@@ -206,7 +209,12 @@ update message model wrapper track =
             )
 
         SetRadius x ->
-            ( { model | radius = setRadius x }
+            ( { model | radius = toLength x }
+            , PostUpdateActions.ActionPreview
+            )
+
+        SetSpacing x ->
+            ( { model | spacing = toLength x }
             , PostUpdateActions.ActionPreview
             )
 
@@ -225,11 +233,24 @@ view imperial model wrapper track =
                 { onChange = wrapper << SetRadius
                 , label =
                     Input.labelBelow []
-                        (text <| showShortMeasure imperial model.radius)
+                        (text <| "Radius " ++ showShortMeasure imperial model.radius)
                 , min = 2.0
                 , max = 100.0
                 , step = Nothing
                 , value = model.radius |> Length.inMeters
+                , thumb = Input.defaultThumb
+                }
+
+        showSpacingSlider =
+            Input.slider commonShortHorizontalSliderStyles
+                { onChange = wrapper << SetSpacing
+                , label =
+                    Input.labelBelow []
+                        (text <| "Spacing " ++ showShortMeasure imperial model.spacing)
+                , min = 1.0
+                , max = 10.0
+                , step = Nothing
+                , value = model.spacing |> Length.inMeters
                 , thumb = Input.defaultThumb
                 }
 
@@ -262,6 +283,7 @@ view imperial model wrapper track =
             ]
             [ showModeSelection
             , showRadiusSlider
+            , showSpacingSlider
             , showActionButtons
             ]
         ]
