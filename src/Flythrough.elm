@@ -21,6 +21,10 @@ import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
+toolLabel =
+    "Fly-through"
+
+
 info =
     """## Flythrough
 

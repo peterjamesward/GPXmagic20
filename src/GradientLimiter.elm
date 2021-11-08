@@ -23,6 +23,10 @@ import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
+toolLabel =
+    "Limit gradients"
+
+
 info =
     """## Gradient limiter
 

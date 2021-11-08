@@ -1,4 +1,4 @@
-module MoveAndStretch exposing (..)
+module CurveFormer exposing (..)
 
 import Axis3d
 import Element exposing (..)
@@ -22,10 +22,6 @@ import Utils exposing (showShortMeasure)
 import Vector2d
 import Vector3d
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, commonShortVerticalSliderStyles, edges, prettyButtonStyles)
-
-
-toolLabel =
-    "Move & Stretch"
 
 
 type Mode

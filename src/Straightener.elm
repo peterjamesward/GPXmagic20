@@ -13,6 +13,10 @@ import Utils exposing (showDecimal0)
 import ViewPureStyles exposing (prettyButtonStyles)
 
 
+toolLabel =
+    "Straighten"
+
+
 info =
     """## Straightener
 

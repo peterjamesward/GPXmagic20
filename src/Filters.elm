@@ -17,6 +17,10 @@ import Utils exposing (showDecimal2)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
+toolLabel =
+    "Track smoothers 3D"
+
+
 info =
     """## Filters
 

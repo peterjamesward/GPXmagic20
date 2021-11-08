@@ -111,6 +111,10 @@ type alias Route =
     { route : List Traversal }
 
 
+toolLabel =
+    "Graph Theory"
+
+
 info =
     """## Graph
 

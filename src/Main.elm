@@ -33,6 +33,7 @@ import List.Extra
 import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
+import MoveAndStretch
 import MyIP
 import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuth.GpxSource exposing (GpxSource(..))
@@ -56,7 +57,6 @@ import TrackEditType exposing (TrackEditType(..))
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
-import MoveAndStretch
 import Url exposing (Url)
 import Utils exposing (useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
@@ -1389,7 +1389,7 @@ renderVaryingSceneElements : Model -> Model
 renderVaryingSceneElements model =
     let
         stretchMarker =
-            if Accordion.tabIsOpen "Move & Stretch" model.toolsAccordion then
+            if Accordion.tabIsOpen MoveAndStretch.toolLabel model.toolsAccordion then
                 Maybe.map (MoveAndStretch.getStretchPointer model.moveAndStretch)
                     model.track
                     |> Maybe.join
@@ -1417,7 +1417,7 @@ renderVaryingSceneElements model =
                     model.moveAndStretch
             in
             if
-                Accordion.tabIsOpen "Move & Stretch" model.toolsAccordion
+                Accordion.tabIsOpen MoveAndStretch.toolLabel model.toolsAccordion
                     && MoveAndStretch.settingNotZero model.moveAndStretch
             then
                 Maybe.map (MoveAndStretch.preview model.moveAndStretch) model.track
@@ -1432,7 +1432,7 @@ renderVaryingSceneElements model =
                     model.nudgeSettings
             in
             if
-                Accordion.tabIsOpen "Nudge" model.toolsAccordion
+                Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion
                     && Nudge.settingNotZero settings
             then
                 Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
@@ -1442,7 +1442,7 @@ renderVaryingSceneElements model =
                 { settings | preview = [] }
 
         updatedBendOptions =
-            if Accordion.tabIsOpen "Bend smoother classic" model.toolsAccordion then
+            if Accordion.tabIsOpen BendSmoother.toolLabel model.toolsAccordion then
                 Maybe.map (tryBendSmoother model.bendOptions) model.track
                     |> Maybe.withDefault model.bendOptions
 
@@ -1455,7 +1455,7 @@ renderVaryingSceneElements model =
                 options =
                     model.stravaOptions
             in
-            if Accordion.tabIsOpen "Strava" model.toolsAccordion then
+            if Accordion.tabIsOpen StravaTools.toolLabel model.toolsAccordion then
                 { options
                     | preview =
                         Maybe.map (StravaTools.preview options) model.track
@@ -1470,7 +1470,7 @@ renderVaryingSceneElements model =
                 options =
                     model.straightenOptions
             in
-            if Accordion.tabIsOpen "Straighten" model.toolsAccordion then
+            if Accordion.tabIsOpen Straightener.toolLabel model.toolsAccordion then
                 Maybe.map (Straightener.lookForSimplifications options) model.track
                     |> Maybe.withDefault options
 
@@ -1480,7 +1480,7 @@ renderVaryingSceneElements model =
         graphEdge =
             case model.track of
                 Just isTrack ->
-                    if Accordion.tabIsOpen "Graph Theory" model.toolsAccordion then
+                    if Accordion.tabIsOpen Graph.toolLabel model.toolsAccordion then
                         Maybe.map Graph.previewTraversal isTrack.graph
                             |> Maybe.withDefault []
 
@@ -1777,9 +1777,12 @@ contentArea model =
         ]
 
 
-viewAllPanes : List ViewPane
+viewAllPanes :
+    List ViewPane
     -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
-    -> ( Scene, Scene, Scene ) -> (ViewPaneMessage -> Msg) -> Element Msg
+    -> ( Scene, Scene, Scene )
+    -> (ViewPaneMessage -> Msg)
+    -> Element Msg
 viewAllPanes panes model ( scene, profile, plan ) wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
@@ -1806,7 +1809,7 @@ updatedAccordion currentAccordion referenceAccordion model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if Accordion.tabIsOpen "Fly-through" model.toolsAccordion then
+    if Accordion.tabIsOpen Flythrough.toolLabel model.toolsAccordion then
         --if model.flythrough.flythrough /= Nothing then
         Sub.batch
             [ PortController.messageReceiver PortMessage
@@ -1826,14 +1829,14 @@ subscriptions model =
 toolsAccordion : Model -> List (AccordionEntry Msg)
 toolsAccordion model =
     [ -- For V2 we see if a single collection works...
-      { label = "Visual styles"
+      { label = DisplayOptions.toolLabel
       , state = Contracted
       , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info
       , video = Just "https://youtu.be/N7zGRJvke_M"
       , isFavourite = False
       }
-    , { label = "LoopedTrack maker"
+    , { label = LoopedTrack.toolLabel
       , state = Contracted
       , content =
             LoopedTrack.viewLoopTools
@@ -1845,7 +1848,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/B3SGh8KhDu0"
       , isFavourite = False
       }
-    , { label = "Bend smoother classic"
+    , { label = BendSmoother.toolLabel
       , state = Contracted
       , content =
             BendSmoother.viewBendFixerPane
@@ -1856,7 +1859,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/VO5jsOZmTIg"
       , isFavourite = False
       }
-    , { label = "Limit gradients"
+    , { label = GradientLimiter.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -1870,7 +1873,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/LtcYi4fzImE"
       , isFavourite = False
       }
-    , { label = "Smooth gradient"
+    , { label = GradientSmoother.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -1884,7 +1887,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/YTY2CSl0wo8"
       , isFavourite = False
       }
-    , { label = "Nudge"
+    , { label = Nudge.toolLabel
       , state = Contracted
       , content =
             viewNudgeTools
@@ -1895,7 +1898,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
       }
-    , { label = "Move & Stretch"
+    , { label = MoveAndStretch.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -1910,7 +1913,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/9ag2iSS4OE8"
       , isFavourite = False
       }
-    , { label = "Straighten"
+    , { label = Straightener.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -1924,7 +1927,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/MQ67mzShvxg"
       , isFavourite = False
       }
-    , { label = "Interpolate"
+    , { label = Interpolate.toolLabel
       , state = Contracted
       , content =
             case model.track of
@@ -1940,14 +1943,14 @@ toolsAccordion model =
       , video = Just "https://youtu.be/C3chnX2Ij_8"
       , isFavourite = False
       }
-    , { label = "Delete"
+    , { label = DeletePoints.toolLabel
       , state = Contracted
       , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
       , info = DeletePoints.info
       , video = Nothing
       , isFavourite = False
       }
-    , { label = "Fly-through"
+    , { label = Flythrough.toolLabel
       , state = Contracted
       , content =
             Flythrough.flythroughControls
@@ -1958,7 +1961,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/lRukK-do_dE"
       , isFavourite = False
       }
-    , { label = "Track smoothers 3D"
+    , { label = Filters.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -1971,7 +1974,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/N48cDi_N_x0"
       , isFavourite = False
       }
-    , { label = "Graph Theory"
+    , { label = Graph.toolLabel
       , state = Contracted
       , content =
             model.track
@@ -1983,7 +1986,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/KSuR8PcAZYc"
       , isFavourite = False
       }
-    , { label = "Route summary"
+    , { label = TrackObservations.toolLabel
       , state = Contracted
       , content =
             TrackObservations.overviewSummary
@@ -2052,7 +2055,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
       }
-    , { label = "Strava"
+    , { label = StravaTools.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -2063,7 +2066,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/31qVuc3klUE"
       , isFavourite = False
       }
-    , { label = "Lift & Shift"
+    , { label = RotateRoute.toolLabel
       , state = Contracted
       , content =
             Maybe.map
@@ -2079,7 +2082,7 @@ toolsAccordion model =
       , video = Just "https://youtu.be/P602MjJLrZ0"
       , isFavourite = False
       }
-    , { label = "Splitter & Joiner"
+    , { label = TrackSplitter.toolLabel
       , state = Contracted
       , content =
             Maybe.map

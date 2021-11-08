@@ -23,6 +23,10 @@ type Action
     | DeleteNoOp
 
 
+toolLabel =
+    "Delete"
+
+
 info =
     """## Delete track points
 

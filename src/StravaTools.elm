@@ -20,7 +20,7 @@ import Url
 import Url.Builder as Builder
 import ViewPureStyles exposing (displayName, prettyButtonStyles)
 
-
+toolLabel = "Strava"
 info =
     """## Strava
 

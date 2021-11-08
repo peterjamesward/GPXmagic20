@@ -14,6 +14,10 @@ import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
+toolLabel =
+    "Interpolate"
+
+
 info =
     """## Insert
 
@@ -73,10 +77,25 @@ viewTools imperial options wrap =
             Input.slider
                 commonShortHorizontalSliderStyles
                 { onChange = wrap << SetMaxSpacing
-                , label = Input.labelBelow [] <| text <| "Maximum gap "
-                    ++ showShortMeasure imperial (Length.meters options.maxSpacing)
-                , min = Length.inMeters <| if imperial then Length.feet 3.0 else Length.meters 1.0
-                , max = Length.inMeters <| if imperial then Length.feet 160.0 else Length.meters 50.0
+                , label =
+                    Input.labelBelow [] <|
+                        text <|
+                            "Maximum gap "
+                                ++ showShortMeasure imperial (Length.meters options.maxSpacing)
+                , min =
+                    Length.inMeters <|
+                        if imperial then
+                            Length.feet 3.0
+
+                        else
+                            Length.meters 1.0
+                , max =
+                    Length.inMeters <|
+                        if imperial then
+                            Length.feet 160.0
+
+                        else
+                            Length.meters 50.0
                 , step = Nothing
                 , value = options.maxSpacing
                 , thumb = Input.defaultThumb

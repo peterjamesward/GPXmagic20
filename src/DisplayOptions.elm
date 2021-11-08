@@ -9,6 +9,8 @@ import Utils exposing (showDecimal2)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, radioButton)
 
 
+toolLabel = "Visual styles"
+
 info =
     """## Display options
 

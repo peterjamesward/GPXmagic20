@@ -18,6 +18,10 @@ import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
+toolLabel =
+    "Smooth gradient"
+
+
 info =
     """## Gradient smoother
 

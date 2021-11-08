@@ -25,6 +25,10 @@ import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, conditionallyVisible, prettyButtonStyles)
 
 
+toolLabel =
+    "Bend smoother classic"
+
+
 info =
     """## Bend smoother classic
 

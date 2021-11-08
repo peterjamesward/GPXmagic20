@@ -23,6 +23,10 @@ import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles,
 import WriteGPX
 
 
+toolLabel =
+    "Splitter & Joiner"
+
+
 info =
     """## Splitter & Joiner
 
@@ -285,7 +289,7 @@ view imperial options observations wrapper track =
                     commonShortHorizontalSliderStyles
                     { onChange = wrapper << SetSplitLimit << Length.miles
                     , label = Input.labelBelow [] <| text <| "Max: " ++ showLongMeasure True options.splitLimit
-                    , min =  12.0
+                    , min = 12.0
                     , max = 65.0
                     , step = Just 1.0
                     , value = Length.inMiles options.splitLimit

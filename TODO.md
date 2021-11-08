@@ -5,10 +5,27 @@
 
 # TO-DO
 
-**Interesting** investigate derivatives of Vector3d and see if anything useful emerges.
-
+**Former** tool
+> Needs cross-hair we can position in Plan view, and radius control.  
+> Can do this with the Orange pointer, and 2-way drag. Drag control moves centre.  
+> Uses spatial index, perhaps with special query for circle.  
+> relative to Orange. Slider for radius.  
+> Show (white?) Circle2d and track preview (only in 3d views).  
+> Track points within the circle will be pushed to the circumference.  
+> _(Should it also "attract" points along the track but outside the circle?)_  
+> Function similar to bend smoother but use reverse curvature arcs or splines for transitions
+> to preserve track (same radius on these arcs).  
+> Option whether to preserve or smooth gradient changes.  
+> If preserved, we essentially "push" points along respective radii, create
+> a 2d arc between each pair, and interpolate height.
+> If smoothed, gradient is determined by the beginning and end of transitions.  
+ 
 **Lane separation** on out and back sections (?)
-> Without need for Graph.
+> Without need for Graph. This could just be simple +/- offset withing marked region.
+
+Investigate **derivatives** of Vector3d and see if anything useful emerges.
+> This will be editing "blind". Could be fun.
+> Limiting 1st or 2nd derivatives.
 
 **Improve** start/end coincidence testing in Intersections.
 > Uses the TP.index here to see if they are adjacent on the route rather than just by chance.  

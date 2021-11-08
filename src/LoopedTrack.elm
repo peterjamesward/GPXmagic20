@@ -16,6 +16,10 @@ import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
 
 
+toolLabel =
+    "LoopedTrack maker"
+
+
 info =
     """## LoopedTrack
 

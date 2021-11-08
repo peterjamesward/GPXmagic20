@@ -27,6 +27,10 @@ import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles, wideSliderStyles)
 
 
+toolLabel =
+    "Lift & Shift"
+
+
 info =
     """## Lift & Shift
 

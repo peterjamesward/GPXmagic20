@@ -48,6 +48,10 @@ defaultNudgeSettings =
     }
 
 
+toolLabel =
+    "Nudge"
+
+
 info =
     """## Nudge
 

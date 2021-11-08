@@ -24,6 +24,10 @@ import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
+toolLabel =
+    "Route summary"
+
+
 info =
     """## Bend and Gradient problems
 
