@@ -6,6 +6,7 @@ module SpatialIndex exposing
     , query
     , queryAllContaining
     , queryNearestToAxisUsing
+    , queryWithFilter
     )
 
 {-
@@ -135,16 +136,27 @@ query :
 query current queryArea =
     -- I think it may be much faster with deep trees to avoid all the
     -- internal concatenation at every level and do it once here.
-    queryInternal current queryArea []
+    queryInternal current queryArea (always True) []
+        |> List.concat
+
+
+queryWithFilter :
+    SpatialNode contentType units coords
+    -> BoundingBox2d.BoundingBox2d units coords
+    -> (contentType -> Bool)
+    -> List (SpatialContent contentType units coords)
+queryWithFilter current queryArea queryFilter =
+    queryInternal current queryArea queryFilter []
         |> List.concat
 
 
 queryInternal :
     SpatialNode contentType units coords
     -> BoundingBox2d.BoundingBox2d units coords
+    -> (contentType -> Bool)
     -> List (List (SpatialContent contentType units coords))
     -> List (List (SpatialContent contentType units coords))
-queryInternal current queryArea accumulator =
+queryInternal current queryArea queryFilter accumulator =
     -- We return content whose bounding box intersects
     -- with the bounding box of the specimen. We do this by looking in a relevant child
     -- or in our own list, depending on the extent of the speciment compared to our children.
@@ -158,24 +170,26 @@ queryInternal current queryArea accumulator =
                 let
                     fromThisNode : List (SpatialContent contentType units coords)
                     fromThisNode =
-                            List.filter
-                                (.box >> BoundingBox2d.intersects queryArea)
-                                node.contents
+                        node.contents
+                            |> List.filter
+                                (\possible ->
+                                    (possible.box |> BoundingBox2d.intersects queryArea)
+                                        && (possible.content |> queryFilter)
+                                )
 
                     fromNW =
-                        queryInternal node.nw queryArea (fromThisNode :: accumulator)
+                        queryInternal node.nw queryArea queryFilter (fromThisNode :: accumulator)
 
                     fromNE =
-                        queryInternal node.ne queryArea fromNW
+                        queryInternal node.ne queryArea queryFilter fromNW
 
                     fromSE =
-                        queryInternal node.se queryArea fromNE
+                        queryInternal node.se queryArea queryFilter fromNE
 
                     fromSW =
-                        queryInternal node.sw queryArea fromSE
+                        queryInternal node.sw queryArea queryFilter fromSE
                 in
                 fromSW
-
 
             else
                 accumulator

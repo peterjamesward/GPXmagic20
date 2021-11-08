@@ -31,6 +31,7 @@ import Interpolate
 import Json.Decode as D
 import Json.Encode as Encode
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
@@ -1511,12 +1512,8 @@ renderVaryingSceneElements model =
                     []
 
         curveFormerCircle =
-            if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
-                Maybe.map (CurveFormer.showCircle model.curveFormer) model.track
-                    |> Maybe.withDefault []
-
-            else
-                []
+            Maybe.map (CurveFormer.preview model.curveFormer) model.track
+            |> Maybe.withDefault []
     in
     { model
         | visibleMarkers = updatedMarkers

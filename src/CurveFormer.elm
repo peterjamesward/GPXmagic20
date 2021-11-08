@@ -3,6 +3,7 @@ module CurveFormer exposing (..)
 import Angle
 import Arc3d
 import Axis3d
+import Circle3d
 import Color
 import Direction3d
 import Element exposing (..)
@@ -10,7 +11,6 @@ import Element.Input as Input
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
-import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point2d
@@ -20,18 +20,16 @@ import PostUpdateActions
 import Quantity
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
-import SceneBuilder exposing (paintSomethingBetween)
-import SketchPlane3d
+import SpatialIndex
 import Svg
 import Svg.Attributes as SA
-import TabCommonElements exposing (markerTextHelper, nudgeProfilePreviewNotice)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showShortMeasure)
+import Utils exposing (flatBox, showShortMeasure)
 import Vector2d
 import Vector3d
-import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, commonShortVerticalSliderStyles, edges, prettyButtonStyles)
+import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
 
 
 type GradientSmoothing
@@ -43,8 +41,6 @@ type alias Model =
     -- Circle centre is Orange marker xy translated by the vector.
     { vector : Vector2d.Vector2d Length.Meters LocalCoords
     , dragging : Maybe Point
-    , preview : List TrackPoint
-    , circle : List TrackPoint
     , smoothGradient : GradientSmoothing
     , radius : Length.Length
     , spacing : Length.Length
@@ -63,9 +59,7 @@ defaultModel : Model
 defaultModel =
     { vector = Vector2d.zero
     , dragging = Nothing
-    , preview = []
-    , circle = []
-    , smoothGradient = Piecewise
+    , smoothGradient = Holistic
     , radius = Length.meters 10.0
     , spacing = Length.meters 5.0
     }
@@ -174,16 +168,14 @@ update message model wrapper track =
                         newVector =
                             Vector2d.from dragStart offset
                     in
-                    ( track
-                        |> preview
-                            { model
-                                | vector =
-                                    if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
-                                        Vector2d.scaleTo (Length.meters 100.0) newVector
+                    ( { model
+                        | vector =
+                            if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
+                                Vector2d.scaleTo (Length.meters 100.0) newVector
 
-                                    else
-                                        newVector
-                            }
+                            else
+                                newVector
+                      }
                     , PostUpdateActions.ActionPreview
                     )
 
@@ -211,7 +203,7 @@ update message model wrapper track =
             )
 
         DraggerApply ->
-            ( { model | preview = [] }
+            ( model
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
                 (apply track model)
@@ -273,8 +265,8 @@ view imperial model wrapper track =
             Input.checkbox []
                 { onChange = wrapper << DraggerModeToggle
                 , icon = checkboxIcon
-                , checked = model.smoothGradient == Holistic
-                , label = Input.labelRight [ centerY ] (text "Smooth gradient")
+                , checked = model.smoothGradient == Piecewise
+                , label = Input.labelRight [ centerY ] (text "Preserve elevations")
                 }
     in
     -- Try with linear vector, switch to log or something else if needed.
@@ -301,8 +293,25 @@ info : String
 info =
     """## Curve Former
 
-It's the new Bend Smoother.
+It's the new Bend Smoother. It forces points within range onto the white circle.
 
+Position the Orange marker on the track, on a bend that you wish to shape.
+Use the circular drag control to position the white circle over the desired centre of the bend.
+Set the desired bend radius.
+
+Contiguous points inside the circle will be moved radially to the circle.
+
+If you also deploy the Purple marker, then any points between the markers that lay outside the circle,
+but which lay between interior points as seen along the track, will be moved onto the circle.
+
+The tool will seek a smooth transition to track outside the circle, using a counter-directional
+arc of the same radius if necessary. This may extend beyond the marked points. The preview reflects
+what the Apply button will do.
+
+With Preserve Elevations, it will retain existing elevations and interpolate piecewise between them.
+Without, it will provide a smooth gradient over the entire new bend.
+
+Less spacing gives a smoother curve by adding more new trackpoints.
 
 """
 
@@ -321,10 +330,10 @@ apply track model =
         newTrackPoints =
             case model.smoothGradient of
                 Piecewise ->
-                    movePoints model track
+                    usePiecewiseGradientSmoothing model track
 
                 Holistic ->
-                    stretchPoints model track
+                    useHolisticGradientSmoothing model track
 
         newCurrent =
             List.Extra.getAt track.currentNode.index newTrackPoints
@@ -345,8 +354,8 @@ apply track model =
     }
 
 
-showCircle : Model -> Track -> List (Entity LocalCoords)
-showCircle model track =
+getCircle : Model -> TrackPoint -> Circle3d.Circle3d Length.Meters LocalCoords
+getCircle model orange =
     let
         translation =
             -- Flip Y because drag control is SVG coordinate based.
@@ -355,17 +364,23 @@ showCircle model track =
                 Quantity.zero
 
         centre =
-            track.currentNode.xyz
+            orange.xyz
                 |> Point3d.translateBy translation
+    in
+    Circle3d.withRadius model.radius Direction3d.positiveZ centre
 
-        centreAxis =
-            Axis3d.through centre Direction3d.positiveZ
 
-        givenPoint =
-            centre |> Point3d.translateBy (Vector3d.xyz model.radius Quantity.zero Quantity.zero)
+showCircle : Model -> Track -> List (Entity LocalCoords)
+showCircle model track =
+    let
+        asCircle =
+            getCircle model track.currentNode
+
+        centre =
+            Circle3d.centerPoint asCircle
 
         arc =
-            Arc3d.sweptAround centreAxis (Angle.turns 1) givenPoint
+            Circle3d.toArc asCircle
 
         segments =
             Arc3d.segments 20 arc |> Polyline3d.segments
@@ -379,7 +394,7 @@ showCircle model track =
     List.map drawSegment segments
 
 
-preview : Model -> Track -> Model
+preview : Model -> Track -> List (Entity LocalCoords)
 preview model track =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
@@ -388,17 +403,36 @@ preview model track =
             track.markedNode |> Maybe.withDefault track.currentNode
 
         ( from, to ) =
+            -- Complicated.
+            -- Orange and Purple should be outside the circle (invalid if not so).
+            -- They indicate where our transitional arcs should end
             ( min track.currentNode.index markerPosition.index
             , max track.currentNode.index markerPosition.index
             )
 
+        circle =
+            getCircle model track.currentNode
+
+        axis =
+            Circle3d.axis circle
+
+        isWithinCircle pt =
+            Point3d.distanceFromAxis axis pt.xyz
+                |> Quantity.lessThanOrEqualTo model.radius
+
+        boundingBox =
+            flatBox <| Circle3d.boundingBox circle
+
+        pointsWithinCircle =
+            SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinCircle
+
         previewTrackPoints =
             case model.smoothGradient of
                 Piecewise ->
-                    movePoints model track
+                    usePiecewiseGradientSmoothing model track
 
                 Holistic ->
-                    stretchPoints model track
+                    useHolisticGradientSmoothing model track
 
         ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
             List.Extra.splitAt (to + 2) previewTrackPoints
@@ -406,16 +440,16 @@ preview model track =
         ( trackBeforePreviewStart, previewZone ) =
             List.Extra.splitAt (from - 1) trackBeforePreviewEnd
     in
-    { model | preview = previewZone }
+    showCircle model track
 
 
-movePoints : Model -> Track -> List TrackPoint
-movePoints model track =
+usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint
+usePiecewiseGradientSmoothing model track =
     track.trackPoints
 
 
-stretchPoints : Model -> Track -> List TrackPoint
-stretchPoints model track =
+useHolisticGradientSmoothing : Model -> Track -> List TrackPoint
+useHolisticGradientSmoothing model track =
     track.trackPoints
 
 

@@ -5,14 +5,14 @@
 
 # TO-DO
 
+Note that tools with previews don't actually need to save the track points, they
+just need a preview method that returns a List (Entity LocalCoords).
+> See CurveFormer.
+
 **Former** tool
-> Needs cross-hair we can position in Plan view, and radius control.  
-> Can do this with the Orange pointer, and 2-way drag. Drag control moves centre.  
 > Uses spatial index, perhaps with special query for circle.  
-> relative to Orange. Slider for radius.  
-> Show (white?) Circle2d and track preview (only in 3d views).  
 > Track points within the circle will be pushed to the circumference.  
-> _(Should it also "attract" points along the track but outside the circle?)_  
+> Any contiguous points outside circle but between markers will snap to circle.
 > Function similar to bend smoother but use reverse curvature arcs or splines for transitions
 > to preserve track (same radius on these arcs).  
 > Option whether to preserve or smooth gradient changes.  
