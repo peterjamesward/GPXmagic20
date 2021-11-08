@@ -904,7 +904,6 @@ update msg model =
                 action
 
 
-
 draggedOnMap : Encode.Value -> Track -> Maybe Track
 draggedOnMap json track =
     -- Map has told us the old and new coordinates of a trackpoint.
@@ -1510,6 +1509,14 @@ renderVaryingSceneElements model =
 
                 Nothing ->
                     []
+
+        curveFormerCircle =
+            if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
+                Maybe.map (CurveFormer.showCircle model.curveFormer) model.track
+                    |> Maybe.withDefault []
+
+            else
+                []
     in
     { model
         | visibleMarkers = updatedMarkers
@@ -1520,10 +1527,12 @@ renderVaryingSceneElements model =
         , stravaSegmentPreview = SceneBuilder.previewStravaSegment updatedStravaOptions.preview
         , bendOptions = updatedBendOptions
         , bendPreview =
-            Maybe.map
-                (.nodes >> SceneBuilder.previewBend)
-                updatedBendOptions.smoothedBend
-                |> Maybe.withDefault []
+            curveFormerCircle
+                ++ (Maybe.map
+                        (.nodes >> SceneBuilder.previewBend)
+                        updatedBendOptions.smoothedBend
+                        |> Maybe.withDefault []
+                   )
         , nudgeProfilePreview =
             SceneBuilderProfile.previewNudge
                 model.displayOptions

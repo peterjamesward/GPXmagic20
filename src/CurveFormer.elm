@@ -1,17 +1,27 @@
 module CurveFormer exposing (..)
 
+import Angle
+import Arc3d
 import Axis3d
+import Color
+import Direction3d
 import Element exposing (..)
 import Element.Input as Input
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
+import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point2d
 import Point3d
+import Polyline3d
 import PostUpdateActions
 import Quantity
+import Scene3d exposing (Entity)
+import Scene3d.Material as Material
+import SceneBuilder exposing (paintSomethingBetween)
+import SketchPlane3d
 import Svg
 import Svg.Attributes as SA
 import TabCommonElements exposing (markerTextHelper, nudgeProfilePreviewNotice)
@@ -219,12 +229,6 @@ update message model wrapper track =
             )
 
 
-minmax a b =
-    ( toFloat <| min a b
-    , toFloat <| max a b
-    )
-
-
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
 view imperial model wrapper track =
     let
@@ -339,6 +343,39 @@ apply track model =
         , currentNode = newCurrent
         , markedNode = newMarker
     }
+
+
+showCircle : Model -> Track -> List (Entity LocalCoords)
+showCircle model track =
+    let
+        translation =
+            Vector3d.xyz (Vector2d.xComponent model.vector)
+                (Vector2d.yComponent model.vector)
+                Quantity.zero
+
+        centre =
+            track.currentNode.xyz
+                |> Point3d.translateBy translation
+
+        centreAxis =
+            Axis3d.through centre Direction3d.positiveZ
+
+        givenPoint =
+            centre |> Point3d.translateBy (Vector3d.xyz model.radius Quantity.zero Quantity.zero)
+
+        arc =
+            Arc3d.sweptAround centreAxis (Angle.turns 1) givenPoint
+
+        segments =
+            Arc3d.segments 20 arc |> Polyline3d.segments
+
+        material =
+            Material.color Color.white
+
+        drawSegment segment =
+            Scene3d.lineSegment material segment
+    in
+    List.map drawSegment segments
 
 
 preview : Model -> Track -> Model
