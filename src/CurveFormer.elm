@@ -349,8 +349,9 @@ showCircle : Model -> Track -> List (Entity LocalCoords)
 showCircle model track =
     let
         translation =
+            -- Flip Y because drag control is SVG coordinate based.
             Vector3d.xyz (Vector2d.xComponent model.vector)
-                (Vector2d.yComponent model.vector)
+                (Vector2d.yComponent model.vector |> Quantity.negate)
                 Quantity.zero
 
         centre =
