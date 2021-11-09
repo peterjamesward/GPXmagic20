@@ -148,8 +148,8 @@ renderMarkers stretchMarker track =
                         point.xyz
                     )
                     negativeZ
-                    { radius = meters <| 6.0
-                    , length = meters <| 20.0
+                    { radius = meters 6.0
+                    , length = meters 20.0
                     }
             ]
 
@@ -161,8 +161,8 @@ renderMarkers stretchMarker track =
                         point.xyz
                     )
                     negativeZ
-                    { radius = meters <| 7.0
-                    , length = meters <| 18.0
+                    { radius = meters 7.0
+                    , length = meters 18.0
                     }
             ]
 
@@ -176,8 +176,8 @@ renderMarkers stretchMarker track =
                                 pt.xyz
                             )
                             negativeZ
-                            { radius = meters <| 5.0
-                            , length = meters <| 22.0
+                            { radius = meters 5.0
+                            , length = meters 22.0
                             }
                     ]
 

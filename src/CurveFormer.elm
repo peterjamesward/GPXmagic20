@@ -53,6 +53,8 @@ type alias Model =
     , pointsWithinCircle : List TrackPoint
     , pointsWithinDisc : List TrackPoint
     , circle : Maybe (Circle3d.Circle3d Length.Meters LocalCoords)
+    , areContiguous : Bool
+    , newTrackPoints : List TrackPoint
     }
 
 
@@ -76,6 +78,8 @@ defaultModel =
     , pointsWithinCircle = []
     , pointsWithinDisc = []
     , circle = Nothing
+    , areContiguous = False
+    , newTrackPoints = []
     }
 
 
@@ -339,7 +343,7 @@ view imperial model wrapper track =
               else
                 none
             , showSpacingSlider
-            , if areContiguous (model.pointsWithinDisc ++ model.pointsWithinCircle) then
+            , if model.areContiguous then
                 showActionButtons
 
               else
@@ -528,25 +532,16 @@ highlightPoints color points =
 
 preview : Model -> Track -> Model
 preview model track =
-    -- Change the locations of the track points within the closed interval between
-    -- markers, or just the current node if no purple cone.
+    -- The compute we do here is most of the work for the Apply, so
+    -- we keep it in our model.
     let
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
-
-        ( from, to ) =
-            -- Complicated?
-            -- Orange and Purple should be outside the circle (invalid if not so).
-            -- They indicate where our transitional arcs should end
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
-
         circle =
             getCircle model track.currentNode
 
-        axis =
-            Circle3d.axis circle
+        ( centre, axis ) =
+            ( Circle3d.centerPoint circle
+            , Circle3d.axis circle
+            )
 
         isWithinCircle pt =
             Point3d.distanceFromAxis axis pt.xyz
@@ -561,12 +556,8 @@ preview model track =
                     model.pushRadius |> Quantity.plus model.pullDiscWidth
             in
             model.usePullRadius
-                && (distance
-                        |> Quantity.greaterThan model.pushRadius
-                   )
-                && (distance
-                        |> Quantity.lessThanOrEqualTo outerRadius
-                   )
+                && Quantity.greaterThan model.pushRadius distance
+                && Quantity.lessThanOrEqualTo outerRadius distance
 
         boundingBox =
             flatBox <| Circle3d.boundingBox circle
@@ -579,13 +570,42 @@ preview model track =
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
 
-        previewTrackPoints =
-            case model.smoothGradient of
-                Piecewise ->
-                    usePiecewiseGradientSmoothing model track
+        allPoints =
+            pointsWithinCircle ++ pointsWithinDisc
 
-                Holistic ->
-                    useHolisticGradientSmoothing model track
+        ( from, to ) =
+            let
+                allIndices =
+                    List.map .index allPoints
+            in
+            ( List.maximum allIndices |> Maybe.withDefault 0
+            , List.minimum allIndices |> Maybe.withDefault 0
+            )
+
+        previewTrackPoints =
+            -- Let's ignore elevation initially.
+            -- Let's make this just the relocated points, now on the inner circle.
+            allPoints |> List.map moveToInnerCircle
+
+        moveToInnerCircle : TrackPoint -> TrackPoint
+        moveToInnerCircle pt =
+            let
+                verticalOffset =
+                    Point3d.signedDistanceAlong axis pt.xyz
+
+                verticalVector =
+                    Vector3d.withLength verticalOffset Direction3d.positiveZ
+
+                scaleAboutPoint =
+                    Point3d.translateBy verticalVector centre
+
+                currentVector =
+                    Vector3d.from scaleAboutPoint pt.xyz
+
+                newVector =
+                    Vector3d.scaleTo model.pushRadius currentVector
+            in
+            { pt | xyz = Point3d.translateBy newVector centre }
 
         ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
             List.Extra.splitAt (to + 2) previewTrackPoints
@@ -597,6 +617,8 @@ preview model track =
         | pointsWithinCircle = pointsWithinCircle
         , pointsWithinDisc = pointsWithinDisc
         , circle = Just circle
+        , areContiguous = areContiguous (model.pointsWithinDisc ++ model.pointsWithinCircle)
+        , newTrackPoints = previewTrackPoints
     }
 
 
@@ -606,6 +628,7 @@ getPreview model =
         ++ showDisc model
         ++ highlightPoints Color.white model.pointsWithinCircle
         ++ highlightPoints Color.yellow model.pointsWithinDisc
+        ++ highlightPoints Color.lightBlue model.newTrackPoints
 
 
 usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint
@@ -631,7 +654,7 @@ areContiguous points =
     in
     case ( List.maximum indices, List.minimum indices ) of
         ( Just isMax, Just isMin ) ->
-            (isMax - isMin == List.length points) && List.Extra.allDifferent indices
+            (isMax - isMin == List.length points - 1) && List.Extra.allDifferent indices
 
         _ ->
             False
