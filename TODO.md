@@ -6,8 +6,9 @@
 # TO-DO
 
 **Former** tool
-
-Arc projection seems to be on opposite side of circle.
+> Remains to fix Apply.
+> Hide preview when tab closed.
+> Entry and exit need to be radiused. And are confused anyway.
  
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.

@@ -61,6 +61,7 @@ type alias Model =
     , circle : Maybe (Circle3d.Circle3d Length.Meters LocalCoords)
     , areContiguous : Bool
     , newTrackPoints : List TrackPoint
+    , fixedAttachmentPoints : Maybe ( Int, Int )
     }
 
 
@@ -86,6 +87,7 @@ defaultModel =
     , circle = Nothing
     , areContiguous = False
     , newTrackPoints = []
+    , fixedAttachmentPoints = Nothing
     }
 
 
@@ -391,40 +393,24 @@ Less spacing gives a smoother curve by adding more new trackpoints.
 
 apply : Track -> Model -> Track
 apply track model =
-    let
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
+    case model.fixedAttachmentPoints of
+        Just ( from, to ) ->
+            let
+                ( beforeAndIncluding, followingTrack ) =
+                    List.Extra.splitAt to track.trackPoints
 
-        ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
+                ( precedingTrack, replacedTrack ) =
+                    List.Extra.splitAt (from - 1) beforeAndIncluding
 
-        newTrackPoints =
-            case model.smoothGradient of
-                Piecewise ->
-                    usePiecewiseGradientSmoothing model track
+                recombinedTrack =
+                    precedingTrack ++ model.newTrackPoints ++ followingTrack
+            in
+            { track
+                | trackPoints = recombinedTrack
+            }
 
-                Holistic ->
-                    useHolisticGradientSmoothing model track
-
-        newCurrent =
-            List.Extra.getAt track.currentNode.index newTrackPoints
-                |> Maybe.withDefault track.currentNode
-
-        newMarker =
-            case track.markedNode of
-                Just isMarked ->
-                    List.Extra.getAt isMarked.index newTrackPoints
-
-                Nothing ->
-                    Nothing
-    in
-    { track
-        | trackPoints = newTrackPoints
-        , currentNode = newCurrent
-        , markedNode = newMarker
-    }
+        Nothing ->
+            track
 
 
 getCircle : Model -> TrackPoint -> Circle3d.Circle3d Length.Meters LocalCoords
@@ -730,6 +716,7 @@ preview model track =
         , circle = Just circle
         , areContiguous = areContiguous allPoints
         , newTrackPoints = entryTransition ++ trackPointFromSegments planarSegments ++ exitTransition
+        , fixedAttachmentPoints = Just ( from, to )
     }
 
 
