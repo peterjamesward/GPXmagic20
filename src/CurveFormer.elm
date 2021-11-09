@@ -13,6 +13,7 @@ import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Pixels
 import Point2d
 import Point3d
 import Polyline3d
@@ -394,6 +395,18 @@ showCircle model track =
     List.map drawSegment segments
 
 
+highlightPoints : List TrackPoint -> List (Entity LocalCoords)
+highlightPoints points =
+    let
+        material =
+            Material.color Color.lightGrey
+
+        highlightPoint p =
+            Scene3d.point { radius = Pixels.pixels 5 } material p.xyz
+    in
+    List.map highlightPoint points
+
+
 preview : Model -> Track -> List (Entity LocalCoords)
 preview model track =
     -- Change the locations of the track points within the closed interval between
@@ -425,6 +438,7 @@ preview model track =
 
         pointsWithinCircle =
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinCircle
+            |> List.map .content
 
         previewTrackPoints =
             case model.smoothGradient of
@@ -441,6 +455,7 @@ preview model track =
             List.Extra.splitAt (from - 1) trackBeforePreviewEnd
     in
     showCircle model track
+        ++ highlightPoints pointsWithinCircle
 
 
 usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint

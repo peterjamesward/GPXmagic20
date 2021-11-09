@@ -5,6 +5,8 @@
 
 # TO-DO
 
+Hmm. Entities with size in Pixels are visible regardless of zoom level.
+
 Note that tools with previews don't actually need to save the track points, they
 just need a preview method that returns a List (Entity LocalCoords).
 > See CurveFormer.
