@@ -7,6 +7,7 @@ import Axis3d
 import Circle3d
 import Color
 import ColourPalette exposing (warningColor)
+import CubicSpline3d
 import Direction2d
 import Direction3d
 import Element exposing (..)
@@ -599,8 +600,8 @@ preview model track =
                 allIndices =
                     List.map .index allPoints
             in
-            ( List.maximum allIndices |> Maybe.withDefault 0
-            , List.minimum allIndices |> Maybe.withDefault 0
+            ( List.minimum allIndices |> Maybe.withDefault 0
+            , List.maximum allIndices |> Maybe.withDefault 0
             )
 
         previewTrackPoints =
@@ -679,18 +680,56 @@ preview model track =
                 Nothing ->
                     []
 
-        trackPointFromSegments =
-            (List.map LineSegment3d.startPoint (List.take 1 planarSegments)
-                ++ List.map LineSegment3d.endPoint planarSegments
+        trackPointFromSegments segs =
+            (List.map LineSegment3d.startPoint (List.take 1 segs)
+                ++ List.map LineSegment3d.endPoint segs
             )
                 |> List.map TrackPoint.trackPointFromPoint
+
+        entryTransition =
+            case
+                ( List.Extra.getAt (from - 1) track.trackPoints
+                , List.head planarSegments
+                )
+            of
+                ( Just lastPriorPoint, Just firstCurveSegment ) ->
+                    CubicSpline3d.fromEndpoints
+                        lastPriorPoint.xyz
+                        (Vector3d.projectOnto plane lastPriorPoint.roadVector)
+                        (LineSegment3d.startPoint firstCurveSegment)
+                        (LineSegment3d.vector firstCurveSegment)
+                        |> CubicSpline3d.segments 5
+                        |> Polyline3d.segments
+                        |> trackPointFromSegments
+
+                _ ->
+                    []
+
+        exitTransition =
+            case
+                ( List.Extra.getAt (to + 1) track.trackPoints
+                , List.Extra.last planarSegments
+                )
+            of
+                ( Just firstPointBeyond, Just lastCurveSegment ) ->
+                    CubicSpline3d.fromEndpoints
+                        (LineSegment3d.endPoint lastCurveSegment)
+                        (LineSegment3d.vector lastCurveSegment)
+                        firstPointBeyond.xyz
+                        (Vector3d.projectOnto plane firstPointBeyond.roadVector)
+                        |> CubicSpline3d.segments 5
+                        |> Polyline3d.segments
+                        |> trackPointFromSegments
+
+                _ ->
+                    []
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
         , pointsWithinDisc = pointsWithinDisc
         , circle = Just circle
         , areContiguous = areContiguous allPoints
-        , newTrackPoints = trackPointFromSegments
+        , newTrackPoints = entryTransition ++ trackPointFromSegments planarSegments ++ exitTransition
     }
 
 
