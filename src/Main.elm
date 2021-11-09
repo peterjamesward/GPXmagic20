@@ -1513,10 +1513,14 @@ renderVaryingSceneElements model =
 
         curveFormerWithPreview =
             Maybe.map (CurveFormer.preview model.curveFormer) model.track
-            |> Maybe.withDefault model.curveFormer
+                |> Maybe.withDefault model.curveFormer
 
         curveFormerCircle =
-            CurveFormer.getPreview curveFormerWithPreview
+            if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
+                CurveFormer.getPreview curveFormerWithPreview
+
+            else
+                []
     in
     { model
         | visibleMarkers = updatedMarkers

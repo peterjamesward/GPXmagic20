@@ -6,9 +6,9 @@
 # TO-DO
 
 **Former** tool
-> Remains to fix Apply.
-> Hide preview when tab closed.
-> Entry and exit need to be radiused. And are confused anyway.
+> NOW thinking we should 'detach' the circle when dragged, so user can use markers for entry & exit lines.
+> (Unless I can think of a nice spatial query!)
+> Need to do piecewise and holistic elevation smoothing.
  
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.

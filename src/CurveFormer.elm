@@ -238,7 +238,7 @@ update message model wrapper track =
         DraggerApply ->
             ( model
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                PostUpdateActions.EditPreservesNodePosition
                 (apply track model)
                 (makeUndoMessage model)
             )
@@ -368,23 +368,27 @@ info : String
 info =
     """## Curve Former
 
-It's the new Bend Smoother. It forces points within range onto the white circle.
+It's the new Bend Smoother. You can increase or decrease bend radius.
 
-Position the Orange marker on the track, on a bend that you wish to shape.
+Position the Orange marker on the track, near a bend that you wish to shape.
 Use the circular drag control to position the white circle over the desired centre of the bend.
 Set the desired bend radius.
 
 Contiguous points inside the circle will be moved radially to the circle.
 
-If you also deploy the Purple marker, then any points between the markers that lay outside the circle,
-but which lay between interior points as seen along the track, will be moved onto the circle.
+If you want points outside to be "pulled inwards", select _Attract Outliers_ and adjust the
+extra slider.
+
+If you include points from another section of the track, we get all confused. You may be
+able to resolve this by additionally using the Orange and Purple markers to clarify which section
+of track you're editing.
 
 The tool will seek a smooth transition to track outside the circle, using a counter-directional
 arc of the same radius if necessary. This may extend beyond the marked points. The preview reflects
 what the Apply button will do.
 
 With Preserve Elevations, it will retain existing elevations and interpolate piecewise between them.
-Without, it will provide a smooth gradient over the entire new bend.
+Otherwise it will provide a smooth gradient over the entire new bend.
 
 Less spacing gives a smoother curve by adding more new trackpoints.
 
@@ -406,7 +410,7 @@ apply track model =
                     precedingTrack ++ model.newTrackPoints ++ followingTrack
             in
             { track
-                | trackPoints = recombinedTrack
+                | trackPoints = TrackPoint.prepareTrackPoints recombinedTrack
             }
 
         Nothing ->
@@ -673,49 +677,49 @@ preview model track =
                 |> List.map TrackPoint.trackPointFromPoint
 
         entryTransition =
+            -- Let's use straight line instead of splines
             case
                 ( List.Extra.getAt (from - 1) track.trackPoints
                 , List.head planarSegments
                 )
             of
                 ( Just lastPriorPoint, Just firstCurveSegment ) ->
-                    CubicSpline3d.fromEndpoints
+                    [ LineSegment3d.from
                         lastPriorPoint.xyz
-                        (Vector3d.projectOnto plane lastPriorPoint.roadVector)
                         (LineSegment3d.startPoint firstCurveSegment)
-                        (LineSegment3d.vector firstCurveSegment)
-                        |> CubicSpline3d.segments 5
-                        |> Polyline3d.segments
-                        |> trackPointFromSegments
+                    ]
 
                 _ ->
                     []
 
         exitTransition =
+            -- Let's use straight line instead of splines
             case
                 ( List.Extra.getAt (to + 1) track.trackPoints
                 , List.Extra.last planarSegments
                 )
             of
                 ( Just firstPointBeyond, Just lastCurveSegment ) ->
-                    CubicSpline3d.fromEndpoints
+                    [ LineSegment3d.from
                         (LineSegment3d.endPoint lastCurveSegment)
-                        (LineSegment3d.vector lastCurveSegment)
                         firstPointBeyond.xyz
-                        (Vector3d.projectOnto plane firstPointBeyond.roadVector)
-                        |> CubicSpline3d.segments 5
-                        |> Polyline3d.segments
-                        |> trackPointFromSegments
+                    ]
 
                 _ ->
                     []
+
+        newBendEntirely =
+            entryTransition
+                ++ planarSegments
+                ++ exitTransition
+                |> trackPointFromSegments
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
         , pointsWithinDisc = pointsWithinDisc
         , circle = Just circle
         , areContiguous = areContiguous allPoints
-        , newTrackPoints = entryTransition ++ trackPointFromSegments planarSegments ++ exitTransition
+        , newTrackPoints = newBendEntirely
         , fixedAttachmentPoints = Just ( from, to )
     }
 
