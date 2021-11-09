@@ -21,6 +21,7 @@ just need a preview method that returns a List (Entity LocalCoords).
 > If preserved, we essentially "push" points along respective radii, create
 > a 2d arc between each pair, and interpolate height.
 > If smoothed, gradient is determined by the beginning and end of transitions.  
+> What if points are not contiguous? I think we must perform multiple operations. Or do we prohibit?
  
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.

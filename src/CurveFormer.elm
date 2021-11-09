@@ -5,9 +5,12 @@ import Arc3d
 import Axis3d
 import Circle3d
 import Color
+import ColourPalette exposing (warningColor)
 import Direction3d
 import Element exposing (..)
+import Element.Background as Background
 import Element.Input as Input
+import FeatherIcons
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
@@ -27,7 +30,7 @@ import Svg.Attributes as SA
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (flatBox, showShortMeasure)
+import Utils exposing (flatBox, showShortMeasure, useIcon)
 import Vector2d
 import Vector3d
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
@@ -43,8 +46,13 @@ type alias Model =
     { vector : Vector2d.Vector2d Length.Meters LocalCoords
     , dragging : Maybe Point
     , smoothGradient : GradientSmoothing
-    , radius : Length.Length
+    , pushRadius : Length.Length
+    , pullDiscWidth : Length.Length
     , spacing : Length.Length
+    , usePullRadius : Bool
+    , pointsWithinCircle : List TrackPoint
+    , pointsWithinDisc : List TrackPoint
+    , circle : Maybe (Circle3d.Circle3d Length.Meters LocalCoords)
     }
 
 
@@ -61,8 +69,13 @@ defaultModel =
     { vector = Vector2d.zero
     , dragging = Nothing
     , smoothGradient = Holistic
-    , radius = Length.meters 10.0
+    , pushRadius = Length.meters 10.0
+    , pullDiscWidth = Length.meters 5.0
     , spacing = Length.meters 5.0
+    , usePullRadius = False
+    , pointsWithinCircle = []
+    , pointsWithinDisc = []
+    , circle = Nothing
     }
 
 
@@ -73,8 +86,10 @@ type Msg
     | DraggerModeToggle Bool
     | DraggerReset
     | DraggerApply
-    | SetRadius Float
+    | SetPushRadius Float
+    | SetPullRadius Float
     | SetSpacing Float
+    | ToggleUsePullRadius Bool
 
 
 toLength : Float -> Length.Length
@@ -91,7 +106,7 @@ settingNotZero : Model -> Bool
 settingNotZero model =
     Vector2d.direction model.vector
         /= Nothing
-        || (model.radius |> Quantity.greaterThan Quantity.zero)
+        || (model.pushRadius |> Quantity.greaterThan Quantity.zero)
 
 
 twoWayDragControl : Model -> (Msg -> msg) -> Element msg
@@ -198,6 +213,11 @@ update message model wrapper track =
             , PostUpdateActions.ActionPreview
             )
 
+        ToggleUsePullRadius bool ->
+            ( { model | usePullRadius = not model.usePullRadius }
+            , PostUpdateActions.ActionPreview
+            )
+
         DraggerReset ->
             ( defaultModel
             , PostUpdateActions.ActionPreview
@@ -211,8 +231,13 @@ update message model wrapper track =
                 (makeUndoMessage model)
             )
 
-        SetRadius x ->
-            ( { model | radius = toLength x }
+        SetPushRadius x ->
+            ( { model | pushRadius = toLength x }
+            , PostUpdateActions.ActionPreview
+            )
+
+        SetPullRadius x ->
+            ( { model | pullDiscWidth = toLength x }
             , PostUpdateActions.ActionPreview
             )
 
@@ -225,16 +250,29 @@ update message model wrapper track =
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
 view imperial model wrapper track =
     let
-        showRadiusSlider =
+        showPushRadiusSlider =
             Input.slider commonShortHorizontalSliderStyles
-                { onChange = wrapper << SetRadius
+                { onChange = wrapper << SetPushRadius
                 , label =
                     Input.labelBelow []
-                        (text <| "Radius " ++ showShortMeasure imperial model.radius)
+                        (text <| "Radius " ++ showShortMeasure imperial model.pushRadius)
                 , min = 2.0
                 , max = 100.0
                 , step = Nothing
-                , value = model.radius |> Length.inMeters
+                , value = model.pushRadius |> Length.inMeters
+                , thumb = Input.defaultThumb
+                }
+
+        showPullRadiusSlider =
+            Input.slider commonShortHorizontalSliderStyles
+                { onChange = wrapper << SetPullRadius
+                , label =
+                    Input.labelBelow []
+                        (text <| "Inclusion zone " ++ showShortMeasure imperial model.pullDiscWidth)
+                , min = 0.0
+                , max = 50.0
+                , step = Nothing
+                , value = model.pullDiscWidth |> Length.inMeters
                 , thumb = Input.defaultThumb
                 }
 
@@ -269,6 +307,20 @@ view imperial model wrapper track =
                 , checked = model.smoothGradient == Piecewise
                 , label = Input.labelRight [ centerY ] (text "Preserve elevations")
                 }
+
+        showPullSelection =
+            Input.checkbox []
+                { onChange = wrapper << ToggleUsePullRadius
+                , icon = checkboxIcon
+                , checked = model.usePullRadius
+                , label = Input.labelRight [ centerY ] (text "Attract outliers")
+                }
+
+        showHelpfulMessage =
+            row [ padding 5, spacing 10, Background.color warningColor, width fill ]
+                [ useIcon FeatherIcons.info
+                , paragraph [] <| [ text "I don't know what to do without contiguous points." ]
+                ]
     in
     -- Try with linear vector, switch to log or something else if needed.
     row [ paddingEach { edges | right = 10 }, spacing 5 ]
@@ -279,9 +331,19 @@ view imperial model wrapper track =
             , spacing 5
             ]
             [ showModeSelection
-            , showRadiusSlider
+            , showPullSelection
+            , showPushRadiusSlider
+            , if model.usePullRadius then
+                showPullRadiusSlider
+
+              else
+                none
             , showSpacingSlider
-            , showActionButtons
+            , if areContiguous (model.pointsWithinDisc ++ model.pointsWithinCircle) then
+                showActionButtons
+
+              else
+                showHelpfulMessage
             ]
         ]
 
@@ -368,38 +430,95 @@ getCircle model orange =
             orange.xyz
                 |> Point3d.translateBy translation
     in
-    Circle3d.withRadius model.radius Direction3d.positiveZ centre
+    Circle3d.withRadius model.pushRadius Direction3d.positiveZ centre
 
 
-showCircle : Model -> Track -> List (Entity LocalCoords)
-showCircle model track =
+getOuterCircle : Model -> TrackPoint -> Circle3d.Circle3d Length.Meters LocalCoords
+getOuterCircle model orange =
     let
-        asCircle =
-            getCircle model track.currentNode
+        translation =
+            -- Flip Y because drag control is SVG coordinate based.
+            Vector3d.xyz (Vector2d.xComponent model.vector)
+                (Vector2d.yComponent model.vector |> Quantity.negate)
+                Quantity.zero
 
         centre =
-            Circle3d.centerPoint asCircle
+            orange.xyz
+                |> Point3d.translateBy translation
 
-        arc =
-            Circle3d.toArc asCircle
-
-        segments =
-            Arc3d.segments 20 arc |> Polyline3d.segments
-
-        material =
-            Material.color Color.white
-
-        drawSegment segment =
-            Scene3d.lineSegment material segment
+        outerRadius =
+            model.pushRadius |> Quantity.plus model.pullDiscWidth
     in
-    List.map drawSegment segments
+    Circle3d.withRadius outerRadius Direction3d.positiveZ centre
 
 
-highlightPoints : List TrackPoint -> List (Entity LocalCoords)
-highlightPoints points =
+showCircle : Model -> List (Entity LocalCoords)
+showCircle model =
+    case model.circle of
+        Just circle ->
+            let
+                arc =
+                    Circle3d.toArc circle
+
+                segments =
+                    Arc3d.segments 20 arc |> Polyline3d.segments
+
+                material =
+                    Material.color Color.white
+
+                drawSegment segment =
+                    Scene3d.lineSegment material segment
+            in
+            List.map drawSegment segments
+
+        Nothing ->
+            []
+
+
+showDisc : Model -> List (Entity LocalCoords)
+showDisc model =
+    case model.circle of
+        Just innerCircle ->
+            let
+                centre =
+                    Circle3d.centerPoint innerCircle
+
+                direction =
+                    Circle3d.axialDirection innerCircle
+
+                outerCircle =
+                    Circle3d.withRadius
+                        (model.pushRadius |> Quantity.plus model.pullDiscWidth)
+                        direction
+                        centre
+
+                arc =
+                    Circle3d.toArc outerCircle
+
+                segments =
+                    Arc3d.segments 20 arc |> Polyline3d.segments
+
+                material =
+                    Material.color Color.lightYellow
+
+                drawSegment segment =
+                    Scene3d.lineSegment material segment
+            in
+            if model.usePullRadius then
+                List.map drawSegment segments
+
+            else
+                []
+
+        Nothing ->
+            []
+
+
+highlightPoints : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+highlightPoints color points =
     let
         material =
-            Material.color Color.lightGrey
+            Material.color color
 
         highlightPoint p =
             Scene3d.point { radius = Pixels.pixels 5 } material p.xyz
@@ -407,7 +526,7 @@ highlightPoints points =
     List.map highlightPoint points
 
 
-preview : Model -> Track -> List (Entity LocalCoords)
+preview : Model -> Track -> Model
 preview model track =
     -- Change the locations of the track points within the closed interval between
     -- markers, or just the current node if no purple cone.
@@ -416,7 +535,7 @@ preview model track =
             track.markedNode |> Maybe.withDefault track.currentNode
 
         ( from, to ) =
-            -- Complicated.
+            -- Complicated?
             -- Orange and Purple should be outside the circle (invalid if not so).
             -- They indicate where our transitional arcs should end
             ( min track.currentNode.index markerPosition.index
@@ -431,14 +550,34 @@ preview model track =
 
         isWithinCircle pt =
             Point3d.distanceFromAxis axis pt.xyz
-                |> Quantity.lessThanOrEqualTo model.radius
+                |> Quantity.lessThanOrEqualTo model.pushRadius
+
+        isWithinDisc pt =
+            let
+                distance =
+                    Point3d.distanceFromAxis axis pt.xyz
+
+                outerRadius =
+                    model.pushRadius |> Quantity.plus model.pullDiscWidth
+            in
+            model.usePullRadius
+                && (distance
+                        |> Quantity.greaterThan model.pushRadius
+                   )
+                && (distance
+                        |> Quantity.lessThanOrEqualTo outerRadius
+                   )
 
         boundingBox =
             flatBox <| Circle3d.boundingBox circle
 
         pointsWithinCircle =
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinCircle
-            |> List.map .content
+                |> List.map .content
+
+        pointsWithinDisc =
+            SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
+                |> List.map .content
 
         previewTrackPoints =
             case model.smoothGradient of
@@ -454,8 +593,19 @@ preview model track =
         ( trackBeforePreviewStart, previewZone ) =
             List.Extra.splitAt (from - 1) trackBeforePreviewEnd
     in
-    showCircle model track
-        ++ highlightPoints pointsWithinCircle
+    { model
+        | pointsWithinCircle = pointsWithinCircle
+        , pointsWithinDisc = pointsWithinDisc
+        , circle = Just circle
+    }
+
+
+getPreview : Model -> List (Entity LocalCoords)
+getPreview model =
+    showCircle model
+        ++ showDisc model
+        ++ highlightPoints Color.white model.pointsWithinCircle
+        ++ highlightPoints Color.yellow model.pointsWithinDisc
 
 
 usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint
@@ -470,4 +620,18 @@ useHolisticGradientSmoothing model track =
 
 makeUndoMessage : Model -> String
 makeUndoMessage model =
-    "Use Curve Former"
+    "Curve Former"
+
+
+areContiguous : List TrackPoint -> Bool
+areContiguous points =
+    let
+        indices =
+            List.map .index points
+    in
+    case ( List.maximum indices, List.minimum indices ) of
+        ( Just isMax, Just isMin ) ->
+            (isMax - isMin == List.length points) && List.Extra.allDifferent indices
+
+        _ ->
+            False

@@ -1511,9 +1511,12 @@ renderVaryingSceneElements model =
                 Nothing ->
                     []
 
-        curveFormerCircle =
+        curveFormerWithPreview =
             Maybe.map (CurveFormer.preview model.curveFormer) model.track
-            |> Maybe.withDefault []
+            |> Maybe.withDefault model.curveFormer
+
+        curveFormerCircle =
+            CurveFormer.getPreview curveFormerWithPreview
     in
     { model
         | visibleMarkers = updatedMarkers
@@ -1523,6 +1526,7 @@ renderVaryingSceneElements model =
         , nudgePreview = SceneBuilder.previewNudge updatedNudgeSettings.preview
         , stravaSegmentPreview = SceneBuilder.previewStravaSegment updatedStravaOptions.preview
         , bendOptions = updatedBendOptions
+        , curveFormer = curveFormerWithPreview
         , bendPreview =
             curveFormerCircle
                 ++ (Maybe.map
