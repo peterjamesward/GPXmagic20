@@ -5,23 +5,9 @@
 
 # TO-DO
 
-Hmm. Entities with size in Pixels are visible regardless of zoom level.
-
-Note that tools with previews don't actually need to save the track points, they
-just need a preview method that returns a List (Entity LocalCoords).
-> See CurveFormer.
-
 **Former** tool
-> Uses spatial index, perhaps with special query for circle.  
-> Track points within the circle will be pushed to the circumference.  
-> Any contiguous points outside circle but between markers will snap to circle.
-> Function similar to bend smoother but use reverse curvature arcs or splines for transitions
-> to preserve track (same radius on these arcs).  
-> Option whether to preserve or smooth gradient changes.  
-> If preserved, we essentially "push" points along respective radii, create
-> a 2d arc between each pair, and interpolate height.
-> If smoothed, gradient is determined by the beginning and end of transitions.  
-> What if points are not contiguous? I think we must perform multiple operations. Or do we prohibit?
+
+Arc projection seems to be on opposite side of circle.
  
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.

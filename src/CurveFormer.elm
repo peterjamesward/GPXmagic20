@@ -1,11 +1,13 @@
 module CurveFormer exposing (..)
 
 import Angle
+import Arc2d
 import Arc3d
 import Axis3d
 import Circle3d
 import Color
 import ColourPalette exposing (warningColor)
+import Direction2d
 import Direction3d
 import Element exposing (..)
 import Element.Background as Background
@@ -14,16 +16,19 @@ import FeatherIcons
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
+import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels
 import Point2d
 import Point3d
+import Polyline2d
 import Polyline3d
 import PostUpdateActions
 import Quantity
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
+import SketchPlane3d
 import SpatialIndex
 import Svg
 import Svg.Attributes as SA
@@ -623,22 +628,69 @@ preview model track =
             in
             { pt | xyz = Point3d.translateBy newVector centre }
 
-        planarArc =
+        planarPoints =
             -- We must work in 2d to achieve the smooth arc for the whole bend.
-            []
+            -- Use circle centre, first and last new points.
+            -- May be convenient to use a 3d arc nontheless.
+            previewTrackPoints
+                |> List.map
+                    (\p -> p.xyz |> Point3d.projectInto (SketchPlane3d.fromPlane plane))
 
-        ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
-            List.Extra.splitAt (to + 2) previewTrackPoints
+        planarCentre =
+            centre |> Point3d.projectInto (SketchPlane3d.fromPlane plane)
 
-        ( trackBeforePreviewStart, previewZone ) =
-            List.Extra.splitAt (from - 1) trackBeforePreviewEnd
+        planarArc =
+            -- For piecewise, use list of arcs. This becomes degenerate case.
+            case
+                ( List.head planarPoints
+                , List.Extra.getAt 1 planarPoints
+                , List.Extra.last planarPoints
+                )
+            of
+                ( Just firstPoint, Just secondPoint, Just lastPoint ) ->
+                    Arc2d.throughPoints firstPoint secondPoint lastPoint
+
+                _ ->
+                    Nothing
+
+        planarSegments =
+            case planarArc of
+                Just arc ->
+                    let
+                        arc3d =
+                            Arc3d.on (SketchPlane3d.fromPlane plane) arc
+
+                        arcLength =
+                            Length.inMeters (Arc2d.radius arc)
+                                * Angle.inRadians (Arc2d.sweptAngle arc)
+                                |> abs
+
+                        numSegments =
+                            arcLength
+                                / Length.inMeters model.spacing
+                                |> ceiling
+                                |> max 1
+
+                        segments =
+                            Arc3d.segments numSegments arc3d |> Polyline3d.segments
+                    in
+                    segments
+
+                Nothing ->
+                    []
+
+        trackPointFromSegments =
+            (List.map LineSegment3d.startPoint (List.take 1 planarSegments)
+                ++ List.map LineSegment3d.endPoint planarSegments
+            )
+                |> List.map TrackPoint.trackPointFromPoint
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
         , pointsWithinDisc = pointsWithinDisc
         , circle = Just circle
         , areContiguous = areContiguous allPoints
-        , newTrackPoints = previewTrackPoints
+        , newTrackPoints = trackPointFromSegments
     }
 
 
