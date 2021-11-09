@@ -535,12 +535,26 @@ preview model track =
     -- The compute we do here is most of the work for the Apply, so
     -- we keep it in our model.
     let
+        ( orange, purple ) =
+            ( track.currentNode.index
+            , Maybe.map .index track.markedNode |> Maybe.withDefault track.currentNode.index
+            )
+
+        ( startRange, endRange ) =
+            if track.markedNode == Nothing then
+                ( 0, List.length track.trackPoints - 1 )
+
+            else
+                ( min orange purple, max orange purple )
+
         circle =
             getCircle model track.currentNode
 
-        ( centre, axis ) =
+        ( centre, axis, plane ) =
+            -- Yes, I know this is trite.
             ( Circle3d.centerPoint circle
             , Circle3d.axis circle
+            , Circle3d.plane circle
             )
 
         isWithinCircle pt =
@@ -565,13 +579,15 @@ preview model track =
         pointsWithinCircle =
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinCircle
                 |> List.map .content
+                |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
 
         pointsWithinDisc =
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
+                |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
 
         allPoints =
-            pointsWithinCircle ++ pointsWithinDisc
+            List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
 
         ( from, to ) =
             let
@@ -607,6 +623,10 @@ preview model track =
             in
             { pt | xyz = Point3d.translateBy newVector centre }
 
+        planarArc =
+            -- We must work in 2d to achieve the smooth arc for the whole bend.
+            []
+
         ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
             List.Extra.splitAt (to + 2) previewTrackPoints
 
@@ -617,7 +637,7 @@ preview model track =
         | pointsWithinCircle = pointsWithinCircle
         , pointsWithinDisc = pointsWithinDisc
         , circle = Just circle
-        , areContiguous = areContiguous (model.pointsWithinDisc ++ model.pointsWithinCircle)
+        , areContiguous = areContiguous allPoints
         , newTrackPoints = previewTrackPoints
     }
 
