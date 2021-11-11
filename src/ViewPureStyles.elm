@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import FlatColors.BritishPalette
 import Html.Attributes exposing (style)
 
 
@@ -42,6 +43,17 @@ prettyButtonStyles =
     --    [ Background.color buttonText, Font.color buttonBackground ]
     --, focused
     --    [ Border.shadow { offset = ( 4, 0 ), size = 3, blur = 5, color = buttonShadow } ]
+    ]
+
+disabledButtonStyles =
+    [ padding 10
+    , Border.width 2
+    , Border.rounded 10
+    , Border.color FlatColors.BritishPalette.riseNShine
+    , Background.color FlatColors.BritishPalette.riseNShine
+    , Font.color buttonText
+    , Font.size 16
+    , width fill
     ]
 
 

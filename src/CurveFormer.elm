@@ -7,8 +7,7 @@ import Axis3d
 import Circle3d
 import Color
 import ColourPalette exposing (warningColor)
-import CubicSpline3d
-import Direction2d
+import Dict exposing (Dict)
 import Direction3d
 import Element exposing (..)
 import Element.Background as Background
@@ -23,7 +22,6 @@ import LocalCoords exposing (LocalCoords)
 import Pixels
 import Point2d
 import Point3d
-import Polyline2d
 import Polyline3d
 import PostUpdateActions
 import Quantity
@@ -39,7 +37,7 @@ import TrackPoint exposing (TrackPoint)
 import Utils exposing (flatBox, showShortMeasure, useIcon)
 import Vector2d
 import Vector3d
-import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, edges, prettyButtonStyles)
+import ViewPureStyles exposing (..)
 
 
 type GradientSmoothing
@@ -50,6 +48,7 @@ type GradientSmoothing
 type alias Model =
     -- Circle centre is Orange marker xy translated by the vector.
     { vector : Vector2d.Vector2d Length.Meters LocalCoords
+    , referencePoint : Maybe TrackPoint
     , dragging : Maybe Point
     , smoothGradient : GradientSmoothing
     , pushRadius : Length.Length
@@ -59,7 +58,7 @@ type alias Model =
     , pointsWithinCircle : List TrackPoint
     , pointsWithinDisc : List TrackPoint
     , circle : Maybe (Circle3d.Circle3d Length.Meters LocalCoords)
-    , areContiguous : Bool
+    , pointsAreContiguous : Bool
     , newTrackPoints : List TrackPoint
     , fixedAttachmentPoints : Maybe ( Int, Int )
     }
@@ -76,6 +75,7 @@ type alias Point =
 defaultModel : Model
 defaultModel =
     { vector = Vector2d.zero
+    , referencePoint = Nothing
     , dragging = Nothing
     , smoothGradient = Holistic
     , pushRadius = Length.meters 10.0
@@ -85,7 +85,7 @@ defaultModel =
     , pointsWithinCircle = []
     , pointsWithinDisc = []
     , circle = Nothing
-    , areContiguous = False
+    , pointsAreContiguous = False
     , newTrackPoints = []
     , fixedAttachmentPoints = Nothing
     }
@@ -203,6 +203,12 @@ update message model wrapper track =
 
                             else
                                 newVector
+                        , referencePoint =
+                            if model.referencePoint == Nothing then
+                                Just track.currentNode
+
+                            else
+                                model.referencePoint
                       }
                     , PostUpdateActions.ActionPreview
                     )
@@ -302,14 +308,30 @@ view imperial model wrapper track =
                 }
 
         showActionButtons =
-            row [ spacing 5 ]
+            row [ padding 5, spacing 5 , width fill ]
                 [ Input.button prettyButtonStyles
                     { label = text "Reset", onPress = Just <| wrapper DraggerReset }
-                , Input.button
-                    prettyButtonStyles
-                    { label = text "Apply"
-                    , onPress = Just <| wrapper DraggerApply
-                    }
+                , case ( List.length model.newTrackPoints >= 3, model.pointsAreContiguous ) of
+                    ( True, True ) ->
+                        Input.button
+                            prettyButtonStyles
+                            { label = text "Apply"
+                            , onPress = Just <| wrapper DraggerApply
+                            }
+
+                    ( True, False ) ->
+                        Input.button
+                            disabledButtonStyles
+                            { label = paragraph [ width fill ] <| [ text "Points must be contiguous" ]
+                            , onPress = Nothing
+                            }
+
+                    ( False, _ ) ->
+                        Input.button
+                            disabledButtonStyles
+                            { label = paragraph [] <| [ text "Need at least three points" ]
+                            , onPress = Nothing
+                            }
                 ]
 
         showModeSelection =
@@ -337,25 +359,23 @@ view imperial model wrapper track =
     -- Try with linear vector, switch to log or something else if needed.
     row [ paddingEach { edges | right = 10 }, spacing 5 ]
         [ twoWayDragControl model wrapper
-        , column
-            [ Element.alignLeft
-            , Element.width Element.fill
-            , spacing 5
-            ]
-            [ showModeSelection
-            , showPullSelection
-            , showPushRadiusSlider
-            , if model.usePullRadius then
-                showPullRadiusSlider
+        , column [ width fill ]
+            [ wrappedRow
+                [ Element.alignLeft
+                , Element.width Element.fill
+                , spacing 5
+                ]
+                [ showModeSelection
+                , showPullSelection
+                , showPushRadiusSlider
+                , if model.usePullRadius then
+                    showPullRadiusSlider
 
-              else
-                none
-            , showSpacingSlider
-            , if model.areContiguous then
-                showActionButtons
-
-              else
-                showHelpfulMessage
+                  else
+                    none
+                , showSpacingSlider
+                ]
+            , showActionButtons
             ]
         ]
 
@@ -427,8 +447,14 @@ getCircle model orange =
                 Quantity.zero
 
         centre =
-            orange.xyz
-                |> Point3d.translateBy translation
+            case model.referencePoint of
+                Just localReference ->
+                    localReference.xyz
+                        |> Point3d.translateBy translation
+
+                Nothing ->
+                    orange.xyz
+                        |> Point3d.translateBy translation
     in
     Circle3d.withRadius model.pushRadius Direction3d.positiveZ centre
 
@@ -443,8 +469,14 @@ getOuterCircle model orange =
                 Quantity.zero
 
         centre =
-            orange.xyz
-                |> Point3d.translateBy translation
+            case model.referencePoint of
+                Just localReference ->
+                    localReference.xyz
+                        |> Point3d.translateBy translation
+
+                Nothing ->
+                    orange.xyz
+                        |> Point3d.translateBy translation
 
         outerRadius =
             model.pushRadius |> Quantity.plus model.pullDiscWidth
@@ -676,49 +708,20 @@ preview model track =
             )
                 |> List.map TrackPoint.trackPointFromPoint
 
-        entryTransition =
-            -- Let's use straight line instead of splines
-            case
-                ( List.Extra.getAt (from - 1) track.trackPoints
-                , List.head planarSegments
-                )
-            of
-                ( Just lastPriorPoint, Just firstCurveSegment ) ->
-                    [ LineSegment3d.from
-                        lastPriorPoint.xyz
-                        (LineSegment3d.startPoint firstCurveSegment)
-                    ]
-
-                _ ->
-                    []
-
-        exitTransition =
-            -- Let's use straight line instead of splines
-            case
-                ( List.Extra.getAt (to + 1) track.trackPoints
-                , List.Extra.last planarSegments
-                )
-            of
-                ( Just firstPointBeyond, Just lastCurveSegment ) ->
-                    [ LineSegment3d.from
-                        (LineSegment3d.endPoint lastCurveSegment)
-                        firstPointBeyond.xyz
-                    ]
-
-                _ ->
-                    []
-
+        -- TODO: New logic here for entry & exit lines based on line/circle intersections as per notes.
+        -- elm-geometry doesn't help; algebra is better for this IMHO.
         newBendEntirely =
-            entryTransition
+            []
+                --++ entryTransition
                 ++ planarSegments
-                ++ exitTransition
+                --++ exitTransition
                 |> trackPointFromSegments
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
         , pointsWithinDisc = pointsWithinDisc
         , circle = Just circle
-        , areContiguous = areContiguous allPoints
+        , pointsAreContiguous = areContiguous allPoints
         , newTrackPoints = newBendEntirely
         , fixedAttachmentPoints = Just ( from, to )
     }
@@ -754,9 +757,11 @@ areContiguous points =
         indices =
             List.map .index points
     in
-    case ( List.maximum indices, List.minimum indices ) of
-        ( Just isMax, Just isMin ) ->
-            (isMax - isMin == List.length points - 1) && List.Extra.allDifferent indices
+    (List.length points == 0)
+        || (case ( List.maximum indices, List.minimum indices ) of
+                ( Just isMax, Just isMin ) ->
+                    (isMax - isMin == List.length points - 1) && List.Extra.allDifferent indices
 
-        _ ->
-            False
+                _ ->
+                    False
+           )

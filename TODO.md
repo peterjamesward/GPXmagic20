@@ -6,9 +6,20 @@
 # TO-DO
 
 **Former** tool
-> NOW thinking we should 'detach' the circle when dragged, so user can use markers for entry & exit lines.
-> (Unless I can think of a nice spatial query!)
-> Need to do piecewise and holistic elevation smoothing.
+> 'Detach' the circle when dragged, so user can use markers to bound the track section.
+> Easier, store where Orange was when drag starts. Reset button re-attaches to then-current Orange.
+
+> In Geometry101, add line-circle intersection.
+> Maybe try splines again for when no such intersection, straight line for tangent case.
+> Still, splines would make a nice general solution if we had the right control points, maybe.
+
+Need to do piecewise and holistic elevation smoothing.
+
+I believe the reverse curvature is fine other than for:
+* where we've "pulled in" outliers; we should not do this at the ends of the bend;
+* where the adjoining section is already tangent, in which case nothing is required (though we need to test for it).
+
+Use **Pixel** sized markers (though they are by definition flat, they can be less obtrusive but visible.)
  
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
