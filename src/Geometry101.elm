@@ -306,6 +306,49 @@ lineIntersection l1 l2 =
             Nothing
 
 
+solveQuadratic : Float -> Float -> Float -> List Float
+solveQuadratic a b c =
+    let
+        disc =
+            b * b - 4 * a * c
+    in
+    if disc == 0 then
+        [ 0 - b / (a + a) ]
+
+    else if disc > 0 then
+        [ (0 - b - sqrt disc) / (a + a)
+        , (0 - b + sqrt disc) / (a + a)
+        ]
+
+    else
+        []
+
+
+lineCircleIntersections : LineEquation -> Circle -> List Point
+lineCircleIntersections { a, b, c } { centre, radius } =
+    -- Line equation is Ax + By + C = 0.
+    -- Circle is in { centre, radius } form
+    let
+        shiftedLine =
+            -- Shift so that we can use centre of circle as origin pro tem.
+            { a = a, b = b, c = c - (a * centre.x + b * centre.y) }
+
+        xSolutionsShifted =
+            -- We can solve a quadratic, to yield 0, 1, or 2 x values.
+            solveQuadratic
+                (shiftedLine.a * shiftedLine.a + shiftedLine.b * shiftedLine.b)
+                (2.0 * shiftedLine.a * shiftedLine.c)
+                (shiftedLine.c * shiftedLine.c - shiftedLine.b * shiftedLine.b * radius * radius)
+
+        xSolutions =
+            List.map ((+) centre.x) xSolutionsShifted
+
+        ySolutions =
+            List.map (\x -> 0 - (a * x + c) / b) xSolutions
+    in
+    List.map2 Point xSolutions ySolutions
+
+
 matrixInverse : Matrix -> Maybe Matrix
 matrixInverse m =
     let

@@ -6,8 +6,6 @@
 # TO-DO
 
 **Former** tool
-> 'Detach' the circle when dragged, so user can use markers to bound the track section.
-> Easier, store where Orange was when drag starts. Reset button re-attaches to then-current Orange.
 
 > In Geometry101, add line-circle intersection.
 > Maybe try splines again for when no such intersection, straight line for tangent case.
