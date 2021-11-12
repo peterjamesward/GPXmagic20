@@ -10,6 +10,7 @@ import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import MoveAndStretch
+import Pixels
 import Plane3d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
@@ -110,51 +111,56 @@ renderMarkers options stretchMarker track =
             Point3d.fromTuple meters ( x, y, z * options.verticalExaggeration )
 
         currentPositionDisc point =
-            [ cone (Material.color Color.lightOrange) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
+            let
+                lollipopAt =
+                    Point3d.translateBy
                         (Vector3d.meters 0.0 0.0 20.1)
                         (scaledXZ point)
-                    )
-                    negativeZ
-                    { radius = meters <| 6.0
-                    , length = meters <| 20.0
-                    }
-            , cone (Material.color Color.lightOrange) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 20.1)
-                        (scaledXZ point)
-                    )
-                    positiveZ
-                    { radius = meters <| 5.5
-                    , length = meters <| 100.0
-                    }
+            in
+            [ Scene3d.point { radius = Pixels.pixels 10 }
+                (Material.color Color.lightOrange)
+                lollipopAt
+            , Scene3d.lineSegment
+                (Material.color Color.lightOrange)
+                (LineSegment3d.from point.profileXZ lollipopAt)
             ]
 
         markedNode point =
-            [ cone (Material.color Color.purple) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 18.1)
+            let
+                lollipopAt =
+                    Point3d.translateBy
+                        (Vector3d.meters 0.0 0.0 10.1)
                         (scaledXZ point)
-                    )
-                    negativeZ
-                    { radius = meters <| 7.0
-                    , length = meters <| 18.0
-                    }
-            , cone (Material.color Color.purple) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 18.1)
-                        (scaledXZ point)
-                    )
-                    positiveZ
-                    { radius = meters <| 6.5
-                    , length = meters <| 100.0
-                    }
+            in
+            [ Scene3d.point { radius = Pixels.pixels 10 }
+                (Material.color Color.purple)
+                lollipopAt
+            , Scene3d.lineSegment
+                (Material.color Color.purple)
+                (LineSegment3d.from point.profileXZ lollipopAt)
             ]
 
+        --[cone (Material.color Color.purple) <|
+        --    Cone3d.startingAt
+        --        (Point3d.translateBy
+        --            (Vector3d.meters 0.0 0.0 18.1)
+        --            (scaledXZ point)
+        --        )
+        --        negativeZ
+        --        { radius = meters <| 7.0
+        --        , length = meters <| 18.0
+        --        }
+        --, cone (Material.color Color.purple) <|
+        --    Cone3d.startingAt
+        --        (Point3d.translateBy
+        --            (Vector3d.meters 0.0 0.0 18.1)
+        --            (scaledXZ point)
+        --        )
+        --        positiveZ
+        --        { radius = meters <| 6.5
+        --        , length = meters <| 100.0
+        --        }
+        --]
         stretch =
             case stretchMarker of
                 Just pt ->

@@ -7,7 +7,11 @@
 
 **Former** tool
 
-I suspect that "Preserve Elevations" is not always possible and should be dropped.
+Entry path is OK only for right handers (i.e. entry curves to left).
+
+Need exit path (not copy and paste!).
+
+Need holistic elevation smoothing, and we're done.
 
 Use **Pixel** sized markers (though they are by definition flat, they can be less obtrusive but visible.)
  

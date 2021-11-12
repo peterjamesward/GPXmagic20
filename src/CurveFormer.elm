@@ -869,9 +869,9 @@ preview model track =
                 bestFound :: _ ->
                     Just bestFound
 
-        --TODO: Tangent point on circle is where the centre-centre line crosses it.
-        --TODO: Interpolate the entry bend.
-        --TODO: Elevations, piecewise and holistic.
+        --TODO: The real bend starts at the entry join point, not what we've previously thought.
+        --TODO: Elevations, only holistic.
+        --TODO: Same for exit bend, I hope with some common code!!
         entryCurve =
             case findEntryLineFromExistingPoint from of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
