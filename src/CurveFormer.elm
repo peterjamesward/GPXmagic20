@@ -717,117 +717,119 @@ preview model track =
             )
                 |> List.map TrackPoint.trackPointFromPoint
 
-        -- TODO: New logic here for entry & exit lines based on line/circle intersections as per notes.
-        -- elm-geometry doesn't help; algebra is better for this IMHO.
-        pointsDefiningEntryLine =
-            -- We know these points exist but, you know, type safety.
-            ( List.Extra.getAt (from - 1) track.trackPoints
-            , List.Extra.getAt from track.trackPoints
-            )
-
-        -- Construct a parallel to the entry segment, 'r' meters towards the arc start.
-        -- Where this intersects the '2r' circle, is centre of the entry bend.
-        -- Where this new circle is tangent to the line segment is where the entry begins.
-        -- If the entry precedes the segment start, we have failed to find a line;
-        -- the user will need to move the marker. Or we recurse back down the track; that might work.
-        entryLineSegment =
-            case pointsDefiningEntryLine of
-                ( Just prior, Just after ) ->
-                    Just <|
-                        LineSegment2d.from
-                            (Point3d.projectInto drawingPlane prior.xyz)
-                            (Point3d.projectInto drawingPlane after.xyz)
-
-                _ ->
-                    Nothing
-
-        entryLineAxis =
-            entryLineSegment
-                |> Maybe.andThen
-                    (\l -> Axis2d.throughPoints (LineSegment2d.startPoint l) (LineSegment2d.endPoint l))
-
-        whichWayToOffset =
-            -- 50-50 chance of needing the test flipped.
-            Maybe.map2
-                (\arc ax ->
-                    Arc2d.startPoint arc
-                        |> Point2d.signedDistanceFrom ax
-                        |> Quantity.greaterThanOrEqualTo Quantity.zero
-                )
-                planarArc
-                entryLineAxis
-                |> Maybe.withDefault True
-
-        entryLineShiftVector =
+        findEntryLineFromExistingPoint index =
             let
-                shiftAmount =
-                    if whichWayToOffset then
-                        model.pushRadius
+                pointsDefiningEntryLine =
+                    -- We know these points exist but, you know, type safety.
+                    ( List.Extra.getAt (index - 1) track.trackPoints
+                    , List.Extra.getAt index track.trackPoints
+                    )
 
-                    else
-                        Quantity.negate model.pushRadius
-            in
-            case entryLineSegment of
-                Just seg ->
-                    Maybe.map (Vector2d.withLength shiftAmount)
-                        (LineSegment2d.perpendicularDirection seg)
+                -- Construct a parallel to the entry segment, 'r' meters towards the arc start.
+                -- Where this intersects the '2r' circle, is centre of the entry bend.
+                -- Where this new circle is tangent to the line segment is where the entry begins.
+                -- If the entry precedes the segment start, we have failed to find a line;
+                -- the user will need to move the marker. Or we recurse back down the track; that might work.
+                entryLineSegment =
+                    case pointsDefiningEntryLine of
+                        ( Just prior, Just after ) ->
+                            Just <|
+                                LineSegment2d.from
+                                    (Point3d.projectInto drawingPlane prior.xyz)
+                                    (Point3d.projectInto drawingPlane after.xyz)
 
-                Nothing ->
-                    Nothing
+                        _ ->
+                            Nothing
 
-        shiftedEntryLine =
-            case ( entryLineSegment, entryLineShiftVector ) of
-                ( Just theLine, Just theVector ) ->
-                    Just <| LineSegment2d.translateBy theVector theLine
+                entryLineAxis =
+                    entryLineSegment
+                        |> Maybe.andThen
+                            (\l -> Axis2d.throughPoints (LineSegment2d.startPoint l) (LineSegment2d.endPoint l))
 
-                _ ->
-                    Nothing
+                whichWayToOffset =
+                    -- 50-50 chance of needing the test flipped.
+                    Maybe.map2
+                        (\arc ax ->
+                            Arc2d.startPoint arc
+                                |> Point2d.signedDistanceFrom ax
+                                |> Quantity.greaterThanOrEqualTo Quantity.zero
+                        )
+                        planarArc
+                        entryLineAxis
+                        |> Maybe.withDefault True
 
-        outerCircleIntersections =
-            case shiftedEntryLine of
-                Just line ->
+                entryLineShiftVector =
                     let
-                        lineEqn =
-                            Geometry101.lineEquationFromTwoPoints
-                                (LineSegment2d.startPoint line |> Point2d.toRecord Length.inMeters)
-                                (LineSegment2d.endPoint line |> Point2d.toRecord Length.inMeters)
+                        shiftAmount =
+                            if whichWayToOffset then
+                                model.pushRadius
 
-                        outerCircle =
-                            { centre =
-                                centre
-                                    |> Point3d.projectInto drawingPlane
-                                    |> Point2d.toRecord Length.inMeters
-                            , radius = model.pushRadius |> Quantity.multiplyBy 2 |> Length.inMeters
-                            }
+                            else
+                                Quantity.negate model.pushRadius
                     in
-                    Geometry101.lineCircleIntersections lineEqn outerCircle
-                        |> List.map (Point2d.fromRecord Length.meters)
+                    case entryLineSegment of
+                        Just seg ->
+                            Maybe.map (Vector2d.withLength shiftAmount)
+                                (LineSegment2d.perpendicularDirection seg)
 
-                Nothing ->
-                    []
+                        Nothing ->
+                            Nothing
 
-        validTangentPoints =
-            -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
-            case entryLineAxis of
-                Just sameOldAxis ->
-                    outerCircleIntersections
-                        |> List.map (Point2d.signedDistanceAlong sameOldAxis)
-                        |> Quantity.minimum
-                        |> Maybe.Extra.toList
-                        --|> List.filter (Quantity.greaterThanOrEqualTo Quantity.zero)
-                        |> List.map (Point2d.along sameOldAxis)
-                        |> List.map (Point3d.on drawingPlane)
+                shiftedEntryLine =
+                    case ( entryLineSegment, entryLineShiftVector ) of
+                        ( Just theLine, Just theVector ) ->
+                            Just <| LineSegment2d.translateBy theVector theLine
 
-                Nothing ->
-                    []
+                        _ ->
+                            Nothing
 
-        _ =
-            Debug.log "Tangent points" validTangentPoints
+                outerCircleIntersections =
+                    case shiftedEntryLine of
+                        Just line ->
+                            let
+                                lineEqn =
+                                    Geometry101.lineEquationFromTwoPoints
+                                        (LineSegment2d.startPoint line |> Point2d.toRecord Length.inMeters)
+                                        (LineSegment2d.endPoint line |> Point2d.toRecord Length.inMeters)
+
+                                outerCircle =
+                                    { centre =
+                                        centre
+                                            |> Point3d.projectInto drawingPlane
+                                            |> Point2d.toRecord Length.inMeters
+                                    , radius = model.pushRadius |> Quantity.multiplyBy 2 |> Length.inMeters
+                                    }
+                            in
+                            Geometry101.lineCircleIntersections lineEqn outerCircle
+                                |> List.map (Point2d.fromRecord Length.meters)
+
+                        Nothing ->
+                            []
+
+                validTangentPoints =
+                    -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
+                    case entryLineAxis of
+                        Just sameOldAxis ->
+                            outerCircleIntersections
+                                |> List.map (Point2d.signedDistanceAlong sameOldAxis)
+                                |> Quantity.minimum
+                                |> Maybe.Extra.toList
+                                --|> List.filter (Quantity.greaterThanOrEqualTo Quantity.zero)
+                                |> List.map (Point2d.along sameOldAxis)
+                                |> List.map (Point3d.on drawingPlane)
+
+                        Nothing ->
+                            []
+
+                _ =
+                    Debug.log "Tangent points" validTangentPoints
+            in
+            validTangentPoints
 
         newBendEntirely =
             []
                 --++ entryTransition
-                ++ List.map TrackPoint.trackPointFromPoint validTangentPoints
+                ++ List.map TrackPoint.trackPointFromPoint (findEntryLineFromExistingPoint from)
                 ++ (planarSegments |> trackPointFromSegments)
 
         --++ exitTransition
