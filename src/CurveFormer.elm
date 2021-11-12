@@ -718,6 +718,8 @@ preview model track =
                 |> List.map TrackPoint.trackPointFromPoint
 
         findEntryLineFromExistingPoint index =
+            -- By making this into a function we should be able to recurse "back down
+            -- the track" until we find an acceptable tangent point or run out of track.
             let
                 pointsDefiningEntryLine =
                     -- We know these points exist but, you know, type safety.
@@ -814,7 +816,7 @@ preview model track =
                                 |> List.map (Point2d.signedDistanceAlong sameOldAxis)
                                 |> Quantity.minimum
                                 |> Maybe.Extra.toList
-                                --|> List.filter (Quantity.greaterThanOrEqualTo Quantity.zero)
+                                |> List.filter (Quantity.greaterThanOrEqualTo Quantity.zero)
                                 |> List.map (Point2d.along sameOldAxis)
                                 |> List.map (Point3d.on drawingPlane)
 
@@ -824,12 +826,23 @@ preview model track =
                 _ =
                     Debug.log "Tangent points" validTangentPoints
             in
-            validTangentPoints
+            case validTangentPoints of
+                tp1 :: _  ->
+                    Just tp1
+
+                [] ->
+                    if index > 1 then
+                        findEntryLineFromExistingPoint (index - 1)
+
+                    else
+                        Nothing
 
         newBendEntirely =
             []
                 --++ entryTransition
-                ++ List.map TrackPoint.trackPointFromPoint (findEntryLineFromExistingPoint from)
+                ++ (Maybe.map TrackPoint.trackPointFromPoint (findEntryLineFromExistingPoint from)
+                        |> Maybe.Extra.toList
+                   )
                 ++ (planarSegments |> trackPointFromSegments)
 
         --++ exitTransition
