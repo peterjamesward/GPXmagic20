@@ -3,23 +3,28 @@ module CurveFormer exposing (..)
 import Angle
 import Arc2d
 import Arc3d
+import Axis2d
 import Axis3d
 import Circle3d
 import Color
 import ColourPalette exposing (warningColor)
 import Dict exposing (Dict)
+import Direction2d
 import Direction3d
 import Element exposing (..)
 import Element.Background as Background
 import Element.Input as Input
 import FeatherIcons
+import Geometry101
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
+import LineSegment2d
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels
+import Plane3d
 import Point2d
 import Point3d
 import Polyline3d
@@ -188,7 +193,7 @@ update message model wrapper track =
             case model.dragging of
                 Nothing ->
                     ( model
-                    , PostUpdateActions.ActionPreview
+                    , PostUpdateActions.ActionNoOp
                     )
 
                 Just dragStart ->
@@ -308,7 +313,7 @@ view imperial model wrapper track =
                 }
 
         showActionButtons =
-            row [ padding 5, spacing 5 , width fill ]
+            row [ padding 5, spacing 5, width fill ]
                 [ Input.button prettyButtonStyles
                     { label = text "Reset", onPress = Just <| wrapper DraggerReset }
                 , case ( List.length model.newTrackPoints >= 3, model.pointsAreContiguous ) of
@@ -578,11 +583,13 @@ preview model track =
         circle =
             getCircle model track.currentNode
 
-        ( centre, axis, plane ) =
+        ( centre, axis, drawingPlane ) =
             -- Yes, I know this is trite.
             ( Circle3d.centerPoint circle
             , Circle3d.axis circle
-            , Circle3d.plane circle
+            , SketchPlane3d.xy
+                |> SketchPlane3d.translateBy
+                    (Vector3d.withLength (Point3d.zCoordinate <| Circle3d.centerPoint circle) Direction3d.positiveZ)
             )
 
         isWithinCircle pt =
@@ -610,6 +617,7 @@ preview model track =
                 |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
 
         pointsWithinDisc =
+            --TODO: Exclude outliers at either end.
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
                 |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
@@ -657,10 +665,10 @@ preview model track =
             -- May be convenient to use a 3d arc nontheless.
             previewTrackPoints
                 |> List.map
-                    (\p -> p.xyz |> Point3d.projectInto (SketchPlane3d.fromPlane plane))
+                    (\p -> p.xyz |> Point3d.projectInto drawingPlane)
 
         planarCentre =
-            centre |> Point3d.projectInto (SketchPlane3d.fromPlane plane)
+            centre |> Point3d.projectInto drawingPlane
 
         planarArc =
             -- For piecewise, use list of arcs. This becomes degenerate case.
@@ -681,7 +689,7 @@ preview model track =
                 Just arc ->
                     let
                         arc3d =
-                            Arc3d.on (SketchPlane3d.fromPlane plane) arc
+                            Arc3d.on drawingPlane arc
 
                         arcLength =
                             Length.inMeters (Arc2d.radius arc)
@@ -710,6 +718,102 @@ preview model track =
 
         -- TODO: New logic here for entry & exit lines based on line/circle intersections as per notes.
         -- elm-geometry doesn't help; algebra is better for this IMHO.
+        pointsDefiningEntryLine =
+            -- We know these points exist but, you know, type safety.
+            ( List.Extra.getAt (from - 1) track.trackPoints
+            , List.Extra.getAt from track.trackPoints
+            )
+
+        -- Construct a parallel to the entry segment, 'r' meters towards the arc start.
+        -- Where this intersects the '2r' circle, is centre of the entry bend.
+        -- Where this new circle is tangent to the line segment is where the entry begins.
+        -- If the entry precedes the segment start, we have failed to find a line;
+        -- the user will need to move the marker. Or we recurse back down the track; that might work.
+        entryLineSegment =
+            case pointsDefiningEntryLine of
+                ( Just prior, Just after ) ->
+                    Just <|
+                        LineSegment2d.from
+                            (Point3d.projectInto drawingPlane prior.xyz)
+                            (Point3d.projectInto drawingPlane after.xyz)
+
+                _ ->
+                    Nothing
+
+        entryLineAxis =
+            entryLineSegment
+                |> Maybe.andThen
+                    (\l -> Axis2d.throughPoints (LineSegment2d.startPoint l) (LineSegment2d.endPoint l))
+
+        whichWayToOffset =
+            -- 50-50 chance of needing the test flipped.
+            Maybe.map2
+                (\arc ax ->
+                    Arc2d.startPoint arc
+                        |> Point2d.signedDistanceFrom ax
+                        |> Quantity.greaterThanOrEqualTo Quantity.zero
+                )
+                planarArc
+                entryLineAxis
+                |> Maybe.withDefault True
+
+        entryLineShiftVector =
+            case entryLineSegment of
+                Just seg ->
+                    Maybe.map (Vector2d.withLength model.pushRadius)
+                        (LineSegment2d.perpendicularDirection seg)
+
+                Nothing ->
+                    Nothing
+
+        shiftedEntryLine =
+            case ( entryLineSegment, entryLineShiftVector ) of
+                ( Just theLine, Just theVector ) ->
+                    Just <| LineSegment2d.translateBy theVector theLine
+
+                _ ->
+                    Nothing
+
+        outerCircleIntersections =
+            case shiftedEntryLine of
+                Just line ->
+                    let
+                        lineEqn =
+                            Geometry101.lineEquationFromTwoPoints
+                                (LineSegment2d.startPoint line |> Point2d.toRecord Length.inMeters)
+                                (LineSegment2d.startPoint line |> Point2d.toRecord Length.inMeters)
+
+                        outerCircle =
+                            { centre =
+                                centre
+                                    |> Point3d.projectInto SketchPlane3d.xy
+                                    |> Point2d.toRecord Length.inMeters
+                            , radius = model.pushRadius |> Quantity.multiplyBy 2 |> Length.inMeters
+                            }
+                    in
+                    Geometry101.lineCircleIntersections lineEqn outerCircle
+                        |> List.map (Point2d.fromRecord Length.meters)
+
+                Nothing ->
+                    []
+
+        validTangentPoints =
+            -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
+            case entryLineAxis of
+                Just sameOldAxis ->
+                    outerCircleIntersections
+                        |> List.filter
+                            (\pt ->
+                                Point2d.signedDistanceAlong sameOldAxis pt
+                                    |> Quantity.greaterThanOrEqualTo Quantity.zero
+                            )
+
+                Nothing ->
+                    []
+
+        _ =
+            Debug.log "Tangent points" validTangentPoints
+
         newBendEntirely =
             []
                 --++ entryTransition

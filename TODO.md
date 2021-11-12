@@ -7,9 +7,11 @@
 
 **Former** tool
 
-> In Geometry101, add line-circle intersection.
-> Maybe try splines again for when no such intersection, straight line for tangent case.
-> Still, splines would make a nice general solution if we had the right control points, maybe.
+**Do not** include "outliers" at either end, only when neighboured on both sides by interior points.
+
+> Keep going back to the "user assisted" approach. We would just display best effort for chosen
+> entry and exit lines, maybe show the radius (by colouring?) and let user position markers.
+> Still need some geometry but avoid the need to walk along the path for a solution.
 
 Need to do piecewise and holistic elevation smoothing.
 
