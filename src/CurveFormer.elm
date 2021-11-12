@@ -23,6 +23,7 @@ import LineSegment2d
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra
 import Pixels
 import Plane3d
 import Point2d
@@ -758,9 +759,17 @@ preview model track =
                 |> Maybe.withDefault True
 
         entryLineShiftVector =
+            let
+                shiftAmount =
+                    if whichWayToOffset then
+                        model.pushRadius
+
+                    else
+                        Quantity.negate model.pushRadius
+            in
             case entryLineSegment of
                 Just seg ->
-                    Maybe.map (Vector2d.withLength model.pushRadius)
+                    Maybe.map (Vector2d.withLength shiftAmount)
                         (LineSegment2d.perpendicularDirection seg)
 
                 Nothing ->
@@ -797,22 +806,20 @@ preview model track =
                 Nothing ->
                     []
 
-        _ = Debug.log "outerCircleIntersections" outerCircleIntersections
-
         validTangentPoints =
             -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
-            List.map (Point3d.on drawingPlane) <|
-                case entryLineAxis of
-                    Just sameOldAxis ->
-                        outerCircleIntersections
-                            |> List.filter
-                                (\pt ->
-                                    Point2d.signedDistanceAlong sameOldAxis pt
-                                        |> Quantity.greaterThanOrEqualTo Quantity.zero
-                                )
+            case entryLineAxis of
+                Just sameOldAxis ->
+                    outerCircleIntersections
+                        |> List.map (Point2d.signedDistanceAlong sameOldAxis)
+                        |> Quantity.minimum
+                        |> Maybe.Extra.toList
+                        --|> List.filter (Quantity.greaterThanOrEqualTo Quantity.zero)
+                        |> List.map (Point2d.along sameOldAxis)
+                        |> List.map (Point3d.on drawingPlane)
 
-                    Nothing ->
-                        []
+                Nothing ->
+                    []
 
         _ =
             Debug.log "Tangent points" validTangentPoints
