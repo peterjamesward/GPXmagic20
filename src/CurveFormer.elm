@@ -353,7 +353,7 @@ view imperial model wrapper track =
                 { onChange = wrapper << ToggleUsePullRadius
                 , icon = checkboxIcon
                 , checked = model.usePullRadius
-                , label = Input.labelRight [ centerY ] (text "Attract outliers")
+                , label = Input.labelRight [ centerY ] (text "Include outliers")
                 }
 
         showHelpfulMessage =
@@ -564,6 +564,14 @@ highlightPoints color points =
     List.map highlightPoint points
 
 
+type alias IntersectionInformation =
+    { intersection : Point3d.Point3d Length.Meters LocalCoords
+    , distanceAlong : Length.Length
+    , tangentPoint : Point3d.Point3d Length.Meters LocalCoords
+    , joinsBendAt : Point3d.Point3d Length.Meters LocalCoords
+    }
+
+
 preview : Model -> Track -> Model
 preview model track =
     -- The compute we do here is most of the work for the Apply, so
@@ -618,10 +626,16 @@ preview model track =
                 |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
 
         pointsWithinDisc =
-            --TODO: Exclude outliers at either end.
+            let
+                ( lowestInteriorIndex, highestInteriorIndex ) =
+                    ( List.Extra.minimumBy .index pointsWithinCircle |> Maybe.map .index |> Maybe.withDefault 0
+                    , List.Extra.maximumBy .index pointsWithinCircle |> Maybe.map .index |> Maybe.withDefault 0
+                    )
+            in
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
                 |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
+                |> List.filter (\p -> p.index > lowestInteriorIndex && p.index < highestInteriorIndex)
 
         allPoints =
             List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
@@ -667,9 +681,6 @@ preview model track =
             previewTrackPoints
                 |> List.map
                     (\p -> p.xyz |> Point3d.projectInto drawingPlane)
-
-        planarCentre =
-            centre |> Point3d.projectInto drawingPlane
 
         planarArc =
             -- For piecewise, use list of arcs. This becomes degenerate case.
@@ -717,6 +728,9 @@ preview model track =
             )
                 |> List.map TrackPoint.trackPointFromPoint
 
+        findEntryLineFromExistingPoint :
+            Int
+            -> Maybe IntersectionInformation
         findEntryLineFromExistingPoint index =
             -- By making this into a function we should be able to recurse "back down
             -- the track" until we find an acceptable tangent point or run out of track.
@@ -808,28 +822,43 @@ preview model track =
                         Nothing ->
                             []
 
-                validTangentPoints =
+                validCounterBendCentresAndTangentPoints : List IntersectionInformation
+                validCounterBendCentresAndTangentPoints =
                     -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
-                    case entryLineAxis of
-                        Just sameOldAxis ->
-                            outerCircleIntersections
-                                |> List.map (Point2d.signedDistanceAlong sameOldAxis)
-                                |> Quantity.minimum
+                    -- Want to return the outer intersection point (new bend centre) and the tangent point.
+                    case ( entryLineAxis, entryLineSegment ) of
+                        ( Just sameOldAxis, Just sameOldSegment ) ->
+                            let
+                                elaborateIntersectionPoint i =
+                                    let
+                                        iOnPlane =
+                                            Point3d.on drawingPlane i
+
+                                        distanceAlong =
+                                            Point2d.signedDistanceAlong sameOldAxis i
+
+                                        tangentPoint2d =
+                                            Point2d.along sameOldAxis distanceAlong
+
+                                        tangentPoint3d =
+                                            Point3d.on drawingPlane tangentPoint2d
+                                    in
+                                    { intersection = iOnPlane
+                                    , distanceAlong = distanceAlong
+                                    , tangentPoint = tangentPoint3d
+                                    , joinsBendAt = Point3d.midpoint iOnPlane centre
+                                    }
+                            in
+                            List.map elaborateIntersectionPoint outerCircleIntersections
+                                |> List.Extra.minimumBy (.distanceAlong >> Length.inMeters)
                                 |> Maybe.Extra.toList
-                                |> List.filter (Quantity.greaterThanOrEqualTo Quantity.zero)
-                                |> List.map (Point2d.along sameOldAxis)
-                                |> List.map (Point3d.on drawingPlane)
+                                |> List.filter (.distanceAlong >> Quantity.greaterThanOrEqualTo Quantity.zero)
+                                |> List.filter (.distanceAlong >> Quantity.lessThanOrEqualTo (LineSegment2d.length sameOldSegment))
 
-                        Nothing ->
+                        _ ->
                             []
-
-                _ =
-                    Debug.log "Tangent points" validTangentPoints
             in
-            case validTangentPoints of
-                tp1 :: _  ->
-                    Just tp1
-
+            case validCounterBendCentresAndTangentPoints of
                 [] ->
                     if index > 1 then
                         findEntryLineFromExistingPoint (index - 1)
@@ -837,12 +866,54 @@ preview model track =
                     else
                         Nothing
 
+                bestFound :: _ ->
+                    Just bestFound
+
+        --TODO: Tangent point on circle is where the centre-centre line crosses it.
+        --TODO: Interpolate the entry bend.
+        --TODO: Elevations, piecewise and holistic.
+        entryCurve =
+            case findEntryLineFromExistingPoint from of
+                Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
+                    let
+                        entryArcAxis =
+                            Axis3d.withDirection Direction3d.positiveZ intersection
+
+                        directionToEntryStart =
+                            Direction3d.from intersection tangentPoint
+
+                        directionToEntryEnd =
+                            Direction3d.from intersection joinsBendAt
+
+                        entryArcAngle =
+                            Maybe.map2 Direction3d.angleFrom directionToEntryStart directionToEntryEnd
+                            |> Maybe.withDefault (Angle.degrees 0)
+
+                        entryArc =
+                            Arc3d.sweptAround entryArcAxis entryArcAngle tangentPoint
+
+                        entryArcLength =
+                            Length.inMeters (Arc3d.radius entryArc)
+                                * Angle.inRadians (Arc3d.sweptAngle entryArc)
+                                |> abs
+
+                        entryArcNumSegments =
+                            entryArcLength
+                                / Length.inMeters model.spacing
+                                |> ceiling
+                                |> max 1
+
+                        entryArcSegments =
+                            Arc3d.segments entryArcNumSegments entryArc |> Polyline3d.segments
+                    in
+                    entryArcSegments
+
+                Nothing ->
+                    []
+
         newBendEntirely =
             []
-                --++ entryTransition
-                ++ (Maybe.map TrackPoint.trackPointFromPoint (findEntryLineFromExistingPoint from)
-                        |> Maybe.Extra.toList
-                   )
+                ++ (entryCurve |> trackPointFromSegments)
                 ++ (planarSegments |> trackPointFromSegments)
 
         --++ exitTransition
@@ -862,8 +933,8 @@ getPreview model =
     showCircle model
         ++ showDisc model
         ++ highlightPoints Color.white model.pointsWithinCircle
-        ++ highlightPoints Color.yellow model.pointsWithinDisc
-        ++ highlightPoints Color.lightBlue model.newTrackPoints
+        ++ highlightPoints Color.blue model.pointsWithinDisc
+        ++ highlightPoints Color.lightYellow model.newTrackPoints
 
 
 usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint

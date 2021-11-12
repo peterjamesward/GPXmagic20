@@ -7,17 +7,7 @@
 
 **Former** tool
 
-**Do not** include "outliers" at either end, only when neighboured on both sides by interior points.
-
-> Keep going back to the "user assisted" approach. We would just display best effort for chosen
-> entry and exit lines, maybe show the radius (by colouring?) and let user position markers.
-> Still need some geometry but avoid the need to walk along the path for a solution.
-
-Need to do piecewise and holistic elevation smoothing.
-
-I believe the reverse curvature is fine other than for:
-* where we've "pulled in" outliers; we should not do this at the ends of the bend;
-* where the adjoining section is already tangent, in which case nothing is required (though we need to test for it).
+I suspect that "Preserve Elevations" is not always possible and should be dropped.
 
 Use **Pixel** sized markers (though they are by definition flat, they can be less obtrusive but visible.)
  
