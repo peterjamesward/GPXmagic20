@@ -331,7 +331,7 @@ lineCircleIntersections { a, b, c } { centre, radius } =
     let
         shiftedLine =
             -- Shift so that we can use centre of circle as origin pro tem.
-            { a = a, b = b, c = c - (a * centre.x + b * centre.y) }
+            { a = a, b = b, c = c + (a * centre.x + b * centre.y) }
 
         xSolutionsShifted =
             -- We can solve a quadratic, to yield 0, 1, or 2 x values.

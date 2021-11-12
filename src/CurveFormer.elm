@@ -781,12 +781,12 @@ preview model track =
                         lineEqn =
                             Geometry101.lineEquationFromTwoPoints
                                 (LineSegment2d.startPoint line |> Point2d.toRecord Length.inMeters)
-                                (LineSegment2d.startPoint line |> Point2d.toRecord Length.inMeters)
+                                (LineSegment2d.endPoint line |> Point2d.toRecord Length.inMeters)
 
                         outerCircle =
                             { centre =
                                 centre
-                                    |> Point3d.projectInto SketchPlane3d.xy
+                                    |> Point3d.projectInto drawingPlane
                                     |> Point2d.toRecord Length.inMeters
                             , radius = model.pushRadius |> Quantity.multiplyBy 2 |> Length.inMeters
                             }
@@ -797,19 +797,22 @@ preview model track =
                 Nothing ->
                     []
 
+        _ = Debug.log "outerCircleIntersections" outerCircleIntersections
+
         validTangentPoints =
             -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
-            case entryLineAxis of
-                Just sameOldAxis ->
-                    outerCircleIntersections
-                        |> List.filter
-                            (\pt ->
-                                Point2d.signedDistanceAlong sameOldAxis pt
-                                    |> Quantity.greaterThanOrEqualTo Quantity.zero
-                            )
+            List.map (Point3d.on drawingPlane) <|
+                case entryLineAxis of
+                    Just sameOldAxis ->
+                        outerCircleIntersections
+                            |> List.filter
+                                (\pt ->
+                                    Point2d.signedDistanceAlong sameOldAxis pt
+                                        |> Quantity.greaterThanOrEqualTo Quantity.zero
+                                )
 
-                Nothing ->
-                    []
+                    Nothing ->
+                        []
 
         _ =
             Debug.log "Tangent points" validTangentPoints
@@ -817,9 +820,10 @@ preview model track =
         newBendEntirely =
             []
                 --++ entryTransition
-                ++ planarSegments
-                --++ exitTransition
-                |> trackPointFromSegments
+                ++ List.map TrackPoint.trackPointFromPoint validTangentPoints
+                ++ (planarSegments |> trackPointFromSegments)
+
+        --++ exitTransition
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
