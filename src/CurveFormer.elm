@@ -573,6 +573,9 @@ type alias IntersectionInformation =
     , joinsBendAt : Point2d.Point2d Length.Meters LocalCoords
     }
 
+type TransitionMode
+    = EntryMode
+    | ExitMode
 
 preview : Model -> Track -> Model
 preview model track =
@@ -695,8 +698,8 @@ preview model track =
             )
                 |> List.map TrackPoint.trackPointFromPoint
 
-        findAcceptableTransitionFromRoadToCircle : TrackPoint -> TrackPoint -> Maybe IntersectionInformation
-        findAcceptableTransitionFromRoadToCircle tp1 tp2 =
+        findAcceptableTransition : TransitionMode -> TrackPoint -> TrackPoint -> Maybe IntersectionInformation
+        findAcceptableTransition mode tp1 tp2 =
             let
                 -- Construct a parallel to the given road segment, 'r' meters towards the arc start.
                 -- Where this intersects the '2r' circle, is centre of the entry bend.
@@ -760,6 +763,14 @@ preview model track =
                     case entryLineAxis of
                         Just sameOldAxis ->
                             let
+                                selectionFunction = case mode of
+                                    EntryMode ->
+                                        List.Extra.minimumBy (.distanceAlong >> Length.inMeters)
+
+                                    ExitMode ->
+                                        List.Extra.maximumBy (.distanceAlong >> Length.inMeters)
+
+
                                 elaborateIntersectionPoint i =
                                     let
                                         distanceAlong =
@@ -775,7 +786,7 @@ preview model track =
                                     }
                             in
                             List.map elaborateIntersectionPoint outerCircleIntersections
-                                |> List.Extra.minimumBy (.distanceAlong >> Length.inMeters)
+                                |> selectionFunction
                                 |> Maybe.Extra.toList
                                 |> List.filter (.distanceAlong >> Quantity.greaterThanOrEqualTo Quantity.zero)
                                 |> List.filter (.distanceAlong >> Quantity.lessThanOrEqualTo (LineSegment2d.length entryLineSegment))
@@ -789,37 +800,6 @@ preview model track =
 
                 bestFound :: _ ->
                     Just bestFound
-
-        findEntryLineFromExistingPoint :
-            Int
-            -> Maybe IntersectionInformation
-        findEntryLineFromExistingPoint index =
-            -- By making this into a function we should be able to recurse "back down
-            -- the track" until we find an acceptable tangent point or run out of track.
-            let
-                pointsDefiningEntryLine =
-                    -- We know these points exist but, you know, type safety.
-                    ( List.Extra.getAt (index - 1) track.trackPoints
-                    , List.Extra.getAt index track.trackPoints
-                    )
-
-            in
-            case pointsDefiningEntryLine of
-                (Just  tp1, Just tp2) ->
-                    case findAcceptableTransitionFromRoadToCircle tp1 tp2 of
-                        Just transition ->
-                            Just transition
-
-                        Nothing ->
-                            if index > 1 then
-                                findEntryLineFromExistingPoint (index - 1)
-
-                            else
-                                Nothing
-
-                _ -> Nothing
-
-
 
         arcToSegments arc =
             let
@@ -836,11 +816,58 @@ preview model track =
             in
             Arc2d.segments entryArcNumSegments arc |> Polyline2d.segments
 
-        --TODO: The real bend starts at the entry join point, not what we've previously thought.
-        --TODO: Elevations, only holistic.
-        --TODO: Same for exit bend, I hope with some common code!!
+        entryCurveSeeker : Int -> Maybe IntersectionInformation
+        entryCurveSeeker index =
+            let
+                pointsDefiningEntryLine =
+                    -- We know these points exist but, you know, type safety.
+                    ( List.Extra.getAt (index - 1) track.trackPoints
+                    , List.Extra.getAt index track.trackPoints
+                    )
+            in
+            case pointsDefiningEntryLine of
+                ( Just tp1, Just tp2 ) ->
+                    case findAcceptableTransition EntryMode tp1 tp2 of
+                        Just transition ->
+                            Just transition
+
+                        Nothing ->
+                            if index > 1 then
+                                entryCurveSeeker (index - 1)
+
+                            else
+                                Nothing
+
+                _ ->
+                    Nothing
+
+        exitCurveSeeker : Int -> Int -> Maybe IntersectionInformation
+        exitCurveSeeker routeLength index =
+            let
+                pointsDefiningExitLine =
+                    -- We know these points exist but, you know, type safety.
+                    ( List.Extra.getAt index track.trackPoints
+                    , List.Extra.getAt (index + 1) track.trackPoints
+                    )
+            in
+            case pointsDefiningExitLine of
+                ( Just tp1, Just tp2 ) ->
+                    case findAcceptableTransition ExitMode tp1 tp2 of
+                        Just transition ->
+                            Just transition
+
+                        Nothing ->
+                            if index < routeLength - 2 then
+                                exitCurveSeeker routeLength (index + 1)
+
+                            else
+                                Nothing
+
+                _ ->
+                    Nothing
+
         entryCurve =
-            case Maybe.andThen (.index >> findEntryLineFromExistingPoint) firstPoint of
+            case Maybe.andThen (.index >> entryCurveSeeker) firstPoint of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     Arc2d.withRadius
                         model.pushRadius
@@ -858,9 +885,33 @@ preview model track =
                 Nothing ->
                     []
 
+        exitCurve =
+            let
+                routeLength =
+                    List.length track.trackPoints
+            in
+            case Maybe.andThen (.index >> exitCurveSeeker routeLength) lastPoint of
+                Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
+                    Arc2d.withRadius
+                        model.pushRadius
+                        (if isLeftHandBend then
+                            SweptAngle.smallNegative
+
+                         else
+                            SweptAngle.smallPositive
+                        )
+                        joinsBendAt
+                        tangentPoint
+                        |> Maybe.map arcToSegments
+                        |> Maybe.withDefault []
+
+                Nothing ->
+                    []
+
         newBendEntirely =
-            []
-                ++ (entryCurve |> List.map (LineSegment3d.on drawingPlane) |> trackPointFromSegments)
+            (entryCurve ++ exitCurve)
+                |> List.map (LineSegment3d.on drawingPlane)
+                |> trackPointFromSegments
 
         --++ (planarSegments |> trackPointFromSegments)
         --++ exitTransition
