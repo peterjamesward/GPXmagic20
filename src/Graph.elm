@@ -1054,6 +1054,10 @@ updateWithNewTrack oldGraph oldTrack editRegion newTrack editType =
                             -- E.g. Insert/Delete, can only work on one edge excluding nodes.
                             applyNodePreservingEditsToGraph editRegion newTrack graph
 
+                        EditExtendsBeyondMarkers _ ->
+                            -- E.g. Curve Former. Should be limited to one edge.
+                            applyNodePreservingEditsToGraph editRegion newTrack graph
+
                         EditNoOp ->
                             -- Used only by Undo/Redo; no graph change.
                             graph

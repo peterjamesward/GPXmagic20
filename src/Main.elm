@@ -1272,9 +1272,14 @@ reflectNewTrackViaGraph newTrack editType model =
                     Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
                 editRegion =
-                    ( min orange.index purple.index
-                    , max orange.index purple.index
-                    )
+                    case editType of
+                        EditExtendsBeyondMarkers (Just (start, end)) ->
+                            (start, end)
+
+                        _ ->
+                            ( min orange.index purple.index
+                            , max orange.index purple.index
+                            )
 
                 changeInLength =
                     List.length newTrack.trackPoints - List.length oldTrack.trackPoints
@@ -1894,6 +1899,21 @@ toolsAccordion model =
       , video = Just "https://youtu.be/VO5jsOZmTIg"
       , isFavourite = False
       }
+    , { label = CurveFormer.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (CurveFormer.view
+                    model.displayOptions.imperialMeasure
+                    model.curveFormer
+                    CurveFormerMsg
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = CurveFormer.info
+      , video = Nothing
+      , isFavourite = False
+      }
     , { label = GradientLimiter.toolLabel
       , state = Contracted
       , content =
@@ -2130,21 +2150,6 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = TrackSplitter.info
-      , video = Nothing
-      , isFavourite = False
-      }
-    , { label = CurveFormer.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (CurveFormer.view
-                    model.displayOptions.imperialMeasure
-                    model.curveFormer
-                    CurveFormerMsg
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = CurveFormer.info
       , video = Nothing
       , isFavourite = False
       }

@@ -252,7 +252,7 @@ update message model wrapper track =
         DraggerApply ->
             ( model
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
+                (PostUpdateActions.EditExtendsBeyondMarkers model.fixedAttachmentPoints)
                 (apply track model)
                 (makeUndoMessage model)
             )
@@ -402,8 +402,6 @@ Position the Orange marker on the track, near a bend that you wish to shape.
 Use the circular drag control to position the white circle over the desired centre of the bend.
 Set the desired bend radius.
 
-Contiguous points inside the circle will be moved radially to the circle.
-
 If you want points outside to be "pulled inwards", select _Attract Outliers_ and adjust the
 extra slider.
 
@@ -414,9 +412,6 @@ of track you're editing.
 The tool will seek a smooth transition to track outside the circle, using a counter-directional
 arc of the same radius if necessary. This may extend beyond the marked points. The preview reflects
 what the Apply button will do.
-
-With Preserve Elevations, it will retain existing elevations and interpolate piecewise between them.
-Otherwise it will provide a smooth gradient over the entire new bend.
 
 Less spacing gives a smoother curve by adding more new trackpoints.
 
@@ -437,9 +432,7 @@ apply track model =
                 recombinedTrack =
                     precedingTrack ++ model.newTrackPoints ++ followingTrack
             in
-            { track
-                | trackPoints = TrackPoint.prepareTrackPoints recombinedTrack
-            }
+            { track | trackPoints = TrackPoint.prepareTrackPoints recombinedTrack }
 
         Nothing ->
             track
@@ -1018,6 +1011,18 @@ preview model track =
 
                 _ ->
                     []
+
+        attachmentPoints =
+            -- We (probably) have a bend, but it's flat. We need to interpolate altitudes.
+            case ( entryInformation, exitInformation ) of
+                ( Just entry, Just exit ) ->
+                    Just
+                        ( entry.originalTrackPoint.index
+                        , exit.originalTrackPoint.index
+                        )
+
+                _ ->
+                    Nothing
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
@@ -1025,7 +1030,7 @@ preview model track =
         , circle = Just circle
         , pointsAreContiguous = areContiguous allPoints
         , newTrackPoints = newBendEntirely
-        , fixedAttachmentPoints = Nothing
+        , fixedAttachmentPoints = attachmentPoints
     }
 
 

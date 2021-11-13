@@ -6,15 +6,10 @@
 # TO-DO
 
 **Former** tool
+> **Apply** is not working as well as it at first seems.  
+> There is some stale state floating around.  
+> I suspect `postUpdateAction` not recognising the extended edit region.  
 
-Entry path is OK only for right handers (i.e. entry curves to left).
-
-Need exit path (not copy and paste!).
-
-Need holistic elevation smoothing, and we're done.
-
-Use **Pixel** sized markers (though they are by definition flat, they can be less obtrusive but visible.)
- 
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
 
@@ -35,12 +30,11 @@ Investigate **derivatives** of Vector3d and see if anything useful emerges.
 **DEBT**: Factor the PortMessage handling out of main::update. PortController.update?
 
 **DEBT**: Switch currentPoint to : Int, avoid stale state worries.
-
-**DEBT**: I use too many nested 'case' forms. Must learn how to avoid this. (andThen ?)
+&& consider switch to Dict Int TrackPoint (again).
 
 **DEBT**: Factor out the common pattern of min, max for the pointers.
 
-Use elevation from second route, starting at marker.
+**Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.
 > We have interpolation code in Flythrough, so it's a doddle.
 > Applies elevation relative to start elevation, of course.
