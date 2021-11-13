@@ -695,43 +695,23 @@ preview model track =
             )
                 |> List.map TrackPoint.trackPointFromPoint
 
-        findEntryLineFromExistingPoint :
-            Int
-            -> Maybe IntersectionInformation
-        findEntryLineFromExistingPoint index =
-            -- By making this into a function we should be able to recurse "back down
-            -- the track" until we find an acceptable tangent point or run out of track.
+        findAcceptableTransitionFromRoadToCircle : TrackPoint -> TrackPoint -> Maybe IntersectionInformation
+        findAcceptableTransitionFromRoadToCircle tp1 tp2 =
             let
-                pointsDefiningEntryLine =
-                    -- We know these points exist but, you know, type safety.
-                    ( List.Extra.getAt (index - 1) track.trackPoints
-                    , List.Extra.getAt index track.trackPoints
-                    )
-
-                -- Construct a parallel to the entry segment, 'r' meters towards the arc start.
+                -- Construct a parallel to the given road segment, 'r' meters towards the arc start.
                 -- Where this intersects the '2r' circle, is centre of the entry bend.
                 -- Where this new circle is tangent to the line segment is where the entry begins.
                 -- If the entry precedes the segment start, we have failed to find a line;
                 -- the user will need to move the marker. Or we recurse back down the track; that might work.
                 entryLineSegment =
-                    case pointsDefiningEntryLine of
-                        ( Just prior, Just after ) ->
-                            Just <|
-                                LineSegment2d.from
-                                    (Point3d.projectInto drawingPlane prior.xyz)
-                                    (Point3d.projectInto drawingPlane after.xyz)
-
-                        _ ->
-                            Nothing
+                    LineSegment2d.from
+                        (Point3d.projectInto drawingPlane tp1.xyz)
+                        (Point3d.projectInto drawingPlane tp2.xyz)
 
                 entryLineAxis =
-                    entryLineSegment
-                        |> Maybe.andThen
-                            (\l ->
-                                Axis2d.throughPoints
-                                    (LineSegment2d.startPoint l)
-                                    (LineSegment2d.endPoint l)
-                            )
+                    Axis2d.throughPoints
+                        (LineSegment2d.startPoint entryLineSegment)
+                        (LineSegment2d.endPoint entryLineSegment)
 
                 entryLineShiftVector =
                     let
@@ -742,18 +722,13 @@ preview model track =
                             else
                                 model.pushRadius
                     in
-                    case entryLineSegment of
-                        Just seg ->
-                            Maybe.map (Vector2d.withLength shiftAmount)
-                                (LineSegment2d.perpendicularDirection seg)
-
-                        Nothing ->
-                            Nothing
+                    Maybe.map (Vector2d.withLength shiftAmount)
+                        (LineSegment2d.perpendicularDirection entryLineSegment)
 
                 shiftedEntryLine =
-                    case ( entryLineSegment, entryLineShiftVector ) of
-                        ( Just theLine, Just theVector ) ->
-                            Just <| LineSegment2d.translateBy theVector theLine
+                    case entryLineShiftVector of
+                        Just theVector ->
+                            Just <| LineSegment2d.translateBy theVector entryLineSegment
 
                         _ ->
                             Nothing
@@ -782,8 +757,8 @@ preview model track =
                 validCounterBendCentresAndTangentPoints =
                     -- Point is 'valid' if it is not 'before' the segment start (or axis origin).
                     -- Want to return the outer intersection point (new bend centre) and the tangent point.
-                    case ( entryLineAxis, entryLineSegment ) of
-                        ( Just sameOldAxis, Just sameOldSegment ) ->
+                    case entryLineAxis of
+                        Just sameOldAxis ->
                             let
                                 elaborateIntersectionPoint i =
                                     let
@@ -803,21 +778,63 @@ preview model track =
                                 |> List.Extra.minimumBy (.distanceAlong >> Length.inMeters)
                                 |> Maybe.Extra.toList
                                 |> List.filter (.distanceAlong >> Quantity.greaterThanOrEqualTo Quantity.zero)
-                                |> List.filter (.distanceAlong >> Quantity.lessThanOrEqualTo (LineSegment2d.length sameOldSegment))
+                                |> List.filter (.distanceAlong >> Quantity.lessThanOrEqualTo (LineSegment2d.length entryLineSegment))
 
                         _ ->
                             []
             in
             case validCounterBendCentresAndTangentPoints of
                 [] ->
-                    if index > 1 then
-                        findEntryLineFromExistingPoint (index - 1)
-
-                    else
-                        Nothing
+                    Nothing
 
                 bestFound :: _ ->
                     Just bestFound
+
+        findEntryLineFromExistingPoint :
+            Int
+            -> Maybe IntersectionInformation
+        findEntryLineFromExistingPoint index =
+            -- By making this into a function we should be able to recurse "back down
+            -- the track" until we find an acceptable tangent point or run out of track.
+            let
+                pointsDefiningEntryLine =
+                    -- We know these points exist but, you know, type safety.
+                    ( List.Extra.getAt (index - 1) track.trackPoints
+                    , List.Extra.getAt index track.trackPoints
+                    )
+
+            in
+            case pointsDefiningEntryLine of
+                (Just  tp1, Just tp2) ->
+                    case findAcceptableTransitionFromRoadToCircle tp1 tp2 of
+                        Just transition ->
+                            Just transition
+
+                        Nothing ->
+                            if index > 1 then
+                                findEntryLineFromExistingPoint (index - 1)
+
+                            else
+                                Nothing
+
+                _ -> Nothing
+
+
+
+        arcToSegments arc =
+            let
+                arcLength =
+                    Length.inMeters (Arc2d.radius arc)
+                        * Angle.inRadians (Arc2d.sweptAngle arc)
+                        |> abs
+
+                entryArcNumSegments =
+                    arcLength
+                        / Length.inMeters model.spacing
+                        |> ceiling
+                        |> max 1
+            in
+            Arc2d.segments entryArcNumSegments arc |> Polyline2d.segments
 
         --TODO: The real bend starts at the entry join point, not what we've previously thought.
         --TODO: Elevations, only holistic.
@@ -825,45 +842,18 @@ preview model track =
         entryCurve =
             case Maybe.andThen (.index >> findEntryLineFromExistingPoint) firstPoint of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
-                    let
-                        directionToEntryStart =
-                            Direction2d.from intersection tangentPoint
+                    Arc2d.withRadius
+                        model.pushRadius
+                        (if isLeftHandBend then
+                            SweptAngle.smallNegative
 
-                        directionToEntryEnd =
-                            Direction2d.from intersection joinsBendAt
-
-                        entryArcAngle =
-                            Maybe.map2 Direction2d.angleFrom directionToEntryStart directionToEntryEnd
-                                |> Maybe.withDefault (Angle.degrees 0)
-
-                        entryArc =
-                            Arc2d.withRadius
-                                model.pushRadius
-                                (if isLeftHandBend then
-                                    SweptAngle.smallNegative
-
-                                 else
-                                    SweptAngle.smallPositive
-                                )
-                                tangentPoint
-                                joinsBendAt
-
-                        arcToSegments arc =
-                            let
-                                arcLength =
-                                    Length.inMeters (Arc2d.radius arc)
-                                        * Angle.inRadians (Arc2d.sweptAngle arc)
-                                        |> abs
-
-                                entryArcNumSegments =
-                                    arcLength
-                                        / Length.inMeters model.spacing
-                                        |> ceiling
-                                        |> max 1
-                            in
-                            Arc2d.segments entryArcNumSegments arc |> Polyline2d.segments
-                    in
-                    Maybe.map arcToSegments entryArc |> Maybe.withDefault []
+                         else
+                            SweptAngle.smallPositive
+                        )
+                        tangentPoint
+                        joinsBendAt
+                        |> Maybe.map arcToSegments
+                        |> Maybe.withDefault []
 
                 Nothing ->
                     []
