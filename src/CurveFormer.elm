@@ -573,9 +573,11 @@ type alias IntersectionInformation =
     , joinsBendAt : Point2d.Point2d Length.Meters LocalCoords
     }
 
+
 type TransitionMode
     = EntryMode
     | ExitMode
+
 
 preview : Model -> Track -> Model
 preview model track =
@@ -763,13 +765,13 @@ preview model track =
                     case entryLineAxis of
                         Just sameOldAxis ->
                             let
-                                selectionFunction = case mode of
-                                    EntryMode ->
-                                        List.Extra.minimumBy (.distanceAlong >> Length.inMeters)
+                                selectionFunction =
+                                    case mode of
+                                        EntryMode ->
+                                            List.Extra.minimumBy (.distanceAlong >> Length.inMeters)
 
-                                    ExitMode ->
-                                        List.Extra.maximumBy (.distanceAlong >> Length.inMeters)
-
+                                        ExitMode ->
+                                            List.Extra.maximumBy (.distanceAlong >> Length.inMeters)
 
                                 elaborateIntersectionPoint i =
                                     let
@@ -866,8 +868,17 @@ preview model track =
                 _ ->
                     Nothing
 
+        ( entryInformation, exitInformation ) =
+            let
+                routeLength =
+                    List.length track.trackPoints
+            in
+            ( Maybe.andThen (.index >> entryCurveSeeker) firstPoint
+            , Maybe.andThen (.index >> exitCurveSeeker routeLength) lastPoint
+            )
+
         entryCurve =
-            case Maybe.andThen (.index >> entryCurveSeeker) firstPoint of
+            case entryInformation of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     Arc2d.withRadius
                         model.pushRadius
@@ -886,11 +897,7 @@ preview model track =
                     []
 
         exitCurve =
-            let
-                routeLength =
-                    List.length track.trackPoints
-            in
-            case Maybe.andThen (.index >> exitCurveSeeker routeLength) lastPoint of
+            case exitInformation of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     Arc2d.withRadius
                         model.pushRadius
@@ -908,8 +915,47 @@ preview model track =
                 Nothing ->
                     []
 
+        theArcItself =
+            case ( entryInformation, exitInformation ) of
+                ( Just entry, Just exit ) ->
+                    let
+                        ( entryDirection, exitDirection ) =
+                            ( Direction2d.from centreOnPlane entry.joinsBendAt
+                            , Direction2d.from centreOnPlane exit.joinsBendAt
+                            )
+
+                        turn =
+                            Maybe.map2 Direction2d.angleFrom entryDirection exitDirection
+                    in
+                    case turn of
+                        Just turnAngle ->
+                            Arc2d.withRadius
+                                model.pushRadius
+                                (if isLeftHandBend  then
+                                    if turnAngle |> Quantity.greaterThanOrEqualTo Quantity.zero then
+                                        SweptAngle.smallPositive
+                                    else
+                                        SweptAngle.largePositive
+
+                                 else
+                                    if turnAngle |> Quantity.lessThanOrEqualTo Quantity.zero then
+                                        SweptAngle.smallNegative
+                                    else
+                                        SweptAngle.largeNegative
+                                )
+                                entry.joinsBendAt
+                                exit.joinsBendAt
+                                |> Maybe.map arcToSegments
+                                |> Maybe.withDefault []
+
+                        Nothing ->
+                            []
+
+                _ ->
+                    []
+
         newBendEntirely =
-            (entryCurve ++ exitCurve)
+            (entryCurve ++ theArcItself ++ exitCurve)
                 |> List.map (LineSegment3d.on drawingPlane)
                 |> trackPointFromSegments
 
