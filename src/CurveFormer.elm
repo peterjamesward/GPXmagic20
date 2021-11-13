@@ -601,6 +601,10 @@ preview model track =
                     (Vector3d.withLength (Point3d.zCoordinate <| Circle3d.centerPoint circle) Direction3d.positiveZ)
             )
 
+        centreOnPlane =
+            -- Most of the work is planar; we layer the elevations on at the end.
+            centre |> Point3d.projectInto drawingPlane
+
         isWithinCircle pt =
             Point3d.distanceFromAxis axis pt.xyz
                 |> Quantity.lessThanOrEqualTo model.pushRadius
@@ -626,6 +630,8 @@ preview model track =
                 |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
 
         pointsWithinDisc =
+            -- Look for points that could be pulled in to the bend, only when they
+            -- are bracketed by interior points.
             let
                 ( lowestInteriorIndex, highestInteriorIndex ) =
                     ( List.Extra.minimumBy .index pointsWithinCircle |> Maybe.map .index |> Maybe.withDefault 0
@@ -640,87 +646,46 @@ preview model track =
         allPoints =
             List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
 
-        ( from, to ) =
-            let
-                allIndices =
-                    List.map .index allPoints
-            in
-            ( List.minimum allIndices |> Maybe.withDefault 0
-            , List.maximum allIndices |> Maybe.withDefault 0
+        ( firstPoint, lastPoint ) =
+            -- These bracket the points that will be removed, inclusively.
+            ( List.head allPoints
+            , List.Extra.last allPoints
             )
 
-        previewTrackPoints =
-            -- Let's ignore elevation initially.
-            -- Let's make this just the relocated points, now on the inner circle.
-            allPoints |> List.map moveToInnerCircle
+        -- Care over turn direction. Bend may exceed 180 degrees and Angle would not be good.
+        -- Perhaps simpler and more reliable is "which side of the entry road is the centre?"
+        isLeftHandBend =
+            -- OK, not the entry road, but the first road segment in the circle.
+            -- Positive distance == LEFT OF ROAD, i.e. left hand bend.
+            -- Note I ignore the obvious "on the axis" case; this may bite me later.
+            -- WHY do I end up with this fuggle? What's the better practice?
+            case firstPoint of
+                Just isFirstPoint ->
+                    case isFirstPoint.afterDirection of
+                        Just roadDirection ->
+                            let
+                                roadDirectionInPlane =
+                                    Direction3d.projectInto drawingPlane roadDirection
+                            in
+                            case roadDirectionInPlane of
+                                Just roadPlanarDirection ->
+                                    let
+                                        roadAxis =
+                                            Axis2d.withDirection
+                                                roadPlanarDirection
+                                                (Point3d.projectInto drawingPlane isFirstPoint.xyz)
+                                    in
+                                    Point2d.signedDistanceFrom roadAxis centreOnPlane
+                                        |> Quantity.greaterThanOrEqualTo Quantity.zero
 
-        moveToInnerCircle : TrackPoint -> TrackPoint
-        moveToInnerCircle pt =
-            let
-                verticalOffset =
-                    Point3d.signedDistanceAlong axis pt.xyz
+                                Nothing ->
+                                    True
 
-                verticalVector =
-                    Vector3d.withLength verticalOffset Direction3d.positiveZ
-
-                scaleAboutPoint =
-                    Point3d.translateBy verticalVector centre
-
-                currentVector =
-                    Vector3d.from scaleAboutPoint pt.xyz
-
-                newVector =
-                    Vector3d.scaleTo model.pushRadius currentVector
-            in
-            { pt | xyz = Point3d.translateBy newVector centre }
-
-        planarPoints =
-            -- We must work in 2d to achieve the smooth arc for the whole bend.
-            -- Use circle centre, first and last new points.
-            -- May be convenient to use a 3d arc nontheless.
-            previewTrackPoints
-                |> List.map
-                    (\p -> p.xyz |> Point3d.projectInto drawingPlane)
-
-        planarArc =
-            -- For piecewise, use list of arcs. This becomes degenerate case.
-            case
-                ( List.head planarPoints
-                , List.Extra.getAt 1 planarPoints
-                , List.Extra.last planarPoints
-                )
-            of
-                ( Just firstPoint, Just secondPoint, Just lastPoint ) ->
-                    Arc2d.throughPoints firstPoint secondPoint lastPoint
-
-                _ ->
-                    Nothing
-
-        planarSegments =
-            case planarArc of
-                Just arc ->
-                    let
-                        arc3d =
-                            Arc3d.on drawingPlane arc
-
-                        arcLength =
-                            Length.inMeters (Arc2d.radius arc)
-                                * Angle.inRadians (Arc2d.sweptAngle arc)
-                                |> abs
-
-                        numSegments =
-                            arcLength
-                                / Length.inMeters model.spacing
-                                |> ceiling
-                                |> max 1
-
-                        segments =
-                            Arc3d.segments numSegments arc3d |> Polyline3d.segments
-                    in
-                    segments
+                        Nothing ->
+                            True
 
                 Nothing ->
-                    []
+                    True
 
         trackPointFromSegments segs =
             (List.map LineSegment3d.startPoint (List.take 1 segs)
@@ -760,28 +725,20 @@ preview model track =
                 entryLineAxis =
                     entryLineSegment
                         |> Maybe.andThen
-                            (\l -> Axis2d.throughPoints (LineSegment2d.startPoint l) (LineSegment2d.endPoint l))
-
-                whichWayToOffset =
-                    -- 50-50 chance of needing the test flipped.
-                    Maybe.map2
-                        (\arc ax ->
-                            Arc2d.startPoint arc
-                                |> Point2d.signedDistanceFrom ax
-                                |> Quantity.greaterThanOrEqualTo Quantity.zero
-                        )
-                        planarArc
-                        entryLineAxis
-                        |> Maybe.withDefault True
+                            (\l ->
+                                Axis2d.throughPoints
+                                    (LineSegment2d.startPoint l)
+                                    (LineSegment2d.endPoint l)
+                            )
 
                 entryLineShiftVector =
                     let
                         shiftAmount =
-                            if whichWayToOffset then
-                                model.pushRadius
+                            if isLeftHandBend then
+                                Quantity.negate model.pushRadius
 
                             else
-                                Quantity.negate model.pushRadius
+                                model.pushRadius
                     in
                     case entryLineSegment of
                         Just seg ->
@@ -873,7 +830,7 @@ preview model track =
         --TODO: Elevations, only holistic.
         --TODO: Same for exit bend, I hope with some common code!!
         entryCurve =
-            case findEntryLineFromExistingPoint from of
+            case Maybe.andThen (.index >> findEntryLineFromExistingPoint) firstPoint of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     let
                         entryArcAxis =
@@ -887,7 +844,7 @@ preview model track =
 
                         entryArcAngle =
                             Maybe.map2 Direction3d.angleFrom directionToEntryStart directionToEntryEnd
-                            |> Maybe.withDefault (Angle.degrees 0)
+                                |> Maybe.withDefault (Angle.degrees 0)
 
                         entryArc =
                             Arc3d.sweptAround entryArcAxis entryArcAngle tangentPoint
@@ -914,8 +871,8 @@ preview model track =
         newBendEntirely =
             []
                 ++ (entryCurve |> trackPointFromSegments)
-                ++ (planarSegments |> trackPointFromSegments)
 
+        --++ (planarSegments |> trackPointFromSegments)
         --++ exitTransition
     in
     { model
@@ -924,7 +881,13 @@ preview model track =
         , circle = Just circle
         , pointsAreContiguous = areContiguous allPoints
         , newTrackPoints = newBendEntirely
-        , fixedAttachmentPoints = Just ( from, to )
+        , fixedAttachmentPoints =
+            case ( firstPoint, lastPoint ) of
+                ( Just isFirst, Just isLast ) ->
+                    Just ( isFirst.index, isLast.index )
+
+                _ ->
+                    Nothing
     }
 
 
