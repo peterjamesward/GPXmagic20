@@ -28,6 +28,7 @@ import Pixels
 import Plane3d
 import Point2d
 import Point3d
+import Polyline2d
 import Polyline3d
 import PostUpdateActions
 import Quantity
@@ -37,6 +38,7 @@ import SketchPlane3d
 import SpatialIndex
 import Svg
 import Svg.Attributes as SA
+import SweptAngle
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
@@ -565,10 +567,10 @@ highlightPoints color points =
 
 
 type alias IntersectionInformation =
-    { intersection : Point3d.Point3d Length.Meters LocalCoords
+    { intersection : Point2d.Point2d Length.Meters LocalCoords
     , distanceAlong : Length.Length
-    , tangentPoint : Point3d.Point3d Length.Meters LocalCoords
-    , joinsBendAt : Point3d.Point3d Length.Meters LocalCoords
+    , tangentPoint : Point2d.Point2d Length.Meters LocalCoords
+    , joinsBendAt : Point2d.Point2d Length.Meters LocalCoords
     }
 
 
@@ -766,10 +768,7 @@ preview model track =
                                         (LineSegment2d.endPoint line |> Point2d.toRecord Length.inMeters)
 
                                 outerCircle =
-                                    { centre =
-                                        centre
-                                            |> Point3d.projectInto drawingPlane
-                                            |> Point2d.toRecord Length.inMeters
+                                    { centre = centreOnPlane |> Point2d.toRecord Length.inMeters
                                     , radius = model.pushRadius |> Quantity.multiplyBy 2 |> Length.inMeters
                                     }
                             in
@@ -788,22 +787,16 @@ preview model track =
                             let
                                 elaborateIntersectionPoint i =
                                     let
-                                        iOnPlane =
-                                            Point3d.on drawingPlane i
-
                                         distanceAlong =
                                             Point2d.signedDistanceAlong sameOldAxis i
 
                                         tangentPoint2d =
                                             Point2d.along sameOldAxis distanceAlong
-
-                                        tangentPoint3d =
-                                            Point3d.on drawingPlane tangentPoint2d
                                     in
-                                    { intersection = iOnPlane
+                                    { intersection = i
                                     , distanceAlong = distanceAlong
-                                    , tangentPoint = tangentPoint3d
-                                    , joinsBendAt = Point3d.midpoint iOnPlane centre
+                                    , tangentPoint = tangentPoint2d
+                                    , joinsBendAt = Point2d.midpoint i centreOnPlane
                                     }
                             in
                             List.map elaborateIntersectionPoint outerCircleIntersections
@@ -833,44 +826,51 @@ preview model track =
             case Maybe.andThen (.index >> findEntryLineFromExistingPoint) firstPoint of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     let
-                        entryArcAxis =
-                            Axis3d.withDirection Direction3d.positiveZ intersection
-
                         directionToEntryStart =
-                            Direction3d.from intersection tangentPoint
+                            Direction2d.from intersection tangentPoint
 
                         directionToEntryEnd =
-                            Direction3d.from intersection joinsBendAt
+                            Direction2d.from intersection joinsBendAt
 
                         entryArcAngle =
-                            Maybe.map2 Direction3d.angleFrom directionToEntryStart directionToEntryEnd
+                            Maybe.map2 Direction2d.angleFrom directionToEntryStart directionToEntryEnd
                                 |> Maybe.withDefault (Angle.degrees 0)
 
                         entryArc =
-                            Arc3d.sweptAround entryArcAxis entryArcAngle tangentPoint
+                            Arc2d.withRadius
+                                model.pushRadius
+                                (if isLeftHandBend then
+                                    SweptAngle.smallNegative
 
-                        entryArcLength =
-                            Length.inMeters (Arc3d.radius entryArc)
-                                * Angle.inRadians (Arc3d.sweptAngle entryArc)
-                                |> abs
+                                 else
+                                    SweptAngle.smallPositive
+                                )
+                                tangentPoint
+                                joinsBendAt
 
-                        entryArcNumSegments =
-                            entryArcLength
-                                / Length.inMeters model.spacing
-                                |> ceiling
-                                |> max 1
+                        arcToSegments arc =
+                            let
+                                arcLength =
+                                    Length.inMeters (Arc2d.radius arc)
+                                        * Angle.inRadians (Arc2d.sweptAngle arc)
+                                        |> abs
 
-                        entryArcSegments =
-                            Arc3d.segments entryArcNumSegments entryArc |> Polyline3d.segments
+                                entryArcNumSegments =
+                                    arcLength
+                                        / Length.inMeters model.spacing
+                                        |> ceiling
+                                        |> max 1
+                            in
+                            Arc2d.segments entryArcNumSegments arc |> Polyline2d.segments
                     in
-                    entryArcSegments
+                    Maybe.map arcToSegments entryArc |> Maybe.withDefault []
 
                 Nothing ->
                     []
 
         newBendEntirely =
             []
-                ++ (entryCurve |> trackPointFromSegments)
+                ++ (entryCurve |> List.map (LineSegment3d.on drawingPlane) |> trackPointFromSegments)
 
         --++ (planarSegments |> trackPointFromSegments)
         --++ exitTransition
