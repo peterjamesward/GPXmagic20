@@ -571,6 +571,7 @@ type alias IntersectionInformation =
     , distanceAlong : Length.Length
     , tangentPoint : Point2d.Point2d Length.Meters LocalCoords
     , joinsBendAt : Point2d.Point2d Length.Meters LocalCoords
+    , originalTrackPoint : TrackPoint
     }
 
 
@@ -653,12 +654,6 @@ preview model track =
         allPoints =
             List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
 
-        ( firstPoint, lastPoint ) =
-            -- These bracket the points that will be removed, inclusively.
-            ( List.head allPoints
-            , List.Extra.last allPoints
-            )
-
         -- Care over turn direction. Bend may exceed 180 degrees and Angle would not be good.
         -- Perhaps simpler and more reliable is "which side of the entry road is the centre?"
         isLeftHandBend =
@@ -666,7 +661,7 @@ preview model track =
             -- Positive distance == LEFT OF ROAD, i.e. left hand bend.
             -- Note I ignore the obvious "on the axis" case; this may bite me later.
             -- WHY do I end up with this fuggle? What's the better practice?
-            case firstPoint of
+            case List.head allPoints of
                 Just isFirstPoint ->
                     case isFirstPoint.afterDirection of
                         Just roadDirection ->
@@ -695,10 +690,10 @@ preview model track =
                     True
 
         trackPointFromSegments segs =
-            (List.map LineSegment3d.startPoint (List.take 1 segs)
-                ++ List.map LineSegment3d.endPoint segs
-            )
-                |> List.map TrackPoint.trackPointFromPoint
+            -- Will just return start points. Caller may want to drop the leading one if
+            -- it is an existing point.
+            segs
+                |> List.map (LineSegment3d.startPoint >> TrackPoint.trackPointFromPoint)
 
         findAcceptableTransition : TransitionMode -> TrackPoint -> TrackPoint -> Maybe IntersectionInformation
         findAcceptableTransition mode tp1 tp2 =
@@ -785,6 +780,15 @@ preview model track =
                                     , distanceAlong = distanceAlong
                                     , tangentPoint = tangentPoint2d
                                     , joinsBendAt = Point2d.midpoint i centreOnPlane
+                                    , originalTrackPoint =
+                                        -- Point on track, used to compute altitudes and
+                                        -- final line segment to adjoining tangent point.
+                                        case mode of
+                                            EntryMode ->
+                                                tp1
+
+                                            ExitMode ->
+                                                tp2
                                     }
                             in
                             List.map elaborateIntersectionPoint outerCircleIntersections
@@ -873,8 +877,8 @@ preview model track =
                 routeLength =
                     List.length track.trackPoints
             in
-            ( Maybe.andThen (.index >> entryCurveSeeker) firstPoint
-            , Maybe.andThen (.index >> exitCurveSeeker routeLength) lastPoint
+            ( Maybe.andThen (.index >> entryCurveSeeker) (List.head allPoints)
+            , Maybe.andThen (.index >> exitCurveSeeker routeLength) (List.Extra.last allPoints)
             )
 
         entryCurve =
@@ -931,17 +935,18 @@ preview model track =
                         Just turnAngle ->
                             Arc2d.withRadius
                                 model.pushRadius
-                                (if isLeftHandBend  then
+                                (if isLeftHandBend then
                                     if turnAngle |> Quantity.greaterThanOrEqualTo Quantity.zero then
                                         SweptAngle.smallPositive
+
                                     else
                                         SweptAngle.largePositive
 
+                                 else if turnAngle |> Quantity.lessThanOrEqualTo Quantity.zero then
+                                    SweptAngle.smallNegative
+
                                  else
-                                    if turnAngle |> Quantity.lessThanOrEqualTo Quantity.zero then
-                                        SweptAngle.smallNegative
-                                    else
-                                        SweptAngle.largeNegative
+                                    SweptAngle.largeNegative
                                 )
                                 entry.joinsBendAt
                                 exit.joinsBendAt
@@ -955,12 +960,64 @@ preview model track =
                     []
 
         newBendEntirely =
-            (entryCurve ++ theArcItself ++ exitCurve)
-                |> List.map (LineSegment3d.on drawingPlane)
-                |> trackPointFromSegments
+            -- We (probably) have a bend, but it's flat. We need to interpolate altitudes.
+            case ( entryInformation, exitInformation ) of
+                ( Just entry, Just exit ) ->
+                    let
+                        completeSegments =
+                            [ LineSegment2d.from
+                                (Point3d.projectInto drawingPlane entry.originalTrackPoint.xyz)
+                                entry.tangentPoint
+                            ]
+                                ++ entryCurve
+                                ++ theArcItself
+                                ++ exitCurve
+                                ++ [ LineSegment2d.from
+                                        exit.tangentPoint
+                                        (Point3d.projectInto drawingPlane exit.originalTrackPoint.xyz)
+                                   ]
 
-        --++ (planarSegments |> trackPointFromSegments)
-        --++ exitTransition
+                        actualNewLength =
+                            completeSegments |> List.map LineSegment2d.length |> Quantity.sum
+
+                        altitudeChange =
+                            Quantity.minus
+                                (Point3d.zCoordinate entry.originalTrackPoint.xyz)
+                                (Point3d.zCoordinate exit.originalTrackPoint.xyz)
+
+                        cumulativeDistances =
+                            completeSegments
+                                |> List.Extra.scanl
+                                    (\seg run -> Quantity.plus run (LineSegment2d.length seg))
+                                    Quantity.zero
+
+                        adjustedAltitudes =
+                            -- Can make this return the altitude adjusted end track point.
+                            List.map2
+                                (\seg dist ->
+                                    let
+                                        originalSegmentStart =
+                                            LineSegment2d.startPoint seg
+
+                                        adjustment =
+                                            altitudeChange
+                                                |> Quantity.multiplyBy (Quantity.ratio dist actualNewLength)
+                                    in
+                                    Point3d.xyz
+                                        (Point2d.xCoordinate originalSegmentStart)
+                                        (Point2d.yCoordinate originalSegmentStart)
+                                        (Point3d.zCoordinate entry.originalTrackPoint.xyz
+                                            |> Quantity.plus adjustment
+                                        )
+                                        |> TrackPoint.trackPointFromPoint
+                                )
+                                (List.drop 0 completeSegments)
+                                cumulativeDistances
+                    in
+                    adjustedAltitudes
+
+                _ ->
+                    []
     in
     { model
         | pointsWithinCircle = pointsWithinCircle
@@ -968,13 +1025,7 @@ preview model track =
         , circle = Just circle
         , pointsAreContiguous = areContiguous allPoints
         , newTrackPoints = newBendEntirely
-        , fixedAttachmentPoints =
-            case ( firstPoint, lastPoint ) of
-                ( Just isFirst, Just isLast ) ->
-                    Just ( isFirst.index, isLast.index )
-
-                _ ->
-                    Nothing
+        , fixedAttachmentPoints = Nothing
     }
 
 
