@@ -465,7 +465,7 @@ apply track model =
                     List.Extra.splitAt to track.trackPoints
 
                 ( precedingTrack, replacedTrack ) =
-                    List.Extra.splitAt (from - 1) beforeAndIncluding
+                    List.Extra.splitAt (from + 1) beforeAndIncluding
 
                 recombinedTrack =
                     precedingTrack ++ model.newTrackPoints ++ followingTrack
@@ -1078,10 +1078,11 @@ preview model track =
                 ( Just entry, Just exit ) ->
                     let
                         completeSegments =
-                            [ LineSegment2d.from
-                                (Point3d.projectInto drawingPlane entry.originalTrackPoint.xyz)
-                                entry.tangentPoint
-                            ]
+                            --[ LineSegment2d.from
+                            --    (Point3d.projectInto drawingPlane entry.originalTrackPoint.xyz)
+                            --    entry.tangentPoint
+                            --]
+                            []
                                 ++ entryCurve
                                 ++ theArcItself
                                 ++ exitCurve
