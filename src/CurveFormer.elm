@@ -245,12 +245,12 @@ update message model wrapper track =
             )
 
         DraggerReset ->
-            ( defaultModel
+            ( { model | dragging = Nothing, referencePoint = Nothing }
             , PostUpdateActions.ActionPreview
             )
 
         DraggerApply ->
-            ( model
+            ( { model | dragging = Nothing, referencePoint = Nothing }
             , PostUpdateActions.ActionTrackChanged
                 (PostUpdateActions.EditExtendsBeyondMarkers model.fixedAttachmentPoints)
                 (apply track model)
@@ -320,26 +320,26 @@ view imperial model wrapper track =
                 [ Input.button prettyButtonStyles
                     { label = text "Reset", onPress = Just <| wrapper DraggerReset }
                 , case ( List.length model.newTrackPoints >= 3, model.pointsAreContiguous ) of
-                    ( True, True ) ->
+                    ( _, True ) ->
                         Input.button
                             prettyButtonStyles
                             { label = text "Apply"
                             , onPress = Just <| wrapper DraggerApply
                             }
 
-                    ( True, False ) ->
+                    ( _, False ) ->
                         Input.button
                             disabledButtonStyles
                             { label = paragraph [ width fill ] <| [ text "Points must be contiguous" ]
                             , onPress = Nothing
                             }
 
-                    ( False, _ ) ->
-                        Input.button
-                            disabledButtonStyles
-                            { label = paragraph [] <| [ text "Need at least three points" ]
-                            , onPress = Nothing
-                            }
+                --( False, _ ) ->
+                --    Input.button
+                --        disabledButtonStyles
+                --        { label = paragraph [] <| [ text "Need at least three points" ]
+                --        , onPress = Nothing
+                --        }
                 ]
 
         showModeSelection =
@@ -373,8 +373,7 @@ view imperial model wrapper track =
                 , Element.width Element.fill
                 , spacing 5
                 ]
-                [ showModeSelection
-                , showPullSelection
+                [ showPullSelection
                 , showPushRadiusSlider
                 , if model.usePullRadius then
                     showPullRadiusSlider

@@ -1268,13 +1268,13 @@ reflectNewTrackViaGraph newTrack editType model =
                     oldTrack.currentNode
 
                 purple =
-                    -- Need to get edit region to help the graph assess the changes.
                     Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
                 editRegion =
+                    -- Need to get edit region to help the graph assess the changes.
                     case editType of
-                        EditExtendsBeyondMarkers (Just (start, end)) ->
-                            (start, end)
+                        EditExtendsBeyondMarkers (Just ( start, end )) ->
+                            ( start, end )
 
                         _ ->
                             ( min orange.index purple.index
@@ -1367,6 +1367,7 @@ repeatTrackDerivations model =
                         | trackPoints = earthTrack
                         , currentNode = newOrange
                         , markedNode = newPurple
+                        , spatialIndex = Track.buildSpatialIndex earthTrack isTrack.box
                     }
             in
             { model

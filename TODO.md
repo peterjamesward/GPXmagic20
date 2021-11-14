@@ -8,7 +8,9 @@
 **Former** tool
 > **Apply** is not working as well as it at first seems.  
 > There is some stale state floating around.  
-> I suspect `postUpdateAction` not recognising the extended edit region.  
+> I suspect `postUpdateAction` not recognising the extended edit region.  NOPE.
+> 
+> ++ Different radius for transitions.
 
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.

@@ -80,23 +80,6 @@ trackFromGpx content =
                 box =
                     BoundingBox3d.hullOfN .xyz points
                         |> Maybe.withDefault (BoundingBox3d.singleton n1.xyz)
-
-                emptyIndex =
-                    -- Large split threshold to avoid excessive depth.
-                    SpatialIndex.empty (flatBox box) (Length.meters 100.0)
-
-                index =
-                    List.foldl
-                        (\point ->
-                            SpatialIndex.add
-                                { content = point
-                                , box =
-                                    BoundingBox2d.withDimensions clickTolerance
-                                        (point.xyz |> Point3d.projectInto SketchPlane3d.xy)
-                                }
-                        )
-                        emptyIndex
-                        points
             in
             Just
                 { trackName = GpxParser.parseTrackName content
@@ -106,7 +89,7 @@ trackFromGpx content =
                 , graph = Nothing
                 , earthReferenceCoordinates = basePoint
                 , box = box
-                , spatialIndex = index
+                , spatialIndex = buildSpatialIndex points box
                 }
 
 
@@ -161,23 +144,6 @@ trackFromMap trackPoints =
                 box =
                     BoundingBox3d.hullOfN .xyz points
                         |> Maybe.withDefault (BoundingBox3d.singleton n1.xyz)
-
-                emptyIndex =
-                    -- Large split threshold to avoid excessive depth.
-                    SpatialIndex.empty (flatBox box) (Length.meters 100.0)
-
-                index =
-                    List.foldl
-                        (\point ->
-                            SpatialIndex.add
-                                { content = point
-                                , box =
-                                    BoundingBox2d.withDimensions clickTolerance
-                                        (point.xyz |> Point3d.projectInto SketchPlane3d.xy)
-                                }
-                        )
-                        emptyIndex
-                        points
             in
             Just
                 { trackName = Just "from-sketch"
@@ -187,9 +153,27 @@ trackFromMap trackPoints =
                 , graph = Nothing
                 , earthReferenceCoordinates = basePoint
                 , box = box
-                , spatialIndex = index
+                , spatialIndex = buildSpatialIndex points box
                 }
 
+
+buildSpatialIndex points box =
+    let
+        emptyIndex =
+            -- Large split threshold to avoid excessive depth.
+            SpatialIndex.empty (flatBox box) (Length.meters 100.0)
+    in
+    List.foldl
+        (\point ->
+            SpatialIndex.add
+                { content = point
+                , box =
+                    BoundingBox2d.withDimensions clickTolerance
+                        (point.xyz |> Point3d.projectInto SketchPlane3d.xy)
+                }
+        )
+        emptyIndex
+        points
 
 
 removeGhanianTransform : Track -> List ( Float, Float, Float )
