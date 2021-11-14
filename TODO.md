@@ -11,6 +11,7 @@
 > I suspect `postUpdateAction` not recognising the extended edit region.  NOPE.
 > 
 > ++ Different radius for transitions.
+> ++ Preserve elevations, by interpolating original track proportionately to distance.
 
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.

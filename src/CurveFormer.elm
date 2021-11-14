@@ -3,6 +3,7 @@ module CurveFormer exposing (..)
 import Angle
 import Arc2d
 import Arc3d
+import Area
 import Axis2d
 import Axis3d
 import Circle3d
@@ -276,27 +277,31 @@ update message model wrapper track =
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
 view imperial model wrapper track =
     let
+        squared x =
+            x * x
+
         showPushRadiusSlider =
             Input.slider commonShortHorizontalSliderStyles
-                { onChange = wrapper << SetPushRadius
+                { onChange = wrapper << SetPushRadius << squared
                 , label =
+                    -- Note, I want non-linear slider, but fighting the Quantity type a bit here.
                     Input.labelBelow []
                         (text <| "Radius " ++ showShortMeasure imperial model.pushRadius)
                 , min = 2.0
-                , max = 100.0
+                , max = 10.0
                 , step = Nothing
-                , value = model.pushRadius |> Length.inMeters
+                , value = model.pushRadius |> Length.inMeters |> sqrt
                 , thumb = Input.defaultThumb
                 }
 
         showPullRadiusSlider =
             Input.slider commonShortHorizontalSliderStyles
-                { onChange = wrapper << SetPullRadius
+                { onChange = wrapper << SetPullRadius << squared
                 , label =
                     Input.labelBelow []
                         (text <| "Inclusion zone " ++ showShortMeasure imperial model.pullDiscWidth)
                 , min = 0.0
-                , max = 50.0
+                , max = 20.0
                 , step = Nothing
                 , value = model.pullDiscWidth |> Length.inMeters
                 , thumb = Input.defaultThumb
@@ -308,7 +313,7 @@ view imperial model wrapper track =
                 , label =
                     Input.labelBelow []
                         (text <| "Spacing " ++ showShortMeasure imperial model.spacing)
-                , min = 1.0
+                , min = 2.0
                 , max = 10.0
                 , step = Nothing
                 , value = model.spacing |> Length.inMeters
@@ -318,7 +323,9 @@ view imperial model wrapper track =
         showActionButtons =
             row [ padding 5, spacing 5, width fill ]
                 [ Input.button prettyButtonStyles
-                    { label = text "Reset", onPress = Just <| wrapper DraggerReset }
+                    { label = text "Reset"
+                    , onPress = Just <| wrapper DraggerReset
+                    }
                 , case ( List.length model.newTrackPoints >= 3, model.pointsAreContiguous ) of
                     ( _, True ) ->
                         Input.button
@@ -395,13 +402,13 @@ info : String
 info =
     """## Curve Former
 
-It's the new Bend Smoother. You can increase or decrease bend radius.
+It's an alternative Bend Smoother. You set the bend radius.
 
 Position the Orange marker on the track, near a bend that you wish to shape.
 Use the circular drag control to position the white circle over the desired centre of the bend.
-Set the desired bend radius.
+Set the desired bend radius. You can then move the Orange pointer separately (but Reset will end this).
 
-If you want points outside to be "pulled inwards", select _Attract Outliers_ and adjust the
+If you want outlying points to be "pulled inwards", select _Attract Outliers_ and adjust the
 extra slider.
 
 If you include points from another section of the track, we get all confused. You may be
@@ -409,10 +416,12 @@ able to resolve this by additionally using the Orange and Purple markers to clar
 of track you're editing.
 
 The tool will seek a smooth transition to track outside the circle, using a counter-directional
-arc of the same radius if necessary. This may extend beyond the marked points. The preview reflects
+arc of the same radius. This may extend beyond the marked points. The preview reflects
 what the Apply button will do.
 
-Less spacing gives a smoother curve by adding more new trackpoints.
+A uniform gradient is applied along the new region of track.
+
+Reducing spacing gives a smoother curve by adding more new trackpoints.
 
 """
 
