@@ -70,6 +70,7 @@ type alias Model =
     , pointsAreContiguous : Bool
     , newTrackPoints : List TrackPoint
     , fixedAttachmentPoints : Maybe ( Int, Int )
+    , transitionRadius : Length.Length
     }
 
 
@@ -97,6 +98,7 @@ defaultModel =
     , pointsAreContiguous = False
     , newTrackPoints = []
     , fixedAttachmentPoints = Nothing
+    , transitionRadius = Length.meters 20.0
     }
 
 
@@ -109,6 +111,7 @@ type Msg
     | DraggerApply
     | SetPushRadius Float
     | SetPullRadius Float
+    | SetTransitionRadius Float
     | SetSpacing Float
     | ToggleUsePullRadius Bool
 
@@ -268,6 +271,11 @@ update message model wrapper track =
             , PostUpdateActions.ActionPreview
             )
 
+        SetTransitionRadius x ->
+            ( { model | transitionRadius = toLength x }
+            , PostUpdateActions.ActionPreview
+            )
+
         SetSpacing x ->
             ( { model | spacing = toLength x }
             , PostUpdateActions.ActionPreview
@@ -284,9 +292,9 @@ view imperial model wrapper track =
             Input.slider commonShortHorizontalSliderStyles
                 { onChange = wrapper << SetPushRadius << squared
                 , label =
-                    -- Note, I want non-linear slider, but fighting the Quantity type a bit here.
+                    -- Note, I want non-linear slider.
                     Input.labelBelow []
-                        (text <| "Radius " ++ showShortMeasure imperial model.pushRadius)
+                        (text <| "Bend radius " ++ showShortMeasure imperial model.pushRadius)
                 , min = 2.0
                 , max = 10.0
                 , step = Nothing
@@ -294,9 +302,23 @@ view imperial model wrapper track =
                 , thumb = Input.defaultThumb
                 }
 
+        showTransitionRadiusSlider =
+            Input.slider commonShortHorizontalSliderStyles
+                { onChange = wrapper << SetTransitionRadius << squared
+                , label =
+                    -- Note, I want non-linear slider.
+                    Input.labelBelow []
+                        (text <| "Joining radius " ++ showShortMeasure imperial model.transitionRadius)
+                , min = 2.0
+                , max = 10.0
+                , step = Nothing
+                , value = model.transitionRadius |> Length.inMeters |> sqrt
+                , thumb = Input.defaultThumb
+                }
+
         showPullRadiusSlider =
             Input.slider commonShortHorizontalSliderStyles
-                { onChange = wrapper << SetPullRadius << squared
+                { onChange = wrapper << SetPullRadius
                 , label =
                     Input.labelBelow []
                         (text <| "Inclusion zone " ++ showShortMeasure imperial model.pullDiscWidth)
@@ -380,14 +402,15 @@ view imperial model wrapper track =
                 , Element.width Element.fill
                 , spacing 5
                 ]
-                [ showPullSelection
-                , showPushRadiusSlider
+                [ showPushRadiusSlider
+                , showTransitionRadiusSlider
+                , showSpacingSlider
+                , showPullSelection
                 , if model.usePullRadius then
                     showPullRadiusSlider
 
                   else
                     none
-                , showSpacingSlider
                 ]
             , showActionButtons
             ]

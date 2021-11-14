@@ -6,10 +6,7 @@
 # TO-DO
 
 **Former** tool
-> **Apply** is not working as well as it at first seems.  
-> There is some stale state floating around.  
-> I suspect `postUpdateAction` not recognising the extended edit region.  NOPE.
-> 
+
 > ++ Different radius for transitions.
 > ++ Preserve elevations, by interpolating original track proportionately to distance.
 
