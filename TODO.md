@@ -7,7 +7,6 @@
 
 **Former** tool
 
-> ++ Different radius for transitions.
 > ++ Preserve elevations, by interpolating original track proportionately to distance.
 
 **Lane separation** on out and back sections (?)

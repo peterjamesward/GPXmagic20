@@ -713,12 +713,6 @@ preview model track =
                 Nothing ->
                     True
 
-        trackPointFromSegments segs =
-            -- Will just return start points. Caller may want to drop the leading one if
-            -- it is an existing point.
-            segs
-                |> List.map (LineSegment3d.startPoint >> TrackPoint.trackPointFromPoint)
-
         findAcceptableTransition : TransitionMode -> TrackPoint -> TrackPoint -> Maybe IntersectionInformation
         findAcceptableTransition mode tp1 tp2 =
             let
@@ -741,10 +735,10 @@ preview model track =
                     let
                         shiftAmount =
                             if isLeftHandBend then
-                                Quantity.negate model.pushRadius
+                                Quantity.negate model.transitionRadius
 
                             else
-                                model.pushRadius
+                                model.transitionRadius
                     in
                     Maybe.map (Vector2d.withLength shiftAmount)
                         (LineSegment2d.perpendicularDirection entryLineSegment)
@@ -768,7 +762,9 @@ preview model track =
 
                                 outerCircle =
                                     { centre = centreOnPlane |> Point2d.toRecord Length.inMeters
-                                    , radius = model.pushRadius |> Quantity.multiplyBy 2 |> Length.inMeters
+                                    , radius =
+                                        Quantity.plus model.pushRadius model.transitionRadius
+                                            |> Length.inMeters
                                     }
                             in
                             Geometry101.lineCircleIntersections lineEqn outerCircle
@@ -799,11 +795,19 @@ preview model track =
 
                                         tangentPoint2d =
                                             Point2d.along sameOldAxis distanceAlong
+
+                                        bendJoinPoint =
+                                            Point2d.interpolateFrom
+                                                centreOnPlane
+                                                i
+                                                (Quantity.ratio model.pushRadius
+                                                    (Quantity.plus model.pushRadius model.transitionRadius)
+                                                )
                                     in
                                     { intersection = i
                                     , distanceAlong = distanceAlong
                                     , tangentPoint = tangentPoint2d
-                                    , joinsBendAt = Point2d.midpoint i centreOnPlane
+                                    , joinsBendAt = bendJoinPoint
                                     , originalTrackPoint =
                                         -- Point on track, used to compute altitudes and
                                         -- final line segment to adjoining tangent point.
@@ -909,7 +913,7 @@ preview model track =
             case entryInformation of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     Arc2d.withRadius
-                        model.pushRadius
+                        model.transitionRadius
                         (if isLeftHandBend then
                             SweptAngle.smallNegative
 
@@ -928,7 +932,7 @@ preview model track =
             case exitInformation of
                 Just { intersection, distanceAlong, tangentPoint, joinsBendAt } ->
                     Arc2d.withRadius
-                        model.pushRadius
+                        model.transitionRadius
                         (if isLeftHandBend then
                             SweptAngle.smallNegative
 
