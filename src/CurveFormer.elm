@@ -71,6 +71,7 @@ type alias Model =
     , newTrackPoints : List TrackPoint
     , fixedAttachmentPoints : Maybe ( Int, Int )
     , transitionRadius : Length.Length
+    , lastVector : Vector2d.Vector2d Length.Meters LocalCoords
     }
 
 
@@ -99,6 +100,7 @@ defaultModel =
     , newTrackPoints = []
     , fixedAttachmentPoints = Nothing
     , transitionRadius = Length.meters 20.0
+    , lastVector = Vector2d.zero
     }
 
 
@@ -206,15 +208,10 @@ update message model wrapper track =
                 Just dragStart ->
                     let
                         newVector =
-                            Vector2d.from dragStart offset
+                            model.lastVector |> Vector2d.plus (Vector2d.from dragStart offset)
                     in
                     ( { model
-                        | vector =
-                            if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
-                                Vector2d.scaleTo (Length.meters 100.0) newVector
-
-                            else
-                                newVector
+                        | vector = newVector
                         , referencePoint =
                             if model.referencePoint == Nothing then
                                 Just track.currentNode
@@ -226,7 +223,10 @@ update message model wrapper track =
                     )
 
         DraggerRelease _ ->
-            ( { model | dragging = Nothing }
+            ( { model
+                | dragging = Nothing
+                , lastVector = model.vector
+              }
             , PostUpdateActions.ActionPreview
             )
 
@@ -249,7 +249,12 @@ update message model wrapper track =
             )
 
         DraggerReset ->
-            ( { model | dragging = Nothing, referencePoint = Nothing }
+            ( { model
+                | dragging = Nothing
+                , referencePoint = Nothing
+                , lastVector = Vector2d.zero
+                , vector = Vector2d.zero
+              }
             , PostUpdateActions.ActionPreview
             )
 
@@ -430,7 +435,8 @@ It's an alternative Bend Smoother. You set the bend radius.
 
 Position the Orange marker on the track, near a bend that you wish to shape.
 Use the circular drag control to position the white circle over the desired centre of the bend.
-Set the desired bend radius. You can then move the Orange pointer separately (but Reset will end this).
+Set the desired bend radius. You can then move the Orange pointer separately; use Reset
+to snap the circle back to the Orange marker.
 
 If you want outlying points to be "pulled inwards", select _Attract Outliers_ and adjust the
 extra slider.
