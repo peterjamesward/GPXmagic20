@@ -25,7 +25,7 @@ Optionally pull outlying point onto the radius.
 It will optionally smooth elevation change over the new region of track. Otherwise, it
 will attempt to follow, by interpolation, the original elevations.
 
-Yes, it sounds complicated; there's a video to explain.
+Yes, it sounds complicated; there's a video to explain: https://youtu.be/DjdwAFkgw2o
 
 - Orange and Puple markers easier to see when zoomed out in Profile (they are always
 the same size on the screen somehow).

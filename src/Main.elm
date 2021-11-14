@@ -1912,7 +1912,7 @@ toolsAccordion model =
                 model.track
                 |> Maybe.withDefault none
       , info = CurveFormer.info
-      , video = Nothing
+      , video = Just "https://youtu.be/DjdwAFkgw2o"
       , isFavourite = False
       }
     , { label = GradientLimiter.toolLabel
