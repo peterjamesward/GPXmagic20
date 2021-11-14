@@ -949,15 +949,24 @@ draggedOnMap json track =
                 Nothing
 
 
+updatePreviews : Model -> Track -> (Track, Track)
 updatePreviews model track =
     -- Interim step in re-factor!
     let
         bendPreview =
-            { track
-                | trackPoints =
-                    Maybe.map .nodes model.bendOptions.smoothedBend
-                        |> Maybe.withDefault []
-            }
+            -- Give classic smoother priority but if not used see if the Curve Former has anything.
+            if Accordion.tabIsOpen BendSmoother.toolLabel model.toolsAccordion then
+                { track
+                    | trackPoints =
+                        Maybe.map .nodes model.bendOptions.smoothedBend
+                            |> Maybe.withDefault []
+                }
+
+            else if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
+                { track | trackPoints = model.curveFormer.newTrackPoints }
+
+            else
+                { track | trackPoints = [] }
 
         nudgePreview =
             { track | trackPoints = model.nudgeSettings.preview }
@@ -1086,7 +1095,12 @@ processPostUpdateAction model action =
             in
             ( model |> renderVaryingSceneElements
             , Cmd.batch
-                [ PortController.addMarkersToMap track bendPreview nudgePreview model.moveAndStretch ]
+                [ PortController.addMarkersToMap
+                    track
+                    bendPreview
+                    nudgePreview
+                    model.moveAndStretch
+                ]
             )
 
         ( _, ActionCommand a ) ->
