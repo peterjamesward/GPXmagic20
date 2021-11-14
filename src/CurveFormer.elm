@@ -375,8 +375,8 @@ view imperial model wrapper track =
             Input.checkbox []
                 { onChange = wrapper << DraggerModeToggle
                 , icon = checkboxIcon
-                , checked = model.smoothGradient == Piecewise
-                , label = Input.labelRight [ centerY ] (text "Preserve elevations")
+                , checked = model.smoothGradient == Holistic
+                , label = Input.labelRight [ centerY ] (text "Smooth gradient")
                 }
 
         showPullSelection =
@@ -412,6 +412,7 @@ view imperial model wrapper track =
                   else
                     none
                 ]
+            , showModeSelection
             , showActionButtons
             ]
         ]
@@ -987,8 +988,86 @@ preview model track =
                 _ ->
                     []
 
+        prepareOriginalAltitudesForInterpolation =
+            case attachmentPoints of
+                Just ( start, end ) ->
+                    let
+                        originalSection =
+                            track.trackPoints |> List.take (end + 1) |> List.drop start
+
+                        startDistance =
+                            List.head originalSection
+                                |> Maybe.map .distanceFromStart
+                                |> Maybe.withDefault Quantity.zero
+
+                        endDistance =
+                            List.Extra.last originalSection
+                                |> Maybe.map .distanceFromStart
+                                |> Maybe.withDefault Quantity.positiveInfinity
+
+                        length =
+                            endDistance |> Quantity.minus startDistance
+
+                        altitudesByFraction =
+                            originalSection
+                                |> List.map
+                                    (\pt ->
+                                        ( Quantity.ratio (pt.distanceFromStart |> Quantity.minus startDistance)
+                                            length
+                                        , Point3d.zCoordinate pt.xyz
+                                        )
+                                    )
+                    in
+                    altitudesByFraction
+
+                Nothing ->
+                    []
+
+        interpolateOriginalAltitudesByDistance fraction =
+            let
+                twoSides =
+                    prepareOriginalAltitudesForInterpolation
+                        |> List.Extra.splitWhen (\( k, _ ) -> k >= fraction)
+            in
+            case twoSides of
+                Just ( beforePairs, afterPairs ) ->
+                    let
+                        ( lastBefore, firstAfter ) =
+                            ( List.Extra.last beforePairs, List.head afterPairs )
+                    in
+                    case ( lastBefore, firstAfter ) of
+                        ( Just ( priorFraction, priorAltitude ), Just ( nextFraction, nextAltitude ) ) ->
+                            let
+                                ( beforeContribution, afterContribution ) =
+                                    ( (nextFraction - fraction) / (nextFraction - priorFraction)
+                                    , (fraction - priorFraction) / (nextFraction - priorFraction)
+                                    )
+                            in
+                            Quantity.plus
+                                (Quantity.multiplyBy beforeContribution priorAltitude)
+                                (Quantity.multiplyBy afterContribution nextAltitude)
+
+                        ( Just ( priorFraction, priorAltitude ), Nothing ) ->
+                            -- Might happen at the end.
+                            priorAltitude
+
+                        ( Nothing, Just ( nextFraction, nextAltitude ) ) ->
+                            -- Probably should not happen, but
+                            nextAltitude
+
+                        ( Nothing, Nothing ) ->
+                            -- Huh?
+                            Quantity.zero
+
+                Nothing ->
+                    Quantity.zero
+
+        -- Given we interpolate using interval [0..1], we can figure out the
+        -- original altitude by interpolation using this as a proportion of
+        -- distance along the original section of track.
         newBendEntirely =
             -- We (probably) have a bend, but it's flat. We need to interpolate altitudes.
+            -- We can do this uniformly, or based on the original profile (by distance portion).
             case ( entryInformation, exitInformation ) of
                 ( Just entry, Just exit ) ->
                     let
@@ -1027,16 +1106,25 @@ preview model track =
                                         originalSegmentStart =
                                             LineSegment2d.startPoint seg
 
+                                        proportionalDistance =
+                                            Quantity.ratio dist actualNewLength
+
                                         adjustment =
-                                            altitudeChange
-                                                |> Quantity.multiplyBy (Quantity.ratio dist actualNewLength)
+                                            altitudeChange |> Quantity.multiplyBy proportionalDistance
+
+                                        newAltitude =
+                                            case model.smoothGradient of
+                                                Holistic ->
+                                                    Point3d.zCoordinate entry.originalTrackPoint.xyz
+                                                        |> Quantity.plus adjustment
+
+                                                Piecewise ->
+                                                    interpolateOriginalAltitudesByDistance proportionalDistance
                                     in
                                     Point3d.xyz
                                         (Point2d.xCoordinate originalSegmentStart)
                                         (Point2d.yCoordinate originalSegmentStart)
-                                        (Point3d.zCoordinate entry.originalTrackPoint.xyz
-                                            |> Quantity.plus adjustment
-                                        )
+                                        newAltitude
                                         |> TrackPoint.trackPointFromPoint
                                 )
                                 (List.drop 0 completeSegments)
@@ -1048,7 +1136,7 @@ preview model track =
                     []
 
         attachmentPoints =
-            -- We (probably) have a bend, but it's flat. We need to interpolate altitudes.
+            -- We need this to inform "Main" of where the track has changed.
             case ( entryInformation, exitInformation ) of
                 ( Just entry, Just exit ) ->
                     Just

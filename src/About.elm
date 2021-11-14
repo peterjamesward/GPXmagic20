@@ -16,11 +16,15 @@ aboutText ipInfo =
 
 - **New tool alert** Next to _Bend smoother classic_ now lives _Curve Former_.
 This will force a bend onto the radius you choose, provided it can find transitions
-(of equal but opposite curvature) back onto the route.
+(with a different radius) back onto the route.
+
 Use the Orange marker to position roughly, and the two-way drag control for fine positioning.
 Optionally use the Orange and Purple markers to limit action if tracks are very close.
 Optionally pull outlying point onto the radius.
-It will smooth elevation change over the new region of track.
+
+It will optionally smooth elevation change over the new region of track. Otherwise, it
+will attempt to follow, by interpolation, the original elevations.
+
 Yes, it sounds complicated; there's a video to explain.
 
 - Orange and Puple markers easier to see when zoomed out in Profile (they are always
