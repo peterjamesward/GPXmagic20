@@ -3,6 +3,8 @@ module MyIP exposing (processIpInfo, requestIpInformation, sendIpInfo)
 import GeoCodeDecoders exposing (IpInfo, encodeIpInfo, encodeLogInfo, ipInfoDecoder)
 import Http exposing (header)
 import Iso8601
+import Json.Encode
+import M3O exposing (m3O_API_TOKEN)
 import Time exposing (Posix)
 import Url.Builder as Builder
 
@@ -35,8 +37,8 @@ apiRoot =
 
 
 loggerRoot =
+    "https://api.m3o.com"
 
-    "https://9vrfiscge1.execute-api.eu-west-1.amazonaws.com"
 
 requestIpInformation : (Result Http.Error IpInfo -> msg) -> Cmd msg
 requestIpInformation msg =
@@ -79,8 +81,10 @@ sendIpInfo time msg ipInfo =
             in
             Http.request
                 { method = "POST"
-                , headers = []
-                , url = Builder.crossOrigin loggerRoot [ "prod" ] []
+                , headers =
+                    [ Http.header "Authorization" ("Bearer " ++ m3O_API_TOKEN)
+                    ]
+                , url = Builder.crossOrigin loggerRoot [ "v1", "db", "Create" ] []
                 , body = Http.jsonBody <| encodeLogInfo logInfo
                 , expect = Http.expectWhatever msg
                 , timeout = Nothing
@@ -89,3 +93,20 @@ sendIpInfo time msg ipInfo =
 
         Nothing ->
             Cmd.none
+
+
+
+{-
+   curl "https://api.m3o.com/v1/db/Create" \
+   2-H "Content-Type: application/json" \
+   3-H "Authorization: Bearer $M3O_API_TOKEN" \
+   4-d '{
+   5  "record": {
+   6    "age": 42,
+   7    "id": "1",
+   8    "isActive": true,
+   9    "name": "Jane"
+   10  },
+   11  "table": "users"
+   12}'
+-}

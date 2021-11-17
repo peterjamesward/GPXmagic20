@@ -8,10 +8,6 @@
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
 
-Investigate **derivatives** of Vector3d and see if anything useful emerges.
-> This will be editing "blind". Could be fun.
-> Limiting 1st or 2nd derivatives.
-
 **Improve** start/end coincidence testing in Intersections.
 > Uses the TP.index here to see if they are adjacent on the route rather than just by chance.  
 > Better, still too many now. Need closer look at Dan's test file.
@@ -25,7 +21,6 @@ Investigate **derivatives** of Vector3d and see if anything useful emerges.
 **DEBT**: Factor the PortMessage handling out of main::update. PortController.update?
 
 **DEBT**: Switch currentPoint to : Int, avoid stale state worries.
-&& consider switch to Dict Int TrackPoint (again).
 
 **DEBT**: Factor out the common pattern of min, max for the pointers.
 
@@ -38,6 +33,10 @@ Investigate **derivatives** of Vector3d and see if anything useful emerges.
 ---
 
 # Not doing
+
+Investigate **derivatives** of Vector3d and see if anything useful emerges.
+> This will be editing "blind". Could be fun.
+> Limiting 1st or 2nd derivatives.
 
 **Minimum radius**
 > Copious notes on this in my notebook. No pleasing way of smoothing complex bend series

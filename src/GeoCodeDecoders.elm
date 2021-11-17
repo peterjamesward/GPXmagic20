@@ -73,13 +73,22 @@ encodeIpInfo record =
 
 encodeLogInfo : LogInfo -> Json.Encode.Value
 encodeLogInfo record =
+    -- Modified to suit the m3o DB API.
+    let
+        data =
+            Json.Encode.object
+                [ ( "timestamp", Json.Encode.string <| record.timestamp )
+                , ( "ip", Json.Encode.string <| record.ip )
+                , ( "country", Json.Encode.string <| record.country )
+                , ( "region", Json.Encode.string <| record.region )
+                , ( "city", Json.Encode.string <| record.city )
+                , ( "zip", Json.Encode.string <| record.zip )
+                , ( "lat", Json.Encode.float <| record.latitude )
+                , ( "lon", Json.Encode.float <| record.longitude )
+                ]
+    in
     Json.Encode.object
-        [ ( "timestamp", Json.Encode.string <| record.timestamp )
-        , ( "ip", Json.Encode.string <| record.ip )
-        , ( "country", Json.Encode.string <| record.country )
-        , ( "region", Json.Encode.string <| record.region )
-        , ( "city", Json.Encode.string <| record.city )
-        , ( "zip", Json.Encode.string <| record.zip )
-        , ( "lat", Json.Encode.float <| record.latitude )
-        , ( "lon", Json.Encode.float <| record.longitude )
-        ]
+        [ ( "table", Json.Encode.string "GPXmagic" )
+        , ( "record", data )
+    ]
+
