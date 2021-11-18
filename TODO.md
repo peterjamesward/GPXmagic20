@@ -1,6 +1,9 @@
 
 # **BUGS**
 
+Click locate not always working on Plan. 
+> See Chorleywood Loop, roundabout in Chorleywood near end.
+
 ---
 
 # TO-DO
@@ -33,6 +36,9 @@
 ---
 
 # Not doing
+
+Visual Styles options layout not wrapping.
+Turns out to be Safari!
 
 Investigate **derivatives** of Vector3d and see if anything useful emerges.
 > This will be editing "blind". Could be fun.

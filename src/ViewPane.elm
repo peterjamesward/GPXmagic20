@@ -14,7 +14,7 @@ import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg, trackPointNearestFromIndexFor3d)
+import ScenePainterCommon exposing (ImageMsg, trackPointNearestFromIndexFor3d, trackPointNearestFromIndexForPlan)
 import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
@@ -264,7 +264,7 @@ refreshSceneSearcher track context =
             { context | sceneSearcher = ScenePainterProfile.profilePointNearestRay track.trackPoints }
 
         ViewPlan ->
-            { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex }
+            { context | sceneSearcher = trackPointNearestFromIndexForPlan track.spatialIndex }
 
         ViewMap ->
             context

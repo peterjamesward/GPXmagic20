@@ -12,7 +12,9 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.1 update 2021-11-17
+## 2.7.2 update 2021-11-18
+
+- Fix for wrong click detect logic in Plan view.
 
 - **New tool alert** Next to _Bend smoother classic_ now lives _Curve Former_.
 This will force a bend onto the radius you choose, provided it can find transitions
