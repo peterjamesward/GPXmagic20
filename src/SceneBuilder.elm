@@ -13,6 +13,7 @@ import Length exposing (Length, Meters, inMeters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import MoveAndStretch
 import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
@@ -25,7 +26,6 @@ import SpatialIndex exposing (SpatialNode(..))
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
-import MoveAndStretch
 import Utils exposing (gradientColourPastel, gradientColourVivid, squareAspect, terrainColourFromHeight)
 import Vector3d
 
@@ -74,6 +74,10 @@ renderTrack options track =
                 |> BoundingBox3d.expandBy (meters 500)
                 |> squareAspect
 
+        floorPlane =
+            -- To draw the road curtains properly if below sea level.
+            Plane3d.xy |> Plane3d.offsetBy (BoundingBox3d.minZ track.box)
+
         reducedTrack =
             track.trackPoints
 
@@ -117,7 +121,7 @@ renderTrack options track =
                   else
                     []
                 , if options.curtainStyle /= NoCurtain && not options.terrainOn then
-                    mapOverPairs (curtainBetween gradientFunction)
+                    mapOverPairs (curtainBetween floorPlane gradientFunction)
 
                   else
                     []
@@ -211,8 +215,13 @@ centreLineBetween colouring pt1 pt2 =
         (smallUpshiftTo pt2)
 
 
-curtainBetween : (Float -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
-curtainBetween colouring pt1 pt2 =
+curtainBetween :
+    Plane3d.Plane3d Length.Meters LocalCoords
+    -> (Float -> Color)
+    -> TrackPoint
+    -> TrackPoint
+    -> List (Entity LocalCoords)
+curtainBetween floorPlane colouring pt1 pt2 =
     let
         gradient =
             gradientFromPoint pt1
@@ -221,7 +230,7 @@ curtainBetween colouring pt1 pt2 =
             LineSegment3d.from pt1.xyz pt2.xyz
 
         curtainHem =
-            roadAsSegment |> LineSegment3d.projectOnto Plane3d.xy
+            LineSegment3d.projectOnto floorPlane roadAsSegment
     in
     [ Scene3d.quad (Material.color <| colouring gradient)
         (LineSegment3d.startPoint roadAsSegment)

@@ -1,9 +1,6 @@
 
 # **BUGS**
 
-When altitude is negative, road curtain goes down. Not a good look.
-Should be from bottom of bounding box.
-
 ---
 
 # TO-DO
