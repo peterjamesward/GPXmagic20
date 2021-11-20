@@ -1604,7 +1604,7 @@ renderTrackSceneElements model =
                     -- Experimental optimisation to reduce WebGL load.
                     let
                         (theBefore, theRemainder) =
-                            isTrack.trackPoints |> List.Extra.splitAt model.markerPositionAtLastSceneBuild
+                            isTrack.trackPoints |> List.Extra.splitAt (isTrack.currentNode.index - 1000)
 
                         (detailSection, theAfter) =
                             theRemainder |> List.Extra.splitAt 2000

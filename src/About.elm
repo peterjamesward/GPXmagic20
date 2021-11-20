@@ -12,29 +12,11 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.3 update 2021-11-20
+## 2.7.4 update 2021-11-20
 
-- Fix for road curtain on track below sea level.
+- May be significantly more responsive when dealing with many thousands of points.
 
-- Fix for wrong click detect logic in Plan view.
-
-- **New tool alert** Next to _Bend smoother classic_ now lives _Curve Former_.
-This will force a bend onto the radius you choose, provided it can find transitions
-(with a different radius) back onto the route.
-
-Use the Orange marker to position roughly, and the two-way drag control for fine positioning.
-Optionally use the Orange and Purple markers to limit action if tracks are very close.
-Optionally pull outlying point onto the radius.
-
-It will optionally smooth elevation change over the new region of track. Otherwise, it
-will attempt to follow, by interpolation, the original elevations.
-
-Yes, it sounds complicated; there's a video to explain: https://youtu.be/DjdwAFkgw2o
-
-- Orange and Puple markers easier to see when zoomed out in Profile (they are always
-the same size on the screen somehow).
-
-- Minor errors fixed and removal of some techical debt.
+- Fix for road curtains and pillars on track below sea level.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")
