@@ -61,7 +61,7 @@ import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoint
 import TrackSplitter
 import Url exposing (Url)
 import Utils exposing (useIcon)
-import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
+import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isMapVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
@@ -358,6 +358,7 @@ update msg model =
                     }
 
                 -- Cheeky hack to add storage message in here.
+                -- We ask for a preview in case user has opened Bend Smoother, Nudge, say.
                 ( finalModel, cmds ) =
                     processPostUpdateAction
                         newModel
@@ -949,7 +950,7 @@ draggedOnMap json track =
                 Nothing
 
 
-updatePreviews : Model -> Track -> (Track, Track)
+updatePreviews : Model -> Track -> ( Track, Track )
 updatePreviews model track =
     -- Interim step in re-factor!
     let
@@ -1092,15 +1093,20 @@ processPostUpdateAction model action =
                 ( bendPreview, nudgePreview ) =
                     -- These are passed to the map.
                     updatePreviews model track
+
+                mapUpdateCmd =
+                    if isMapVisible model.viewPanes then
+                        PortController.addMarkersToMap
+                            track
+                            bendPreview
+                            nudgePreview
+                            model.moveAndStretch
+
+                    else
+                        Cmd.none
             in
             ( model |> renderVaryingSceneElements
-            , Cmd.batch
-                [ PortController.addMarkersToMap
-                    track
-                    bendPreview
-                    nudgePreview
-                    model.moveAndStretch
-                ]
+            , mapUpdateCmd
             )
 
         ( _, ActionCommand a ) ->

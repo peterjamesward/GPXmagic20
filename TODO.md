@@ -1,8 +1,8 @@
 
 # **BUGS**
 
-Click locate not always working on Plan. 
-> See Chorleywood Loop, roundabout in Chorleywood near end.
+When altitude is negative, road curtain goes down. Not a good look.
+Should be from bottom of bounding box.
 
 ---
 

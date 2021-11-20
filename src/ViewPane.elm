@@ -255,7 +255,7 @@ refreshSceneSearcher track context =
     -- the latest version of Track available for searching.
     case context.viewingMode of
         ViewThirdPerson ->
-            { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex  }
+            { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex }
 
         ViewFirstPerson ->
             { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex }
@@ -340,9 +340,12 @@ viewModeChoices pane wrapper =
         }
 
 
-view : ( Scene, Scene, Scene )
+view :
+    ( Scene, Scene, Scene )
     -> { model | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
-    -> (ViewPaneMessage -> msg) -> ViewPane -> Element msg
+    -> (ViewPaneMessage -> msg)
+    -> ViewPane
+    -> Element msg
 view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
