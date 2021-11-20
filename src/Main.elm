@@ -60,7 +60,7 @@ import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
 import Url exposing (Url)
-import Utils exposing (useIcon)
+import Utils exposing (elide, useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isMapVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
@@ -139,6 +139,7 @@ type alias Model =
     , renderingContext : Maybe RenderingContext
     , viewPanes : List ViewPane
     , track : Maybe Track
+    , markerPositionAtLastSceneBuild : Int
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
     , nudgePreview : Scene
@@ -190,6 +191,7 @@ init mflags origin navigationKey =
       , time = Time.millisToPosix 0
       , zone = Time.utc
       , track = Nothing
+      , markerPositionAtLastSceneBuild = 0
       , staticScene = []
       , profileScene = []
       , terrainScene = []
@@ -1435,10 +1437,22 @@ composeScene model =
 renderVaryingSceneElements : Model -> Model
 renderVaryingSceneElements model =
     let
+        latestModel =
+            case model.track of
+                Just hasTrack ->
+                    if abs (hasTrack.currentNode.index - model.markerPositionAtLastSceneBuild) > 500 then
+                        renderTrackSceneElements model
+
+                    else
+                        model
+
+                Nothing ->
+                    model
+
         stretchMarker =
-            if Accordion.tabIsOpen MoveAndStretch.toolLabel model.toolsAccordion then
-                Maybe.map (MoveAndStretch.getStretchPointer model.moveAndStretch)
-                    model.track
+            if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
+                Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
+                    latestModel.track
                     |> Maybe.join
 
             else
@@ -1446,29 +1460,29 @@ renderVaryingSceneElements model =
 
         updatedMarkers =
             -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
-            Maybe.map (SceneBuilder.renderMarkers stretchMarker) model.track
+            Maybe.map (SceneBuilder.renderMarkers stretchMarker) latestModel.track
                 |> Maybe.withDefault []
 
         updatedProfileMarkers =
             Maybe.map
                 (SceneBuilderProfile.renderMarkers
-                    model.displayOptions
+                    latestModel.displayOptions
                     stretchMarker
                 )
-                model.track
+                latestModel.track
                 |> Maybe.withDefault []
 
         updatedMoveAndStretchSettings =
             let
                 settings =
-                    model.moveAndStretch
+                    latestModel.moveAndStretch
             in
             if
-                Accordion.tabIsOpen MoveAndStretch.toolLabel model.toolsAccordion
-                    && MoveAndStretch.settingNotZero model.moveAndStretch
+                Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
+                    && MoveAndStretch.settingNotZero latestModel.moveAndStretch
             then
-                Maybe.map (MoveAndStretch.preview model.moveAndStretch) model.track
-                    |> Maybe.withDefault model.moveAndStretch
+                Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
+                    |> Maybe.withDefault latestModel.moveAndStretch
 
             else
                 { settings | preview = [] }
@@ -1476,22 +1490,22 @@ renderVaryingSceneElements model =
         updatedNudgeSettings =
             let
                 settings =
-                    model.nudgeSettings
+                    latestModel.nudgeSettings
             in
             if
-                Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion
+                Accordion.tabIsOpen Nudge.toolLabel latestModel.toolsAccordion
                     && Nudge.settingNotZero settings
             then
-                Maybe.map (Nudge.previewNudgeNodes model.nudgeSettings) model.track
+                Maybe.map (Nudge.previewNudgeNodes latestModel.nudgeSettings) latestModel.track
                     |> Maybe.withDefault settings
 
             else
                 { settings | preview = [] }
 
         updatedBendOptions =
-            if Accordion.tabIsOpen BendSmoother.toolLabel model.toolsAccordion then
-                Maybe.map (tryBendSmoother model.bendOptions) model.track
-                    |> Maybe.withDefault model.bendOptions
+            if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
+                Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
+                    |> Maybe.withDefault latestModel.bendOptions
 
             else
                 BendSmoother.defaultOptions
@@ -1500,12 +1514,12 @@ renderVaryingSceneElements model =
             -- TODO: ?? Move pointers to discovered paste start and end ??
             let
                 options =
-                    model.stravaOptions
+                    latestModel.stravaOptions
             in
-            if Accordion.tabIsOpen StravaTools.toolLabel model.toolsAccordion then
+            if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
                 { options
                     | preview =
-                        Maybe.map (StravaTools.preview options) model.track
+                        Maybe.map (StravaTools.preview options) latestModel.track
                             |> Maybe.withDefault []
                 }
 
@@ -1515,19 +1529,19 @@ renderVaryingSceneElements model =
         updatedStraightenOptions =
             let
                 options =
-                    model.straightenOptions
+                    latestModel.straightenOptions
             in
-            if Accordion.tabIsOpen Straightener.toolLabel model.toolsAccordion then
-                Maybe.map (Straightener.lookForSimplifications options) model.track
+            if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
+                Maybe.map (Straightener.lookForSimplifications options) latestModel.track
                     |> Maybe.withDefault options
 
             else
                 options
 
         graphEdge =
-            case model.track of
+            case latestModel.track of
                 Just isTrack ->
-                    if Accordion.tabIsOpen Graph.toolLabel model.toolsAccordion then
+                    if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
                         Maybe.map Graph.previewTraversal isTrack.graph
                             |> Maybe.withDefault []
 
@@ -1538,17 +1552,17 @@ renderVaryingSceneElements model =
                     []
 
         curveFormerWithPreview =
-            Maybe.map (CurveFormer.preview model.curveFormer) model.track
-                |> Maybe.withDefault model.curveFormer
+            Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
+                |> Maybe.withDefault latestModel.curveFormer
 
         curveFormerCircle =
-            if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
+            if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
                 CurveFormer.getPreview curveFormerWithPreview
 
             else
                 []
     in
-    { model
+    { latestModel
         | visibleMarkers = updatedMarkers
         , profileMarkers = updatedProfileMarkers
         , nudgeSettings = updatedNudgeSettings
@@ -1566,14 +1580,14 @@ renderVaryingSceneElements model =
                    )
         , nudgeProfilePreview =
             SceneBuilderProfile.previewNudge
-                model.displayOptions
+                latestModel.displayOptions
                 updatedNudgeSettings.preview
         , moveAndStretchPreview =
             SceneBuilder.previewMoveAndStretch
                 updatedMoveAndStretchSettings.preview
         , moveAndStretchProfilePreview =
             SceneBuilderProfile.previewMoveAndStretch
-                model.displayOptions
+                latestModel.displayOptions
                 updatedMoveAndStretchSettings.preview
         , straightenOptions = updatedStraightenOptions
         , highlightedGraphEdge = SceneBuilder.showGraphEdge graphEdge
@@ -1586,23 +1600,37 @@ renderTrackSceneElements model =
     case model.track of
         Just isTrack ->
             let
+                reducedTrack =
+                    -- Experimental optimisation to reduce WebGL load.
+                    let
+                        (theBefore, theRemainder) =
+                            isTrack.trackPoints |> List.Extra.splitAt model.markerPositionAtLastSceneBuild
+
+                        (detailSection, theAfter) =
+                            theRemainder |> List.Extra.splitAt 2000
+
+                        (elidedBefore, elidedAfter) =
+                            (elide <| elide <| elide theBefore, elide <| elide <| elide theAfter)
+                    in
+                    { isTrack | trackPoints = elidedBefore ++ detailSection ++ elidedAfter  }
+
                 updatedScene =
                     if is3dVisible model.viewPanes then
-                        SceneBuilder.renderTrack model.displayOptions isTrack
+                        SceneBuilder.renderTrack model.displayOptions reducedTrack
 
                     else
                         []
 
                 updatedProfile =
                     if isProfileVisible model.viewPanes then
-                        SceneBuilderProfile.renderTrack model.displayOptions isTrack
+                        SceneBuilderProfile.renderTrack model.displayOptions reducedTrack
 
                     else
                         []
 
                 updatedTerrain =
                     if is3dVisible model.viewPanes then
-                        SceneBuilder.renderTerrain model.displayOptions isTrack
+                        SceneBuilder.renderTerrain model.displayOptions reducedTrack
 
                     else
                         []
@@ -1612,6 +1640,7 @@ renderTrackSceneElements model =
                 , profileScene = updatedProfile
                 , terrainScene = updatedTerrain
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
+                , markerPositionAtLastSceneBuild = isTrack.currentNode.index
             }
                 |> renderVaryingSceneElements
 

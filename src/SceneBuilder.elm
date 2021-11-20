@@ -126,7 +126,7 @@ renderTrack options track =
                   else
                     []
                 , if options.roadPillars && not options.terrainOn then
-                    mapOverPoints roadSupportPillar
+                    mapOverPoints (roadSupportPillar floorPlane)
 
                   else
                     []
@@ -313,14 +313,17 @@ paintSomethingBetween width material pt1 pt2 =
     ]
 
 
-roadSupportPillar : TrackPoint -> List (Entity LocalCoords)
-roadSupportPillar pt =
+roadSupportPillar :
+    Plane3d.Plane3d Length.Meters LocalCoords
+    -> TrackPoint
+    -> List (Entity LocalCoords)
+roadSupportPillar floorPlane pt =
     -- V2.0 just uses an extruded cross.
     let
         centre =
             LineSegment3d.from
                 (pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 0.0 -1.0))
-                (pt.xyz |> Point3d.projectOnto Plane3d.xy)
+                (pt.xyz |> Point3d.projectOnto floorPlane)
 
         eastSide =
             centre |> LineSegment3d.translateBy (Vector3d.meters -1.0 0.0 0.0)

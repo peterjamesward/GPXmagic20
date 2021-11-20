@@ -12,7 +12,9 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.2 update 2021-11-18
+## 2.7.3 update 2021-11-20
+
+- Fix for road curtain on track below sea level.
 
 - Fix for wrong click detect logic in Plan view.
 

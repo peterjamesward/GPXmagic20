@@ -20,6 +20,23 @@ type alias Point =
     ( Float, Float )
 
 
+elide : List a -> List a
+elide input =
+    -- Naive implementation very wasteful.
+    let
+        helper : List a -> List a -> List a
+        helper source output =
+            case source of
+                aa :: bb :: cc ->
+                    helper cc (aa :: output)
+
+                zzz ->
+                    (List.reverse zzz) ++ output
+
+    in
+    helper input [] |> List.reverse
+
+
 showMaybe : Maybe Int -> String
 showMaybe mi =
     case mi of
