@@ -35,6 +35,7 @@ type Mode
 
 type alias Model =
     { vector : Vector2d.Vector2d Length.Meters LocalCoords
+    , lastVector : Vector2d.Vector2d Length.Meters LocalCoords
     , dragging : Maybe Point
     , preview : List TrackPoint
     , mode : Mode
@@ -49,6 +50,7 @@ type alias Point =
 
 defaultModel =
     { vector = Vector2d.zero
+    , lastVector = Vector2d.zero
     , dragging = Nothing
     , preview = []
     , mode = Translate
@@ -168,23 +170,17 @@ update message model wrapper track =
                 Just dragStart ->
                     let
                         newVector =
-                            Vector2d.from dragStart offset
+                            model.lastVector |> Vector2d.plus (Vector2d.from dragStart offset)
                     in
-                    ( track
-                        |> preview
-                            { model
-                                | vector =
-                                    if Vector2d.length newVector |> Quantity.greaterThan (meters 100.0) then
-                                        Vector2d.scaleTo (Length.meters 100.0) newVector
-
-                                    else
-                                        newVector
-                            }
+                    ( { model | vector = newVector }
                     , PostUpdateActions.ActionPreview
                     )
 
         DraggerRelease _ ->
-            ( { model | dragging = Nothing }
+            ( { model
+                | dragging = Nothing
+                , lastVector = model.vector
+              }
             , PostUpdateActions.ActionPreview
             )
 
