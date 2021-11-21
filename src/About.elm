@@ -12,7 +12,7 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.5 update 2021-11-____
+## 2.7.5 update 2021-11-21
 
 - Improved two-way drag control in Move & Stretch.
 
