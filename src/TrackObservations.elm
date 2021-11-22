@@ -370,7 +370,7 @@ viewGradientChanges imperial options obs wrap =
                         , label = text "Smooth these points in 3D"
                         }
     in
-    wrappedRow [ spacing 10, padding 10 ] <|
+    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 600), scrollbarY ] <|
         [ gradientChangeThresholdSlider options wrap
         , autosmoothButton
         ]
@@ -408,7 +408,7 @@ viewBearingChanges imperial options obs wrap =
                         , label = text "Smooth these points in 3D"
                         }
     in
-    wrappedRow [ spacing 10, padding 10 ] <|
+    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 600), scrollbarY ] <|
         [ bearingChangeThresholdSlider options wrap
         , autosmoothButton
         ]
@@ -477,7 +477,7 @@ gradientChangeThresholdSlider options wrap =
                     "Threshold = "
                         ++ showDecimal0 options.gradientChangeThreshold
                         ++ "%"
-        , min = 5.0
+        , min = 1.0
         , max = 20.0
         , step = Just 1.0
         , value = options.gradientChangeThreshold

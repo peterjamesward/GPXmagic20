@@ -12,9 +12,15 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.5 update 2021-11-21
+## 2.7.6 update 2021-11-22
 
-- Improved two-way drag control in Move & Stretch.
+- New slider in Visual Options allows you to reduce the graphics level, which may improve
+performance for routes with many track points. It will render all trackpoints close to the
+Orange marker, but reduced this to a quarter beyond a certain distance. Increasing the reduction
+(slider to the right) reduces the area of full detail. Zero disables this feature. On many tracks
+you will not notice a difference.
+
+- Gradient Problems slider goes down to 1%.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

@@ -5,10 +5,9 @@
 
 # TO-DO
 
-?? Can I make Terrain more efficient by using a height valuation passed into SI?
-Shall I make Terrain use reducedTrack (see if above is sufficient, and note it already has a health warning.)
-
-> Hi Peter, I was wondering whether you have any arguments against moving the minimum of the gradient problems tab from 5% to 1%? Reason being that that would make things a whole lot easier with high-res gpx files. Thanks a bunch for building such an amazing tool!
+> Hi Peter, I was wondering whether you have any arguments against moving the minimum of the gradient problems tab 
+> from 5% to 1%? Reason being that that would make things a whole lot easier with high-res gpx files. 
+> Thanks a bunch for building such an amazing tool!
 
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
@@ -38,6 +37,9 @@ Shall I make Terrain use reducedTrack (see if above is sufficient, and note it a
 ---
 
 # Not doing
+
+Can I make Terrain more efficient by using a height valuation passed into SI?
+Yes, but why bother?
 
 Visual Styles options layout not wrapping.
 Turns out to be Safari!
