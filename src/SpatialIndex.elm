@@ -7,6 +7,8 @@ module SpatialIndex exposing
     , queryAllContaining
     , queryNearestToAxisUsing
     , queryWithFilter
+    , toList
+    , transformUsing
     )
 
 {-
@@ -255,3 +257,83 @@ queryNearestToAxisUsing current axis valuation =
 
             else
                 Nothing
+
+
+transformUsing :
+    SpatialNode contentTypeA units coords
+    ->
+        (List (SpatialContent contentTypeA units coords)
+         -> List (SpatialContent contentTypeB units coords)
+         -> List (SpatialContent contentTypeB units coords)
+        )
+    -> units
+    -> coords
+    -> SpatialNode contentTypeB units coords
+transformUsing current transform units coords =
+    case current of
+        Blank ->
+            Blank
+
+        SpatialNode node ->
+            let
+                newNW =
+                    transformUsing node.nw transform units coords
+
+                newNE =
+                    transformUsing node.ne transform units coords
+
+                newSE =
+                    transformUsing node.se transform units coords
+
+                newSW =
+                    transformUsing node.sw transform units coords
+
+                childContents =
+                    [ newNW, newNE, newSE, newSW ]
+                        |> List.filterMap
+                            (\child ->
+                                case child of
+                                    SpatialNode ch ->
+                                        Just ch.contents
+
+                                    Blank ->
+                                        Nothing
+                            )
+                        |> List.concat
+
+                newContent =
+                    transform node.contents childContents
+            in
+            SpatialNode
+                { box = node.box
+                , minSize = node.minSize
+                , contents = newContent
+                , nw = newNW
+                , ne = newNE
+                , se = newSE
+                , sw = newSW
+                }
+
+
+toList : SpatialNode contentType units coords -> List (SpatialContent contentType units coords)
+toList current =
+    toListInternal current [] |> List.concat
+
+
+toListInternal :
+    SpatialNode contentType units coords
+    -> List (List (SpatialContent contentType units coords))
+    -> List (List (SpatialContent contentType units coords))
+toListInternal current accum =
+    case current of
+        SpatialNode node ->
+            node.contents
+                :: (toListInternal node.nw <|
+                        toListInternal node.ne <|
+                            toListInternal node.se <|
+                                toListInternal node.sw <|
+                                    accum
+                   )
+
+        Blank ->
+            accum
