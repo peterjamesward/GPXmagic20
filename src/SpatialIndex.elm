@@ -2,14 +2,12 @@ module SpatialIndex exposing
     ( SpatialContent
     , SpatialNode
     , add
-    , aggregateUsing
     , empty
     , query
     , queryAllContaining
     , queryNearestToAxisUsing
     , queryWithFilter
     , toList
-    , transformUsing
     )
 
 {-
@@ -258,107 +256,6 @@ queryNearestToAxisUsing current axis valuation =
 
             else
                 Nothing
-
-
-aggregateUsing :
-    SpatialNode contentTypeA units coords
-    ->
-        (List (SpatialContent contentTypeA units coords)
-         -> List (SpatialContent contentTypeB units coords)
-         -> List (SpatialContent contentTypeB units coords)
-        )
-    -> units
-    -> coords
-    -> SpatialNode contentTypeB units coords
-aggregateUsing current aggregator units coords =
-    -- Note this does most of its work on the return stroke, the new parent
-    -- value being a derivation from the childrens' and the current parent's contents.
-    -- A "push-down" traversal is probbly also useful.
-    case current of
-        Blank ->
-            Blank
-
-        SpatialNode node ->
-            let
-                newNW =
-                    aggregateUsing node.nw aggregator units coords
-
-                newNE =
-                    aggregateUsing node.ne aggregator units coords
-
-                newSE =
-                    aggregateUsing node.se aggregator units coords
-
-                newSW =
-                    aggregateUsing node.sw aggregator units coords
-
-                childContents =
-                    [ newNW, newNE, newSE, newSW ]
-                        |> List.filterMap
-                            (\child ->
-                                case child of
-                                    SpatialNode ch ->
-                                        Just ch.contents
-
-                                    Blank ->
-                                        Nothing
-                            )
-                        |> List.concat
-
-                newContent =
-                    aggregator node.contents childContents
-            in
-            SpatialNode
-                { box = node.box
-                , minSize = node.minSize
-                , contents = newContent
-                , nw = newNW
-                , ne = newNE
-                , se = newSE
-                , sw = newSW
-                }
-
-
-transformUsing :
-    SpatialNode contentTypeA units coords
-    ->
-        (List contentTypeB
-         -> contentTypeA
-         -> contentTypeB
-        )
-    -> List contentTypeB
-    -> units
-    -> coords
-    -> SpatialNode contentTypeB units coords
-transformUsing current transform state units coords =
-    -- A "push-down" traversal is probbly also useful.
-    -- transform state currentChild |-> newChild.
-    case current of
-        Blank ->
-            Blank
-
-        SpatialNode node ->
-            let
-                newContent =
-                    node.contents
-                        |> List.map
-                            (\entry ->
-                                { box = entry.box
-                                , content = transform state entry.content
-                                }
-                            )
-
-                newNakedContent = List.map .content newContent
-            in
-            SpatialNode
-                { box = node.box
-                , minSize = node.minSize
-                , contents = newContent
-                , nw = transformUsing node.nw transform newNakedContent units coords
-                , ne = transformUsing node.ne transform newNakedContent units coords
-                , se = transformUsing node.se transform newNakedContent units coords
-                , sw = transformUsing node.sw transform newNakedContent units coords
-                }
 
 
 toList : SpatialNode contentType units coords -> List (SpatialContent contentType units coords)

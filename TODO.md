@@ -5,10 +5,6 @@
 
 # TO-DO
 
-**Terrain** Daft doing a recursive traversal and a query for each node.
-More sense to transform the tree to contain minima, and then just traverse to render blocks.
-Much less memory allocation, much less processing.
-
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
 
