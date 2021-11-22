@@ -2,6 +2,7 @@ module SpatialIndex exposing
     ( SpatialContent
     , SpatialNode
     , add
+    , aggregateUsing
     , empty
     , query
     , queryAllContaining
@@ -259,7 +260,7 @@ queryNearestToAxisUsing current axis valuation =
                 Nothing
 
 
-transformUsing :
+aggregateUsing :
     SpatialNode contentTypeA units coords
     ->
         (List (SpatialContent contentTypeA units coords)
@@ -269,7 +270,10 @@ transformUsing :
     -> units
     -> coords
     -> SpatialNode contentTypeB units coords
-transformUsing current transform units coords =
+aggregateUsing current aggregator units coords =
+    -- Note this does most of its work on the return stroke, the new parent
+    -- value being a derivation from the childrens' and the current parent's contents.
+    -- A "push-down" traversal is probbly also useful.
     case current of
         Blank ->
             Blank
@@ -277,16 +281,16 @@ transformUsing current transform units coords =
         SpatialNode node ->
             let
                 newNW =
-                    transformUsing node.nw transform units coords
+                    aggregateUsing node.nw aggregator units coords
 
                 newNE =
-                    transformUsing node.ne transform units coords
+                    aggregateUsing node.ne aggregator units coords
 
                 newSE =
-                    transformUsing node.se transform units coords
+                    aggregateUsing node.se aggregator units coords
 
                 newSW =
-                    transformUsing node.sw transform units coords
+                    aggregateUsing node.sw aggregator units coords
 
                 childContents =
                     [ newNW, newNE, newSE, newSW ]
@@ -302,7 +306,7 @@ transformUsing current transform units coords =
                         |> List.concat
 
                 newContent =
-                    transform node.contents childContents
+                    aggregator node.contents childContents
             in
             SpatialNode
                 { box = node.box
@@ -315,8 +319,51 @@ transformUsing current transform units coords =
                 }
 
 
+transformUsing :
+    SpatialNode contentTypeA units coords
+    ->
+        (List contentTypeB
+         -> contentTypeA
+         -> contentTypeB
+        )
+    -> List contentTypeB
+    -> units
+    -> coords
+    -> SpatialNode contentTypeB units coords
+transformUsing current transform state units coords =
+    -- A "push-down" traversal is probbly also useful.
+    -- transform state currentChild |-> newChild.
+    case current of
+        Blank ->
+            Blank
+
+        SpatialNode node ->
+            let
+                newContent =
+                    node.contents
+                        |> List.map
+                            (\entry ->
+                                { box = entry.box
+                                , content = transform state entry.content
+                                }
+                            )
+
+                newNakedContent = List.map .content newContent
+            in
+            SpatialNode
+                { box = node.box
+                , minSize = node.minSize
+                , contents = newContent
+                , nw = transformUsing node.nw transform newNakedContent units coords
+                , ne = transformUsing node.ne transform newNakedContent units coords
+                , se = transformUsing node.se transform newNakedContent units coords
+                , sw = transformUsing node.sw transform newNakedContent units coords
+                }
+
+
 toList : SpatialNode contentType units coords -> List (SpatialContent contentType units coords)
 toList current =
+    -- Helper reduces lift shuffling.
     toListInternal current [] |> List.concat
 
 
