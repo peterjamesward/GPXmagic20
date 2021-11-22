@@ -225,7 +225,8 @@ prepareTrackPoints trackPoints =
                 Nothing ->
                     False
     in
-    egregiousDirectionChangesRemoved
+    withDistances
+    --egregiousDirectionChangesRemoved
 
 
 changeInBearing : Maybe (Direction3d LocalCoords) -> Maybe (Direction3d LocalCoords) -> Maybe Angle

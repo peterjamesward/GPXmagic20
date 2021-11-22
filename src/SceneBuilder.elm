@@ -845,8 +845,7 @@ terrainFromIndex myBox enclosingBox orientation options baseElevation index =
                 ++ -- No point recursing if one element only.
                    (if isNotTiny myBox then
                         List.concat
-                            [ []
-                            , terrainFromIndex nwChildBox contentBox NW options top index
+                            [ terrainFromIndex nwChildBox contentBox NW options top index
                             , terrainFromIndex neChildBox contentBox NE options top index
                             , terrainFromIndex seChildBox contentBox SE options top index
                             , terrainFromIndex swChildBox contentBox SW options top index

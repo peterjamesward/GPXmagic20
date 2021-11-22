@@ -12,7 +12,9 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.6 update 2021-11-22
+## 2.7.7 update 2021-11-22
+
+- Don't remove "foldbacks" on load if your name is Dan.
 
 - New slider in Visual Options allows you to reduce the graphics level, which may improve
 performance for routes with many track points. It will render all trackpoints close to the
