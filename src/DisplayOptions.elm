@@ -5,7 +5,9 @@ import Element.Input as Input exposing (button)
 import Json.Decode as Decode exposing (Decoder, bool, decodeValue, field, float, int)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as E
-import Utils exposing (showDecimal2)
+import Length exposing (Meters)
+import LocalCoords exposing (LocalCoords)
+import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, radioButton)
 
 
@@ -38,6 +40,7 @@ type Msg
     | ToggleCentreLine Bool
     | SetCurtainStyle CurtainStyle
     | SetVerticalExaggeration Float
+    | SetLODThreshold Float
     | Terrain Bool
     | TerrainFineness Int
 
@@ -60,6 +63,7 @@ type alias DisplayOptions =
     , verticalExaggeration : Float
     , terrainFineness : Int
     , imperialMeasure : Bool
+    , levelOfDetailThreshold : Float
     }
 
 
@@ -77,6 +81,7 @@ defaultDisplayOptions =
     , verticalExaggeration = 1.0
     , terrainFineness = 50
     , imperialMeasure = False
+    , levelOfDetailThreshold = 0.0
     }
 
 
@@ -156,6 +161,20 @@ viewDisplayOptions options wrap =
                 , value = options.verticalExaggeration
                 , thumb = Input.defaultThumb
                 }
+            , Input.slider
+                commonShortHorizontalSliderStyles
+                { onChange = wrap << SetLODThreshold
+                , label =
+                    Input.labelBelow [] <|
+                        text <|
+                            "Reduce graphics "
+                                ++ showDecimal0 options.levelOfDetailThreshold
+                , min = 0.0
+                , max = 4.0
+                , step = Just 1.0
+                , value = options.levelOfDetailThreshold
+                , thumb = Input.defaultThumb
+                }
             ]
         , Input.radioRow
             [ spaceEvenly, padding 10 ]
@@ -209,6 +228,10 @@ update options dispMsg wrap =
         TerrainFineness fine ->
             { options | terrainFineness = fine }
 
+        SetLODThreshold level ->
+            { options | levelOfDetailThreshold = level }
+
+
 
 encodeCurtain c =
     case c of
@@ -240,6 +263,7 @@ encodeOptions options =
         , ( "imperialMeasure", E.bool options.imperialMeasure )
         , ( "verticalExaggeration", E.float options.verticalExaggeration )
         , ( "curtainStyle", E.int (encodeCurtain options.curtainStyle) )
+        , ( "LOD", E.float options.levelOfDetailThreshold )
         ]
 
 
@@ -260,8 +284,6 @@ decodeOptions json =
                 , terrainOn = restore.terrainOn
                 , seaLevel = restore.seaLevel
                 , withLighting = restore.withLighting
-
-                --, terrainFineness = restore.terrainFineness
                 , imperialMeasure = restore.imperialMeasure
                 , verticalExaggeration = restore.verticalExaggeration
                 , curtainStyle =
@@ -277,6 +299,7 @@ decodeOptions json =
 
                         _ ->
                             NoCurtain
+                , levelOfDetailThreshold = restore.lod
             }
 
         _ ->
@@ -296,6 +319,7 @@ type alias DecodeTemporary =
     , imperialMeasure : Bool
     , verticalExaggeration : Float
     , curtainStyle : Int
+    , lod : Float
     }
 
 
@@ -314,3 +338,6 @@ temporaryDecoder =
         |> optional "imperialMeasure" bool defaultDisplayOptions.imperialMeasure
         |> optional "verticalExaggeration" float defaultDisplayOptions.verticalExaggeration
         |> optional "curtainStyle" int (encodeCurtain defaultDisplayOptions.curtainStyle)
+        |> optional "LOC" float defaultDisplayOptions.levelOfDetailThreshold
+
+

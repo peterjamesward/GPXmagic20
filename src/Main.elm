@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
 import BendSmoother exposing (SmoothedBend, lookForSmoothBendOption, tryBendSmoother)
+import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import CurveFormer
@@ -30,6 +31,7 @@ import Http
 import Interpolate
 import Json.Decode as D
 import Json.Encode as Encode
+import Length
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import LoopedTrack
@@ -44,6 +46,7 @@ import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
 import PortController exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..))
+import Quantity
 import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
@@ -139,7 +142,7 @@ type alias Model =
     , renderingContext : Maybe RenderingContext
     , viewPanes : List ViewPane
     , track : Maybe Track
-    , markerPositionAtLastSceneBuild : Int
+    , markerPositionAtLastSceneBuild : Quantity.Quantity Float Length.Meters
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
     , nudgePreview : Scene
@@ -191,7 +194,7 @@ init mflags origin navigationKey =
       , time = Time.millisToPosix 0
       , zone = Time.utc
       , track = Nothing
-      , markerPositionAtLastSceneBuild = 0
+      , markerPositionAtLastSceneBuild = Quantity.zero
       , staticScene = []
       , profileScene = []
       , terrainScene = []
@@ -1440,7 +1443,25 @@ renderVaryingSceneElements model =
         latestModel =
             case model.track of
                 Just hasTrack ->
-                    if abs (hasTrack.currentNode.index - model.markerPositionAtLastSceneBuild) > 500 then
+                    -- Force full track repaint if marker moved sufficiently
+                    let
+                        ( xSize, ySize, _ ) =
+                            BoundingBox3d.dimensions hasTrack.box
+
+                        threshold =
+                            Quantity.max xSize ySize
+                                |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
+                    in
+                    if
+                        model.displayOptions.levelOfDetailThreshold
+                            > 0.0
+                            && (Quantity.abs
+                                    (hasTrack.currentNode.distanceFromStart
+                                        |> Quantity.minus model.markerPositionAtLastSceneBuild
+                                    )
+                                    |> Quantity.greaterThan threshold
+                               )
+                    then
                         renderTrackSceneElements model
 
                     else
@@ -1600,19 +1621,21 @@ renderTrackSceneElements model =
     case model.track of
         Just isTrack ->
             let
+                ( xSize, ySize, _ ) =
+                    BoundingBox3d.dimensions isTrack.box
+
+                threshold =
+                    -- Size of box within which all trackpoints are rendered.
+                    Quantity.max xSize ySize
+                        |> Quantity.multiplyBy (0.5 ^ (model.displayOptions.levelOfDetailThreshold))
+
                 reducedTrack =
-                    -- Experimental optimisation to reduce WebGL load.
-                    let
-                        (theBefore, theRemainder) =
-                            isTrack.trackPoints |> List.Extra.splitAt (isTrack.currentNode.index - 1000)
-
-                        (detailSection, theAfter) =
-                            theRemainder |> List.Extra.splitAt 2000
-
-                        (elidedBefore, elidedAfter) =
-                            (elide <| elide <| elide theBefore, elide <| elide <| elide theAfter)
-                    in
-                    { isTrack | trackPoints = elidedBefore ++ detailSection ++ elidedAfter  }
+                    -- Render all trackpoints within specified area around marker,
+                    -- with reduced detail outside.
+                    if model.displayOptions.levelOfDetailThreshold == 0.0 then
+                        isTrack
+                    else
+                        Track.makeReducedTrack isTrack threshold
 
                 updatedScene =
                     if is3dVisible model.viewPanes then
@@ -1640,7 +1663,7 @@ renderTrackSceneElements model =
                 , profileScene = updatedProfile
                 , terrainScene = updatedTerrain
                 , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
-                , markerPositionAtLastSceneBuild = isTrack.currentNode.index
+                , markerPositionAtLastSceneBuild = isTrack.currentNode.distanceFromStart
             }
                 |> renderVaryingSceneElements
 

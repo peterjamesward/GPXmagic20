@@ -3,6 +3,8 @@ module Track exposing (..)
 import Angle
 import BoundingBox2d
 import BoundingBox3d exposing (BoundingBox3d)
+import Dict
+import Dict.Extra
 import Direction3d
 import EarthConstants exposing (metresPerDegree)
 import Element exposing (..)
@@ -13,11 +15,12 @@ import Length exposing (Meters, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d exposing (Point3d)
+import Quantity exposing (Quantity)
 import SketchPlane3d
 import SpatialIndex
 import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
-import Utils exposing (bearingToDisplayDegrees, clickTolerance, flatBox, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
+import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d exposing (..)
 
 
@@ -362,3 +365,59 @@ trackBoundingBox : Track -> BoundingBox3d Meters LocalCoords
 trackBoundingBox track =
     BoundingBox3d.hullOfN .xyz track.trackPoints
         |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+
+
+makeReducedTrack : Track -> Quantity Float Meters -> Track
+makeReducedTrack track threshold =
+    -- Elide trackpoint outside of a box of given size centred on current point
+    let
+        interiorBox =
+            BoundingBox2d.withDimensions
+                ( threshold, threshold )
+                (track.currentNode.xyz |> Point3d.projectInto SketchPlane3d.xy)
+
+        interiorPoints =
+            -- Put these in a dict as we need access by index
+            SpatialIndex.query track.spatialIndex interiorBox
+                |> List.map .content
+                |> Dict.Extra.fromListBy .index
+
+        takeOutside : List TrackPoint -> List (List TrackPoint) -> List (List TrackPoint)
+        takeOutside source accum =
+            -- First half of a mutually recursive 'fold'. Here we look for an inside
+            -- point at which to split, so we can elide outside points.
+            -- We accumulate partial lists to reduce expensive concatenation.
+            let
+                split =
+                    source |> List.Extra.splitWhen (\tp -> Dict.member tp.index interiorPoints)
+            in
+            case split of
+                Just ( outside, theRest ) ->
+                    takeInside theRest ((elide >> elide) outside :: accum)
+
+                Nothing ->
+                    -- No inside found, source is all outside, and we're done.
+                    (elide >> elide) source :: accum
+
+        takeInside : List TrackPoint -> List (List TrackPoint) -> List (List TrackPoint)
+        takeInside source accum =
+            -- Second half of a mutually recursive 'fold'. Here we look for an outside
+            -- point at which to split, so we can retain all inside points.
+            let
+                split =
+                    source |> List.Extra.splitWhen (\tp -> not <| Dict.member tp.index interiorPoints)
+            in
+            case split of
+                Just ( inside, theRest ) ->
+                    takeOutside theRest (inside :: accum)
+
+                Nothing ->
+                    -- No outside found, source is all inside, and we're done.
+                    source :: accum
+
+        reducedPoints =
+            takeOutside track.trackPoints []
+                |> List.reverse
+                |> List.concat
+    in
+    { track | trackPoints = reducedPoints }
