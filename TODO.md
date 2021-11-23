@@ -5,6 +5,8 @@
 
 # TO-DO
 
+New Terrain is fast but I think it's doubling-up a lot. (So should be faster still.)
+
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
 

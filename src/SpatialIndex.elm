@@ -7,6 +7,7 @@ module SpatialIndex exposing
     , queryAllContaining
     , queryNearestToAxisUsing
     , queryWithFilter
+    , queryWithFold
     , toList
     )
 
@@ -201,17 +202,19 @@ queryWithFold current queryArea folder accumulator =
             accumulator
 
         SpatialNode node ->
-            -- Longhand writing a depth-first traversal using the accumulator.
-            if queryArea |> BoundingBox2d.intersects node.box then
-                List.foldl folder accumulator node.contents
+            let
+                fromThisNode : List (SpatialContent contentType units coords)
+                fromThisNode =
+                    node.contents |> List.filter (.box >> BoundingBox2d.intersects queryArea)
+            in
+            if node.box |> BoundingBox2d.intersects queryArea then
+                List.foldl folder accumulator fromThisNode
                     |> queryWithFold node.nw queryArea folder
                     |> queryWithFold node.ne queryArea folder
                     |> queryWithFold node.se queryArea folder
                     |> queryWithFold node.sw queryArea folder
-
             else
                 accumulator
-
 
 queryAllContaining :
     SpatialNode contentType units coords
