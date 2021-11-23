@@ -728,12 +728,16 @@ terrainFromIndex myBox enclosingBox orientation options baseElevation index =
         { minAltitude, resultBox, count } =
             SpatialIndex.queryWithFold index myBox queryFoldFunction initialFoldState
 
-        top =
+        topBeforeAdjustment =
             if minAltitude |> Quantity.greaterThanOrEqualTo Quantity.positiveInfinity then
                 baseElevation
 
             else
                 minAltitude
+
+        top =
+            -- Just avoid interference with road surface.
+            topBeforeAdjustment |> Quantity.minus (meters 0.1)
 
         myExtrema =
             BoundingBox2d.extrema myBox
