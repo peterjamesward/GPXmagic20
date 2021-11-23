@@ -161,6 +161,7 @@ queryInternal current queryArea queryFilter accumulator =
     -- We return content whose bounding box intersects
     -- with the bounding box of the specimen. We do this by looking in a relevant child
     -- or in our own list, depending on the extent of the speciment compared to our children.
+    -- This could probably be written using `queryWithFold`, as an exercise.
     case current of
         Blank ->
             accumulator
@@ -177,20 +178,36 @@ queryInternal current queryArea queryFilter accumulator =
                                     (possible.box |> BoundingBox2d.intersects queryArea)
                                         && (possible.content |> queryFilter)
                                 )
-
-                    fromNW =
-                        queryInternal node.nw queryArea queryFilter (fromThisNode :: accumulator)
-
-                    fromNE =
-                        queryInternal node.ne queryArea queryFilter fromNW
-
-                    fromSE =
-                        queryInternal node.se queryArea queryFilter fromNE
-
-                    fromSW =
-                        queryInternal node.sw queryArea queryFilter fromSE
                 in
-                fromSW
+                (fromThisNode :: accumulator)
+                    |> queryInternal node.nw queryArea queryFilter
+                    |> queryInternal node.ne queryArea queryFilter
+                    |> queryInternal node.se queryArea queryFilter
+                    |> queryInternal node.sw queryArea queryFilter
+
+            else
+                accumulator
+
+
+queryWithFold :
+    SpatialNode contentType units coords
+    -> BoundingBox2d.BoundingBox2d units coords
+    -> (SpatialContent contentType units coords -> accum -> accum)
+    -> accum
+    -> accum
+queryWithFold current queryArea folder accumulator =
+    case current of
+        Blank ->
+            accumulator
+
+        SpatialNode node ->
+            -- Longhand writing a depth-first traversal using the accumulator.
+            if queryArea |> BoundingBox2d.intersects node.box then
+                List.foldl folder accumulator node.contents
+                    |> queryWithFold node.nw queryArea folder
+                    |> queryWithFold node.ne queryArea folder
+                    |> queryWithFold node.se queryArea folder
+                    |> queryWithFold node.sw queryArea folder
 
             else
                 accumulator
