@@ -22,19 +22,22 @@ type alias Point =
 
 elide : List a -> List a
 elide input =
-    -- Naive implementation very wasteful.
+    -- Fold is essential  for performance.
+    -- Two passes here means we get the list back the right way round.
     let
         helper : List a -> List a -> List a
-        helper source output =
+        helper accum source =
             case source of
                 aa :: bb :: cc ->
-                    helper cc (aa :: output)
+                    helper (aa :: accum) cc
 
-                zzz ->
-                    (List.reverse zzz) ++ output
+                [ zz ] ->
+                    zz :: accum
 
+                [] ->
+                    accum
     in
-    helper input [] |> List.reverse
+    input |> helper [] |> helper []
 
 
 showMaybe : Maybe Int -> String

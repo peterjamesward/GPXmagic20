@@ -63,7 +63,7 @@ import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
 import Url exposing (Url)
-import Utils exposing (elide, useIcon)
+import Utils exposing (useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isMapVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)

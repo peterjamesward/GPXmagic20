@@ -393,11 +393,11 @@ makeReducedTrack track threshold =
             in
             case split of
                 Just ( outside, theRest ) ->
-                    takeInside theRest ((elide >> elide) outside :: accum)
+                    takeInside theRest (elide outside :: accum)
 
                 Nothing ->
                     -- No inside found, source is all outside, and we're done.
-                    (elide >> elide) source :: accum
+                    elide source :: accum
 
         takeInside : List TrackPoint -> List (List TrackPoint) -> List (List TrackPoint)
         takeInside source accum =

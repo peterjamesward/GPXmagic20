@@ -5,6 +5,22 @@
 
 # TO-DO
 
+Change Terrain to use Track.spatialIndex instead of making a new one!
+> Actually, contrary is true: use a road-based index in Track instead of point-based.
+> Which means btw that RoadIndex becomes redundant also.
+> It may remove any "misses" in click detection btw.
+
+Good ROI by writing a reversingMap for SceneBuilder, and an elidingReversingMap.
+> Order of Scene is unimportant.
+> But List.map is a fold anyway, so no need.
+> elidingMap is good though.
+> While fiddling, show the limit of elision as an outline box.
+> More impactful that expected, so not really justified given current sparkling performance.
+
+Stratified data structures instead of heavy-weight TrackPoint??
+> Reduce updating amd hence reduce memory churn.
+> How to manage minimal updating? Version numbers? Will it just fall out?
+
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
 
@@ -32,10 +48,15 @@
  
 ---
 
-# Not doing
+# v3 candidates
 
-Can I make Terrain more efficient by using a height valuation passed into SI?
-Yes, but why bother?
+Consistent preview (Curve Former is example)
+
+
+
+---
+
+# Not doing
 
 Visual Styles options layout not wrapping.
 Turns out to be Safari!
@@ -43,11 +64,6 @@ Turns out to be Safari!
 Investigate **derivatives** of Vector3d and see if anything useful emerges.
 > This will be editing "blind". Could be fun.
 > Limiting 1st or 2nd derivatives.
-
-**Minimum radius**
-> Copious notes on this in my notebook. No pleasing way of smoothing complex bend series
-> whilst preserving end points. If you're not preserving the ends, Stretch does a fair job.
-> Meanwhile, Bend Smoother tells you the radius it's found. More assistance there, perhaps?
 
 **Investigation** Use of Canvas.
 > Happy now with spatial index.
@@ -67,8 +83,6 @@ Obvs certain edits will largely invalidate, but we could preserve any we read in
 Try **electron** for native wrapper. See if multiple windows possible.
 
 Strava segment blend elevation rather than just Paste (optional).
-
-Better terrain by slightly smarter rendering of each quadrant based on its context.
 
 Working offline? (Mongoose server?)
 
