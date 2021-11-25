@@ -5,21 +5,26 @@
 
 # TO-DO
 
-Change Terrain to use Track.spatialIndex instead of making a new one!
-> Actually, contrary is true: use a road-based index in Track instead of point-based.
-> Which means btw that RoadIndex becomes redundant also.
-> It may remove any "misses" in click detection btw.
+**Feature** Use elevation from second route, starting at marker.
+> This should be a neat two-way merge sort of track points based on distance from start.
+> We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
+> Applies elevation relative to start elevation, of course.
+> Option to have "cross-fade" at the end (possibly hundred of metres).
 
-Good ROI by writing a reversingMap for SceneBuilder, and an elidingReversingMap.
-> Order of Scene is unimportant.
-> But List.map is a fold anyway, so no need.
-> elidingMap is good though.
-> While fiddling, show the limit of elision as an outline box.
-> More impactful that expected, so not really justified given current sparkling performance.
-
-Stratified data structures instead of heavy-weight TrackPoint??
-> Reduce updating amd hence reduce memory churn.
+**Stratified** data structures instead of heavy-weight TrackPoint??
+1. Track points as read from GPX
+2. Track points converted to XYZ
+3. Road segments derived from adjacent track points
+4. Inflection points (shall we call them?) derived from adjacent road segments
+5. Possibly, "bends" or "straights" derived from inflection points in series
+6. Spatial index (of roads, of inflection points)
+7. Route, being the aggregate of all.
+> Note that derivation is always 1..7 but edits in XYZ land must be converted
+> back to lat, lon, ele so we know that we're seeing what will be written (maybe this is simply flawed).
+> Do we in fact, edit in the '4' space, and only fall back to 1 for output ??
+> Aim/hope is to reduce updating and hence reduce memory churn.
 > How to manage minimal updating? Version numbers? Will it just fall out?
+> Is this v3 material?
 
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
@@ -40,23 +45,20 @@ Stratified data structures instead of heavy-weight TrackPoint??
 
 **DEBT**: Factor out the common pattern of min, max for the pointers.
 
-**Feature** Use elevation from second route, starting at marker.
-> This should be a neat two-way merge sort of track points based on distance from start.
-> We have interpolation code in Flythrough, so it's a doddle.
-> Applies elevation relative to start elevation, of course.
-> Option to have "cross-fade" at the end (possibly hundred of metres).
- 
 ---
 
 # v3 candidates
 
-Consistent preview (Curve Former is example)
-
-
+Consistent preview (Curve Former is example).
 
 ---
 
 # Not doing
+
+Change Track.spatialIndex to be road-based, so we can re-use for Terrain?
+> It may remove any "misses" in click detection btw.
+> **Note** that intersection testing relies on incremental build of its own index!
+> **Also** last point becomes special case and much ugliness ensues.
 
 Visual Styles options layout not wrapping.
 Turns out to be Safari!

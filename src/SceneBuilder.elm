@@ -704,6 +704,7 @@ terrainFromIndex myBox enclosingBox orientation options baseElevation index =
     -- concluded (rightly, I think) that it would be wrong, other than using the new queryWithFold
     -- function to bring back both the minimum altitude and the aggregate content bounding box
     -- for each query. That's a marginal saving but maybe easier to comprehend.
+    -- (Turned out to be 7x speed uplift, so not exactly marginal.)
     let
         centre =
             BoundingBox2d.centerPoint myBox

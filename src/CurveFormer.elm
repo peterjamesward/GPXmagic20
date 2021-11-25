@@ -669,8 +669,7 @@ preview model track =
                 |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
 
         pointsWithinDisc =
-            -- Look for points that could be pulled in to the bend, only when they
-            -- are bracketed by interior points.
+            -- Look for points that could be pulled in to the bend
             let
                 ( lowestInteriorIndex, highestInteriorIndex ) =
                     ( List.Extra.minimumBy .index pointsWithinCircle |> Maybe.map .index |> Maybe.withDefault 0
@@ -679,8 +678,8 @@ preview model track =
             in
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
-                |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
-                |> List.filter (\p -> p.index > lowestInteriorIndex && p.index < highestInteriorIndex)
+                --|> List.filter (\p -> p.index >= startRange && p.index <= endRange)
+                --|> List.filter (\p -> p.index > lowestInteriorIndex && p.index < highestInteriorIndex)
 
         allPoints =
             List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
