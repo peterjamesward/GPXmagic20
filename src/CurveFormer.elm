@@ -679,8 +679,8 @@ preview model track =
             in
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
-                |> List.filter (\p -> p.index >= startRange && p.index <= endRange)
-                |> List.filter (\p -> p.index > lowestInteriorIndex && p.index < highestInteriorIndex)
+                --|> List.filter (\p -> p.index >= startRange && p.index <= endRange)
+                --|> List.filter (\p -> p.index > lowestInteriorIndex && p.index < highestInteriorIndex)
 
         allPoints =
             List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
