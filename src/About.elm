@@ -12,9 +12,9 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.8 update 2021-11-24
+## 2.7.9 update 2021-11-25
 
-- Terrain creation speed up. What will you do with all that time?
+- Small change to Curve Former that should make it easier to use when reducing a radius.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

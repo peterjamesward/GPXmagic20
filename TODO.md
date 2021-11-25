@@ -5,12 +5,6 @@
 
 # TO-DO
 
-**Feature** Use elevation from second route, starting at marker.
-> This should be a neat two-way merge sort of track points based on distance from start.
-> We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
-> Applies elevation relative to start elevation, of course.
-> Option to have "cross-fade" at the end (possibly hundred of metres).
-
 **Stratified** data structures instead of heavy-weight TrackPoint??
 1. Track points as read from GPX
 2. Track points converted to XYZ
@@ -19,15 +13,20 @@
 5. Possibly, "bends" or "straights" derived from inflection points in series
 6. Spatial index (of roads, of inflection points)
 7. Route, being the aggregate of all.
-> Note that derivation is always 1..7 but edits in XYZ land must be converted
+> Note that derivation is always 1 --> 7 but edits in XYZ land must be converted
 > back to lat, lon, ele so we know that we're seeing what will be written (maybe this is simply flawed).
 > Do we in fact, edit in the '4' space, and only fall back to 1 for output ??
 > Aim/hope is to reduce updating and hence reduce memory churn.
 > How to manage minimal updating? Version numbers? Will it just fall out?
 > Is this v3 material?
 
-**Lane separation** on out and back sections (?)
-> Without need for Graph. This could just be simple +/- offset withing marked region.
+Consistent approach to **preview** (Curve Former is example).
+
+**Feature** Use elevation from second route, starting at marker.
+> This should be a neat two-way merge sort of track points based on distance from start.
+> We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
+> Applies elevation relative to start elevation, of course.
+> Option to have "cross-fade" at the end (possibly hundred of metres).
 
 **Improve** start/end coincidence testing in Intersections.
 > Uses the TP.index here to see if they are adjacent on the route rather than just by chance.  
@@ -49,11 +48,13 @@
 
 # v3 candidates
 
-Consistent preview (Curve Former is example).
-
 ---
 
 # Not doing
+
+**Lane separation** on out and back sections (?)
+> Without need for Graph. This could just be simple +/- offset withing marked region.
+> Just use Nudge or Move & Stretch.
 
 Change Track.spatialIndex to be road-based, so we can re-use for Terrain?
 > It may remove any "misses" in click detection btw.
