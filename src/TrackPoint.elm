@@ -12,8 +12,10 @@ import Maybe.Extra as Maybe
 import Plane3d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
+import SketchPlane3d
 import Spherical
 import Triangle3d
+import Vector2d
 import Vector3d exposing (Vector3d)
 
 
@@ -93,8 +95,8 @@ applyGhanianTransform ( baseLon, baseLat, _ ) points =
 gradientFromPoint : TrackPoint -> Float
 gradientFromPoint pt =
     100.0
-        * (Vector3d.zComponent pt.roadVector |> inMeters)
-        / (pt.length |> inMeters)
+        * Quantity.ratio (Vector3d.zComponent pt.roadVector)
+            (pt.roadVector |> Vector3d.projectInto SketchPlane3d.xy |> Vector2d.length)
 
 
 temporaryIndices points =
@@ -226,7 +228,10 @@ prepareTrackPoints trackPoints =
                     False
     in
     withDistances
-    --egregiousDirectionChangesRemoved
+
+
+
+--egregiousDirectionChangesRemoved
 
 
 changeInBearing : Maybe (Direction3d LocalCoords) -> Maybe (Direction3d LocalCoords) -> Maybe Angle
