@@ -5,23 +5,6 @@
 
 # TO-DO
 
-**Stratified** data structures instead of heavy-weight TrackPoint??
-1. Track points as read from GPX
-2. Track points converted to XYZ
-3. Road segments derived from adjacent track points
-4. Inflection points (shall we call them?) derived from adjacent road segments
-5. Possibly, "bends" or "straights" derived from inflection points in series
-6. Spatial index (of roads, of inflection points)
-7. Route, being the aggregate of all.
-> Note that derivation is always 1 --> 7 but edits in XYZ land must be converted
-> back to lat, lon, ele so we know that we're seeing what will be written (maybe this is simply flawed).
-> Do we in fact, edit in the '4' space, and only fall back to 1 for output ??
-> Aim/hope is to reduce updating and hence reduce memory churn.
-> How to manage minimal updating? Version numbers? Will it just fall out?
-> Is this v3 material?
-
-Consistent approach to **preview** (Curve Former is example).
-
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.
 > We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
@@ -47,6 +30,23 @@ Consistent approach to **preview** (Curve Former is example).
 ---
 
 # v3 candidates
+
+**Stratified** data structures instead of heavy-weight TrackPoint.
+1. Track points as read from GPX
+2. Track points converted to XYZ
+3. Road segments derived from adjacent track points
+4. Inflection points (shall we call them?) derived from adjacent road segments
+5. Possibly, "bends" or "straights" derived from inflection points in series
+6. Spatial index (of roads, of inflection points)
+7. Route, being the aggregate of all.
+> Note that derivation is always 1 --> 7 but edits in XYZ land must be converted
+> back to lat, lon, ele so we know that we're seeing what will be written (maybe this is simply flawed).
+> Do we in fact, edit in the '4' space, and only fall back to 1 for output ??
+> Aim/hope is to reduce updating and hence reduce memory churn.
+> How to manage minimal updating? Version numbers? Will it just fall out?
+> Is this v3 material?
+
+Consistent approach to **preview** (Curve Former is example).
 
 ---
 
