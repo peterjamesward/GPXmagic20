@@ -5,6 +5,24 @@
 
 # TO-DO
 
+**Deltas** on Undo/Redo rather than hold a full Track (with index!). 
+> I shall do this but it's a significant effort affecting all edits.
+1. New UndoEntry type
+2. New EditCommand type 
+3. Edit tool does not update the track, but returns EditCommand that describes the change
+4. Common code in Main applies the change and maintains Undo/Redo.
+5. Redo repeats the command (on what will be the same as-then track effectively)
+6. Always recreate any indexes post application.
+
+Consistent approach to **preview** (Curve Former is example).
+
+**Easy** If I'm not completely over-simplifying it and the road always renders a fixed distance 
+in front and behind the current position on the course then I've got a feature request 
+for GPXmagic Peter Ward. I thought it'd be really cool to be able to toggle a new option 
+in the "Visual styles" tab to be able highlight where the track will be rendered based 
+on the position of the current trackpoint (orange marker). It'd help to see where you're 
+likely to run into visual rendering issues then. {David Ogle}
+
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.
 > We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
@@ -32,21 +50,22 @@
 # v3 candidates
 
 **Stratified** data structures instead of heavy-weight TrackPoint.
-1. Track points as read from GPX
-2. Track points converted to XYZ
-3. Road segments derived from adjacent track points
-4. Inflection points (shall we call them?) derived from adjacent road segments
-5. Possibly, "bends" or "straights" derived from inflection points in series
-6. Spatial index (of roads, of inflection points)
-7. Route, being the aggregate of all.
-> Note that derivation is always 1 --> 7 but edits in XYZ land must be converted
-> back to lat, lon, ele so we know that we're seeing what will be written (maybe this is simply flawed).
-> Do we in fact, edit in the '4' space, and only fall back to 1 for output ??
+1. Track points as read from GPX;
+2. Track points converted to XYZ;
+3. Road segments derived from adjacent track points;
+4. Inflection points (shall we call them?) derived from adjacent road segments;
+5. Profile;
+6. "Problems";
+7. Spatial index (of roads, of inflection points);
+8. Elided points for rendering;
+9. Terrain;
+10. Graph (erks me that this is so different, but it is).
+
 > Aim/hope is to reduce updating and hence reduce memory churn.
 > How to manage minimal updating? Version numbers? Will it just fall out?
-> Is this v3 material?
-
-Consistent approach to **preview** (Curve Former is example).
+> We edit in the '2' level, and only fall back to 1 for output (apart from Map actions)
+> Anything in '3', '4', '5' is for info, and derived after each edit.
+> N.B. minor optimisation is to only re-derive from start edit forwards.
 
 ---
 

@@ -13,7 +13,9 @@ import Length exposing (Length, Meters, inMeters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra as Maybe
 import MoveAndStretch
+import Pixels
 import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
@@ -191,6 +193,82 @@ renderMarkers stretchMarker track =
     currentPositionDisc track.currentNode
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
         ++ stretch
+
+
+renderMRLimits : Track -> Scene
+renderMRLimits isTrack =
+    let
+        orangeDistance =
+            isTrack.currentNode.distanceFromStart
+
+        renderingLimit =
+            Length.kilometers 1.5
+
+        farthestVisibleTrackPointInFront =
+            isTrack.trackPoints
+                |> List.Extra.takeWhile
+                    (\pt ->
+                        pt.distanceFromStart
+                            |> Quantity.lessThanOrEqualTo
+                                (orangeDistance |> Quantity.plus renderingLimit)
+                    )
+                |> List.Extra.last
+
+        farthestVisibleTrackPointBehind =
+            isTrack.trackPoints
+                |> List.Extra.splitWhen
+                    (\pt ->
+                        pt.distanceFromStart
+                            |> Quantity.greaterThanOrEqualTo
+                                (orangeDistance |> Quantity.minus renderingLimit)
+                    )
+                |> Maybe.map (Tuple.first >> List.Extra.last)
+                |> Maybe.join
+
+        behindLimitLocation =
+            case farthestVisibleTrackPointBehind of
+                Just behindTP ->
+                    behindTP.xyz
+                        |> Point3d.translateBy
+                            (behindTP.roadVector
+                                |> Vector3d.scaleTo
+                                    ((orangeDistance |> Quantity.minus renderingLimit)
+                                        |> Quantity.minus behindTP.distanceFromStart
+                                    )
+                            )
+                        |> Just
+
+                Nothing ->
+                    Nothing
+
+        forwardLimitLocation =
+            case farthestVisibleTrackPointInFront of
+                Just forwardTP ->
+                    forwardTP.xyz
+                        |> Point3d.translateBy
+                            (forwardTP.roadVector
+                                |> Vector3d.scaleTo
+                                    ((orangeDistance |> Quantity.plus renderingLimit)
+                                        |> Quantity.minus forwardTP.distanceFromStart
+                                    )
+                            )
+                        |> Just
+
+                Nothing ->
+                    Nothing
+
+        showMarker location =
+            case location of
+                Just lollipopAt ->
+                    [ Scene3d.point { radius = Pixels.pixels 10 }
+                        (Material.color Color.darkBlue)
+                        lollipopAt
+                    ]
+
+                Nothing ->
+                    []
+    in
+    showMarker forwardLimitLocation ++ showMarker behindLimitLocation
 
 
 paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)

@@ -43,6 +43,7 @@ type Msg
     | SetLODThreshold Float
     | Terrain Bool
     | TerrainFineness Int
+    | ToggleRenderingLimit Bool
 
 
 type Measurements
@@ -64,6 +65,7 @@ type alias DisplayOptions =
     , terrainFineness : Int
     , imperialMeasure : Bool
     , levelOfDetailThreshold : Float
+    , showRenderingLimit : Bool
     }
 
 
@@ -82,6 +84,7 @@ defaultDisplayOptions =
     , terrainFineness = 50
     , imperialMeasure = False
     , levelOfDetailThreshold = 0.0
+    , showRenderingLimit = False
     }
 
 
@@ -136,6 +139,12 @@ viewDisplayOptions options wrap =
                 , icon = checkboxIcon
                 , checked = options.imperialMeasure
                 , label = Input.labelRight [ centerY ] (text "Imperial")
+                }
+            , Input.checkbox []
+                { onChange = wrap << ToggleRenderingLimit
+                , icon = checkboxIcon
+                , checked = options.showRenderingLimit
+                , label = Input.labelRight [ centerY ] (text "MR rendering cutoff")
                 }
             , Input.slider commonShortHorizontalSliderStyles
                 { onChange = wrap << TerrainFineness << round
@@ -231,6 +240,8 @@ update options dispMsg wrap =
         SetLODThreshold level ->
             { options | levelOfDetailThreshold = level }
 
+        ToggleRenderingLimit newState ->
+            { options | showRenderingLimit = newState }
 
 
 encodeCurtain c =
@@ -264,6 +275,7 @@ encodeOptions options =
         , ( "verticalExaggeration", E.float options.verticalExaggeration )
         , ( "curtainStyle", E.int (encodeCurtain options.curtainStyle) )
         , ( "LOD", E.float options.levelOfDetailThreshold )
+        , ( "MRlimit", E.bool options.showRenderingLimit )
         ]
 
 
@@ -300,6 +312,7 @@ decodeOptions json =
                         _ ->
                             NoCurtain
                 , levelOfDetailThreshold = restore.lod
+                , showRenderingLimit = restore.showRenderingLimit
             }
 
         _ ->
@@ -320,6 +333,7 @@ type alias DecodeTemporary =
     , verticalExaggeration : Float
     , curtainStyle : Int
     , lod : Float
+    , showRenderingLimit : Bool
     }
 
 
@@ -339,5 +353,6 @@ temporaryDecoder =
         |> optional "verticalExaggeration" float defaultDisplayOptions.verticalExaggeration
         |> optional "curtainStyle" int (encodeCurtain defaultDisplayOptions.curtainStyle)
         |> optional "LOC" float defaultDisplayOptions.levelOfDetailThreshold
+        |> optional "MRlimit" bool defaultDisplayOptions.showRenderingLimit
 
 

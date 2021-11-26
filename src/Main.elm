@@ -1481,8 +1481,23 @@ renderVaryingSceneElements model =
 
         updatedMarkers =
             -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
-            Maybe.map (SceneBuilder.renderMarkers stretchMarker) latestModel.track
-                |> Maybe.withDefault []
+            case latestModel.track of
+                Just isTrack ->
+                    let
+                        whiteMarker =
+                            SceneBuilder.renderMarkers stretchMarker isTrack
+
+                        renderingLimits =
+                            if model.displayOptions.showRenderingLimit then
+                                SceneBuilder.renderMRLimits isTrack
+
+                            else
+                                []
+                    in
+                    whiteMarker ++ renderingLimits
+
+                Nothing ->
+                    []
 
         updatedProfileMarkers =
             Maybe.map
@@ -1627,13 +1642,14 @@ renderTrackSceneElements model =
                 threshold =
                     -- Size of box within which all trackpoints are rendered.
                     Quantity.max xSize ySize
-                        |> Quantity.multiplyBy (0.5 ^ (model.displayOptions.levelOfDetailThreshold))
+                        |> Quantity.multiplyBy (0.5 ^ model.displayOptions.levelOfDetailThreshold)
 
                 reducedTrack =
                     -- Render all trackpoints within specified area around marker,
                     -- with reduced detail outside.
                     if model.displayOptions.levelOfDetailThreshold == 0.0 then
                         isTrack
+
                     else
                         Track.makeReducedTrack isTrack threshold
 
