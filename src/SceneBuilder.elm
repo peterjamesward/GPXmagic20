@@ -49,6 +49,18 @@ defaultRenderingContext =
     }
 
 
+highlightPoints : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+highlightPoints color points =
+    let
+        material =
+            Material.color color
+
+        highlightPoint p =
+            Scene3d.point { radius = Pixels.pixels 5 } material p.xyz
+    in
+    List.map highlightPoint points
+
+
 renderTerrain : DisplayOptions -> Track -> Scene
 renderTerrain options track =
     let

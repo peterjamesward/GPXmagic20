@@ -20,6 +20,16 @@ type alias Point =
     ( Float, Float )
 
 
+minmax a b =
+    ( toFloat <| min a b
+    , toFloat <| max a b
+    )
+
+
+eyeHeight =
+    2.0
+
+
 elide : List a -> List a
 elide input =
     -- Fold is essential  for performance.

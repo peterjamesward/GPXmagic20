@@ -13,6 +13,7 @@ import Point3d
 import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
+import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, highlightPoints)
 import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
@@ -57,6 +58,8 @@ toolLabel =
 info =
     """## Nudge
 
+_Note: You may want to try Move & Stretch_
+
 You can adjust a single point or a section of track by
 moving it up to 5m up or down, and left or right (relative
 to direction of travel).
@@ -66,32 +69,31 @@ The change does not take effect until you click the
 "Apply nudge" button"""
 
 
-makeUndoMessage : Track -> String
-makeUndoMessage track =
+makeUndoMessage : Bool -> Track -> String
+makeUndoMessage imperial track =
     let
         markerPosition =
             track.markedNode |> Maybe.withDefault track.currentNode
 
-        ( dist1, dist2 ) =
-            ( Length.inMeters track.currentNode.distanceFromStart
-            , Length.inMeters markerPosition.distanceFromStart
-            )
-
         ( from, to ) =
-            ( min dist1 dist2
-            , max dist1 dist2
+            ( Quantity.min track.currentNode.distanceFromStart markerPosition.distanceFromStart
+            , Quantity.max track.currentNode.distanceFromStart markerPosition.distanceFromStart
             )
     in
-    if to > from then
-        "Nudge from " ++ showDecimal0 from ++ " to " ++ showDecimal0 to
+    if to |> Quantity.greaterThan from then
+        "Nudge from "
+            ++ showShortMeasure imperial from
+            ++ " to "
+            ++ showShortMeasure imperial to
 
     else
-        "Nudge node at" ++ showDecimal0 from
+        "Nudge node at"
+            ++ showShortMeasure imperial from
 
 
 getPreview : NudgeSettings -> List (Entity LocalCoords)
 getPreview model =
-    highlightPoints Color.white model.nodesToNudge
+    highlightPoints Color.lightOrange model.nodesToNudge
 
 
 nudgeTrackPoint : NudgeSettings -> Float -> TrackPoint -> TrackPoint
@@ -153,6 +155,13 @@ computeNudgedPoints settings track =
             in
             1.0 - x
 
+        actualNudgeRegionIncludingFades =
+            track.trackPoints
+                |> List.Extra.dropWhile
+                    (.distanceFromStart >> Quantity.lessThan fadeInStart)
+                |> List.Extra.takeWhile
+                    (.distanceFromStart >> Quantity.greaterThanOrEqualTo fadeOutEnd)
+
         liesWithin ( lo, hi ) point =
             (point.distanceFromStart |> Quantity.greaterThanOrEqualTo lo)
                 && (point.distanceFromStart |> Quantity.lessThanOrEqualTo hi)
@@ -174,7 +183,7 @@ computeNudgedPoints settings track =
             in
             nudgeTrackPoint settings fade point
     in
-    List.map nudge track.trackPoints
+    List.map nudge actualNudgeRegionIncludingFades
 
 
 viewNudgeTools : Bool -> NudgeSettings -> (NudgeMsg -> msg) -> Element msg
@@ -294,17 +303,26 @@ update :
 update msg settings track =
     case msg of
         SetHorizontalNudgeFactor length ->
-            ( { settings | horizontal = length }
+            ( { settings
+                | horizontal = length
+                , nodesToNudge = computeNudgedPoints settings track
+              }
             , PostUpdateActions.ActionPreview
             )
 
         SetVerticalNudgeFactor length ->
-            ( { settings | vertical = length }
+            ( { settings
+                | vertical = length
+                , nodesToNudge = computeNudgedPoints settings track
+              }
             , PostUpdateActions.ActionPreview
             )
 
         SetFadeExtent fade ->
-            ( { settings | fadeExtent = fade }
+            ( { settings
+                | fadeExtent = fade
+                , nodesToNudge = computeNudgedPoints settings track
+              }
             , PostUpdateActions.ActionPreview
             )
 
@@ -327,7 +345,7 @@ update msg settings track =
                     , editFunction = computeNudgedPoints settings
                     }
             in
-            ( { settings | preview = [] }
+            ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
                 actionEntry

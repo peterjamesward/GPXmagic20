@@ -20,7 +20,7 @@ import SketchPlane3d
 import SpatialIndex
 import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
-import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
+import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, minmax, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d exposing (..)
 
 
@@ -421,3 +421,24 @@ makeReducedTrack track threshold =
                 |> List.concat
     in
     { track | trackPoints = reducedPoints }
+
+
+getSection : Track -> ( Int, Int, List TrackPoint )
+getSection track =
+    let
+        ( start, end ) =
+            case track.markedNode of
+                Just mark ->
+                    ( min track.currentNode.index mark.index
+                    , max track.currentNode.index mark.index
+                    )
+
+                Nothing ->
+                    ( track.currentNode.index
+                    , track.currentNode.index
+                    )
+
+        section =
+            track.trackPoints |> List.drop start |> List,take (end - start + 1)
+    in
+    ( start, end, section )

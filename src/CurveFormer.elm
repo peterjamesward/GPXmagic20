@@ -584,19 +584,6 @@ showDisc model =
         Nothing ->
             []
 
-
-highlightPoints : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
-highlightPoints color points =
-    let
-        material =
-            Material.color color
-
-        highlightPoint p =
-            Scene3d.point { radius = Pixels.pixels 5 } material p.xyz
-    in
-    List.map highlightPoint points
-
-
 type alias IntersectionInformation =
     { intersection : Point2d.Point2d Length.Meters LocalCoords
     , distanceAlong : Length.Length
