@@ -6,7 +6,7 @@ import Element.Font as Font
 import Element.Input as Input exposing (button)
 import Http
 import List.Extra
-import OAuth.GpxSource exposing (GpxSource(..))
+import GpxSource exposing (GpxSource(..))
 import OAuthTypes as O exposing (Flow(..))
 import PostUpdateActions
 import StravaAuth exposing (getStravaToken)

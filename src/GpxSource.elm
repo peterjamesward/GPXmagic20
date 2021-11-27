@@ -1,4 +1,4 @@
-module OAuth.GpxSource exposing (..)
+module GpxSource exposing (..)
 
 type GpxSource
     = GpxNone

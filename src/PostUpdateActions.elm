@@ -1,17 +1,12 @@
 module PostUpdateActions exposing (..)
 
-import OAuth.GpxSource exposing (GpxSource)
+import GpxSource exposing (GpxSource)
 import Track exposing (Track)
-import TrackEditType exposing (TrackEditType)
 import TrackPoint exposing (TrackPoint)
 
 
-type
-    PostUpdateAction cmd
-    -- This experimental pattern for returning information back to
-    -- main about what needs to follow, since we can't know about the
-    -- program at large, only our small part.
-    = ActionTrackChanged TrackEditType Track String
+type PostUpdateAction trck cmd
+    = ActionTrackChanged TrackEditType (UndoEntry trck)
     | ActionRerender
     | ActionPreview
     | ActionPointerMove TrackPoint
@@ -26,3 +21,22 @@ type
     | ActionFetchMapElevations
 
 
+type TrackEditType
+    = EditPreservesIndex
+    | EditPreservesNodePosition
+    | EditExtendsBeyondMarkers (Maybe ( Int, Int ))
+    | EditNoOp -- only for Undo/Redo use
+
+
+
+-- This may not stay here.
+
+
+type alias UndoEntry track =
+    -- Use the old track points to revert, editFunction to redo.
+    { label : String
+    , firstChangedPoint : Int
+    , lastChangedPoint : Int
+    , oldTrackpoints : List TrackPoint
+    , editFunction : { track | trackPoints : List TrackPoint} -> List TrackPoint
+    }

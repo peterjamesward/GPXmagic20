@@ -5,23 +5,25 @@
 
 # TO-DO
 
+** STATE OF PLAY ** 
+Good progress on Nudge. 
+Rolled it all back. Starting over is never that hard.
+
 **Deltas** on Undo/Redo rather than hold a full Track (with index!). 
-> I shall do this but it's a significant effort affecting all edits.
+> I **shall** do this but it's a significant effort affecting all edits.
 1. New UndoEntry type
-2. New EditCommand type 
-3. Edit tool does not update the track, but returns EditCommand that describes the change
-4. Common code in Main applies the change and maintains Undo/Redo.
-5. Redo repeats the command (on what will be the same as-then track effectively)
-6. Always recreate any indexes post application.
+2. New EditCommand type (extends PostUpdateAction) returns the UndoEntry
+3. Every update takes (start : Int, end : Int) of marked region ( == => no purple )
+4. Edit tool does not update the track, but returns EditCommand that describes the change
+5. Don't know how to encode "edit command"; could be closure from the update.
+6. Common code in Main applies the change and maintains Undo/Redo.
+7. Redo repeats the command (on what will be the same as-then track effectively)
+8. Always recreate any indexes post application.
 
 Consistent approach to **preview** (Curve Former is example).
+> This may largely fall out of the previous.
 
-**Easy** If I'm not completely over-simplifying it and the road always renders a fixed distance 
-in front and behind the current position on the course then I've got a feature request 
-for GPXmagic Peter Ward. I thought it'd be really cool to be able to toggle a new option 
-in the "Visual styles" tab to be able highlight where the track will be rendered based 
-on the position of the current trackpoint (orange marker). It'd help to see where you're 
-likely to run into visual rendering issues then. {David Ogle}
+** Optimisation ** Wow, Nudge operates on the whole track. Wow.
 
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.

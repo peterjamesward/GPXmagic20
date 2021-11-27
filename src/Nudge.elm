@@ -2,17 +2,19 @@ module Nudge exposing (..)
 
 import Angle
 import Axis3d
+import Color
 import Direction3d
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (Length, inMeters)
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import Quantity
+import Scene3d exposing (Entity)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, highlightPoints)
 import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (..)
@@ -34,8 +36,8 @@ type NudgeEffects
 type alias NudgeSettings =
     { horizontal : Length.Length
     , vertical : Length.Length
-    , preview : List TrackPoint
     , fadeExtent : Length.Length
+    , nodesToNudge : List TrackPoint
     }
 
 
@@ -44,7 +46,7 @@ defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero
     , fadeExtent = Quantity.zero
-    , preview = []
+    , nodesToNudge = []
     }
 
 
@@ -87,40 +89,9 @@ makeUndoMessage track =
         "Nudge node at" ++ showDecimal0 from
 
 
-nudgeNodes : Track -> NudgeSettings -> Track
-nudgeNodes track settings =
-    -- Change the locations of the track points within the closed interval between
-    -- markers, or just the current node if no purple cone.
-    -- For a Graph, this must update canonical nodes and edges.
-    let
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
-
-        ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
-
-        nudgedTrackPoints =
-            computeNudgedPoints settings track
-
-        newCurrent =
-            List.Extra.getAt track.currentNode.index nudgedTrackPoints
-                |> Maybe.withDefault track.currentNode
-
-        newMarker =
-            case track.markedNode of
-                Just isMarked ->
-                    List.Extra.getAt isMarked.index nudgedTrackPoints
-
-                Nothing ->
-                    Nothing
-    in
-    { track
-        | trackPoints = nudgedTrackPoints
-        , currentNode = newCurrent
-        , markedNode = newMarker
-    }
+getPreview : NudgeSettings -> List (Entity LocalCoords)
+getPreview model =
+    highlightPoints Color.white model.nodesToNudge
 
 
 nudgeTrackPoint : NudgeSettings -> Float -> TrackPoint -> TrackPoint
@@ -158,20 +129,13 @@ nudgeTrackPoint settings fade trackpoint =
 computeNudgedPoints : NudgeSettings -> Track -> List TrackPoint
 computeNudgedPoints settings track =
     let
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
-
-        ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
+        ( start, end, section ) =
+            Track.getSection track
 
         ( fromNode, toNode ) =
-            if track.currentNode.index <= markerPosition.index then
-                ( track.currentNode, markerPosition )
-
-            else
-                ( markerPosition, track.currentNode )
+            ( track.trackPoints |> List.Extra.getAt start |> Maybe.withDefault track.currentNode
+            , track.trackPoints |> List.Extra.getAt end |> Maybe.withDefault track.currentNode
+            )
 
         fadeInStart =
             fromNode.distanceFromStart |> Quantity.minus settings.fadeExtent
@@ -211,57 +175,6 @@ computeNudgedPoints settings track =
             nudgeTrackPoint settings fade point
     in
     List.map nudge track.trackPoints
-        |> TrackPoint.prepareTrackPoints
-
-
-previewNudgeNodes : NudgeSettings -> Track -> NudgeSettings
-previewNudgeNodes settings track =
-    -- Change the locations of the track points within the closed interval between
-    -- markers, or just the current node if no purple cone.
-    let
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
-
-        ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
-
-        ( fromNode, toNode ) =
-            if track.currentNode.index <= markerPosition.index then
-                ( track.currentNode, markerPosition )
-
-            else
-                ( markerPosition, track.currentNode )
-
-        fadeInStart =
-            fromNode.distanceFromStart |> Quantity.minus settings.fadeExtent
-
-        fadeOutEnd =
-            toNode.distanceFromStart |> Quantity.plus settings.fadeExtent
-
-        nudgedPoints =
-            computeNudgedPoints settings track
-
-        previewStartIndex =
-            List.Extra.findIndex
-                (\p -> p.distanceFromStart |> Quantity.greaterThanOrEqualTo fadeInStart)
-                track.trackPoints
-                |> Maybe.withDefault from
-
-        previewEndIndex =
-            List.Extra.findIndex
-                (\p -> p.distanceFromStart |> Quantity.greaterThanOrEqualTo fadeOutEnd)
-                track.trackPoints
-                |> Maybe.withDefault to
-
-        ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
-            List.Extra.splitAt (previewEndIndex + 2) nudgedPoints
-
-        ( trackBeforePreviewStart, previewZone ) =
-            List.Extra.splitAt (previewStartIndex - 1) trackBeforePreviewEnd
-    in
-    { settings | preview = previewZone }
 
 
 viewNudgeTools : Bool -> NudgeSettings -> (NudgeMsg -> msg) -> Element msg
@@ -377,7 +290,7 @@ update :
     NudgeMsg
     -> NudgeSettings
     -> Track
-    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction msg )
+    -> ( NudgeSettings, PostUpdateActions.PostUpdateAction Track msg )
 update msg settings track =
     case msg of
         SetHorizontalNudgeFactor length ->
@@ -401,11 +314,23 @@ update msg settings track =
             )
 
         NudgeNode _ ->
+            let
+                ( startIndex, endIndex, section ) =
+                    Track.getSection track
+
+                actionEntry : UndoEntry Track
+                actionEntry =
+                    { label = makeUndoMessage track
+                    , firstChangedPoint = startIndex
+                    , lastChangedPoint = endIndex
+                    , oldTrackpoints = section
+                    , editFunction = computeNudgedPoints settings
+                    }
+            in
             ( { settings | preview = [] }
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                (nudgeNodes track settings)
-                (makeUndoMessage track)
+                actionEntry
             )
 
 
