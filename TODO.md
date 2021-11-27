@@ -7,7 +7,28 @@
 
 ** STATE OF PLAY ** 
 Good progress on Nudge. 
-Rolled it all back. Starting over is never that hard.
+sub-todo list:
+- LoopedTrack
+- BendSmoother
+- CurveFormer
+- GradientLimiter
+- GradientSmoother
+- MoveAndStretch
+- Straightener
+- Interpolate
+- DeletePoints
+- Flythrough
+- Filters
+- Graph
+- TrackObservations
+- StravaTools
+- RotateRoute
+- TrackSplitter
+
+**Suspicion** that keeping the separate Scene fragments is false economy as 
+rendering them after an edit is really not that expensive but keeping them
+all is a memory overhead. _We will stop this._ Do I still want to render
+the markers separately? _Let's try not doing that._ (Quick test tends to confirm.)
 
 **Deltas** on Undo/Redo rather than hold a full Track (with index!). 
 > I **shall** do this but it's a significant effort affecting all edits.
@@ -22,8 +43,7 @@ Rolled it all back. Starting over is never that hard.
 
 Consistent approach to **preview** (Curve Former is example).
 > This may largely fall out of the previous.
-
-** Optimisation ** Wow, Nudge operates on the whole track. Wow.
+> Nudge done. Better.
 
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.

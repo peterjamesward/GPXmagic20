@@ -10,13 +10,13 @@ import Length exposing (Length, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints, highlightPointsProfile)
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, highlightPoints)
-import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
+import TrackPoint exposing (TrackPoint)
+import Utils exposing (showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (..)
 
@@ -29,16 +29,13 @@ type NudgeMsg
     | SetFadeExtent Length.Length
 
 
-type NudgeEffects
-    = NudgePreview (List TrackPoint)
-    | NudgeTrackChanged String
-
 
 type alias NudgeSettings =
     { horizontal : Length.Length
     , vertical : Length.Length
     , fadeExtent : Length.Length
-    , nodesToNudge : List TrackPoint
+    , action : UndoEntry Track
+    , nudgedNodes : List TrackPoint
     }
 
 
@@ -47,7 +44,8 @@ defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero
     , fadeExtent = Quantity.zero
-    , nodesToNudge = []
+    , action = defaultUndoEntry
+    , nudgedNodes = []
     }
 
 
@@ -93,12 +91,12 @@ makeUndoMessage imperial track =
 
 getPreview : NudgeSettings -> List (Entity LocalCoords)
 getPreview model =
-    highlightPoints Color.lightOrange model.nodesToNudge
+    highlightPoints Color.lightOrange model.nudgedNodes
 
 
 getProfilePreview : NudgeSettings -> List (Entity LocalCoords)
 getProfilePreview model =
-    highlightPointsProfile Color.lightOrange model.nodesToNudge
+    highlightPointsProfile Color.lightOrange model.nudgedNodes
 
 
 nudgeTrackPoint : NudgeSettings -> Float -> TrackPoint -> TrackPoint
@@ -133,15 +131,23 @@ nudgeTrackPoint settings fade trackpoint =
         { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
-computeNudgedPoints : NudgeSettings -> Track -> List TrackPoint
-computeNudgedPoints settings track =
+computeNudgedPoints : Bool -> NudgeSettings -> Track -> NudgeSettings
+computeNudgedPoints imperial settings track =
     let
-        ( start, end, section ) =
-            Track.getSection track
+        ( _, _, section ) =
+            case track.markedNode of
+                Just _ ->
+                    Track.getSection track
+
+                Nothing ->
+                    ( track.currentNode.index
+                    , track.currentNode.index
+                    , [ track.currentNode ]
+                    )
 
         ( fromNode, toNode ) =
-            ( track.trackPoints |> List.Extra.getAt start |> Maybe.withDefault track.currentNode
-            , track.trackPoints |> List.Extra.getAt end |> Maybe.withDefault track.currentNode
+            ( section |> List.head |> Maybe.withDefault track.currentNode
+            , section |> List.Extra.last |> Maybe.withDefault track.currentNode
             )
 
         fadeInStart =
@@ -187,8 +193,29 @@ computeNudgedPoints settings track =
                         0.0
             in
             nudgeTrackPoint settings fade point
+
+        actionEntry : UndoEntry Track
+        actionEntry =
+            -- This is the +/-ve delta for possible redo. We do not include track in the closure!
+            { label = makeUndoMessage imperial track
+            , firstChangedPoint =
+                actualNudgeRegionIncludingFades
+                    |> List.head
+                    |> Maybe.withDefault track.currentNode
+                    |> .index
+            , lastChangedPoint =
+                actualNudgeRegionIncludingFades
+                    |> List.Extra.last
+                    |> Maybe.withDefault track.currentNode
+                    |> .index
+            , oldTrackpoints = actualNudgeRegionIncludingFades
+            , editFunction = \t -> computeNudgedPoints imperial settings t |> .nudgedNodes
+            }
     in
-    List.map nudge actualNudgeRegionIncludingFades
+    { settings
+        | nudgedNodes = List.map nudge actualNudgeRegionIncludingFades
+        , action = actionEntry
+    }
 
 
 viewNudgeTools : Bool -> NudgeSettings -> (NudgeMsg -> msg) -> Element msg
@@ -302,64 +329,48 @@ zeroButton wrap =
 
 update :
     NudgeMsg
+    -> Bool
     -> NudgeSettings
     -> Track
     -> ( NudgeSettings, PostUpdateActions.PostUpdateAction Track msg )
-update msg settings track =
+update msg imperial settings track =
     case msg of
         SetHorizontalNudgeFactor length ->
-            ( { settings
-                | horizontal = length
-                , nodesToNudge = computeNudgedPoints settings track
-              }
+            let
+                newSettings =
+                    { settings | horizontal = length }
+            in
+            ( computeNudgedPoints imperial newSettings track
             , PostUpdateActions.ActionPreview
             )
 
         SetVerticalNudgeFactor length ->
-            ( { settings
-                | vertical = length
-                , nodesToNudge = computeNudgedPoints settings track
-              }
+            let
+                newSettings =
+                    { settings | vertical = length }
+            in
+            ( computeNudgedPoints imperial newSettings track
             , PostUpdateActions.ActionPreview
             )
 
         SetFadeExtent fade ->
-            ( { settings
-                | fadeExtent = fade
-                , nodesToNudge = computeNudgedPoints settings track
-              }
+            let
+                newSettings =
+                    { settings | fadeExtent = fade }
+            in
+            ( computeNudgedPoints imperial newSettings track
             , PostUpdateActions.ActionPreview
             )
 
         ZeroNudgeFactors ->
-            ( defaultNudgeSettings
+            ( computeNudgedPoints imperial defaultNudgeSettings track
             , PostUpdateActions.ActionPreview
             )
 
         NudgeNode _ ->
-            let
-                ( startIndex, endIndex, section ) =
-                    Track.getSection track
-
-                actionEntry : UndoEntry Track
-                actionEntry =
-                    { label = makeUndoMessage track
-                    , firstChangedPoint = startIndex
-                    , lastChangedPoint = endIndex
-                    , oldTrackpoints = section
-                    , editFunction = computeNudgedPoints settings
-                    }
-            in
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                actionEntry
+                settings.action
             )
 
-
-settingNotZero : NudgeSettings -> Bool
-settingNotZero settings =
-    Length.inMeters settings.horizontal
-        /= 0.0
-        || Length.inMeters settings.vertical
-        /= 0.0

@@ -6,7 +6,7 @@ import Element.Input exposing (button)
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
@@ -122,19 +122,37 @@ update :
 update msg settings track =
     case msg of
         CloseTheLoop ->
+            let
+                actionEntry : UndoEntry Track
+                actionEntry =
+                    { label = "Close the loop"
+                    , firstChangedPoint = 0
+                    , lastChangedPoint = 1 + List.length track.trackPoints
+                    , oldTrackpoints = track.trackPoints
+                    , editFunction = closeTheLoop settings
+                    }
+            in
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
-                (closeTheLoop track settings)
-                "close the loop"
+                actionEntry
             )
 
         ReverseTrack ->
+            let
+                actionEntry : UndoEntry Track
+                actionEntry =
+                    { label = "Reverse track"
+                    , firstChangedPoint = 0
+                    , lastChangedPoint = 1 + List.length track.trackPoints
+                    , oldTrackpoints = track.trackPoints
+                    , editFunction = reverseTrackSection
+                    }
+            in
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
-                (reverseTrackSection track)
-                "reverse track"
+                actionEntry
             )
 
         ChangeLoopStart tp ->
@@ -152,11 +170,14 @@ update msg settings track =
             )
 
 
-reverseTrackSection : Track -> Track
+reverseTrackSection : Track -> List TrackPoint
 reverseTrackSection track =
     case track.markedNode of
         Just marker ->
             let
+                (start, end, section) =
+                    Track.getSection track
+
                 ( current, marked ) =
                     ( track.currentNode.index, marker.index )
 
@@ -187,8 +208,8 @@ reverseTrackSection track =
             { track | trackPoints = List.reverse track.trackPoints }
 
 
-closeTheLoop : Track -> Loopiness -> Track
-closeTheLoop track loopiness =
+closeTheLoop : Loopiness -> Track -> List TrackPoint
+closeTheLoop loopiness track =
     let
         maybeFirstPoint =
             List.head track.trackPoints
@@ -210,8 +231,9 @@ closeTheLoop track loopiness =
                         startPoint.xyz
             in
             { startPoint | xyz = newLocation }
-
-        newTrack gap =
+    in
+    case loopiness of
+        AlmostLoop gap ->
             if gap |> Quantity.lessThanOrEqualTo (meters 1.0) then
                 -- Replace last trackpoint with the first as we are so close.
                 List.take (List.length track.trackPoints - 1) track.trackPoints
@@ -224,13 +246,9 @@ closeTheLoop track loopiness =
                 track.trackPoints
                     ++ List.map backOneMeter (List.take 1 track.trackPoints)
                     ++ List.take 1 track.trackPoints
-    in
-    case loopiness of
-        AlmostLoop gap ->
-            { track | trackPoints = newTrack gap }
 
         _ ->
-            track
+            track.trackPoints
 
 
 changeLoopStart : Track -> Track

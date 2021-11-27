@@ -38,5 +38,14 @@ type alias UndoEntry track =
     , firstChangedPoint : Int
     , lastChangedPoint : Int
     , oldTrackpoints : List TrackPoint
-    , editFunction : { track | trackPoints : List TrackPoint} -> List TrackPoint
+    , editFunction : { track | trackPoints : List TrackPoint } -> List TrackPoint
+    }
+
+
+defaultUndoEntry =
+    { label = "You should not be seeing this"
+    , firstChangedPoint = 0
+    , lastChangedPoint = 0
+    , oldTrackpoints = []
+    , editFunction = always []
     }

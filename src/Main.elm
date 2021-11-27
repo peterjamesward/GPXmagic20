@@ -1602,10 +1602,7 @@ renderVaryingSceneElements model =
                         updatedBendOptions.smoothedBend
                         |> Maybe.withDefault []
                    )
-        , nudgeProfilePreview =
-            SceneBuilderProfile.previewNudge
-                latestModel.displayOptions
-                updatedNudgeSettings.preview
+        , nudgeProfilePreview = Nudge.getProfilePreview model.nudgeSettings
         , moveAndStretchPreview =
             SceneBuilder.previewMoveAndStretch
                 updatedMoveAndStretchSettings.preview

@@ -439,6 +439,10 @@ getSection track =
                     )
 
         section =
-            track.trackPoints |> List.drop start |> List,take (end - start + 1)
+            if end > start then
+                track.trackPoints |> List.drop start |> List.take (end - start + 1)
+
+            else
+                track.trackPoints
     in
     ( start, end, section )
