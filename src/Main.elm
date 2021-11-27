@@ -79,22 +79,22 @@ type Msg
     | Tick Time.Posix
     | Undo
     | Redo
-    --| DeleteMessage DeletePoints.Msg
+    | DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
     | PortMessage Encode.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
-    --| BendSmoothMessage BendSmoother.Msg
-    --| LoopMsg LoopedTrack.Msg
-    --| GradientMessage GradientSmoother.Msg
-    --| GradientLimiter GradientLimiter.Msg
-    --| StraightenMessage Straightener.Msg
-    --| FlythroughMessage Flythrough.Msg
-    --| FilterMessage Filters.Msg
-    --| ProblemMessage TrackObservations.Msg
-    --| InsertMessage Interpolate.Msg
-    --| SplitterMessage TrackSplitter.Msg
+    | BendSmoothMessage BendSmoother.Msg
+    | LoopMsg LoopedTrack.Msg
+    | GradientMessage GradientSmoother.Msg
+    | GradientLimiter GradientLimiter.Msg
+    | StraightenMessage Straightener.Msg
+    | FlythroughMessage Flythrough.Msg
+    | FilterMessage Filters.Msg
+    | ProblemMessage TrackObservations.Msg
+    | InsertMessage Interpolate.Msg
+    | SplitterMessage TrackSplitter.Msg
     | UserChangedFilename String
     | OutputGPX
     | StravaMessage StravaTools.Msg
@@ -107,8 +107,8 @@ type Msg
     | EnableMapSketchMode
     | ResizeViews Int
     | StoreSplitterPosition
-    --| TwoWayDragMsg MoveAndStretch.Msg
-    --| CurveFormerMsg CurveFormer.Msg
+    | TwoWayDragMsg MoveAndStretch.Msg
+    | CurveFormerMsg CurveFormer.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -1525,20 +1525,7 @@ renderVaryingSceneElements model =
             else
                 { settings | preview = [] }
 
-        updatedNudgeSettings =
-            let
-                settings =
-                    latestModel.nudgeSettings
-            in
-            if
-                Accordion.tabIsOpen Nudge.toolLabel latestModel.toolsAccordion
-                    && Nudge.settingNotZero settings
-            then
-                Maybe.map (Nudge.previewNudgeNodes latestModel.nudgeSettings) latestModel.track
-                    |> Maybe.withDefault settings
 
-            else
-                { settings | preview = [] }
 
         updatedBendOptions =
             if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
@@ -1603,9 +1590,8 @@ renderVaryingSceneElements model =
     { latestModel
         | visibleMarkers = updatedMarkers
         , profileMarkers = updatedProfileMarkers
-        , nudgeSettings = updatedNudgeSettings
         , moveAndStretch = updatedMoveAndStretchSettings
-        , nudgePreview = SceneBuilder.previewNudge updatedNudgeSettings.preview
+        , nudgePreview = Nudge.getPreview model.nudgeSettings
         , stravaSegmentPreview = SceneBuilder.previewStravaSegment updatedStravaOptions.preview
         , bendOptions = updatedBendOptions
         , curveFormer = curveFormerWithPreview
@@ -1967,72 +1953,72 @@ toolsAccordion model =
       , video = Just "https://youtu.be/N7zGRJvke_M"
       , isFavourite = False
       }
-    --, { label = LoopedTrack.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        LoopedTrack.viewLoopTools
-    --            model.displayOptions.imperialMeasure
-    --            model.observations.loopiness
-    --            model.track
-    --            LoopMsg
-    --  , info = LoopedTrack.info
-    --  , video = Just "https://youtu.be/B3SGh8KhDu0"
-    --  , isFavourite = False
-    --  }
-    --, { label = BendSmoother.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        BendSmoother.viewBendFixerPane
-    --            model.displayOptions.imperialMeasure
-    --            model.bendOptions
-    --            BendSmoothMessage
-    --  , info = BendSmoother.info
-    --  , video = Just "https://youtu.be/VO5jsOZmTIg"
-    --  , isFavourite = False
-    --  }
-    --, { label = CurveFormer.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (CurveFormer.view
-    --                model.displayOptions.imperialMeasure
-    --                model.curveFormer
-    --                CurveFormerMsg
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = CurveFormer.info
-    --  , video = Just "https://youtu.be/DjdwAFkgw2o"
-    --  , isFavourite = False
-    --  }
-    --, { label = GradientLimiter.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (GradientLimiter.viewGradientLimitPane
-    --                model.gradientLimiter
-    --                GradientLimiter
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = GradientLimiter.info
-    --  , video = Just "https://youtu.be/LtcYi4fzImE"
-    --  , isFavourite = False
-    --  }
-    --, { label = GradientSmoother.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (GradientSmoother.viewGradientFixerPane
-    --                model.gradientOptions
-    --                GradientMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = GradientSmoother.info
-    --  , video = Just "https://youtu.be/YTY2CSl0wo8"
-    --  , isFavourite = False
-    --  }
+    , { label = LoopedTrack.toolLabel
+      , state = Contracted
+      , content =
+            LoopedTrack.viewLoopTools
+                model.displayOptions.imperialMeasure
+                model.observations.loopiness
+                model.track
+                LoopMsg
+      , info = LoopedTrack.info
+      , video = Just "https://youtu.be/B3SGh8KhDu0"
+      , isFavourite = False
+      }
+    , { label = BendSmoother.toolLabel
+      , state = Contracted
+      , content =
+            BendSmoother.viewBendFixerPane
+                model.displayOptions.imperialMeasure
+                model.bendOptions
+                BendSmoothMessage
+      , info = BendSmoother.info
+      , video = Just "https://youtu.be/VO5jsOZmTIg"
+      , isFavourite = False
+      }
+    , { label = CurveFormer.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (CurveFormer.view
+                    model.displayOptions.imperialMeasure
+                    model.curveFormer
+                    CurveFormerMsg
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = CurveFormer.info
+      , video = Just "https://youtu.be/DjdwAFkgw2o"
+      , isFavourite = False
+      }
+    , { label = GradientLimiter.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (GradientLimiter.viewGradientLimitPane
+                    model.gradientLimiter
+                    GradientLimiter
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = GradientLimiter.info
+      , video = Just "https://youtu.be/LtcYi4fzImE"
+      , isFavourite = False
+      }
+    , { label = GradientSmoother.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (GradientSmoother.viewGradientFixerPane
+                    model.gradientOptions
+                    GradientMessage
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = GradientSmoother.info
+      , video = Just "https://youtu.be/YTY2CSl0wo8"
+      , isFavourite = False
+      }
     , { label = Nudge.toolLabel
       , state = Contracted
       , content =
@@ -2044,206 +2030,206 @@ toolsAccordion model =
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
       }
-    --, { label = MoveAndStretch.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (MoveAndStretch.view
-    --                model.displayOptions.imperialMeasure
-    --                model.moveAndStretch
-    --                TwoWayDragMsg
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = MoveAndStretch.info
-    --  , video = Just "https://youtu.be/9ag2iSS4OE8"
-    --  , isFavourite = False
-    --  }
-    --, { label = Straightener.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (Straightener.viewStraightenTools
-    --                model.straightenOptions
-    --                StraightenMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = Straightener.info
-    --  , video = Just "https://youtu.be/MQ67mzShvxg"
-    --  , isFavourite = False
-    --  }
-    --, { label = Interpolate.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        case model.track of
-    --            Just _ ->
-    --                Interpolate.viewTools
-    --                    model.displayOptions.imperialMeasure
-    --                    model.insertOptions
-    --                    InsertMessage
-    --
-    --            Nothing ->
-    --                none
-    --  , info = Interpolate.info
-    --  , video = Just "https://youtu.be/C3chnX2Ij_8"
-    --  , isFavourite = False
-    --  }
-    --, { label = DeletePoints.toolLabel
-    --  , state = Contracted
-    --  , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
-    --  , info = DeletePoints.info
-    --  , video = Nothing
-    --  , isFavourite = False
-    --  }
-    --, { label = Flythrough.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Flythrough.flythroughControls
-    --            model.displayOptions.imperialMeasure
-    --            model.flythrough
-    --            FlythroughMessage
-    --  , info = Flythrough.info
-    --  , video = Just "https://youtu.be/lRukK-do_dE"
-    --  , isFavourite = False
-    --  }
-    --, { label = Filters.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (Filters.viewFilterControls model.filterOptions
-    --                FilterMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = Filters.info
-    --  , video = Just "https://youtu.be/N48cDi_N_x0"
-    --  , isFavourite = False
-    --  }
-    --, { label = Graph.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        model.track
-    --            |> Maybe.map .graph
-    --            |> Maybe.andThen
-    --                (Just << viewGraphControls GraphMessage)
-    --            |> Maybe.withDefault none
-    --  , info = Graph.info
-    --  , video = Just "https://youtu.be/KSuR8PcAZYc"
-    --  , isFavourite = False
-    --  }
-    --, { label = TrackObservations.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        TrackObservations.overviewSummary
-    --            model.displayOptions.imperialMeasure
-    --            model.observations
-    --  , info = "Data about the route."
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
-    --, { label = "Road segment"
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map (summaryData model.displayOptions.imperialMeasure) model.track
-    --            |> Maybe.withDefault none
-    --  , info = "Data about the road at the orange marker."
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
-    --, { label = "Steep climbs"
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (TrackObservations.viewSteepClimbs
-    --                model.problemOptions
-    --                ProblemMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = TrackObservations.info
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
-    --, { label = "Gradient problems"
-    --  , state = Contracted
-    --  , content =
-    --        TrackObservations.viewGradientChanges
-    --            model.displayOptions.imperialMeasure
-    --            model.problemOptions
-    --            model.observations
-    --            ProblemMessage
-    --  , info = TrackObservations.info
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
-    --, { label = "Bend problems"
-    --  , state = Contracted
-    --  , content =
-    --        TrackObservations.viewBearingChanges
-    --            model.displayOptions.imperialMeasure
-    --            model.problemOptions
-    --            model.observations
-    --            ProblemMessage
-    --  , info = TrackObservations.info
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
-    --, { label = "Intersections"
-    --  , state = Contracted
-    --  , content =
-    --        TrackObservations.viewIntersections
-    --            model.displayOptions.imperialMeasure
-    --            model.problemOptions
-    --            model.observations
-    --            ProblemMessage
-    --  , info = TrackObservations.info
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
-    --, { label = StravaTools.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (StravaTools.viewStravaTab model.stravaOptions StravaMessage)
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = StravaTools.info
-    --  , video = Just "https://youtu.be/31qVuc3klUE"
-    --  , isFavourite = False
-    --  }
-    --, { label = RotateRoute.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (RotateRoute.view
-    --                model.displayOptions.imperialMeasure
-    --                model.rotateOptions
-    --                model.lastMapClick
-    --                RotateMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = RotateRoute.info
-    --  , video = Just "https://youtu.be/P602MjJLrZ0"
-    --  , isFavourite = False
-    --  }
-    --, { label = TrackSplitter.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (TrackSplitter.view
-    --                model.displayOptions.imperialMeasure
-    --                model.splitterOptions
-    --                model.observations
-    --                SplitterMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = TrackSplitter.info
-    --  , video = Nothing
-    --  , isFavourite = False
-    --  }
+    , { label = MoveAndStretch.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (MoveAndStretch.view
+                    model.displayOptions.imperialMeasure
+                    model.moveAndStretch
+                    TwoWayDragMsg
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = MoveAndStretch.info
+      , video = Just "https://youtu.be/9ag2iSS4OE8"
+      , isFavourite = False
+      }
+    , { label = Straightener.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (Straightener.viewStraightenTools
+                    model.straightenOptions
+                    StraightenMessage
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = Straightener.info
+      , video = Just "https://youtu.be/MQ67mzShvxg"
+      , isFavourite = False
+      }
+    , { label = Interpolate.toolLabel
+      , state = Contracted
+      , content =
+            case model.track of
+                Just _ ->
+                    Interpolate.viewTools
+                        model.displayOptions.imperialMeasure
+                        model.insertOptions
+                        InsertMessage
+
+                Nothing ->
+                    none
+      , info = Interpolate.info
+      , video = Just "https://youtu.be/C3chnX2Ij_8"
+      , isFavourite = False
+      }
+    , { label = DeletePoints.toolLabel
+      , state = Contracted
+      , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
+      , info = DeletePoints.info
+      , video = Nothing
+      , isFavourite = False
+      }
+    , { label = Flythrough.toolLabel
+      , state = Contracted
+      , content =
+            Flythrough.flythroughControls
+                model.displayOptions.imperialMeasure
+                model.flythrough
+                FlythroughMessage
+      , info = Flythrough.info
+      , video = Just "https://youtu.be/lRukK-do_dE"
+      , isFavourite = False
+      }
+    , { label = Filters.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (Filters.viewFilterControls model.filterOptions
+                    FilterMessage
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = Filters.info
+      , video = Just "https://youtu.be/N48cDi_N_x0"
+      , isFavourite = False
+      }
+    , { label = Graph.toolLabel
+      , state = Contracted
+      , content =
+            model.track
+                |> Maybe.map .graph
+                |> Maybe.andThen
+                    (Just << viewGraphControls GraphMessage)
+                |> Maybe.withDefault none
+      , info = Graph.info
+      , video = Just "https://youtu.be/KSuR8PcAZYc"
+      , isFavourite = False
+      }
+    , { label = TrackObservations.toolLabel
+      , state = Contracted
+      , content =
+            TrackObservations.overviewSummary
+                model.displayOptions.imperialMeasure
+                model.observations
+      , info = "Data about the route."
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
+    , { label = "Road segment"
+      , state = Contracted
+      , content =
+            Maybe.map (summaryData model.displayOptions.imperialMeasure) model.track
+                |> Maybe.withDefault none
+      , info = "Data about the road at the orange marker."
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
+    , { label = "Steep climbs"
+      , state = Contracted
+      , content =
+            Maybe.map
+                (TrackObservations.viewSteepClimbs
+                    model.problemOptions
+                    ProblemMessage
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
+    , { label = "Gradient problems"
+      , state = Contracted
+      , content =
+            TrackObservations.viewGradientChanges
+                model.displayOptions.imperialMeasure
+                model.problemOptions
+                model.observations
+                ProblemMessage
+      , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
+    , { label = "Bend problems"
+      , state = Contracted
+      , content =
+            TrackObservations.viewBearingChanges
+                model.displayOptions.imperialMeasure
+                model.problemOptions
+                model.observations
+                ProblemMessage
+      , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
+    , { label = "Intersections"
+      , state = Contracted
+      , content =
+            TrackObservations.viewIntersections
+                model.displayOptions.imperialMeasure
+                model.problemOptions
+                model.observations
+                ProblemMessage
+      , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      }
+    , { label = StravaTools.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (StravaTools.viewStravaTab model.stravaOptions StravaMessage)
+                model.track
+                |> Maybe.withDefault none
+      , info = StravaTools.info
+      , video = Just "https://youtu.be/31qVuc3klUE"
+      , isFavourite = False
+      }
+    , { label = RotateRoute.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (RotateRoute.view
+                    model.displayOptions.imperialMeasure
+                    model.rotateOptions
+                    model.lastMapClick
+                    RotateMessage
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = RotateRoute.info
+      , video = Just "https://youtu.be/P602MjJLrZ0"
+      , isFavourite = False
+      }
+    , { label = TrackSplitter.toolLabel
+      , state = Contracted
+      , content =
+            Maybe.map
+                (TrackSplitter.view
+                    model.displayOptions.imperialMeasure
+                    model.splitterOptions
+                    model.observations
+                    SplitterMessage
+                )
+                model.track
+                |> Maybe.withDefault none
+      , info = TrackSplitter.info
+      , video = Nothing
+      , isFavourite = False
+      }
     ]
 
 

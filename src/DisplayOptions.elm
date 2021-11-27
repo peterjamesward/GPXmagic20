@@ -11,7 +11,9 @@ import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (checkboxIcon, commonShortHorizontalSliderStyles, prettyButtonStyles, radioButton)
 
 
-toolLabel = "Visual styles"
+toolLabel =
+    "Visual styles"
+
 
 info =
     """## Display options
@@ -354,5 +356,3 @@ temporaryDecoder =
         |> optional "curtainStyle" int (encodeCurtain defaultDisplayOptions.curtainStyle)
         |> optional "LOC" float defaultDisplayOptions.levelOfDetailThreshold
         |> optional "MRlimit" bool defaultDisplayOptions.showRenderingLimit
-
-

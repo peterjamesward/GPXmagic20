@@ -13,7 +13,7 @@ import Point3d
 import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
-import SceneBuilder exposing (highlightPoints)
+import SceneBuilder exposing (highlightPoints, highlightPointsProfile)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, highlightPoints)
 import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
@@ -94,6 +94,11 @@ makeUndoMessage imperial track =
 getPreview : NudgeSettings -> List (Entity LocalCoords)
 getPreview model =
     highlightPoints Color.lightOrange model.nodesToNudge
+
+
+getProfilePreview : NudgeSettings -> List (Entity LocalCoords)
+getProfilePreview model =
+    highlightPointsProfile Color.lightOrange model.nodesToNudge
 
 
 nudgeTrackPoint : NudgeSettings -> Float -> TrackPoint -> TrackPoint

@@ -61,6 +61,18 @@ highlightPoints color points =
     List.map highlightPoint points
 
 
+highlightPointsProfile : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+highlightPointsProfile color points =
+    let
+        material =
+            Material.color color
+
+        highlightPoint p =
+            Scene3d.point { radius = Pixels.pixels 5 } material p.profileXZ
+    in
+    List.map highlightPoint points
+
+
 renderTerrain : DisplayOptions -> Track -> Scene
 renderTerrain options track =
     let
