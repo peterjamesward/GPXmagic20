@@ -133,35 +133,20 @@ type alias Model =
     , gpxSource : GpxSource
     , time : Time.Posix
     , zone : Time.Zone
-
-    --, staticScene : Scene
-    --, visibleMarkers : Scene
     , completeScene : Scene
     , completeProfile : Scene
-
-    --, completeTerrainScene : Scene
-    --, profileScene : Scene
-    --, terrainScene : Scene
-    --, profileMarkers : Scene
     , renderingContext : Maybe RenderingContext
     , viewPanes : List ViewPane
     , track : Maybe Track
     , markerPositionAtLastSceneBuild : Quantity.Quantity Float Length.Meters
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
-
-    --, nudgePreview : Scene
-    --, nudgeProfilePreview : Scene
-    --, stravaSegmentPreview : Scene
-    --, moveAndStretchPreview : Scene
-    --, moveAndStretchProfilePreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
     , displayOptions : DisplayOptions.DisplayOptions
 
     --, bendOptions : BendSmoother.BendOptions
-    --, bendPreview : Scene
     , observations : TrackObservations
 
     --, gradientOptions : GradientSmoother.Options
@@ -174,7 +159,6 @@ type alias Model =
     --, stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
-    , highlightedGraphEdge : Scene
 
     --, gradientLimiter : GradientLimiter.Options
     --, rotateOptions : RotateRoute.Options
@@ -207,19 +191,9 @@ init mflags origin navigationKey =
       , track = Nothing
       , markerPositionAtLastSceneBuild = Quantity.zero
 
-      --, staticScene = []
-      --, profileScene = []
-      --, terrainScene = []
-      --, profileMarkers = []
-      --, visibleMarkers = []
-      --, nudgePreview = []
-      --, nudgeProfilePreview = []
-      --, stravaSegmentPreview = []
-      --, moveAndStretchPreview = []
       , completeScene = []
       , completeProfile = []
 
-      --, completeTerrainScene = []
       , renderingContext = Nothing
       , viewPanes = ViewPane.viewPanesWhenNoTrack
       , toolsAccordion = []
@@ -230,7 +204,6 @@ init mflags origin navigationKey =
       , displayOptions = DisplayOptions.defaultDisplayOptions
 
       --, bendOptions = BendSmoother.defaultOptions
-      --, bendPreview = []
       , observations = TrackObservations.defaultObservations
 
       --, gradientOptions = GradientSmoother.defaultOptions
@@ -243,7 +216,6 @@ init mflags origin navigationKey =
       --, stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
-      , highlightedGraphEdge = []
 
       --, gradientLimiter = GradientLimiter.defaultOptions
       --, rotateOptions = RotateRoute.defaultOptions
@@ -258,7 +230,6 @@ init mflags origin navigationKey =
       , markerOptions = MarkerControls.defaultOptions
 
       --, moveAndStretch = MoveAndStretch.defaultModel
-      --, moveAndStretchProfilePreview = []
       --, curveFormer = CurveFormer.defaultModel
       }
         |> -- TODO: Fix Fugly Fudge. Here to make sure function is applied to model state.
@@ -275,7 +246,7 @@ init mflags origin navigationKey =
     )
 
 
-
+--TODO: Don't restore this.
 --passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
 --passFlythroughToContext flight context =
 --    { context | flythrough = flight }
