@@ -6,8 +6,12 @@
 # TO-DO
 
 ** STATE OF PLAY ** 
-Good progress on Nudge. 
-sub-todo list:
+Good progress on Nudge.
+> Need to have some Track info (current, marker?) in closure otherwise nudge settings are re-used.
+> Also possible that the track lifecycle/versioning is not as it should be.
+> Must streamline all post-edit/undo/redo actions; no reason why it need be so convoluted.
+
+Tools to be changed:
 - LoopedTrack
 - BendSmoother
 - CurveFormer

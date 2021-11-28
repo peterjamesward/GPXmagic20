@@ -1017,6 +1017,7 @@ processPostUpdateAction model action =
             ( {model | track = Just newTrack }
                 |> addToUndoStack undoEntry
                 |> reflectNewTrackViaGraph newTrack editType
+                |> repeatTrackDerivations
                 |> composeScene
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack model.viewPanes
@@ -1028,6 +1029,7 @@ processPostUpdateAction model action =
             -- Use this after Undo/Redo to avoid pushing change onto stack.
             ( model
                 |> reflectNewTrackViaGraph track EditNoOp
+                |> repeatTrackDerivations
                 |> composeScene
             , Cmd.batch
                 [ ViewPane.makeMapCommands track model.viewPanes
@@ -2221,7 +2223,7 @@ addToUndoStack :
     -> Model
 addToUndoStack entry model =
     { model
-        | undoStack = entry :: List.take 19 model.undoStack
+        | undoStack = entry :: List.take 9 model.undoStack
         , redoStack = []
         , changeCounter = model.changeCounter + 1
     }
