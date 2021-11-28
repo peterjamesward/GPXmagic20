@@ -34,7 +34,6 @@ type alias NudgeSettings =
     , vertical : Length.Length
     , fadeExtent : Length.Length
     , action : UndoEntry
-    , originalSection : List TrackPoint
     }
 
 
@@ -44,7 +43,6 @@ defaultNudgeSettings =
     , vertical = Quantity.zero
     , fadeExtent = Quantity.zero
     , action = defaultUndoEntry
-    , originalSection = []
     }
 
 
@@ -91,7 +89,7 @@ makeUndoMessage imperial track =
 getPreview : NudgeSettings -> Track -> List (Entity LocalCoords)
 getPreview settings track =
     let
-        (_, nudged, _ ) =
+        ( _, nudged, _ ) =
             settings.action.editFunction track
     in
     highlightPoints Color.lightOrange nudged
@@ -100,7 +98,7 @@ getPreview settings track =
 getProfilePreview : NudgeSettings -> Track -> List (Entity LocalCoords)
 getProfilePreview settings track =
     let
-        (_, nudged, _ ) =
+        ( _, nudged, _ ) =
             settings.action.editFunction track
     in
     highlightPointsProfile Color.lightOrange nudged
@@ -186,6 +184,8 @@ editFunction :
     -> Track
     -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 editFunction settings track =
+    -- This is when the Nudge actually takes effect. It can be called to create preview
+    -- or for the real McCoy.
     let
         ( prefix, actualNudgeRegionIncludingFades, suffix ) =
             -- Yes, we split it again for the actual edit or Redo.
@@ -239,25 +239,52 @@ editFunction settings track =
     )
 
 
+undoFunction :
+    ( Int, Int )
+    -> List TrackPoint
+    -> Track
+    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoFunction ( start, end ) savedPoints track =
+    -- Construct the closure for undo-ing.
+    -- No need to save the whole track, only the bit we've Nudged.
+    let
+        ( prefix, theRest ) =
+            track.trackPoints |> List.Extra.splitAt start
+
+        ( _, suffix ) =
+            theRest |> List.Extra.splitAt (end - start)
+    in
+    ( prefix, savedPoints, suffix )
+
+
 buildActions : Bool -> NudgeSettings -> Track -> NudgeSettings
 buildActions imperial settings track =
+    -- Here we simply create closures that can be called to apply, undo, redo the edit.
     let
         ( prefix, actualNudgeRegionIncludingFades, suffix ) =
             -- Have to split it here to get the trackpoints to save for Undo.
             splitTheTrackAllowingForFade settings track
+
+        ( start, end ) =
+            ( actualNudgeRegionIncludingFades
+                |> List.head
+                |> Maybe.withDefault track.currentNode
+                |> .index
+            , suffix
+                |> List.head
+                |> Maybe.withDefault track.currentNode
+                |> .index
+            )
 
         actionEntry : UndoEntry
         actionEntry =
             -- This is the +/-ve delta for possible redo. We do not include track in the closure!
             { label = makeUndoMessage imperial track
             , editFunction = editFunction settings
-            , undoFunction = always ( prefix, settings.originalSection, suffix )
+            , undoFunction = undoFunction (start, end) actualNudgeRegionIncludingFades
             }
     in
-    { settings
-        | originalSection = actualNudgeRegionIncludingFades
-        , action = actionEntry
-    }
+    { settings | action = actionEntry }
 
 
 viewNudgeTools : Bool -> NudgeSettings -> (NudgeMsg -> msg) -> Element msg

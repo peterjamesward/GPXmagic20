@@ -175,7 +175,7 @@ update :
     -> Options
     -> (Msg -> msg)
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction (Cmd msg) )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck (Cmd msg) )
 update msg options wrap track =
     let
         safeNewNode newIndex =

@@ -6,7 +6,7 @@ import Element.Input exposing (button)
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
 import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
@@ -118,41 +118,31 @@ update :
     Msg
     -> Loopiness
     -> Track
-    -> ( Loopiness, PostUpdateActions.PostUpdateAction msg )
+    -> ( Loopiness, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
         CloseTheLoop ->
             let
-                actionEntry : UndoEntry Track
-                actionEntry =
-                    { label = "Close the loop"
-                    , firstChangedPoint = 0
-                    , lastChangedPoint = 1 + List.length track.trackPoints
-                    , oldTrackpoints = track.trackPoints
-                    , editFunction = closeTheLoop settings
-                    }
+                actionEntry : UndoEntry
+                actionEntry = defaultUndoEntry
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                actionEntry
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                actionEntry
             )
 
         ReverseTrack ->
             let
-                actionEntry : UndoEntry Track
-                actionEntry =
-                    { label = "Reverse track"
-                    , firstChangedPoint = 0
-                    , lastChangedPoint = 1 + List.length track.trackPoints
-                    , oldTrackpoints = track.trackPoints
-                    , editFunction = reverseTrackSection
-                    }
+                actionEntry : UndoEntry
+                actionEntry = defaultUndoEntry
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                actionEntry
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                actionEntry
             )
 
         ChangeLoopStart tp ->
@@ -161,12 +151,13 @@ update msg settings track =
                     settings
             in
             ( newSettings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                (changeLoopStart track)
-                ("move start to "
-                    ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
-                )
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                (changeLoopStart track)
+--                ("move start to "
+--                    ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
+--                )
             )
 
 
@@ -175,9 +166,6 @@ reverseTrackSection track =
     case track.markedNode of
         Just marker ->
             let
-                (start, end, section) =
-                    Track.getSection track
-
                 ( current, marked ) =
                     ( track.currentNode.index, marker.index )
 
@@ -198,14 +186,10 @@ reverseTrackSection track =
                     , newPoints |> List.Extra.getAt marked
                     )
             in
-            { track
-                | trackPoints = newPoints
-                , currentNode = newOrange
-                , markedNode = newPurple
-            }
+            newPoints
 
         Nothing ->
-            { track | trackPoints = List.reverse track.trackPoints }
+            List.reverse track.trackPoints
 
 
 closeTheLoop : Loopiness -> Track -> List TrackPoint

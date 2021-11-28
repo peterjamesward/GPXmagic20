@@ -37,9 +37,9 @@ type ViewPaneMessage
     | ToggleColumns
 
 
-type ViewPaneAction msg
+type ViewPaneAction trck msg
     = PaneLayoutChange (ViewPane -> ViewPane)
-    | ImageAction (PostUpdateActions.PostUpdateAction msg)
+    | ImageAction (PostUpdateActions.PostUpdateAction trck msg)
     | PaneNoOp
 
 
@@ -481,7 +481,7 @@ update :
     -> DisplayOptions
     -> List ViewPane
     -> (ViewPaneMessage -> msg)
-    -> ( Maybe ViewPane, ViewPaneAction (Cmd msg) )
+    -> ( Maybe ViewPane, ViewPaneAction trck (Cmd msg) )
 update msg options panes wrap =
     case msg of
         ChooseViewMode paneId mode ->

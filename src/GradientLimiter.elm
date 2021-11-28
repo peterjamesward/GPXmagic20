@@ -69,7 +69,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
         SetMaximumAscent up ->
@@ -88,10 +88,12 @@ update msg settings track =
                     limitGradient settings track
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
-                newTrack
-                undoMsg
+            ,
+                        PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesIndex
+--                newTrack
+--                undoMsg
             )
 
 

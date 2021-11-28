@@ -118,7 +118,7 @@ update :
     Msg
     -> BendOptions
     -> Track
-    -> ( BendOptions, PostUpdateActions.PostUpdateAction msg )
+    -> ( BendOptions, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
         SetBendTrackPointSpacing spacing ->
@@ -141,10 +141,11 @@ update msg settings track =
 
         SmoothBend ->
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                (smoothBend track settings)
-                (makeUndoMessage settings track)
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+                --PostUpdateActions.EditPreservesNodePosition
+                --(smoothBend track settings)
+                --(makeUndoMessage settings track)
             )
 
         SoftenBend ->
@@ -620,12 +621,13 @@ segmentSlider model wrap =
         }
 
 
-softenCurrentPoint : BendOptions -> Track -> PostUpdateActions.PostUpdateAction cmd
+softenCurrentPoint : BendOptions -> Track -> PostUpdateActions.PostUpdateAction trck cmd
 softenCurrentPoint options track =
-    PostUpdateActions.ActionTrackChanged
-        PostUpdateActions.EditPreservesNodePosition
-        (softenSinglePoint options.segments track track.currentNode)
-        "Smooth single point"
+            PostUpdateActions.ActionNoOp
+    --PostUpdateActions.ActionTrackChanged
+    --    PostUpdateActions.EditPreservesNodePosition
+    --    (softenSinglePoint options.segments track track.currentNode)
+    --    "Smooth single point"
 
 
 softenSinglePoint : Int -> Track -> TrackPoint -> Track

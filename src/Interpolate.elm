@@ -49,7 +49,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
         SetMaxSpacing spacing ->
@@ -63,10 +63,12 @@ update msg settings track =
                     insertPoints settings track
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                newTrack
-                undoMsg
+            ,             PostUpdateActions.ActionNoOp
+
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                newTrack
+--                undoMsg
             )
 
 

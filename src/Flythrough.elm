@@ -235,7 +235,7 @@ flythroughControls imperial options wrapper =
         ]
 
 
-update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction (Cmd msg) )
+update : Options -> Msg -> (Msg -> msg) -> Track -> ( Options, PostUpdateAction trck (Cmd msg) )
 update options msg wrap track =
     case msg of
         SetFlythroughSpeed speed ->

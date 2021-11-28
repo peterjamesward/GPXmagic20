@@ -152,7 +152,7 @@ update :
     -> Model
     -> (Msg -> msg)
     -> Track
-    -> ( Model, PostUpdateActions.PostUpdateAction (Cmd msg) )
+    -> ( Model, PostUpdateActions.PostUpdateAction trck (Cmd msg) )
 update message model wrapper track =
     case message of
         DraggerGrab offset ->
@@ -214,10 +214,11 @@ update message model wrapper track =
 
         DraggerApply ->
             ( { model | preview = [] }
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
-                (apply track model)
-                (makeUndoMessage model)
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesIndex
+--                (apply track model)
+--                (makeUndoMessage model)
             )
 
         StretchHeight x ->

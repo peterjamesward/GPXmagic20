@@ -164,7 +164,7 @@ update :
     -> ViewingContext
     -> DisplayOptions
     -> (ImageMsg -> msg)
-    -> ( ViewingContext, PostUpdateAction (Cmd msg) )
+    -> ( ViewingContext, PostUpdateAction trck (Cmd msg) )
 update msg view options wrap =
     -- Second return value indicates whether selection needs to change.
     case msg of

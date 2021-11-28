@@ -52,7 +52,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
         StraightenStraight ->
@@ -61,10 +61,11 @@ update msg settings track =
                     straightenStraight track
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
-                newTrack
-                undoMsg
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesIndex
+--                newTrack
+--                undoMsg
             )
 
         SimplifyTrack ->
@@ -73,10 +74,11 @@ update msg settings track =
                     simplifyTrack settings track
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                newTrack
-                undoMsg
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                newTrack
+--                undoMsg
             )
 
 

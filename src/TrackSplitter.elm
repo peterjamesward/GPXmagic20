@@ -75,7 +75,7 @@ update :
     -> TrackObservations.TrackObservations
     -> Maybe Track
     -> (Msg -> msg)
-    -> ( Options, PostUpdateActions.PostUpdateAction (Cmd msg) )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck (Cmd msg) )
 update msg settings observations mTrack msgWrapper =
     case msg of
         SetSplitLimit n ->
@@ -151,7 +151,8 @@ update msg settings observations mTrack msgWrapper =
             case newTrack of
                 Just isNewTrack ->
                     ( settings
-                    , ActionTrackChanged EditPreservesIndex isNewTrack "Append file"
+                    ,             PostUpdateActions.ActionNoOp
+--ActionTrackChanged EditPreservesIndex isNewTrack "Append file"
                     )
 
                 Nothing ->

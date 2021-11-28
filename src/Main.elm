@@ -1,13 +1,22 @@
 module Main exposing (main)
 
+--import BendSmoother exposing (SmoothedBend, tryBendSmoother)
+--import CurveFormer
+--import DeletePoints exposing (Action(..), viewDeleteTools)
+--import Flythrough exposing (Flythrough)
+--import GradientLimiter
+--import GradientSmoother
+--import Interpolate
+--import LoopedTrack
+--import RotateRoute
+--import Straightener
+--import StravaTools exposing (stravaRouteOption)
+
 import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
-import BendSmoother exposing (SmoothedBend, tryBendSmoother)
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
-import CurveFormer
 import Delay exposing (after)
-import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
 import Element.Background as Background
@@ -21,38 +30,30 @@ import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
 import FlatColors.ChinesePalette exposing (white)
-import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
-import GradientLimiter
-import GradientSmoother
+import GpxSource exposing (..)
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id, style)
 import Http
-import Interpolate
 import Json.Decode as D
 import Json.Encode as Encode
 import Length
 import List.Extra
-import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
 import MoveAndStretch
 import MyIP
-import Nudge exposing (NudgeEffects(..), NudgeSettings, defaultNudgeSettings, viewNudgeTools)
-import GpxSource exposing (..)
+import Nudge exposing (NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
 import PortController exposing (..)
-import PostUpdateActions exposing (PostUpdateAction(..))
+import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..), UndoEntry)
 import Quantity
-import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
-import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
-import StravaTools exposing (stravaRouteOption)
 import SvgPathExtractor
 import Task
 import Time
@@ -79,36 +80,39 @@ type Msg
     | Tick Time.Posix
     | Undo
     | Redo
-    | DeleteMessage DeletePoints.Msg
+      --| DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
     | PortMessage Encode.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
-    | BendSmoothMessage BendSmoother.Msg
-    | LoopMsg LoopedTrack.Msg
-    | GradientMessage GradientSmoother.Msg
-    | GradientLimiter GradientLimiter.Msg
-    | StraightenMessage Straightener.Msg
-    | FlythroughMessage Flythrough.Msg
+      --| BendSmoothMessage BendSmoother.Msg
+      --| LoopMsg LoopedTrack.Msg
+      --| GradientMessage GradientSmoother.Msg
+      --| GradientLimiter GradientLimiter.Msg
+      --| StraightenMessage Straightener.Msg
+      --| FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
-    | InsertMessage Interpolate.Msg
+      --| InsertMessage Interpolate.Msg
     | SplitterMessage TrackSplitter.Msg
     | UserChangedFilename String
     | OutputGPX
-    | StravaMessage StravaTools.Msg
+      --| StravaMessage StravaTools.Msg
     | AdjustTimeZone Time.Zone
     | ReceivedIpDetails (Result Http.Error IpInfo)
     | IpInfoAcknowledged (Result Http.Error ())
-    | RotateMessage RotateRoute.Msg
+      --| RotateMessage RotateRoute.Msg
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
     | ResizeViews Int
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
-    | CurveFormerMsg CurveFormer.Msg
+
+
+
+--| CurveFormerMsg CurveFormer.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -129,54 +133,63 @@ type alias Model =
     , gpxSource : GpxSource
     , time : Time.Posix
     , zone : Time.Zone
-    , staticScene : Scene
-    , visibleMarkers : Scene
+
+    --, staticScene : Scene
+    --, visibleMarkers : Scene
     , completeScene : Scene
     , completeProfile : Scene
-    , completeTerrainScene : Scene
-    , profileScene : Scene
-    , terrainScene : Scene
-    , profileMarkers : Scene
+
+    --, completeTerrainScene : Scene
+    --, profileScene : Scene
+    --, terrainScene : Scene
+    --, profileMarkers : Scene
     , renderingContext : Maybe RenderingContext
     , viewPanes : List ViewPane
     , track : Maybe Track
     , markerPositionAtLastSceneBuild : Quantity.Quantity Float Length.Meters
     , toolsAccordion : List (AccordionEntry Msg)
     , nudgeSettings : NudgeSettings
-    , nudgePreview : Scene
-    , nudgeProfilePreview : Scene
-    , stravaSegmentPreview : Scene
-    , moveAndStretchPreview : Scene
-    , moveAndStretchProfilePreview : Scene
+
+    --, nudgePreview : Scene
+    --, nudgeProfilePreview : Scene
+    --, stravaSegmentPreview : Scene
+    --, moveAndStretchPreview : Scene
+    --, moveAndStretchProfilePreview : Scene
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
     , changeCounter : Int
     , displayOptions : DisplayOptions.DisplayOptions
-    , bendOptions : BendSmoother.BendOptions
-    , bendPreview : Scene
+
+    --, bendOptions : BendSmoother.BendOptions
+    --, bendPreview : Scene
     , observations : TrackObservations
-    , gradientOptions : GradientSmoother.Options
-    , straightenOptions : Straightener.Options
-    , flythrough : Flythrough.Options
-    , filterOptions : Filters.Options
+
+    --, gradientOptions : GradientSmoother.Options
+    --, straightenOptions : Straightener.Options
+    --, flythrough : Flythrough.Options
+    --, filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
-    , insertOptions : Interpolate.Options
-    , stravaOptions : StravaTools.Options
+
+    --, insertOptions : Interpolate.Options
+    --, stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
     , highlightedGraphEdge : Scene
-    , gradientLimiter : GradientLimiter.Options
-    , rotateOptions : RotateRoute.Options
+
+    --, gradientLimiter : GradientLimiter.Options
+    --, rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
-    , splitterOptions : TrackSplitter.Options
+
+    --, splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
     , mapSketchMode : Bool
     , accordionState : Accordion.Model
     , splitInPixels : Int
     , markerOptions : MarkerControls.Options
-    , moveAndStretch : MoveAndStretch.Model
-    , curveFormer : CurveFormer.Model
+
+    --, moveAndStretch : MoveAndStretch.Model
+    --, curveFormer : CurveFormer.Model
     }
 
 
@@ -193,18 +206,20 @@ init mflags origin navigationKey =
       , zone = Time.utc
       , track = Nothing
       , markerPositionAtLastSceneBuild = Quantity.zero
-      , staticScene = []
-      , profileScene = []
-      , terrainScene = []
-      , profileMarkers = []
-      , visibleMarkers = []
-      , nudgePreview = []
-      , nudgeProfilePreview = []
-      , stravaSegmentPreview = []
-      , moveAndStretchPreview = []
+
+      --, staticScene = []
+      --, profileScene = []
+      --, terrainScene = []
+      --, profileMarkers = []
+      --, visibleMarkers = []
+      --, nudgePreview = []
+      --, nudgeProfilePreview = []
+      --, stravaSegmentPreview = []
+      --, moveAndStretchPreview = []
       , completeScene = []
       , completeProfile = []
-      , completeTerrainScene = []
+
+      --, completeTerrainScene = []
       , renderingContext = Nothing
       , viewPanes = ViewPane.viewPanesWhenNoTrack
       , toolsAccordion = []
@@ -213,32 +228,38 @@ init mflags origin navigationKey =
       , redoStack = []
       , changeCounter = 0
       , displayOptions = DisplayOptions.defaultDisplayOptions
-      , bendOptions = BendSmoother.defaultOptions
-      , bendPreview = []
+
+      --, bendOptions = BendSmoother.defaultOptions
+      --, bendPreview = []
       , observations = TrackObservations.defaultObservations
-      , gradientOptions = GradientSmoother.defaultOptions
-      , straightenOptions = Straightener.defaultOptions
-      , flythrough = Flythrough.defaultOptions
-      , filterOptions = Filters.defaultOptions
+
+      --, gradientOptions = GradientSmoother.defaultOptions
+      --, straightenOptions = Straightener.defaultOptions
+      --, flythrough = Flythrough.defaultOptions
+      --, filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
-      , insertOptions = Interpolate.defaultOptions
-      , stravaOptions = StravaTools.defaultOptions
+
+      --, insertOptions = Interpolate.defaultOptions
+      --, stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
       , highlightedGraphEdge = []
-      , gradientLimiter = GradientLimiter.defaultOptions
-      , rotateOptions = RotateRoute.defaultOptions
+
+      --, gradientLimiter = GradientLimiter.defaultOptions
+      --, rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
-      , splitterOptions = TrackSplitter.defaultOptions
+
+      --, splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
       , mapElevations = []
       , mapSketchMode = False
       , accordionState = Accordion.defaultState
       , splitInPixels = 800
       , markerOptions = MarkerControls.defaultOptions
-      , moveAndStretch = MoveAndStretch.defaultModel
-      , moveAndStretchProfilePreview = []
-      , curveFormer = CurveFormer.defaultModel
+
+      --, moveAndStretch = MoveAndStretch.defaultModel
+      --, moveAndStretchProfilePreview = []
+      --, curveFormer = CurveFormer.defaultModel
       }
         |> -- TODO: Fix Fugly Fudge. Here to make sure function is applied to model state.
            (\m -> { m | toolsAccordion = toolsAccordion m })
@@ -254,9 +275,10 @@ init mflags origin navigationKey =
     )
 
 
-passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
-passFlythroughToContext flight context =
-    { context | flythrough = flight }
+
+--passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
+--passFlythroughToContext flight context =
+--    { context | flythrough = flight }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -294,32 +316,31 @@ update msg model =
         IpInfoAcknowledged _ ->
             ( model, Cmd.none )
 
-        Tick newTime ->
-            let
-                flythrough =
-                    model.flythrough
-
-                updatedFlythrough =
-                    Flythrough.advanceFlythrough
-                        newTime
-                        { flythrough | modelTime = newTime }
-            in
-            ( { model
-                | time = newTime
-                , flythrough = updatedFlythrough
-                , viewPanes =
-                    ViewPane.mapOverAllContexts
-                        (passFlythroughToContext updatedFlythrough.flythrough)
-                        model.viewPanes
-              }
-            , Cmd.none
-            )
-
+        --Tick newTime ->
+        --    let
+        --        flythrough =
+        --            model.flythrough
+        --
+        --        updatedFlythrough =
+        --            Flythrough.advanceFlythrough
+        --                newTime
+        --                { flythrough | modelTime = newTime }
+        --    in
+        --    ( { model
+        --        | time = newTime
+        --        , flythrough = updatedFlythrough
+        --        , viewPanes =
+        --            ViewPane.mapOverAllContexts
+        --                (passFlythroughToContext updatedFlythrough.flythrough)
+        --                model.viewPanes
+        --      }
+        --    , Cmd.none
+        --    )
         Undo ->
-            processPostUpdateAction (undo model) ActionTrackChanged
+            processPostUpdateAction (undo model) ActionRerender
 
         Redo ->
-            processPostUpdateAction (redo model) ActionTrackChanged
+            processPostUpdateAction (redo model) ActionRerender
 
         GpxRequested ->
             ( model
@@ -390,7 +411,7 @@ update msg model =
                 Just track ->
                     let
                         ( newSetttings, action ) =
-                            Nudge.update nudgeMsg model.nudgeSettings track
+                            Nudge.update nudgeMsg model.displayOptions.imperialMeasure model.nudgeSettings track
                     in
                     processPostUpdateAction
                         { model | nudgeSettings = newSetttings }
@@ -399,29 +420,28 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        InsertMessage insertMsg ->
-            let
-                ( newSettings, action ) =
-                    Maybe.map
-                        (Interpolate.update
-                            insertMsg
-                            model.insertOptions
-                        )
-                        model.track
-                        |> Maybe.withDefault ( model.insertOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | insertOptions = newSettings }
-                action
-
-        DeleteMessage deleteMsg ->
-            let
-                action =
-                    Maybe.map (DeletePoints.update model.displayOptions.imperialMeasure deleteMsg) model.track
-                        |> Maybe.withDefault ActionNoOp
-            in
-            processPostUpdateAction model action
-
+        --InsertMessage insertMsg ->
+        --    let
+        --        ( newSettings, action ) =
+        --            Maybe.map
+        --                (Interpolate.update
+        --                    insertMsg
+        --                    model.insertOptions
+        --                )
+        --                model.track
+        --                |> Maybe.withDefault ( model.insertOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | insertOptions = newSettings }
+        --        action
+        --
+        --DeleteMessage deleteMsg ->
+        --    let
+        --        action =
+        --            Maybe.map (DeletePoints.update model.displayOptions.imperialMeasure deleteMsg) model.track
+        --                |> Maybe.withDefault ActionNoOp
+        --    in
+        --    processPostUpdateAction model action
         -- Delegate wrapped OAuthmessages. Be bowled over if this works first time. Or fiftieth.
         -- Maybe look after to see if there is yet a token. Easy way to know.
         OAuthMessage authMsg ->
@@ -477,47 +497,43 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
-                ( Ok "drag", Just track ) ->
-                    case draggedOnMap json track of
-                        Just newTrack ->
-                            processPostUpdateAction
-                                model
-                                (PostUpdateActions.ActionTrackChanged
-                                    EditPreservesIndex
-                                    newTrack
-                                    "Dragged on map"
-                                )
-
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                ( Ok "elevations", Just track ) ->
-                    case elevations of
-                        Ok mapElevations ->
-                            let
-                                newTrack =
-                                    RotateRoute.applyMapElevations mapElevations track
-
-                                newModel =
-                                    -- TODO: Avoid clunk!
-                                    model
-                                        |> addToUndoStack "Use map elevations"
-                                        |> (\m ->
-                                                { m
-                                                    | track = Just newTrack
-                                                    , observations = deriveProblems newTrack m.problemOptions
-                                                }
-                                           )
-                                        |> repeatTrackDerivations
-                                        |> renderTrackSceneElements
-                            in
-                            ( newModel
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( model, Cmd.none )
-
+                --( Ok "drag", Just track ) ->
+                --    case draggedOnMap json track of
+                --        Just newTrack ->
+                --            processPostUpdateAction
+                --                model
+                --                (PostUpdateActions.ActionTrackChanged
+                --                    EditPreservesIndex
+                --                    newTrack
+                --                    "Dragged on map"
+                --                )
+                --Nothing ->
+                --    ( model, Cmd.none )
+                --( Ok "elevations", Just track ) ->
+                --    case elevations of
+                --        Ok mapElevations ->
+                --            let
+                --                newTrack =
+                --                    RotateRoute.applyMapElevations mapElevations track
+                --
+                --                newModel =
+                --                    -- TODO: Avoid clunk!
+                --                    model
+                --                        |> addToUndoStack "Use map elevations"
+                --                        |> (\m ->
+                --                                { m
+                --                                    | track = Just newTrack
+                --                                    , observations = deriveProblems newTrack m.problemOptions
+                --                                }
+                --                           )
+                --                        |> repeatTrackDerivations
+                --                        |> renderTrackSceneElements
+                --            in
+                --            ( newModel
+                --            , Cmd.none
+                --            )
+                --_ ->
+                --( model, Cmd.none )
                 ( Ok "sketch", _ ) ->
                     case ( longitudes, latitudes, elevations ) of
                         ( Ok mapLongitudes, Ok mapLatitudes, Ok mapElevations ) ->
@@ -630,146 +646,145 @@ update msg model =
             ( { model
                 | displayOptions = newOptions
               }
-                |> renderTrackSceneElements
+                |> composeScene
             , PortController.storageSetItem "display" (DisplayOptions.encodeOptions newOptions)
             )
 
-        BendSmoothMessage bendMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (BendSmoother.update bendMsg model.bendOptions) model.track
-                        |> Maybe.withDefault ( model.bendOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | bendOptions = newOptions }
-                action
-
-        LoopMsg loopMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (LoopedTrack.update loopMsg model.observations.loopiness) model.track
-                        |> Maybe.withDefault ( model.observations.loopiness, ActionNoOp )
-
-                oldObs =
-                    model.observations
-
-                newObs =
-                    { oldObs | loopiness = newOptions }
-            in
-            processPostUpdateAction
-                { model | observations = newObs }
-                action
-
-        GradientLimiter limitMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (GradientLimiter.update limitMsg model.gradientLimiter)
-                        model.track
-                        |> Maybe.withDefault ( model.gradientLimiter, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | gradientLimiter = newOptions }
-                action
-
-        GradientMessage gradMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (GradientSmoother.update gradMsg model.gradientOptions)
-                        model.track
-                        |> Maybe.withDefault ( model.gradientOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | gradientOptions = newOptions }
-                action
-
-        StraightenMessage straight ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (Straightener.update straight model.straightenOptions)
-                        model.track
-                        |> Maybe.withDefault ( model.straightenOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | straightenOptions = newOptions }
-                action
-
-        FlythroughMessage flythroughMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map
-                        (Flythrough.update
-                            model.flythrough
-                            flythroughMsg
-                            FlythroughMessage
-                        )
-                        model.track
-                        |> Maybe.withDefault ( model.flythrough, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model
-                    | flythrough = newOptions
-                    , viewPanes =
-                        ViewPane.mapOverAllContexts
-                            (passFlythroughToContext newOptions.flythrough)
-                            model.viewPanes
-                }
-                action
-
-        FilterMessage filter ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (Filters.update filter model.filterOptions model.observations)
-                        model.track
-                        |> Maybe.withDefault ( model.filterOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | filterOptions = newOptions }
-                action
-
-        RotateMessage rotate ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map (RotateRoute.update rotate model.rotateOptions model.lastMapClick)
-                        model.track
-                        |> Maybe.withDefault ( model.rotateOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | rotateOptions = newOptions }
-                action
-
-        SplitterMessage splitter ->
-            let
-                ( newOptions, action ) =
-                    TrackSplitter.update
-                        splitter
-                        model.splitterOptions
-                        model.observations
-                        model.track
-                        SplitterMessage
-
-                newModel =
-                    { model
-                        | splitterOptions = newOptions
-                    }
-            in
-            processPostUpdateAction newModel action
-
-        ProblemMessage probMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map
-                        (TrackObservations.update
-                            probMsg
-                            model.problemOptions
-                            model.bendOptions.segments
-                        )
-                        model.track
-                        |> Maybe.withDefault ( model.problemOptions, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | problemOptions = newOptions }
-                action
-
+        --BendSmoothMessage bendMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (BendSmoother.update bendMsg model.bendOptions) model.track
+        --                |> Maybe.withDefault ( model.bendOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | bendOptions = newOptions }
+        --        action
+        --
+        --LoopMsg loopMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (LoopedTrack.update loopMsg model.observations.loopiness) model.track
+        --                |> Maybe.withDefault ( model.observations.loopiness, ActionNoOp )
+        --
+        --        oldObs =
+        --            model.observations
+        --
+        --        newObs =
+        --            { oldObs | loopiness = newOptions }
+        --    in
+        --    processPostUpdateAction
+        --        { model | observations = newObs }
+        --        action
+        --
+        --GradientLimiter limitMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (GradientLimiter.update limitMsg model.gradientLimiter)
+        --                model.track
+        --                |> Maybe.withDefault ( model.gradientLimiter, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | gradientLimiter = newOptions }
+        --        action
+        --
+        --GradientMessage gradMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (GradientSmoother.update gradMsg model.gradientOptions)
+        --                model.track
+        --                |> Maybe.withDefault ( model.gradientOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | gradientOptions = newOptions }
+        --        action
+        --
+        --StraightenMessage straight ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (Straightener.update straight model.straightenOptions)
+        --                model.track
+        --                |> Maybe.withDefault ( model.straightenOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | straightenOptions = newOptions }
+        --        action
+        --
+        --FlythroughMessage flythroughMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map
+        --                (Flythrough.update
+        --                    model.flythrough
+        --                    flythroughMsg
+        --                    FlythroughMessage
+        --                )
+        --                model.track
+        --                |> Maybe.withDefault ( model.flythrough, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model
+        --            | flythrough = newOptions
+        --            , viewPanes =
+        --                ViewPane.mapOverAllContexts
+        --                    (passFlythroughToContext newOptions.flythrough)
+        --                    model.viewPanes
+        --        }
+        --        action
+        --
+        --FilterMessage filter ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (Filters.update filter model.filterOptions model.observations)
+        --                model.track
+        --                |> Maybe.withDefault ( model.filterOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | filterOptions = newOptions }
+        --        action
+        --
+        --RotateMessage rotate ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map (RotateRoute.update rotate model.rotateOptions model.lastMapClick)
+        --                model.track
+        --                |> Maybe.withDefault ( model.rotateOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | rotateOptions = newOptions }
+        --        action
+        --
+        --SplitterMessage splitter ->
+        --    let
+        --        ( newOptions, action ) =
+        --            TrackSplitter.update
+        --                splitter
+        --                model.splitterOptions
+        --                model.observations
+        --                model.track
+        --                SplitterMessage
+        --
+        --        newModel =
+        --            { model
+        --                | splitterOptions = newOptions
+        --            }
+        --    in
+        --    processPostUpdateAction newModel action
+        --
+        --ProblemMessage probMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map
+        --                (TrackObservations.update
+        --                    probMsg
+        --                    model.problemOptions
+        --                    model.bendOptions.segments
+        --                )
+        --                model.track
+        --                |> Maybe.withDefault ( model.problemOptions, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | problemOptions = newOptions }
+        --        action
         UserChangedFilename txt ->
             ( { model | filename = Just txt }
             , Cmd.none
@@ -780,49 +795,47 @@ update msg model =
             , outputGPX model
             )
 
-        OneClickQuickFix ->
-            case model.track of
-                Just track ->
-                    let
-                        newTrack =
-                            oneClickQuickFix track
-
-                        newModel =
-                            model
-                                |> addToUndoStack "One-click Quick-fix"
-                                |> (\m ->
-                                        { m
-                                            | track = Just newTrack
-                                            , observations = deriveProblems newTrack m.problemOptions
-                                        }
-                                   )
-                                |> repeatTrackDerivations
-                                |> renderTrackSceneElements
-                    in
-                    ( newModel
-                    , Cmd.batch
-                        [ outputGPX newModel
-                        , ViewPane.makeMapCommands newTrack model.viewPanes
-                        ]
-                    )
-
-                Nothing ->
-                    ( model, Cmd.none )
-
-        StravaMessage stravaMsg ->
-            let
-                ( newOptions, action ) =
-                    StravaTools.update
-                        stravaMsg
-                        model.stravaOptions
-                        model.stravaAuthentication
-                        StravaMessage
-                        model.track
-            in
-            processPostUpdateAction
-                { model | stravaOptions = newOptions }
-                action
-
+        --OneClickQuickFix ->
+        --    case model.track of
+        --        Just track ->
+        --            let
+        --                newTrack =
+        --                    oneClickQuickFix track
+        --
+        --                newModel =
+        --                    model
+        --                        |> addToUndoStack "One-click Quick-fix"
+        --                        |> (\m ->
+        --                                { m
+        --                                    | track = Just newTrack
+        --                                    , observations = deriveProblems newTrack m.problemOptions
+        --                                }
+        --                           )
+        --                        |> repeatTrackDerivations
+        --                        |> renderTrackSceneElements
+        --            in
+        --            ( newModel
+        --            , Cmd.batch
+        --                [ outputGPX newModel
+        --                , ViewPane.makeMapCommands newTrack model.viewPanes
+        --                ]
+        --            )
+        --
+        --        Nothing ->
+        --            ( model, Cmd.none )
+        --StravaMessage stravaMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            StravaTools.update
+        --                stravaMsg
+        --                model.stravaOptions
+        --                model.stravaAuthentication
+        --                StravaMessage
+        --                model.track
+        --    in
+        --    processPostUpdateAction
+        --        { model | stravaOptions = newOptions }
+        --        action
         SvgMessage svgMsg ->
             let
                 ( newData, cmd ) =
@@ -880,37 +893,38 @@ update msg model =
             , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
             )
 
-        TwoWayDragMsg dragMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map
-                        (MoveAndStretch.update
-                            dragMsg
-                            model.moveAndStretch
-                            TwoWayDragMsg
-                        )
-                        model.track
-                        |> Maybe.withDefault ( model.moveAndStretch, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | moveAndStretch = newOptions }
-                action
-
-        CurveFormerMsg curveMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map
-                        (CurveFormer.update
-                            curveMsg
-                            model.curveFormer
-                            CurveFormerMsg
-                        )
-                        model.track
-                        |> Maybe.withDefault ( model.curveFormer, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | curveFormer = newOptions }
-                action
+        --TwoWayDragMsg dragMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map
+        --                (MoveAndStretch.update
+        --                    dragMsg
+        --                    model.moveAndStretch
+        --                    TwoWayDragMsg
+        --                )
+        --                model.track
+        --                |> Maybe.withDefault ( model.moveAndStretch, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | moveAndStretch = newOptions }
+        --        action
+        --CurveFormerMsg curveMsg ->
+        --    let
+        --        ( newOptions, action ) =
+        --            Maybe.map
+        --                (CurveFormer.update
+        --                    curveMsg
+        --                    model.curveFormer
+        --                    CurveFormerMsg
+        --                )
+        --                model.track
+        --                |> Maybe.withDefault ( model.curveFormer, ActionNoOp )
+        --    in
+        --    processPostUpdateAction
+        --        { model | curveFormer = newOptions }
+        --        action
+        _ ->
+            ( model, Cmd.none )
 
 
 draggedOnMap : Encode.Value -> Track -> Maybe Track
@@ -957,40 +971,53 @@ draggedOnMap json track =
                 Nothing
 
 
-updatePreviews : Model -> Track -> ( Track, Track )
-updatePreviews model track =
-    -- Interim step in re-factor!
-    let
-        bendPreview =
-            -- Give classic smoother priority but if not used see if the Curve Former has anything.
-            if Accordion.tabIsOpen BendSmoother.toolLabel model.toolsAccordion then
-                { track
-                    | trackPoints =
-                        Maybe.map .nodes model.bendOptions.smoothedBend
-                            |> Maybe.withDefault []
-                }
 
-            else if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
-                { track | trackPoints = model.curveFormer.newTrackPoints }
+--
+--updatePreviews : Model -> Track -> ( Track, Track )
+--updatePreviews model track =
+--    -- Interim step in re-factor!
+--    let
+--        bendPreview =
+---- Give classic smoother priority but if not used see if the Curve Former has anything.
+--if Accordion.tabIsOpen BendSmoother.toolLabel model.toolsAccordion then
+--    { track
+--        | trackPoints =
+--            Maybe.map .nodes model.bendOptions.smoothedBend
+--                |> Maybe.withDefault []
+--    }
+--
+--else if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
+--    { track | trackPoints = model.curveFormer.newTrackPoints }
+--
+--else
+--        { track | trackPoints = [] }
+--
+--    nudgePreview =
+--        Nudge.getPreview model.nudgeSettings track
+--in
+--( bendPreview, nudgePreview )
 
-            else
-                { track | trackPoints = [] }
 
-        nudgePreview =
-            { track | trackPoints = model.nudgeSettings.preview }
-    in
-    ( bendPreview, nudgePreview )
-
-
-processPostUpdateAction : Model -> PostUpdateAction (Cmd Msg) -> ( Model, Cmd Msg )
+processPostUpdateAction : Model -> PostUpdateAction Track (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
     -- I doubt that will ever be true.
     case ( model.track, action ) of
-        ( Just track, ActionTrackChanged editType newTrack undoMsg ) ->
-            ( model
-                |> addToUndoStack undoMsg
+        ( Just track, ActionTrackChanged editType undoEntry ) ->
+            let
+                ( prefix, changed, suffix ) =
+                    undoEntry.editFunction track
+
+                newTrack =
+                    { track
+                        | trackPoints =
+                            (prefix ++ changed ++ suffix) |> prepareTrackPoints
+                    }
+            in
+            ( {model | track = Just newTrack }
+                |> addToUndoStack undoEntry
                 |> reflectNewTrackViaGraph newTrack editType
+                |> composeScene
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack model.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1001,6 +1028,7 @@ processPostUpdateAction model action =
             -- Use this after Undo/Redo to avoid pushing change onto stack.
             ( model
                 |> reflectNewTrackViaGraph track EditNoOp
+                |> composeScene
             , Cmd.batch
                 [ ViewPane.makeMapCommands track model.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1033,13 +1061,15 @@ processPostUpdateAction model action =
                 updatedTrack =
                     { track | currentNode = tp }
 
-                ( bendPreview, nudgePreview ) =
-                    updatePreviews model updatedTrack
+                --
+                --( bendPreview, nudgePreview ) =
+                --    updatePreviews model updatedTrack
             in
             ( { model | track = Just updatedTrack }
-                |> renderVaryingSceneElements
+                |> composeScene
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch ]
+                [--PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
+                ]
             )
 
         ( Just track, ActionFocusMove tp ) ->
@@ -1047,16 +1077,19 @@ processPostUpdateAction model action =
                 updatedTrack =
                     { track | currentNode = tp }
 
-                ( bendPreview, nudgePreview ) =
-                    updatePreviews model updatedTrack
+                --
+                --( bendPreview, nudgePreview ) =
+                --    updatePreviews model updatedTrack
             in
             ( { model
                 | track = Just updatedTrack
                 , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
               }
-                |> renderVaryingSceneElements
+                |> composeScene
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
+                [ Cmd.none
+
+                --, PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
                 , if ViewPane.mapPaneIsLinked model.viewPanes then
                     PortController.centreMapOnCurrent updatedTrack
 
@@ -1070,13 +1103,17 @@ processPostUpdateAction model action =
                 updatedTrack =
                     { track | markedNode = maybeTp }
 
-                ( bendPreview, nudgePreview ) =
-                    updatePreviews model updatedTrack
+                --
+                --( bendPreview, nudgePreview ) =
+                --    updatePreviews model updatedTrack
             in
             ( { model | track = Just updatedTrack }
-                |> renderVaryingSceneElements
+                |> composeScene
             , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch ]
+                [ Cmd.none
+
+                --, PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
+                ]
             )
 
         ( Just track, ActionRepaintMap ) ->
@@ -1096,24 +1133,16 @@ processPostUpdateAction model action =
 
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
-            let
-                ( bendPreview, nudgePreview ) =
-                    -- These are passed to the map.
-                    updatePreviews model track
-
-                mapUpdateCmd =
-                    if isMapVisible model.viewPanes then
-                        PortController.addMarkersToMap
-                            track
-                            bendPreview
-                            nudgePreview
-                            model.moveAndStretch
-
-                    else
-                        Cmd.none
-            in
-            ( model |> renderVaryingSceneElements
-            , mapUpdateCmd
+            ( model |> composeScene
+            , --if isMapVisible model.viewPanes then
+              --    PortController.addMarkersToMap
+              --        track
+              --        bendPreview
+              --        nudgePreview
+              --        model.moveAndStretch
+              --
+              --else
+              Cmd.none
             )
 
         ( _, ActionCommand a ) ->
@@ -1214,156 +1243,158 @@ processViewPaneMessage innerMsg model track =
             ( updatedModel, Cmd.none )
 
 
-processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.PostUpdateAction msg )
+processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.PostUpdateAction trck msg )
 processGraphMessage innerMsg model isTrack =
-    let
-        ( newGraph, action ) =
-            Graph.update innerMsg
-                isTrack.trackPoints
-                isTrack.currentNode
-                isTrack.markedNode
-                isTrack.graph
+    ( model, ActionNoOp )
 
-        newTrack =
-            { isTrack | graph = newGraph }
 
-        modelWithUpdatedGraph =
-            { model | track = Just newTrack }
-    in
-    case action of
-        GraphCreated ->
-            ( model
-            , PostUpdateActions.ActionTrackChanged
-                EditNoOp
-                newTrack
-                "Create Graph"
-            )
 
-        GraphOffsetChange ->
-            ( modelWithUpdatedGraph
-            , PostUpdateActions.ActionNoOp
-            )
-
-        GraphRouteChanged ->
-            -- Note we must not walk the route as that would remove track points
-            -- that we will want to use for alternative routes.
-            -- SO we MUST NOT walk the route until we exit graph mode.
-            -- That implies that setting the offset should also not walk the route.
-            ( modelWithUpdatedGraph
-            , PostUpdateActions.ActionPreview
-            )
-
-        GraphNoAction ->
-            ( model, ActionNoOp )
-
-        GraphRemoved ->
-            -- Now we can walk the route safely, applying offset.
-            let
-                trackFromGraph =
-                    { isTrack
-                        | trackPoints =
-                            Maybe.map Graph.publishUserRoute newGraph
-                                |> Maybe.withDefault []
-                        , graph = Nothing
-                    }
-
-                modelFromGraph =
-                    { model | track = Just trackFromGraph }
-            in
-            ( model
-            , PostUpdateActions.ActionTrackChanged
-                EditNoOp
-                trackFromGraph
-                "Leave Graph mode"
-            )
-
-        GraphShowTraversal ->
-            ( modelWithUpdatedGraph
-            , PostUpdateActions.ActionPreview
-            )
+--let
+--    ( newGraph, action ) =
+--        Graph.update innerMsg
+--            isTrack.trackPoints
+--            isTrack.currentNode
+--            isTrack.markedNode
+--            isTrack.graph
+--
+--    newTrack =
+--        { isTrack | graph = newGraph }
+--
+--    modelWithUpdatedGraph =
+--        { model | track = Just newTrack }
+--in
+--case action of
+--    GraphCreated ->
+--        ( model
+--        , PostUpdateActions.ActionTrackChanged
+--            EditNoOp
+--            newTrack
+--            "Create Graph"
+--        )
+--
+--    GraphOffsetChange ->
+--        ( modelWithUpdatedGraph
+--        , PostUpdateActions.ActionNoOp
+--        )
+--
+--    GraphRouteChanged ->
+--        -- Note we must not walk the route as that would remove track points
+--        -- that we will want to use for alternative routes.
+--        -- SO we MUST NOT walk the route until we exit graph mode.
+--        -- That implies that setting the offset should also not walk the route.
+--        ( modelWithUpdatedGraph
+--        , PostUpdateActions.ActionPreview
+--        )
+--
+--    GraphNoAction ->
+--        ( model, ActionNoOp )
+--
+--    GraphRemoved ->
+--        -- Now we can walk the route safely, applying offset.
+--        let
+--            trackFromGraph =
+--                { isTrack
+--                    | trackPoints =
+--                        Maybe.map Graph.publishUserRoute newGraph
+--                            |> Maybe.withDefault []
+--                    , graph = Nothing
+--                }
+--
+--            modelFromGraph =
+--                { model | track = Just trackFromGraph }
+--        in
+--        ( model
+--        , PostUpdateActions.ActionTrackChanged
+--            EditNoOp
+--            trackFromGraph
+--            "Leave Graph mode"
+--        )
+--
+--    GraphShowTraversal ->
+--        ( modelWithUpdatedGraph
+--        , PostUpdateActions.ActionPreview
+--        )
 
 
 reflectNewTrackViaGraph : Track -> TrackEditType -> Model -> Model
 reflectNewTrackViaGraph newTrack editType model =
-    -- We need this in case we have a Graph in effect, and the edits need to be
-    -- reflected in the graph and the final new route dervied from the graph again.
-    -- If there's no graph, it's basically a noop.
-    case model.track of
-        Just oldTrack ->
-            let
-                orange =
-                    oldTrack.currentNode
+    model
 
-                purple =
-                    Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
-                editRegion =
-                    -- Need to get edit region to help the graph assess the changes.
-                    case editType of
-                        EditExtendsBeyondMarkers (Just ( start, end )) ->
-                            ( start, end )
 
-                        _ ->
-                            ( min orange.index purple.index
-                            , max orange.index purple.index
-                            )
-
-                changeInLength =
-                    List.length newTrack.trackPoints - List.length oldTrack.trackPoints
-
-                newOrange =
-                    Maybe.withDefault orange <|
-                        if orange.index <= purple.index then
-                            List.Extra.getAt orange.index newTrack.trackPoints
-
-                        else
-                            List.Extra.getAt (orange.index + changeInLength) newTrack.trackPoints
-
-                newPurple =
-                    case oldTrack.markedNode of
-                        Just mark ->
-                            if mark.index <= orange.index then
-                                List.Extra.getAt mark.index newTrack.trackPoints
-
-                            else
-                                List.Extra.getAt (mark.index + changeInLength) newTrack.trackPoints
-
-                        Nothing ->
-                            Nothing
-
-                newGraph =
-                    Graph.updateWithNewTrack
-                        newTrack.graph
-                        oldTrack.trackPoints
-                        -- Pre-edit baseline points.
-                        editRegion
-                        -- Where the markers were.
-                        newTrack.trackPoints
-                        -- Post-edit track points.
-                        editType
-
-                newPointsFromGraph =
-                    Maybe.map Graph.walkTheRoute newGraph
-                        |> Maybe.withDefault newTrack.trackPoints
-
-                trackWithNewRoute =
-                    case newTrack.graph of
-                        Just graph ->
-                            { newTrack
-                                | trackPoints = newPointsFromGraph
-                                , currentNode = newOrange
-                                , markedNode = newPurple
-                                , graph = newGraph
-                            }
-
-                        Nothing ->
-                            newTrack
-            in
-            { model | track = Just trackWithNewRoute }
-                |> repeatTrackDerivations
-
-        Nothing ->
-            model
+-- We need this in case we have a Graph in effect, and the edits need to be
+-- reflected in the graph and the final new route dervied from the graph again.
+-- If there's no graph, it's basically a noop.
+--case model.track of
+--    Just oldTrack ->
+--        let
+--            orange =
+--                oldTrack.currentNode
+--
+--            purple =
+--                Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
+--
+--            editRegion =
+--                ( min orange.index purple.index
+--                , max orange.index purple.index
+--                )
+--
+--            changeInLength =
+--                List.length newTrack.trackPoints - List.length oldTrack.trackPoints
+--
+--            newOrange =
+--                Maybe.withDefault orange <|
+--                    if orange.index <= purple.index then
+--                        List.Extra.getAt orange.index newTrack.trackPoints
+--
+--                    else
+--                        List.Extra.getAt (orange.index + changeInLength) newTrack.trackPoints
+--
+--            newPurple =
+--                case oldTrack.markedNode of
+--                    Just mark ->
+--                        if mark.index <= orange.index then
+--                            List.Extra.getAt mark.index newTrack.trackPoints
+--
+--                        else
+--                            List.Extra.getAt (mark.index + changeInLength) newTrack.trackPoints
+--
+--                    Nothing ->
+--                        Nothing
+--
+--            newGraph =
+--                Graph.updateWithNewTrack
+--                    newTrack.graph
+--                    oldTrack.trackPoints
+--                    -- Pre-edit baseline points.
+--                    editRegion
+--                    -- Where the markers were.
+--                    newTrack.trackPoints
+--                    -- Post-edit track points.
+--                    editType
+--
+--            newPointsFromGraph =
+--                Maybe.map Graph.walkTheRoute newGraph
+--                    |> Maybe.withDefault newTrack.trackPoints
+--
+--            trackWithNewRoute =
+--                case newTrack.graph of
+--                    Just graph ->
+--                        { newTrack
+--                            | trackPoints = newPointsFromGraph
+--                            , currentNode = newOrange
+--                            , markedNode = newPurple
+--                            , graph = newGraph
+--                        }
+--
+--                    Nothing ->
+--                        newTrack
+--        in
+--        { model | track = Just trackWithNewRoute }
+--            |> repeatTrackDerivations
+--
+--    Nothing ->
+--        model
 
 
 repeatTrackDerivations : Model -> Model
@@ -1401,7 +1432,7 @@ repeatTrackDerivations model =
                 | track = Just newTrack
                 , observations = deriveProblems newTrack model.problemOptions
             }
-                |> renderTrackSceneElements
+                |> composeScene
 
         Nothing ->
             model
@@ -1411,212 +1442,159 @@ composeScene : Model -> Model
 composeScene model =
     { model
         | completeScene =
-            model.visibleMarkers
-                ++ model.moveAndStretchPreview
-                ++ model.nudgePreview
-                ++ model.bendPreview
-                ++ model.stravaSegmentPreview
-                ++ model.highlightedGraphEdge
-                ++ model.staticScene
-        , completeTerrainScene =
-            model.visibleMarkers
-                ++ model.moveAndStretchPreview
-                ++ model.nudgePreview
-                ++ model.bendPreview
-                ++ model.stravaSegmentPreview
-                ++ model.highlightedGraphEdge
-                ++ (if model.displayOptions.terrainOn then
-                        model.terrainScene
-
-                    else
-                        model.staticScene
-                   )
-        , completeProfile =
-            model.profileMarkers
-                ++ model.moveAndStretchProfilePreview
-                ++ model.nudgeProfilePreview
-                ++ model.profileScene
+            renderTrackSceneElements model
+                ++ renderVaryingSceneElements model
+                ++ renderTrackSceneElements model
+        , completeProfile = []
     }
 
 
-renderVaryingSceneElements : Model -> Model
+renderVaryingSceneElements : Model -> Scene
 renderVaryingSceneElements model =
     let
         latestModel =
-            case model.track of
-                Just hasTrack ->
-                    -- Force full track repaint if marker moved sufficiently
-                    let
-                        ( xSize, ySize, _ ) =
-                            BoundingBox3d.dimensions hasTrack.box
+            model
 
-                        threshold =
-                            Quantity.max xSize ySize
-                                |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
-                    in
-                    if
-                        model.displayOptions.levelOfDetailThreshold
-                            > 0.0
-                            && (Quantity.abs
-                                    (hasTrack.currentNode.distanceFromStart
-                                        |> Quantity.minus model.markerPositionAtLastSceneBuild
-                                    )
-                                    |> Quantity.greaterThan threshold
-                               )
-                    then
-                        renderTrackSceneElements model
-
-                    else
-                        model
-
-                Nothing ->
-                    model
-
-        stretchMarker =
-            if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
-                Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
-                    latestModel.track
-                    |> Maybe.join
-
-            else
-                Nothing
-
-        updatedMarkers =
-            -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
-            case latestModel.track of
-                Just isTrack ->
-                    let
-                        whiteMarker =
-                            SceneBuilder.renderMarkers stretchMarker isTrack
-
-                        renderingLimits =
-                            if model.displayOptions.showRenderingLimit then
-                                SceneBuilder.renderMRLimits isTrack
-
-                            else
-                                []
-                    in
-                    whiteMarker ++ renderingLimits
-
-                Nothing ->
-                    []
-
-        updatedProfileMarkers =
-            Maybe.map
-                (SceneBuilderProfile.renderMarkers
-                    latestModel.displayOptions
-                    stretchMarker
-                )
-                latestModel.track
-                |> Maybe.withDefault []
-
-        updatedMoveAndStretchSettings =
-            let
-                settings =
-                    latestModel.moveAndStretch
-            in
-            if
-                Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
-                    && MoveAndStretch.settingNotZero latestModel.moveAndStretch
-            then
-                Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
-                    |> Maybe.withDefault latestModel.moveAndStretch
-
-            else
-                { settings | preview = [] }
-
-
-
-        updatedBendOptions =
-            if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
-                Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
-                    |> Maybe.withDefault latestModel.bendOptions
-
-            else
-                BendSmoother.defaultOptions
-
-        updatedStravaOptions =
-            -- TODO: ?? Move pointers to discovered paste start and end ??
-            let
-                options =
-                    latestModel.stravaOptions
-            in
-            if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
-                { options
-                    | preview =
-                        Maybe.map (StravaTools.preview options) latestModel.track
-                            |> Maybe.withDefault []
-                }
-
-            else
-                { options | preview = [] }
-
-        updatedStraightenOptions =
-            let
-                options =
-                    latestModel.straightenOptions
-            in
-            if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
-                Maybe.map (Straightener.lookForSimplifications options) latestModel.track
-                    |> Maybe.withDefault options
-
-            else
-                options
-
-        graphEdge =
-            case latestModel.track of
-                Just isTrack ->
-                    if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
-                        Maybe.map Graph.previewTraversal isTrack.graph
-                            |> Maybe.withDefault []
-
-                    else
-                        []
-
-                Nothing ->
-                    []
-
-        curveFormerWithPreview =
-            Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
-                |> Maybe.withDefault latestModel.curveFormer
-
-        curveFormerCircle =
-            if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
-                CurveFormer.getPreview curveFormerWithPreview
-
-            else
-                []
+        --case model.track of
+        --    Just hasTrack ->
+        --        -- Force full track repaint if marker moved sufficiently
+        --        let
+        --            ( xSize, ySize, _ ) =
+        --                BoundingBox3d.dimensions hasTrack.box
+        --
+        --            threshold =
+        --                Quantity.max xSize ySize
+        --                    |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
+        --        in
+        --        if
+        --            model.displayOptions.levelOfDetailThreshold
+        --                > 0.0
+        --                && (Quantity.abs
+        --                        (hasTrack.currentNode.distanceFromStart
+        --                            |> Quantity.minus model.markerPositionAtLastSceneBuild
+        --                        )
+        --                        |> Quantity.greaterThan threshold
+        --                   )
+        --        then
+        --            renderTrackSceneElements model
+        --
+        --        else
+        --            model
+        --
+        --    Nothing ->
+        --        model
+        --stretchMarker =
+        --    if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
+        --        Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
+        --            latestModel.track
+        --            |> Maybe.join
+        --
+        --    else
+        --        Nothing
+        --
+        --updatedMarkers =
+        --    -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
+        --    case latestModel.track of
+        --        Just isTrack ->
+        --            let
+        --                whiteMarker =
+        --                    SceneBuilder.renderMarkers stretchMarker isTrack
+        --
+        --                renderingLimits =
+        --                    if model.displayOptions.showRenderingLimit then
+        --                        SceneBuilder.renderMRLimits isTrack
+        --
+        --                    else
+        --                        []
+        --            in
+        --            whiteMarker ++ renderingLimits
+        --
+        --        Nothing ->
+        --            []
+        --
+        --updatedProfileMarkers =
+        --    Maybe.map
+        --        (SceneBuilderProfile.renderMarkers
+        --            latestModel.displayOptions
+        --            stretchMarker
+        --        )
+        --        latestModel.track
+        --        |> Maybe.withDefault []
+        --
+        --updatedMoveAndStretchSettings =
+        --    let
+        --        settings =
+        --            latestModel.moveAndStretch
+        --    in
+        --    if
+        --        Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
+        --            && MoveAndStretch.settingNotZero latestModel.moveAndStretch
+        --    then
+        --        Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
+        --            |> Maybe.withDefault latestModel.moveAndStretch
+        --
+        --    else
+        --        { settings | preview = [] }
+        --updatedBendOptions =
+        --    if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
+        --        Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
+        --            |> Maybe.withDefault latestModel.bendOptions
+        --
+        --    else
+        --        BendSmoother.defaultOptions
+        --updatedStravaOptions =
+        --    -- TODO: ?? Move pointers to discovered paste start and end ??
+        --    let
+        --        options =
+        --            latestModel.stravaOptions
+        --    in
+        --    if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
+        --        { options
+        --            | preview =
+        --                Maybe.map (StravaTools.preview options) latestModel.track
+        --                    |> Maybe.withDefault []
+        --        }
+        --
+        --    else
+        --        { options | preview = [] }
+        --updatedStraightenOptions =
+        --    let
+        --        options =
+        --            latestModel.straightenOptions
+        --    in
+        --    if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
+        --        Maybe.map (Straightener.lookForSimplifications options) latestModel.track
+        --            |> Maybe.withDefault options
+        --
+        --    else
+        --        options
+        --graphEdge =
+        --    case latestModel.track of
+        --        Just isTrack ->
+        --            if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
+        --                Maybe.map Graph.previewTraversal isTrack.graph
+        --                    |> Maybe.withDefault []
+        --
+        --            else
+        --                []
+        --
+        --        Nothing ->
+        --            []
+        --curveFormerWithPreview =
+        --    Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
+        --        |> Maybe.withDefault latestModel.curveFormer
+        --
+        --curveFormerCircle =
+        --    if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
+        --        CurveFormer.getPreview curveFormerWithPreview
+        --
+        --    else
+        --        []
     in
-    { latestModel
-        | visibleMarkers = updatedMarkers
-        , profileMarkers = updatedProfileMarkers
-        , moveAndStretch = updatedMoveAndStretchSettings
-        , nudgePreview = Nudge.getPreview model.nudgeSettings
-        , stravaSegmentPreview = SceneBuilder.previewStravaSegment updatedStravaOptions.preview
-        , bendOptions = updatedBendOptions
-        , curveFormer = curveFormerWithPreview
-        , bendPreview =
-            curveFormerCircle
-                ++ (Maybe.map
-                        (.nodes >> SceneBuilder.previewBend)
-                        updatedBendOptions.smoothedBend
-                        |> Maybe.withDefault []
-                   )
-        , nudgeProfilePreview = Nudge.getProfilePreview model.nudgeSettings
-        , moveAndStretchPreview =
-            SceneBuilder.previewMoveAndStretch
-                updatedMoveAndStretchSettings.preview
-        , moveAndStretchProfilePreview =
-            SceneBuilderProfile.previewMoveAndStretch
-                latestModel.displayOptions
-                updatedMoveAndStretchSettings.preview
-        , straightenOptions = updatedStraightenOptions
-        , highlightedGraphEdge = SceneBuilder.showGraphEdge graphEdge
-    }
-        |> composeScene
+    []
 
 
-renderTrackSceneElements : Model -> Model
+renderTrackSceneElements : Model -> Scene
 renderTrackSceneElements model =
     case model.track of
         Just isTrack ->
@@ -1659,17 +1637,16 @@ renderTrackSceneElements model =
                     else
                         []
             in
-            { model
-                | staticScene = updatedScene
-                , profileScene = updatedProfile
-                , terrainScene = updatedTerrain
-                , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
-                , markerPositionAtLastSceneBuild = isTrack.currentNode.distanceFromStart
-            }
-                |> renderVaryingSceneElements
+            updatedScene
 
+        --{ model
+        --    | completeScene = updatedScene
+        --    , completeProfile = updatedProfile
+        --    , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
+        --    , markerPositionAtLastSceneBuild = isTrack.currentNode.distanceFromStart
+        --}
         Nothing ->
-            model
+            []
 
 
 view : Model -> Browser.Document Msg
@@ -1712,10 +1689,11 @@ topLoadingBar model =
 
           else
             E.text "Save your work before\nconnecting to Strava"
-        , stravaRouteOption
-            model.stravaAuthentication
-            model.stravaOptions
-            StravaMessage
+
+        --, stravaRouteOption
+        --    model.stravaAuthentication
+        --    model.stravaOptions
+        --    StravaMessage
         , viewAndEditFilename model
         , case model.track of
             Just _ ->
@@ -1799,7 +1777,7 @@ contentArea model =
                 [ viewAllPanes
                     model.viewPanes
                     model
-                    ( model.completeTerrainScene, model.completeProfile, model.completeScene )
+                    ( model.completeScene, model.completeProfile, model.completeScene )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
                 ]
@@ -1923,21 +1901,21 @@ updatedAccordion currentAccordion referenceAccordion model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if Accordion.tabIsOpen Flythrough.toolLabel model.toolsAccordion then
-        --if model.flythrough.flythrough /= Nothing then
-        Sub.batch
-            [ PortController.messageReceiver PortMessage
-            , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-            , Time.every 50 Tick
-            , MarkerControls.subscription model.markerOptions MarkerMessage
-            ]
-
-    else
-        Sub.batch
-            [ PortController.messageReceiver PortMessage
-            , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-            , MarkerControls.subscription model.markerOptions MarkerMessage
-            ]
+    --if Accordion.tabIsOpen Flythrough.toolLabel model.toolsAccordion then
+    --    --if model.flythrough.flythrough /= Nothing then
+    --    Sub.batch
+    --        [ PortController.messageReceiver PortMessage
+    --        , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+    --        , Time.every 50 Tick
+    --        , MarkerControls.subscription model.markerOptions MarkerMessage
+    --        ]
+    --
+    --else
+    Sub.batch
+        [ PortController.messageReceiver PortMessage
+        , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+        , MarkerControls.subscription model.markerOptions MarkerMessage
+        ]
 
 
 toolsAccordion : Model -> List (AccordionEntry Msg)
@@ -1950,72 +1928,73 @@ toolsAccordion model =
       , video = Just "https://youtu.be/N7zGRJvke_M"
       , isFavourite = False
       }
-    , { label = LoopedTrack.toolLabel
-      , state = Contracted
-      , content =
-            LoopedTrack.viewLoopTools
-                model.displayOptions.imperialMeasure
-                model.observations.loopiness
-                model.track
-                LoopMsg
-      , info = LoopedTrack.info
-      , video = Just "https://youtu.be/B3SGh8KhDu0"
-      , isFavourite = False
-      }
-    , { label = BendSmoother.toolLabel
-      , state = Contracted
-      , content =
-            BendSmoother.viewBendFixerPane
-                model.displayOptions.imperialMeasure
-                model.bendOptions
-                BendSmoothMessage
-      , info = BendSmoother.info
-      , video = Just "https://youtu.be/VO5jsOZmTIg"
-      , isFavourite = False
-      }
-    , { label = CurveFormer.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (CurveFormer.view
-                    model.displayOptions.imperialMeasure
-                    model.curveFormer
-                    CurveFormerMsg
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = CurveFormer.info
-      , video = Just "https://youtu.be/DjdwAFkgw2o"
-      , isFavourite = False
-      }
-    , { label = GradientLimiter.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (GradientLimiter.viewGradientLimitPane
-                    model.gradientLimiter
-                    GradientLimiter
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = GradientLimiter.info
-      , video = Just "https://youtu.be/LtcYi4fzImE"
-      , isFavourite = False
-      }
-    , { label = GradientSmoother.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (GradientSmoother.viewGradientFixerPane
-                    model.gradientOptions
-                    GradientMessage
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = GradientSmoother.info
-      , video = Just "https://youtu.be/YTY2CSl0wo8"
-      , isFavourite = False
-      }
+
+    --, { label = LoopedTrack.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        LoopedTrack.viewLoopTools
+    --            model.displayOptions.imperialMeasure
+    --            model.observations.loopiness
+    --            model.track
+    --            LoopMsg
+    --  , info = LoopedTrack.info
+    --  , video = Just "https://youtu.be/B3SGh8KhDu0"
+    --  , isFavourite = False
+    --  }
+    --, { label = BendSmoother.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        BendSmoother.viewBendFixerPane
+    --            model.displayOptions.imperialMeasure
+    --            model.bendOptions
+    --            BendSmoothMessage
+    --  , info = BendSmoother.info
+    --  , video = Just "https://youtu.be/VO5jsOZmTIg"
+    --  , isFavourite = False
+    --  }
+    --, { label = CurveFormer.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (CurveFormer.view
+    --                model.displayOptions.imperialMeasure
+    --                model.curveFormer
+    --                CurveFormerMsg
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = CurveFormer.info
+    --  , video = Just "https://youtu.be/DjdwAFkgw2o"
+    --  , isFavourite = False
+    --  }
+    --, { label = GradientLimiter.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (GradientLimiter.viewGradientLimitPane
+    --                model.gradientLimiter
+    --                GradientLimiter
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = GradientLimiter.info
+    --  , video = Just "https://youtu.be/LtcYi4fzImE"
+    --  , isFavourite = False
+    --  }
+    --, { label = GradientSmoother.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (GradientSmoother.viewGradientFixerPane
+    --                model.gradientOptions
+    --                GradientMessage
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = GradientSmoother.info
+    --  , video = Just "https://youtu.be/YTY2CSl0wo8"
+    --  , isFavourite = False
+    --  }
     , { label = Nudge.toolLabel
       , state = Contracted
       , content =
@@ -2027,104 +2006,105 @@ toolsAccordion model =
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
       }
-    , { label = MoveAndStretch.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (MoveAndStretch.view
-                    model.displayOptions.imperialMeasure
-                    model.moveAndStretch
-                    TwoWayDragMsg
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = MoveAndStretch.info
-      , video = Just "https://youtu.be/9ag2iSS4OE8"
-      , isFavourite = False
-      }
-    , { label = Straightener.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (Straightener.viewStraightenTools
-                    model.straightenOptions
-                    StraightenMessage
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = Straightener.info
-      , video = Just "https://youtu.be/MQ67mzShvxg"
-      , isFavourite = False
-      }
-    , { label = Interpolate.toolLabel
-      , state = Contracted
-      , content =
-            case model.track of
-                Just _ ->
-                    Interpolate.viewTools
-                        model.displayOptions.imperialMeasure
-                        model.insertOptions
-                        InsertMessage
 
-                Nothing ->
-                    none
-      , info = Interpolate.info
-      , video = Just "https://youtu.be/C3chnX2Ij_8"
-      , isFavourite = False
-      }
-    , { label = DeletePoints.toolLabel
-      , state = Contracted
-      , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
-      , info = DeletePoints.info
-      , video = Nothing
-      , isFavourite = False
-      }
-    , { label = Flythrough.toolLabel
-      , state = Contracted
-      , content =
-            Flythrough.flythroughControls
-                model.displayOptions.imperialMeasure
-                model.flythrough
-                FlythroughMessage
-      , info = Flythrough.info
-      , video = Just "https://youtu.be/lRukK-do_dE"
-      , isFavourite = False
-      }
-    , { label = Filters.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (Filters.viewFilterControls model.filterOptions
-                    FilterMessage
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = Filters.info
-      , video = Just "https://youtu.be/N48cDi_N_x0"
-      , isFavourite = False
-      }
-    , { label = Graph.toolLabel
-      , state = Contracted
-      , content =
-            model.track
-                |> Maybe.map .graph
-                |> Maybe.andThen
-                    (Just << viewGraphControls GraphMessage)
-                |> Maybe.withDefault none
-      , info = Graph.info
-      , video = Just "https://youtu.be/KSuR8PcAZYc"
-      , isFavourite = False
-      }
-    , { label = TrackObservations.toolLabel
-      , state = Contracted
-      , content =
-            TrackObservations.overviewSummary
-                model.displayOptions.imperialMeasure
-                model.observations
-      , info = "Data about the route."
-      , video = Just "https://youtu.be/w5rfsmTF08o"
-      , isFavourite = False
-      }
+    --, { label = MoveAndStretch.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (MoveAndStretch.view
+    --                model.displayOptions.imperialMeasure
+    --                model.moveAndStretch
+    --                TwoWayDragMsg
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = MoveAndStretch.info
+    --  , video = Just "https://youtu.be/9ag2iSS4OE8"
+    --  , isFavourite = False
+    --  }
+    --, { label = Straightener.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (Straightener.viewStraightenTools
+    --                model.straightenOptions
+    --                StraightenMessage
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = Straightener.info
+    --  , video = Just "https://youtu.be/MQ67mzShvxg"
+    --  , isFavourite = False
+    --  }
+    --, { label = Interpolate.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        case model.track of
+    --            Just _ ->
+    --                Interpolate.viewTools
+    --                    model.displayOptions.imperialMeasure
+    --                    model.insertOptions
+    --                    InsertMessage
+    --
+    --            Nothing ->
+    --                none
+    --  , info = Interpolate.info
+    --  , video = Just "https://youtu.be/C3chnX2Ij_8"
+    --  , isFavourite = False
+    --  }
+    --, { label = DeletePoints.toolLabel
+    --  , state = Contracted
+    --  , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
+    --  , info = DeletePoints.info
+    --  , video = Nothing
+    --  , isFavourite = False
+    --  }
+    --, { label = Flythrough.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Flythrough.flythroughControls
+    --            model.displayOptions.imperialMeasure
+    --            model.flythrough
+    --            FlythroughMessage
+    --  , info = Flythrough.info
+    --  , video = Just "https://youtu.be/lRukK-do_dE"
+    --  , isFavourite = False
+    --  }
+    --, { label = Filters.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (Filters.viewFilterControls model.filterOptions
+    --                FilterMessage
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = Filters.info
+    --  , video = Just "https://youtu.be/N48cDi_N_x0"
+    --  , isFavourite = False
+    --  }
+    --, { label = Graph.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        model.track
+    --            |> Maybe.map .graph
+    --            |> Maybe.andThen
+    --                (Just << viewGraphControls GraphMessage)
+    --            |> Maybe.withDefault none
+    --  , info = Graph.info
+    --  , video = Just "https://youtu.be/KSuR8PcAZYc"
+    --  , isFavourite = False
+    --  }
+    --, { label = TrackObservations.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        TrackObservations.overviewSummary
+    --            model.displayOptions.imperialMeasure
+    --            model.observations
+    --  , info = "Data about the route."
+    --  , video = Just "https://youtu.be/w5rfsmTF08o"
+    --  , isFavourite = False
+    --  }
     , { label = "Road segment"
       , state = Contracted
       , content =
@@ -2172,61 +2152,62 @@ toolsAccordion model =
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
       }
-    , { label = "Intersections"
-      , state = Contracted
-      , content =
-            TrackObservations.viewIntersections
-                model.displayOptions.imperialMeasure
-                model.problemOptions
-                model.observations
-                ProblemMessage
-      , info = TrackObservations.info
-      , video = Just "https://youtu.be/w5rfsmTF08o"
-      , isFavourite = False
-      }
-    , { label = StravaTools.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (StravaTools.viewStravaTab model.stravaOptions StravaMessage)
-                model.track
-                |> Maybe.withDefault none
-      , info = StravaTools.info
-      , video = Just "https://youtu.be/31qVuc3klUE"
-      , isFavourite = False
-      }
-    , { label = RotateRoute.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (RotateRoute.view
-                    model.displayOptions.imperialMeasure
-                    model.rotateOptions
-                    model.lastMapClick
-                    RotateMessage
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = RotateRoute.info
-      , video = Just "https://youtu.be/P602MjJLrZ0"
-      , isFavourite = False
-      }
-    , { label = TrackSplitter.toolLabel
-      , state = Contracted
-      , content =
-            Maybe.map
-                (TrackSplitter.view
-                    model.displayOptions.imperialMeasure
-                    model.splitterOptions
-                    model.observations
-                    SplitterMessage
-                )
-                model.track
-                |> Maybe.withDefault none
-      , info = TrackSplitter.info
-      , video = Nothing
-      , isFavourite = False
-      }
+
+    --, { label = "Intersections"
+    --  , state = Contracted
+    --  , content =
+    --        TrackObservations.viewIntersections
+    --            model.displayOptions.imperialMeasure
+    --            model.problemOptions
+    --            model.observations
+    --            ProblemMessage
+    --  , info = TrackObservations.info
+    --  , video = Just "https://youtu.be/w5rfsmTF08o"
+    --  , isFavourite = False
+    --  }
+    --, { label = StravaTools.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (StravaTools.viewStravaTab model.stravaOptions StravaMessage)
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = StravaTools.info
+    --  , video = Just "https://youtu.be/31qVuc3klUE"
+    --  , isFavourite = False
+    --  }
+    --, { label = RotateRoute.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (RotateRoute.view
+    --                model.displayOptions.imperialMeasure
+    --                model.rotateOptions
+    --                model.lastMapClick
+    --                RotateMessage
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = RotateRoute.info
+    --  , video = Just "https://youtu.be/P602MjJLrZ0"
+    --  , isFavourite = False
+    --  }
+    --, { label = TrackSplitter.toolLabel
+    --  , state = Contracted
+    --  , content =
+    --        Maybe.map
+    --            (TrackSplitter.view
+    --                model.displayOptions.imperialMeasure
+    --                model.splitterOptions
+    --                model.observations
+    --                SplitterMessage
+    --            )
+    --            model.track
+    --            |> Maybe.withDefault none
+    --  , info = TrackSplitter.info
+    --  , video = Nothing
+    --  , isFavourite = False
+    --  }
     ]
 
 
@@ -2235,7 +2216,7 @@ toolsAccordion model =
 
 
 addToUndoStack :
-    String
+    UndoEntry
     -> Model
     -> Model
 addToUndoStack entry model =
@@ -2248,12 +2229,22 @@ addToUndoStack entry model =
 
 undo : Model -> Model
 undo model =
-    case model.undoStack of
-        entry :: undos ->
+    case ( model.track, model.undoStack ) of
+        ( Just track, entry :: undos ) ->
+            let
+                ( prefix, middle, suffix ) =
+                    entry.undoFunction track
+
+                points =
+                    (prefix ++ middle ++ suffix) |> prepareTrackPoints
+
+                oldTrack =
+                    { track | trackPoints = points }
+            in
             { model
                 | undoStack = undos
                 , redoStack = entry :: model.redoStack
-                , track = mergePreviousTrackSection model.track entry.oldTrackpoints
+                , track = Just oldTrack
                 , changeCounter = model.changeCounter - 1
             }
 
@@ -2263,14 +2254,24 @@ undo model =
 
 redo : Model -> Model
 redo model =
-    case model.redoStack of
-        entry :: redos ->
+    case ( model.track, model.redoStack ) of
+        ( Just track, entry :: redos ) ->
+            let
+                ( prefix, middle, suffix ) =
+                    entry.editFunction track
+
+                points =
+                    (prefix ++ middle ++ suffix) |> prepareTrackPoints
+
+                newTrack =
+                    { track | trackPoints = points }
+            in
             { model
                 | redoStack = redos
                 , undoStack = entry :: model.undoStack
+                , track = Just newTrack
                 , changeCounter = model.changeCounter + 1
             }
-                |> applyEditFunction entry.editFunction
 
         _ ->
             model

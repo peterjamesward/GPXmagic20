@@ -76,7 +76,7 @@ update :
     -> Options
     -> TrackObservations
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings observations track =
     case msg of
         SetFilterBias bias ->
@@ -117,10 +117,11 @@ update msg settings observations track =
                     }
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
-                newTrack
-                "Centroid average"
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesIndex
+--                newTrack
+--                "Centroid average"
             )
 
         BezierSplines ->
@@ -134,10 +135,11 @@ update msg settings observations track =
                         observations.loopiness
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                newTrack
-                "Bezier splines"
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                newTrack
+--                "Bezier splines"
             )
 
         BezierApproximation ->
@@ -151,10 +153,11 @@ update msg settings observations track =
                         observations.loopiness
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                newTrack
-                "Bezier approximation"
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                newTrack
+--                "Bezier approximation"
             )
 
 

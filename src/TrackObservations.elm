@@ -104,7 +104,7 @@ update :
     -> Options
     -> Int
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings numSegments track =
     case msg of
         LocateProblem trackPoint ->
@@ -149,13 +149,14 @@ update msg settings numSegments track =
                         indicesToSmooth
             in
             ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
-                newTrack
-                ("Autofix "
-                    ++ (String.fromInt <| List.length trackPoints)
-                    ++ " points."
-                )
+            ,             PostUpdateActions.ActionNoOp
+--PostUpdateActions.ActionTrackChanged
+--                PostUpdateActions.EditPreservesNodePosition
+--                newTrack
+--                ("Autofix "
+--                    ++ (String.fromInt <| List.length trackPoints)
+--                    ++ " points."
+--                )
             )
 
 
