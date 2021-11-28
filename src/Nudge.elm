@@ -29,13 +29,12 @@ type NudgeMsg
     | SetFadeExtent Length.Length
 
 
-
 type alias NudgeSettings =
     { horizontal : Length.Length
     , vertical : Length.Length
     , fadeExtent : Length.Length
-    , action : UndoEntry Track
-    , nudgedNodes : List TrackPoint
+    , action : UndoEntry
+    , originalSection : List TrackPoint
     }
 
 
@@ -45,7 +44,7 @@ defaultNudgeSettings =
     , vertical = Quantity.zero
     , fadeExtent = Quantity.zero
     , action = defaultUndoEntry
-    , nudgedNodes = []
+    , originalSection = []
     }
 
 
@@ -89,14 +88,22 @@ makeUndoMessage imperial track =
             ++ showShortMeasure imperial from
 
 
-getPreview : NudgeSettings -> List (Entity LocalCoords)
-getPreview model =
-    highlightPoints Color.lightOrange model.nudgedNodes
+getPreview : NudgeSettings -> Track -> List (Entity LocalCoords)
+getPreview settings track =
+    let
+        (_, nudged, _ ) =
+            settings.action.editFunction track
+    in
+    highlightPoints Color.lightOrange nudged
 
 
-getProfilePreview : NudgeSettings -> List (Entity LocalCoords)
-getProfilePreview model =
-    highlightPointsProfile Color.lightOrange model.nudgedNodes
+getProfilePreview : NudgeSettings -> Track -> List (Entity LocalCoords)
+getProfilePreview settings track =
+    let
+        (_, nudged, _ ) =
+            settings.action.editFunction track
+    in
+    highlightPointsProfile Color.lightOrange nudged
 
 
 nudgeTrackPoint : NudgeSettings -> Float -> TrackPoint -> TrackPoint
@@ -131,8 +138,11 @@ nudgeTrackPoint settings fade trackpoint =
         { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
-computeNudgedPoints : Bool -> NudgeSettings -> Track -> NudgeSettings
-computeNudgedPoints imperial settings track =
+splitTheTrackAllowingForFade :
+    NudgeSettings
+    -> Track
+    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+splitTheTrackAllowingForFade settings track =
     let
         ( _, _, section ) =
             case track.markedNode of
@@ -156,6 +166,31 @@ computeNudgedPoints imperial settings track =
         fadeOutEnd =
             toNode.distanceFromStart |> Quantity.plus settings.fadeExtent
 
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitWhen
+                    (.distanceFromStart >> Quantity.greaterThanOrEqualTo fadeInStart)
+                |> Maybe.withDefault ( [], track.trackPoints )
+
+        ( actualNudgeRegionIncludingFades, suffix ) =
+            theRest
+                |> List.Extra.splitWhen
+                    (.distanceFromStart >> Quantity.greaterThan fadeOutEnd)
+                |> Maybe.withDefault ( theRest, [] )
+    in
+    ( prefix, actualNudgeRegionIncludingFades, suffix )
+
+
+editFunction :
+    NudgeSettings
+    -> Track
+    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+editFunction settings track =
+    let
+        ( prefix, actualNudgeRegionIncludingFades, suffix ) =
+            -- Yes, we split it again for the actual edit or Redo.
+            splitTheTrackAllowingForFade settings track
+
         fader pointDistance referenceDistance =
             let
                 ( place, base ) =
@@ -166,12 +201,16 @@ computeNudgedPoints imperial settings track =
             in
             1.0 - x
 
-        actualNudgeRegionIncludingFades =
-            track.trackPoints
-                |> List.Extra.dropWhile
-                    (.distanceFromStart >> Quantity.lessThan fadeInStart)
-                |> List.Extra.takeWhile
-                    (.distanceFromStart >> Quantity.greaterThanOrEqualTo fadeOutEnd)
+        ( fromNode, toNode ) =
+            ( actualNudgeRegionIncludingFades |> List.head |> Maybe.withDefault track.currentNode
+            , actualNudgeRegionIncludingFades |> List.Extra.last |> Maybe.withDefault track.currentNode
+            )
+
+        fadeInStart =
+            fromNode.distanceFromStart |> Quantity.minus settings.fadeExtent
+
+        fadeOutEnd =
+            toNode.distanceFromStart |> Quantity.plus settings.fadeExtent
 
         liesWithin ( lo, hi ) point =
             (point.distanceFromStart |> Quantity.greaterThanOrEqualTo lo)
@@ -193,27 +232,30 @@ computeNudgedPoints imperial settings track =
                         0.0
             in
             nudgeTrackPoint settings fade point
+    in
+    ( prefix
+    , List.map nudge actualNudgeRegionIncludingFades
+    , suffix
+    )
 
-        actionEntry : UndoEntry Track
+
+buildActions : Bool -> NudgeSettings -> Track -> NudgeSettings
+buildActions imperial settings track =
+    let
+        ( prefix, actualNudgeRegionIncludingFades, suffix ) =
+            -- Have to split it here to get the trackpoints to save for Undo.
+            splitTheTrackAllowingForFade settings track
+
+        actionEntry : UndoEntry
         actionEntry =
             -- This is the +/-ve delta for possible redo. We do not include track in the closure!
             { label = makeUndoMessage imperial track
-            , firstChangedPoint =
-                actualNudgeRegionIncludingFades
-                    |> List.head
-                    |> Maybe.withDefault track.currentNode
-                    |> .index
-            , lastChangedPoint =
-                actualNudgeRegionIncludingFades
-                    |> List.Extra.last
-                    |> Maybe.withDefault track.currentNode
-                    |> .index
-            , oldTrackpoints = actualNudgeRegionIncludingFades
-            , editFunction = \t -> computeNudgedPoints imperial settings t |> .nudgedNodes
+            , editFunction = editFunction settings
+            , undoFunction = always ( prefix, settings.originalSection, suffix )
             }
     in
     { settings
-        | nudgedNodes = List.map nudge actualNudgeRegionIncludingFades
+        | originalSection = actualNudgeRegionIncludingFades
         , action = actionEntry
     }
 
@@ -340,7 +382,7 @@ update msg imperial settings track =
                 newSettings =
                     { settings | horizontal = length }
             in
-            ( computeNudgedPoints imperial newSettings track
+            ( buildActions imperial newSettings track
             , PostUpdateActions.ActionPreview
             )
 
@@ -349,7 +391,7 @@ update msg imperial settings track =
                 newSettings =
                     { settings | vertical = length }
             in
-            ( computeNudgedPoints imperial newSettings track
+            ( buildActions imperial newSettings track
             , PostUpdateActions.ActionPreview
             )
 
@@ -358,12 +400,12 @@ update msg imperial settings track =
                 newSettings =
                     { settings | fadeExtent = fade }
             in
-            ( computeNudgedPoints imperial newSettings track
+            ( buildActions imperial newSettings track
             , PostUpdateActions.ActionPreview
             )
 
         ZeroNudgeFactors ->
-            ( computeNudgedPoints imperial defaultNudgeSettings track
+            ( buildActions imperial defaultNudgeSettings track
             , PostUpdateActions.ActionPreview
             )
 
@@ -373,4 +415,3 @@ update msg imperial settings track =
                 PostUpdateActions.EditPreservesIndex
                 settings.action
             )
-

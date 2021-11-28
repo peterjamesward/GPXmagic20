@@ -6,7 +6,7 @@ import TrackPoint exposing (TrackPoint)
 
 
 type PostUpdateAction trck cmd
-    = ActionTrackChanged TrackEditType (UndoEntry trck)
+    = ActionTrackChanged TrackEditType UndoEntry
     | ActionRerender
     | ActionPreview
     | ActionPointerMove TrackPoint
@@ -24,28 +24,30 @@ type PostUpdateAction trck cmd
 type TrackEditType
     = EditPreservesIndex
     | EditPreservesNodePosition
-    | EditExtendsBeyondMarkers (Maybe ( Int, Int ))
     | EditNoOp -- only for Undo/Redo use
 
 
 
--- This may not stay here.
+-- This may not stay here. Import loops are a problem potentially.
 
 
-type alias UndoEntry track =
-    -- Use the old track points to revert, editFunction to redo.
+type alias UndoEntry =
+    -- Use the editFunction to do or redo, other to undo.
+    -- These can use 'always' if the function is not (readily) reversible.
+    -- I think Track -> List Trackpoint is best.
+    -- These functions should return only the changed "middle section" of track.
+    -- Or (thinking) they could return three parts. That way, we can just use the middle
+    -- part for the preview but easily concat them for the whole track.
+    -- Seems that would avoid more work elsewhere since we need to split it anyway.
     { label : String
-    , firstChangedPoint : Int
-    , lastChangedPoint : Int
-    , oldTrackpoints : List TrackPoint
-    , editFunction : { track | trackPoints : List TrackPoint } -> List TrackPoint
+    , editFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+    , undoFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
     }
 
 
+defaultUndoEntry : UndoEntry
 defaultUndoEntry =
-    { label = "You should not be seeing this"
-    , firstChangedPoint = 0
-    , lastChangedPoint = 0
-    , oldTrackpoints = []
-    , editFunction = always []
+    { label = "You should not see this text"
+    , editFunction = always ([], [], [])
+    , undoFunction = always ([], [], [])
     }
