@@ -456,7 +456,6 @@ roadSupportPillar floorPlane pt =
 
 trackPointCone : TrackPoint -> List (Entity LocalCoords)
 trackPointCone pt =
-    -- V2.0 just uses crossed triangle.
     let
         eastSide =
             pt.xyz |> Point3d.translateBy (Vector3d.meters -1.0 0.0 -1.0)
