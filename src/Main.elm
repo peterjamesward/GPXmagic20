@@ -1600,7 +1600,11 @@ renderTrackSceneElements model =
 
                 updatedScene =
                     if is3dVisible model.viewPanes then
-                        SceneBuilder.renderTrack model.displayOptions reducedTrack
+                        if model.displayOptions.terrainOn then
+                            SceneBuilder.renderTerrain model.displayOptions reducedTrack
+
+                        else
+                            SceneBuilder.renderTrack model.displayOptions reducedTrack
 
                     else
                         []
@@ -1608,13 +1612,6 @@ renderTrackSceneElements model =
                 updatedProfile =
                     if isProfileVisible model.viewPanes then
                         SceneBuilderProfile.renderTrack model.displayOptions reducedTrack
-
-                    else
-                        []
-
-                updatedTerrain =
-                    if is3dVisible model.viewPanes then
-                        SceneBuilder.renderTerrain model.displayOptions reducedTrack
 
                     else
                         []

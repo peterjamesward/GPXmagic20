@@ -81,15 +81,11 @@ renderTerrain options track =
                 |> BoundingBox3d.expandBy (meters 500)
                 |> squareAspect
     in
-    if options.terrainOn then
-        seaLevel options.seaLevel box
-            ++ makeTerrain
-                options
-                box
-                track.trackPoints
-
-    else
-        []
+    seaLevel options.seaLevel box
+        ++ makeTerrain
+            options
+            box
+            track.trackPoints
 
 
 renderTrack : DisplayOptions -> Track -> Scene
