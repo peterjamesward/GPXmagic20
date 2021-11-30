@@ -19,7 +19,7 @@ import Scene3d.Material as Material exposing (Material)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
-import Utils exposing (gradientColourPastel, gradientColourVivid)
+import Utils exposing (combineLists, gradientColourPastel, gradientColourVivid)
 import Vector3d
 
 
@@ -81,123 +81,56 @@ renderTrack options track =
 paintCurtainBetween : Float -> (Float -> Color) -> TrackPoint -> TrackPoint -> Entity LocalCoords
 paintCurtainBetween scale colouring pt1 pt2 =
     let
-        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
-        scaledXZ p =
-            let
-                { x, y, z } =
-                    Point3d.toMeters p.profileXZ
-            in
-            Point3d.fromTuple meters ( x, y, z * scale )
-
         gradient =
             gradientFromPoint pt1
     in
     Scene3d.quad (Material.color <| colouring gradient)
-        (scaledXZ pt1)
-        (scaledXZ pt2)
+        (scaledXZ scale pt1)
+        (scaledXZ scale pt2)
         (Point3d.projectOnto Plane3d.xy pt2.profileXZ)
         (Point3d.projectOnto Plane3d.xy pt1.profileXZ)
 
 
-renderMarkers : DisplayOptions -> Maybe TrackPoint -> Track -> Scene
-renderMarkers options stretchMarker track =
+scaledXZ : Float -> TrackPoint -> Point3d Meters LocalCoords
+scaledXZ verticalExaggeration p =
     let
-        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
-        scaledXZ p =
-            let
-                { x, y, z } =
-                    Point3d.toMeters p.profileXZ
-            in
-            Point3d.fromTuple meters ( x, y, z * options.verticalExaggeration )
+        { x, y, z } =
+            Point3d.toMeters p.profileXZ
+    in
+    Point3d.fromTuple meters ( x, y, z * verticalExaggeration )
 
+
+renderMarkers : DisplayOptions -> Track -> Scene
+renderMarkers options track =
+    let
         currentPositionDisc point =
             let
                 lollipopAt =
                     Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 20.1)
-                        (scaledXZ point)
+                        (Vector3d.meters 0.0 0.0 1.0)
+                        (scaledXZ options.verticalExaggeration point)
             in
-            [ Scene3d.point { radius = Pixels.pixels 10 }
-                (Material.color Color.lightOrange)
-                lollipopAt
-            , Scene3d.lineSegment
-                (Material.color Color.lightOrange)
-                (LineSegment3d.from point.profileXZ lollipopAt)
-            ]
+            Utils.lollipop lollipopAt Color.lightOrange
 
         markedNode point =
             let
                 lollipopAt =
                     Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 10.1)
-                        (scaledXZ point)
+                        (Vector3d.meters 0.0 0.0 1.0)
+                        (scaledXZ options.verticalExaggeration point)
             in
-            [ Scene3d.point { radius = Pixels.pixels 10 }
-                (Material.color Color.purple)
-                lollipopAt
-            , Scene3d.lineSegment
-                (Material.color Color.purple)
-                (LineSegment3d.from point.profileXZ lollipopAt)
-            ]
-
-        --[cone (Material.color Color.purple) <|
-        --    Cone3d.startingAt
-        --        (Point3d.translateBy
-        --            (Vector3d.meters 0.0 0.0 18.1)
-        --            (scaledXZ point)
-        --        )
-        --        negativeZ
-        --        { radius = meters <| 7.0
-        --        , length = meters <| 18.0
-        --        }
-        --, cone (Material.color Color.purple) <|
-        --    Cone3d.startingAt
-        --        (Point3d.translateBy
-        --            (Vector3d.meters 0.0 0.0 18.1)
-        --            (scaledXZ point)
-        --        )
-        --        positiveZ
-        --        { radius = meters <| 6.5
-        --        , length = meters <| 100.0
-        --        }
-        --]
-        stretch =
-            case stretchMarker of
-                Just pt ->
-                    [ cone (Material.color Color.white) <|
-                        Cone3d.startingAt
-                            (Point3d.translateBy
-                                (Vector3d.meters 0.0 0.0 18.1)
-                                (scaledXZ pt)
-                            )
-                            negativeZ
-                            { radius = meters <| 5.0
-                            , length = meters <| 22.0
-                            }
-                    ]
-
-                Nothing ->
-                    []
+            Utils.lollipop lollipopAt Color.purple
     in
     currentPositionDisc track.currentNode
-        ++ stretch
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
 
 
 paintSomethingBetween scale width material pt1 pt2 =
     let
-        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
-        scaledXZ p =
-            let
-                { x, y, z } =
-                    Point3d.toMeters p.profileXZ
-            in
-            Point3d.fromTuple meters ( x, y, z * scale )
-
         roadAsSegment =
             LineSegment3d.from
-                (scaledXZ pt1)
-                (scaledXZ pt2)
+                (scaledXZ scale pt1)
+                (scaledXZ scale pt2)
 
         ( topEdgeVector, bottomEdgeVector ) =
             ( Vector3d.fromTuple meters ( 0.0, 0.0, width )
@@ -329,18 +262,10 @@ previewMoveAndStretch options points =
 roadSupportPillar : Float -> TrackPoint -> Entity LocalCoords
 roadSupportPillar scale pt =
     let
-        scaledXZ : TrackPoint -> Point3d Meters LocalCoords
-        scaledXZ p =
-            let
-                { x, y, z } =
-                    Point3d.toMeters p.profileXZ
-            in
-            Point3d.fromTuple meters ( x, y, z * scale )
-
         centre =
             LineSegment3d.from
-                (scaledXZ pt)
-                (scaledXZ pt |> Point3d.projectOnto Plane3d.xy)
+                (scaledXZ scale pt)
+                (scaledXZ scale pt |> Point3d.projectOnto Plane3d.xy)
     in
     Scene3d.lineSegment (Material.color brown) centre
 
@@ -348,13 +273,36 @@ roadSupportPillar scale pt =
 trackPointCone : Float -> TrackPoint -> Entity LocalCoords
 trackPointCone scale pt =
     -- V2.0 just uses crossed triangle.
+    Scene3d.point
+        { radius = Pixels.pixels 1 }
+        (Material.color black)
+        (scaledXZ scale pt)
+
+
+previewProfileLine : DisplayOptions -> Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+previewProfileLine options color points =
     let
-        scaledXZ : Point3d Meters LocalCoords
-        scaledXZ =
-            let
-                { x, y, z } =
-                    Point3d.toMeters pt.profileXZ
-            in
-            Point3d.fromTuple meters ( x, y - 1.0, z * scale )
+        material =
+            Material.color color
+
+        preview p1 p2 =
+            paintSomethingBetween
+                options.verticalExaggeration
+                0.1
+                material
+                p1
+                p2
     in
-    Scene3d.point { radius = Pixels.pixels 1 } (Material.color black) scaledXZ
+    List.map2 preview points (List.drop 1 points) |> combineLists
+
+
+highlightPointsProfile : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+highlightPointsProfile color points =
+    let
+        material =
+            Material.color color
+
+        highlightPoint p =
+            Scene3d.point { radius = Pixels.pixels 5 } material p.profileXZ
+    in
+    List.map highlightPoint points

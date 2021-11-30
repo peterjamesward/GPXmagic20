@@ -23,6 +23,7 @@ import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import Scene3d exposing (Entity, cone, cylinder)
 import Scene3d.Material as Material exposing (Material)
+import SceneBuilderProfile exposing (scaledXZ)
 import SketchPlane3d
 import SpatialIndex exposing (SpatialContent, SpatialNode(..))
 import Track exposing (Track)
@@ -75,18 +76,6 @@ previewLine color points =
                 p2.xyz
     in
     List.map2 preview points (List.drop 1 points) |> combineLists
-
-
-highlightPointsProfile : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
-highlightPointsProfile color points =
-    let
-        material =
-            Material.color color
-
-        highlightPoint p =
-            Scene3d.point { radius = Pixels.pixels 5 } material p.profileXZ
-    in
-    List.map highlightPoint points
 
 
 renderTerrain : DisplayOptions -> Track -> Scene

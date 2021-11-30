@@ -1456,14 +1456,19 @@ composeScene model =
 
 renderVaryingProfileSceneElements : Model -> Scene
 renderVaryingProfileSceneElements model =
-    Maybe.map
-        (SceneBuilderProfile.renderMarkers
-            model.displayOptions
-            Nothing
-         -- stretchMarker
-        )
-        model.track
-        |> Maybe.withDefault []
+    case model.track of
+        Nothing ->
+            []
+
+        Just isTrack ->
+            [ SceneBuilderProfile.renderMarkers model.displayOptions isTrack
+            , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
+                Nudge.getProfilePreview model.displayOptions model.nudgeSettings isTrack
+
+              else
+                []
+            ]
+                |> Utils.combineLists
 
 
 renderVarying3dSceneElements : Model -> Scene

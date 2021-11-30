@@ -4,6 +4,7 @@ import Angle
 import Axis3d
 import Color
 import Direction3d
+import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (Length, inMeters)
@@ -11,10 +12,11 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra
 import Point3d
-import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
+import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
-import SceneBuilder exposing (highlightPoints, highlightPointsProfile, previewLine)
+import SceneBuilder exposing (previewLine)
+import SceneBuilderProfile exposing (previewProfileLine)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showShortMeasure)
@@ -45,6 +47,8 @@ type alias UndoRedoInfo =
     , purple : Maybe Int
     , startSelection : Int
     , endSelection : Int
+    , startAffected : Int
+    , endAffected : Int
     }
 
 
@@ -108,8 +112,8 @@ getPreview settings track =
     previewLine Color.yellow nudged
 
 
-getProfilePreview : NudgeSettings -> Track -> List (Entity LocalCoords)
-getProfilePreview settings track =
+getProfilePreview : DisplayOptions -> NudgeSettings -> Track -> List (Entity LocalCoords)
+getProfilePreview options settings track =
     let
         undoEntry =
             buildActions False settings track
@@ -117,7 +121,7 @@ getProfilePreview settings track =
         ( _, nudged, _ ) =
             undoEntry.editFunction track
     in
-    highlightPointsProfile Color.lightOrange nudged
+    previewProfileLine options Color.yellow nudged
 
 
 nudgeTrackPoint : UndoRedoInfo -> Float -> TrackPoint -> TrackPoint
@@ -269,19 +273,19 @@ editFunction undoRedoInfo track =
 
 
 undoFunction :
-    ( Int, Int )
+    UndoRedoInfo
     -> List TrackPoint
     -> Track
     -> ( List TrackPoint, List TrackPoint, List TrackPoint )
-undoFunction ( start, end ) savedPoints track =
+undoFunction undoRedoInfo savedPoints track =
     -- Construct the closure for undo-ing.
     -- No need to save the whole track, only the bit we've Nudged.
     let
         ( prefix, theRest ) =
-            track.trackPoints |> List.Extra.splitAt start
+            track.trackPoints |> List.Extra.splitAt undoRedoInfo.startAffected
 
         ( middle, suffix ) =
-            theRest |> List.Extra.splitAt (end - start)
+            theRest |> List.Extra.splitAt (undoRedoInfo.endAffected - undoRedoInfo.startAffected)
     in
     ( prefix, savedPoints, suffix )
 
@@ -290,8 +294,8 @@ buildActions : Bool -> NudgeSettings -> Track -> UndoEntry
 buildActions imperial settings track =
     -- Here we simply create closures that can be called to apply, undo, redo the edit.
     let
-        storedSettings : UndoRedoInfo
-        storedSettings =
+        givenSettings : UndoRedoInfo
+        givenSettings =
             -- Make sure our closure values are ours.
             { horizontal = settings.horizontal
             , vertical = settings.vertical
@@ -300,6 +304,8 @@ buildActions imperial settings track =
             , purple = Maybe.map .index track.markedNode
             , startSelection = startSelection
             , endSelection = endSelection
+            , startAffected = startSelection
+            , endAffected = endSelection
             }
 
         ( startSelection, endSelection ) =
@@ -315,7 +321,7 @@ buildActions imperial settings track =
 
         ( prefix, actualNudgeRegionIncludingFades, suffix ) =
             -- Have to split it here to get the trackpoints to save for Undo.
-            splitTheTrackAllowingForFade storedSettings track
+            splitTheTrackAllowingForFade givenSettings track
 
         ( start, end ) =
             ( actualNudgeRegionIncludingFades
@@ -327,11 +333,25 @@ buildActions imperial settings track =
                 |> Maybe.withDefault track.currentNode
                 |> .index
             )
+        savedSettings : UndoRedoInfo
+        savedSettings =
+            -- Repetition is naff.
+            { horizontal = settings.horizontal
+            , vertical = settings.vertical
+            , fadeExtent = settings.fadeExtent
+            , orange = track.currentNode.index
+            , purple = Maybe.map .index track.markedNode
+            , startSelection = startSelection
+            , endSelection = endSelection
+            , startAffected = start
+            , endAffected = end
+            }
+
     in
     -- This is the +/-ve delta for possible redo. We do not include track in the closure!
     { label = makeUndoMessage imperial track
-    , editFunction = editFunction storedSettings
-    , undoFunction = undoFunction ( start, end ) actualNudgeRegionIncludingFades
+    , editFunction = editFunction savedSettings
+    , undoFunction = undoFunction savedSettings actualNudgeRegionIncludingFades
     }
 
 
