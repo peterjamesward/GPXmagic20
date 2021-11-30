@@ -451,17 +451,7 @@ roadSupportPillar floorPlane pt =
         southSide =
             centre |> LineSegment3d.translateBy (Vector3d.meters 0.0 -1.0 0.0)
     in
-    [ Scene3d.quad (Material.color brown)
-        (LineSegment3d.startPoint eastSide)
-        (LineSegment3d.endPoint eastSide)
-        (LineSegment3d.endPoint westSide)
-        (LineSegment3d.startPoint westSide)
-    , Scene3d.quad (Material.color brown)
-        (LineSegment3d.startPoint northSide)
-        (LineSegment3d.endPoint northSide)
-        (LineSegment3d.endPoint southSide)
-        (LineSegment3d.startPoint southSide)
-    ]
+    [ Scene3d.lineSegment (Material.color brown) centre ]
 
 
 trackPointCone : TrackPoint -> List (Entity LocalCoords)
