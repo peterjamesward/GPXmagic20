@@ -401,37 +401,12 @@ roadSupportPillar floorPlane pt =
             LineSegment3d.from
                 (pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 0.0 -1.0))
                 (pt.xyz |> Point3d.projectOnto floorPlane)
-
-        eastSide =
-            centre |> LineSegment3d.translateBy (Vector3d.meters -1.0 0.0 0.0)
-
-        westSide =
-            centre |> LineSegment3d.translateBy (Vector3d.meters 1.0 0.0 0.0)
-
-        northSide =
-            centre |> LineSegment3d.translateBy (Vector3d.meters 0.0 1.0 0.0)
-
-        southSide =
-            centre |> LineSegment3d.translateBy (Vector3d.meters 0.0 -1.0 0.0)
     in
     [ Scene3d.lineSegment (Material.color brown) centre ]
 
 
 trackPointCone : TrackPoint -> List (Entity LocalCoords)
 trackPointCone pt =
-    let
-        eastSide =
-            pt.xyz |> Point3d.translateBy (Vector3d.meters -1.0 0.0 -1.0)
-
-        westSide =
-            pt.xyz |> Point3d.translateBy (Vector3d.meters 1.0 0.0 -1.0)
-
-        northSide =
-            pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 1.0 -1.0)
-
-        southSide =
-            pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 -1.0 -1.0)
-    in
     [ Scene3d.point { radius = Pixels.pixels 1 } (Material.color black) pt.xyz ]
 
 

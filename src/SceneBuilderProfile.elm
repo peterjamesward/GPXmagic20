@@ -339,20 +339,10 @@ roadSupportPillar scale pt =
 
         centre =
             LineSegment3d.from
-                (scaledXZ pt |> Point3d.translateBy (Vector3d.meters 0.0 -1.0 -1.0))
+                (scaledXZ pt)
                 (scaledXZ pt |> Point3d.projectOnto Plane3d.xy)
-
-        eastSide =
-            centre |> LineSegment3d.translateBy (Vector3d.meters -1.0 0.0 0.0)
-
-        westSide =
-            centre |> LineSegment3d.translateBy (Vector3d.meters 1.0 0.0 0.0)
     in
-    Scene3d.quad (Material.color brown)
-        (LineSegment3d.startPoint eastSide)
-        (LineSegment3d.endPoint eastSide)
-        (LineSegment3d.endPoint westSide)
-        (LineSegment3d.startPoint westSide)
+    Scene3d.lineSegment (Material.color brown) centre
 
 
 trackPointCone : Float -> TrackPoint -> Entity LocalCoords
@@ -366,12 +356,5 @@ trackPointCone scale pt =
                     Point3d.toMeters pt.profileXZ
             in
             Point3d.fromTuple meters ( x, y - 1.0, z * scale )
-
-        eastSide =
-            scaledXZ |> Point3d.translateBy (Vector3d.meters 1.0 -1.0 -1.0)
-
-        westSide =
-            scaledXZ |> Point3d.translateBy (Vector3d.meters -1.0 -1.0 -1.0)
     in
-    Scene3d.triangle (Material.color black)
-        (Triangle3d.fromVertices ( eastSide, scaledXZ, westSide ))
+    Scene3d.point { radius = Pixels.pixels 1 } (Material.color black) scaledXZ

@@ -1452,19 +1452,32 @@ composeScene model =
     { model
         | completeScene =
             combineLists
-                [ renderVaryingSceneElements model
-                , renderTrackSceneElements model
+                [ renderVarying3dSceneElements model
+                , renderTrack3dSceneElements model
                 ]
-        , completeProfile = []
+        , completeProfile =
+            combineLists
+                [ renderVaryingProfileSceneElements model
+                , renderTrackProfileSceneElements model
+                ]
     }
 
 
-renderVaryingSceneElements : Model -> Scene
-renderVaryingSceneElements model =
-    let
-        latestModel =
-            model
+renderVaryingProfileSceneElements : Model -> Scene
+renderVaryingProfileSceneElements model =
+    Maybe.map
+        (SceneBuilderProfile.renderMarkers
+            model.displayOptions
+            Nothing
+         -- stretchMarker
+        )
+        model.track
+        |> Maybe.withDefault []
 
+
+renderVarying3dSceneElements : Model -> Scene
+renderVarying3dSceneElements model =
+    let
         --stretchMarker =
         --    if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
         --        Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
@@ -1475,7 +1488,7 @@ renderVaryingSceneElements model =
         --        Nothing
         updatedMarkers =
             -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
-            case latestModel.track of
+            case model.track of
                 Just isTrack ->
                     let
                         whiteMarker =
@@ -1492,16 +1505,6 @@ renderVaryingSceneElements model =
 
                 Nothing ->
                     []
-
-        updatedProfileMarkers =
-            Maybe.map
-                (SceneBuilderProfile.renderMarkers
-                    latestModel.displayOptions
-                    Nothing
-                 -- stretchMarker
-                )
-                latestModel.track
-                |> Maybe.withDefault []
 
         --updatedMoveAndStretchSettings =
         --    let
@@ -1576,8 +1579,22 @@ renderVaryingSceneElements model =
     updatedMarkers
 
 
-renderTrackSceneElements : Model -> Scene
-renderTrackSceneElements model =
+renderTrackProfileSceneElements : Model -> Scene
+renderTrackProfileSceneElements model =
+    case model.track of
+        Just isTrack ->
+            if isProfileVisible model.viewPanes then
+                SceneBuilderProfile.renderTrack model.displayOptions isTrack
+
+            else
+                []
+
+        Nothing ->
+            []
+
+
+renderTrack3dSceneElements : Model -> Scene
+renderTrack3dSceneElements model =
     case model.track of
         Just isTrack ->
             let
@@ -1605,13 +1622,6 @@ renderTrackSceneElements model =
 
                         else
                             SceneBuilder.renderTrack model.displayOptions reducedTrack
-
-                    else
-                        []
-
-                updatedProfile =
-                    if isProfileVisible model.viewPanes then
-                        SceneBuilderProfile.renderTrack model.displayOptions reducedTrack
 
                     else
                         []
