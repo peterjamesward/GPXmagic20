@@ -470,11 +470,7 @@ trackPointCone pt =
         southSide =
             pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 -1.0 -1.0)
     in
-    [ Scene3d.triangle (Material.color black)
-        (Triangle3d.fromVertices ( eastSide, pt.xyz, westSide ))
-    , Scene3d.triangle (Material.color black)
-        (Triangle3d.fromVertices ( northSide, pt.xyz, southSide ))
-    ]
+    [ Scene3d.point { radius = Pixels.pixels 1 } (Material.color black) pt.xyz ]
 
 
 seaLevel : Bool -> BoundingBox3d Meters LocalCoords -> List (Entity LocalCoords)
