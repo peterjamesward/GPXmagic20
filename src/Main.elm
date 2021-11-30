@@ -1473,15 +1473,8 @@ renderVarying3dSceneElements model =
             []
 
         Just isTrack ->
-            --stretchMarker =
-            --    if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
-            --        Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
-            --            latestModel.track
-            --            |> Maybe.join
-            --
-            --    else
-            --        Nothing
-            [ if model.displayOptions.showRenderingLimit then
+            [ SceneBuilder.renderMarkers isTrack
+            , if model.displayOptions.showRenderingLimit then
                 SceneBuilder.renderMRLimits isTrack
 
               else

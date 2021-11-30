@@ -67,14 +67,14 @@ previewLine color points =
         material =
             Material.matte color
 
-        preview p =
+        preview p1 p2 =
             paintSomethingBetween
                 (Length.meters 0.5)
                 material
-                p.xyz
-                (p.xyz |> Point3d.translateBy p.roadVector)
+                p1.xyz
+                p2.xyz
     in
-    List.map preview points |> combineLists
+    List.map2 preview points (List.drop 1 points) |> combineLists
 
 
 highlightPointsProfile : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
@@ -179,26 +179,17 @@ renderTrack options track =
     combineLists [ seaLevel options.seaLevel track.box, graphNodes, scene ]
 
 
-renderMarkers : Maybe TrackPoint -> Track -> Scene
-renderMarkers stretchMarker track =
+renderMarkers : Track -> Scene
+renderMarkers track =
     let
         currentPositionDisc point =
             lollipop point.xyz Color.lightOrange
 
         markedNode point =
             lollipop point.xyz Color.purple
-
-        stretch =
-            case stretchMarker of
-                Just pt ->
-                    lollipop pt.xyz Color.white
-
-                Nothing ->
-                    []
     in
     currentPositionDisc track.currentNode
         ++ (Maybe.map markedNode track.markedNode |> Maybe.withDefault [])
-        ++ stretch
 
 
 renderMRLimits : Track -> Scene

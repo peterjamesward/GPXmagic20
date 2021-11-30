@@ -9,6 +9,7 @@ import Element.Input as Input exposing (button)
 import Length exposing (Length, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra
 import Point3d
 import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
 import Quantity
@@ -33,8 +34,6 @@ type alias NudgeSettings =
     { horizontal : Length.Length
     , vertical : Length.Length
     , fadeExtent : Length.Length
-
-    --, action : UndoEntry
     }
 
 
@@ -44,6 +43,8 @@ type alias UndoRedoInfo =
     , fadeExtent : Length.Length
     , orange : Int
     , purple : Maybe Int
+    , startSelection : Int
+    , endSelection : Int
     }
 
 
@@ -52,8 +53,6 @@ defaultNudgeSettings =
     { horizontal = Quantity.zero
     , vertical = Quantity.zero
     , fadeExtent = Quantity.zero
-
-    --, action = defaultUndoEntry
     }
 
 
@@ -123,34 +122,30 @@ getProfilePreview settings track =
 
 nudgeTrackPoint : UndoRedoInfo -> Float -> TrackPoint -> TrackPoint
 nudgeTrackPoint undoRedoInfo fade trackpoint =
-    if fade == 0 then
-        trackpoint
+    let
+        horizontalDirection =
+            trackpoint.effectiveDirection
+                |> Maybe.withDefault Direction3d.x
+                |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
 
-    else
-        let
-            horizontalDirection =
-                trackpoint.effectiveDirection
-                    |> Maybe.withDefault Direction3d.x
-                    |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
+        horizontalVector =
+            Vector3d.withLength undoRedoInfo.horizontal horizontalDirection
+                |> Vector3d.scaleBy fade
 
-            horizontalVector =
-                Vector3d.withLength undoRedoInfo.horizontal horizontalDirection
-                    |> Vector3d.scaleBy fade
+        verticalVector =
+            Vector3d.xyz Quantity.zero Quantity.zero undoRedoInfo.vertical
+                |> Vector3d.scaleBy fade
 
-            verticalVector =
-                Vector3d.xyz Quantity.zero Quantity.zero undoRedoInfo.vertical
-                    |> Vector3d.scaleBy fade
+        newXYZ =
+            trackpoint.xyz
+                |> Point3d.translateBy horizontalVector
+                |> Point3d.translateBy verticalVector
 
-            newXYZ =
-                trackpoint.xyz
-                    |> Point3d.translateBy horizontalVector
-                    |> Point3d.translateBy verticalVector
-
-            newProfileXZ =
-                trackpoint.profileXZ
-                    |> Point3d.translateBy verticalVector
-        in
-        { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
+        newProfileXZ =
+            trackpoint.profileXZ
+                |> Point3d.translateBy verticalVector
+    in
+    { trackpoint | xyz = newXYZ, profileXZ = newProfileXZ }
 
 
 splitTheTrackAllowingForFade :
@@ -176,10 +171,12 @@ splitTheTrackAllowingForFade undoRedoInfo track =
             )
 
         fadeInStart =
-            fromNode.distanceFromStart |> Quantity.minus undoRedoInfo.fadeExtent
+            fromNode.distanceFromStart
+                |> Quantity.minus undoRedoInfo.fadeExtent
 
         fadeOutEnd =
-            toNode.distanceFromStart |> Quantity.plus undoRedoInfo.fadeExtent
+            toNode.distanceFromStart
+                |> Quantity.plus undoRedoInfo.fadeExtent
 
         ( prefix, theRest ) =
             track.trackPoints
@@ -192,8 +189,19 @@ splitTheTrackAllowingForFade undoRedoInfo track =
                 |> List.Extra.splitWhen
                     (.distanceFromStart >> Quantity.greaterThan fadeOutEnd)
                 |> Maybe.withDefault ( theRest, [] )
+
+        prefixLessOne =
+            -- For the preview to show the start and end, we need to cheat slightly.
+         prefix |> List.take (List.length prefix - 1)
+
+        suffixLessOne = suffix |> List.drop 1
+
+        effectiveRegion =
+            (prefix |> List.Extra.last |> Maybe.Extra.toList)
+            ++ actualNudgeRegionIncludingFades
+            ++ (List.take 1 suffix)
     in
-    ( prefix, actualNudgeRegionIncludingFades, suffix )
+    ( prefixLessOne, effectiveRegion, suffixLessOne )
 
 
 editFunction :
@@ -201,8 +209,8 @@ editFunction :
     -> Track
     -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 editFunction undoRedoInfo track =
-    -- This is when the Nudge actually takes effect. It can be called to create preview
-    -- or for the real McCoy.
+    -- This is when the Nudge actually takes effect.
+    -- It can be called to create preview or for the real McCoy.
     let
         ( prefix, actualNudgeRegionIncludingFades, suffix ) =
             -- Yes, we split it again for the actual edit or Redo.
@@ -219,8 +227,12 @@ editFunction undoRedoInfo track =
             1.0 - x
 
         ( fromNode, toNode ) =
-            ( actualNudgeRegionIncludingFades |> List.head |> Maybe.withDefault track.currentNode
-            , actualNudgeRegionIncludingFades |> List.Extra.last |> Maybe.withDefault track.currentNode
+            ( actualNudgeRegionIncludingFades
+                |> List.Extra.find (.index >> (==) undoRedoInfo.startSelection)
+                |> Maybe.withDefault track.currentNode
+            , actualNudgeRegionIncludingFades
+                |> List.Extra.find (.index >> (==) undoRedoInfo.endSelection)
+                |> Maybe.withDefault track.currentNode
             )
 
         fadeInStart =
@@ -235,7 +247,7 @@ editFunction undoRedoInfo track =
 
         nudge point =
             let
-                fade =
+                fadeValue =
                     if liesWithin ( fromNode.distanceFromStart, toNode.distanceFromStart ) point then
                         1.0
 
@@ -248,7 +260,7 @@ editFunction undoRedoInfo track =
                     else
                         0.0
             in
-            nudgeTrackPoint undoRedoInfo fade point
+            nudgeTrackPoint undoRedoInfo fadeValue point
     in
     ( prefix
     , List.map nudge actualNudgeRegionIncludingFades
@@ -286,7 +298,20 @@ buildActions imperial settings track =
             , fadeExtent = settings.fadeExtent
             , orange = track.currentNode.index
             , purple = Maybe.map .index track.markedNode
+            , startSelection = startSelection
+            , endSelection = endSelection
             }
+
+        ( startSelection, endSelection ) =
+            -- Here we go again :(
+            case track.markedNode of
+                Just purple ->
+                    ( min track.currentNode.index purple.index
+                    , max track.currentNode.index purple.index
+                    )
+
+                Nothing ->
+                    ( track.currentNode.index, track.currentNode.index )
 
         ( prefix, actualNudgeRegionIncludingFades, suffix ) =
             -- Have to split it here to get the trackpoints to save for Undo.

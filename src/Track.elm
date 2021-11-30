@@ -439,7 +439,7 @@ getSection track =
                     )
 
         section =
-            if end > start then
+            if track.markedNode /= Nothing then
                 track.trackPoints |> List.drop start |> List.take (end - start + 1)
 
             else
