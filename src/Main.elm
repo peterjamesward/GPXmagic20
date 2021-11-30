@@ -1410,13 +1410,6 @@ repeatTrackDerivations model =
 
 
 
-{-
-   TODO NEXT - derive all elements with as few list passes as possible,
-   not keeping partials, using reverseCons instead of concatenation.
-   Can we do it all from a single pass, is the challenge.
-   Visual options should be used to compose a list of functions (think Applicative).
--}
-
 
 composeScene : Model -> Model
 composeScene model =

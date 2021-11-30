@@ -8,9 +8,7 @@
 ** STATE OF PLAY ** 
 Good progress on Nudge. Seems the latest closure stuff works fine.
 > Must streamline all post-edit/undo/redo actions; no reason why it need be so convoluted.
-> Put back markers, profile, previews, Map commands (with requisite tidy-up).
-++ Reduce passes over points to build Scenes, hence less list concat,
-++ Maybe compose the rendering fn and single map.
+> Put back previews, reduced track, Map commands (with requisite tidy-up).
 ++ Check ray searcher; is there a large closure there?
 
 ++ Document graphics contribution to memory usage.

@@ -36,7 +36,7 @@ lollipop pt colour =
     let
         lollipopAt =
             Point3d.translateBy
-                (Vector3d.meters 0.0 0.0 2.1)
+                (Vector3d.meters 0.0 0.0 1.0)
                 pt
     in
     [ Scene3d.point { radius = Pixels.pixels 10 }
