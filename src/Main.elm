@@ -1411,213 +1411,167 @@ repeatTrackDerivations model =
 
 composeScene : Model -> Model
 composeScene model =
-    --TODO: Reinstate variable detail rendering. Code should be in makeReducedTrack ??
-    --case model.track of
-    --    Just hasTrack ->
-    --        -- Force full track repaint if marker moved sufficiently
-    --        let
-    --            ( xSize, ySize, _ ) =
-    --                BoundingBox3d.dimensions hasTrack.box
-    --
-    --            threshold =
-    --                Quantity.max xSize ySize
-    --                    |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
-    --        in
-    --        if
-    --            model.displayOptions.levelOfDetailThreshold
-    --                > 0.0
-    --                && (Quantity.abs
-    --                        (hasTrack.currentNode.distanceFromStart
-    --                            |> Quantity.minus model.markerPositionAtLastSceneBuild
-    --                        )
-    --                        |> Quantity.greaterThan threshold
-    --                   )
-    --        then
-    --            renderTrackSceneElements model
-    --
-    --        else
-    --            model
-    --
-    --    Nothing ->
-    --        model
-    { model
-        | completeScene =
-            combineLists
-                [ renderVarying3dSceneElements model
-                , renderTrack3dSceneElements model
-                ]
-        , completeProfile =
-            combineLists
-                [ renderVaryingProfileSceneElements model
-                , renderTrackProfileSceneElements model
-                ]
-    }
-
-
-renderVaryingProfileSceneElements : Model -> Scene
-renderVaryingProfileSceneElements model =
     case model.track of
         Nothing ->
-            []
+            model
 
-        Just isTrack ->
-            [ SceneBuilderProfile.renderMarkers model.displayOptions isTrack
-            , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
-                Nudge.getProfilePreview model.displayOptions model.nudgeSettings isTrack
+        Just track ->
+            let
+                ( xSize, ySize, _ ) =
+                    BoundingBox3d.dimensions track.box
 
-              else
-                []
-            ]
-                |> Utils.combineLists
+                threshold =
+                    Quantity.max xSize ySize
+                        |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
 
+                reducedTrack =
+                    if model.displayOptions.levelOfDetailThreshold > 0.0 then
+                        Track.makeReducedTrack track threshold
 
-renderVarying3dSceneElements : Model -> Scene
-renderVarying3dSceneElements model =
-    case model.track of
-        Nothing ->
-            []
-
-        Just isTrack ->
-            [ SceneBuilder.renderMarkers isTrack
-            , if model.displayOptions.showRenderingLimit then
-                SceneBuilder.renderMRLimits isTrack
-
-              else
-                []
-            , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
-                Nudge.getPreview model.nudgeSettings isTrack
-
-              else
-                []
-
-            --updatedMoveAndStretchSettings =
-            --    let
-            --        settings =
-            --            latestModel.moveAndStretch
-            --    in
-            --    if
-            --        Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
-            --            && MoveAndStretch.settingNotZero latestModel.moveAndStretch
-            --    then
-            --            let
-            --                whiteMarker =
-            --                    SceneBuilder.renderMarkers
-            --Nothing isTrack
-            --        Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
-            --            |> Maybe.withDefault latestModel.moveAndStretch
-            --
-            --    else
-            --        { settings | preview = [] }
-            --updatedBendOptions =
-            --    if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
-            --        Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
-            --            |> Maybe.withDefault latestModel.bendOptions
-            --
-            --    else
-            --        BendSmoother.defaultOptions
-            --updatedStravaOptions =
-            --    -- TODO: ?? Move pointers to discovered paste start and end ??
-            --    let
-            --        options =
-            --            latestModel.stravaOptions
-            --    in
-            --    if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
-            --        { options
-            --            | preview =
-            --                Maybe.map (StravaTools.preview options) latestModel.track
-            --                    |> Maybe.withDefault []
-            --        }
-            --
-            --    else
-            --        { options | preview = [] }
-            --updatedStraightenOptions =
-            --    let
-            --        options =
-            --            latestModel.straightenOptions
-            --    in
-            --    if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
-            --        Maybe.map (Straightener.lookForSimplifications options) latestModel.track
-            --            |> Maybe.withDefault options
-            --
-            --    else
-            --        options
-            --graphEdge =
-            --    case latestModel.track of
-            --        Just isTrack ->
-            --            if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
-            --                Maybe.map Graph.previewTraversal isTrack.graph
-            --                    |> Maybe.withDefault []
-            --
-            --            else
-            --                []
-            --
-            --        Nothing ->
-            --            []
-            --curveFormerWithPreview =
-            --    Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
-            --        |> Maybe.withDefault latestModel.curveFormer
-            --
-            --curveFormerCircle =
-            --    if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
-            --        CurveFormer.getPreview curveFormerWithPreview
-            --
-            --    else
-            --        []
-            ]
-                |> Utils.combineLists
+                    else
+                        track
+            in
+            { model
+                | completeScene =
+                    combineLists
+                        [ renderVarying3dSceneElements model reducedTrack
+                        , renderTrack3dSceneElements model reducedTrack
+                        ]
+                , completeProfile =
+                    combineLists
+                        [ renderVaryingProfileSceneElements model reducedTrack
+                        , renderTrackProfileSceneElements model reducedTrack
+                        ]
+            }
 
 
-renderTrackProfileSceneElements : Model -> Scene
-renderTrackProfileSceneElements model =
-    case model.track of
-        Just isTrack ->
-            if isProfileVisible model.viewPanes then
-                SceneBuilderProfile.renderTrack model.displayOptions isTrack
+renderVaryingProfileSceneElements : Model -> Track -> Scene
+renderVaryingProfileSceneElements model isTrack =
+    [ SceneBuilderProfile.renderMarkers model.displayOptions isTrack
+    , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
+        Nudge.getProfilePreview model.displayOptions model.nudgeSettings isTrack
+
+      else
+        []
+    ]
+        |> Utils.combineLists
+
+
+renderVarying3dSceneElements : Model -> Track -> Scene
+renderVarying3dSceneElements model isTrack =
+    [ SceneBuilder.renderMarkers isTrack
+    , if model.displayOptions.showRenderingLimit then
+        SceneBuilder.renderMRLimits isTrack
+
+      else
+        []
+    , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
+        Nudge.getPreview model.nudgeSettings isTrack
+
+      else
+        []
+
+    --updatedMoveAndStretchSettings =
+    --    let
+    --        settings =
+    --            latestModel.moveAndStretch
+    --    in
+    --    if
+    --        Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
+    --            && MoveAndStretch.settingNotZero latestModel.moveAndStretch
+    --    then
+    --            let
+    --                whiteMarker =
+    --                    SceneBuilder.renderMarkers
+    --Nothing isTrack
+    --        Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
+    --            |> Maybe.withDefault latestModel.moveAndStretch
+    --
+    --    else
+    --        { settings | preview = [] }
+    --updatedBendOptions =
+    --    if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
+    --        Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
+    --            |> Maybe.withDefault latestModel.bendOptions
+    --
+    --    else
+    --        BendSmoother.defaultOptions
+    --updatedStravaOptions =
+    --    -- TODO: ?? Move pointers to discovered paste start and end ??
+    --    let
+    --        options =
+    --            latestModel.stravaOptions
+    --    in
+    --    if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
+    --        { options
+    --            | preview =
+    --                Maybe.map (StravaTools.preview options) latestModel.track
+    --                    |> Maybe.withDefault []
+    --        }
+    --
+    --    else
+    --        { options | preview = [] }
+    --updatedStraightenOptions =
+    --    let
+    --        options =
+    --            latestModel.straightenOptions
+    --    in
+    --    if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
+    --        Maybe.map (Straightener.lookForSimplifications options) latestModel.track
+    --            |> Maybe.withDefault options
+    --
+    --    else
+    --        options
+    --graphEdge =
+    --    case latestModel.track of
+    --        Just isTrack ->
+    --            if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
+    --                Maybe.map Graph.previewTraversal isTrack.graph
+    --                    |> Maybe.withDefault []
+    --
+    --            else
+    --                []
+    --
+    --        Nothing ->
+    --            []
+    --curveFormerWithPreview =
+    --    Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
+    --        |> Maybe.withDefault latestModel.curveFormer
+    --
+    --curveFormerCircle =
+    --    if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
+    --        CurveFormer.getPreview curveFormerWithPreview
+    --
+    --    else
+    --        []
+    ]
+        |> Utils.combineLists
+
+
+renderTrackProfileSceneElements : Model -> Track -> Scene
+renderTrackProfileSceneElements model isTrack =
+    if isProfileVisible model.viewPanes then
+        SceneBuilderProfile.renderTrack model.displayOptions isTrack
+
+    else
+        []
+
+
+renderTrack3dSceneElements : Model -> Track -> Scene
+renderTrack3dSceneElements model isTrack =
+    let
+        updatedScene =
+            if is3dVisible model.viewPanes then
+                if model.displayOptions.terrainOn then
+                    SceneBuilder.renderTerrain model.displayOptions isTrack
+
+                else
+                    SceneBuilder.renderTrack model.displayOptions isTrack
 
             else
                 []
-
-        Nothing ->
-            []
-
-
-renderTrack3dSceneElements : Model -> Scene
-renderTrack3dSceneElements model =
-    case model.track of
-        Just isTrack ->
-            let
-                ( xSize, ySize, _ ) =
-                    BoundingBox3d.dimensions isTrack.box
-
-                threshold =
-                    -- Size of box within which all trackpoints are rendered.
-                    Quantity.max xSize ySize
-                        |> Quantity.multiplyBy (0.5 ^ model.displayOptions.levelOfDetailThreshold)
-
-                reducedTrack =
-                    -- Render all trackpoints within specified area around marker,
-                    -- with reduced detail outside.
-                    if model.displayOptions.levelOfDetailThreshold == 0.0 then
-                        isTrack
-
-                    else
-                        Track.makeReducedTrack isTrack threshold
-
-                updatedScene =
-                    if is3dVisible model.viewPanes then
-                        if model.displayOptions.terrainOn then
-                            SceneBuilder.renderTerrain model.displayOptions reducedTrack
-
-                        else
-                            SceneBuilder.renderTrack model.displayOptions reducedTrack
-
-                    else
-                        []
-            in
-            updatedScene
-
-        Nothing ->
-            []
+    in
+    updatedScene
 
 
 view : Model -> Browser.Document Msg

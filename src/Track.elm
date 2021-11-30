@@ -420,7 +420,7 @@ makeReducedTrack track threshold =
                 |> List.reverse
                 |> List.concat
     in
-    { track | trackPoints = reducedPoints }
+    { track | trackPoints = prepareTrackPoints <| reducedPoints }
 
 
 getSection : Track -> ( Int, Int, List TrackPoint )
