@@ -296,7 +296,8 @@ buildActions imperial settings track =
     let
         givenSettings : UndoRedoInfo
         givenSettings =
-            -- Make sure our closure values are ours.
+            -- Hang on to what we need for Undo and Redo.
+            -- I dislike this provisional set but I want track splitter to use this.
             { horizontal = settings.horizontal
             , vertical = settings.vertical
             , fadeExtent = settings.fadeExtent

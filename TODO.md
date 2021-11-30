@@ -8,7 +8,8 @@
 ** STATE OF PLAY ** 
 
 > Must streamline all post-edit/undo/redo actions; no reason why it need be so convoluted.
-> Put back **previews**, reduced track, Map commands (with requisite tidy-up).
+> Put back: reduced track, Map commands (with requisite tidy-up).
+
 ++ Check ray searcher; is there a large closure there?
 
 ++ Document graphics contribution to memory usage.

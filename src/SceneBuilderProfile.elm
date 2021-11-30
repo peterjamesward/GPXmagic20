@@ -288,7 +288,7 @@ previewProfileLine options color points =
         preview p1 p2 =
             paintSomethingBetween
                 options.verticalExaggeration
-                0.1
+                0.5
                 material
                 p1
                 p2
