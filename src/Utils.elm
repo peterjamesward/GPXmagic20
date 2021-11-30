@@ -12,8 +12,14 @@ import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
 import Length exposing (Meters)
+import LineSegment3d
+import Pixels
+import Point3d
 import Quantity exposing (Quantity)
+import Scene3d
+import Scene3d.Material as Material
 import Speed exposing (Speed)
+import Vector3d
 
 
 type alias Point =
@@ -24,6 +30,22 @@ minmax a b =
     ( toFloat <| min a b
     , toFloat <| max a b
     )
+
+
+lollipop pt colour =
+    let
+        lollipopAt =
+            Point3d.translateBy
+                (Vector3d.meters 0.0 0.0 2.1)
+                pt
+    in
+    [ Scene3d.point { radius = Pixels.pixels 10 }
+        (Material.color colour)
+        lollipopAt
+    , Scene3d.lineSegment
+        (Material.color colour)
+        (LineSegment3d.from pt lollipopAt)
+    ]
 
 
 reversingCons : List a -> List a -> List a

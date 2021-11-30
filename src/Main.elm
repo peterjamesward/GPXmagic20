@@ -1479,9 +1479,8 @@ renderVaryingSceneElements model =
                 Just isTrack ->
                     let
                         whiteMarker =
-                            []
+                            SceneBuilder.renderMarkers Nothing isTrack
 
-                        --SceneBuilder.renderMarkers stretchMarker isTrack
                         renderingLimits =
                             if model.displayOptions.showRenderingLimit then
                                 SceneBuilder.renderMRLimits isTrack

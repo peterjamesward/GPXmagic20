@@ -28,7 +28,7 @@ import SpatialIndex exposing (SpatialContent, SpatialNode(..))
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
-import Utils exposing (combineLists, gradientColourPastel, gradientColourVivid, reversingCons, squareAspect, terrainColourFromHeight)
+import Utils exposing (combineLists, gradientColourPastel, gradientColourVivid, lollipop, reversingCons, squareAspect, terrainColourFromHeight)
 import Vector3d
 
 
@@ -171,45 +171,15 @@ renderMarkers : Maybe TrackPoint -> Track -> Scene
 renderMarkers stretchMarker track =
     let
         currentPositionDisc point =
-            [ cone (Material.color Color.lightOrange) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 20.1)
-                        point.xyz
-                    )
-                    negativeZ
-                    { radius = meters 6.0
-                    , length = meters 20.0
-                    }
-            ]
+            lollipop point.xyz Color.lightOrange
 
         markedNode point =
-            [ cone (Material.color Color.purple) <|
-                Cone3d.startingAt
-                    (Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 18.1)
-                        point.xyz
-                    )
-                    negativeZ
-                    { radius = meters 7.0
-                    , length = meters 18.0
-                    }
-            ]
+            lollipop point.xyz Color.purple
 
         stretch =
             case stretchMarker of
                 Just pt ->
-                    [ cone (Material.color Color.white) <|
-                        Cone3d.startingAt
-                            (Point3d.translateBy
-                                (Vector3d.meters 0.0 0.0 18.1)
-                                pt.xyz
-                            )
-                            negativeZ
-                            { radius = meters 5.0
-                            , length = meters 22.0
-                            }
-                    ]
+                    lollipop pt.xyz Color.white
 
                 Nothing ->
                     []
@@ -284,10 +254,7 @@ renderMRLimits isTrack =
         showMarker location =
             case location of
                 Just lollipopAt ->
-                    [ Scene3d.point { radius = Pixels.pixels 10 }
-                        (Material.color Color.darkBlue)
-                        lollipopAt
-                    ]
+                    lollipop lollipopAt Color.gray
 
                 Nothing ->
                     []
