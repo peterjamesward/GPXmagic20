@@ -1409,8 +1409,6 @@ repeatTrackDerivations model =
             model
 
 
-
-
 composeScene : Model -> Model
 composeScene model =
     --TODO: Reinstate variable detail rendering. Code should be in makeReducedTrack ??
@@ -1470,106 +1468,105 @@ renderVaryingProfileSceneElements model =
 
 renderVarying3dSceneElements : Model -> Scene
 renderVarying3dSceneElements model =
-    let
-        --stretchMarker =
-        --    if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
-        --        Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
-        --            latestModel.track
-        --            |> Maybe.join
-        --
-        --    else
-        --        Nothing
-        updatedMarkers =
-            -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
-            case model.track of
-                Just isTrack ->
-                    let
-                        whiteMarker =
-                            SceneBuilder.renderMarkers Nothing isTrack
+    case model.track of
+        Nothing ->
+            []
 
-                        renderingLimits =
-                            if model.displayOptions.showRenderingLimit then
-                                SceneBuilder.renderMRLimits isTrack
+        Just isTrack ->
+            --stretchMarker =
+            --    if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
+            --        Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
+            --            latestModel.track
+            --            |> Maybe.join
+            --
+            --    else
+            --        Nothing
+            [ if model.displayOptions.showRenderingLimit then
+                SceneBuilder.renderMRLimits isTrack
 
-                            else
-                                []
-                    in
-                    whiteMarker ++ renderingLimits
+              else
+                []
+            , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
+                Nudge.getPreview model.nudgeSettings isTrack
 
-                Nothing ->
-                    []
+              else
+                []
 
-        --updatedMoveAndStretchSettings =
-        --    let
-        --        settings =
-        --            latestModel.moveAndStretch
-        --    in
-        --    if
-        --        Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
-        --            && MoveAndStretch.settingNotZero latestModel.moveAndStretch
-        --    then
-        --        Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
-        --            |> Maybe.withDefault latestModel.moveAndStretch
-        --
-        --    else
-        --        { settings | preview = [] }
-        --updatedBendOptions =
-        --    if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
-        --        Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
-        --            |> Maybe.withDefault latestModel.bendOptions
-        --
-        --    else
-        --        BendSmoother.defaultOptions
-        --updatedStravaOptions =
-        --    -- TODO: ?? Move pointers to discovered paste start and end ??
-        --    let
-        --        options =
-        --            latestModel.stravaOptions
-        --    in
-        --    if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
-        --        { options
-        --            | preview =
-        --                Maybe.map (StravaTools.preview options) latestModel.track
-        --                    |> Maybe.withDefault []
-        --        }
-        --
-        --    else
-        --        { options | preview = [] }
-        --updatedStraightenOptions =
-        --    let
-        --        options =
-        --            latestModel.straightenOptions
-        --    in
-        --    if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
-        --        Maybe.map (Straightener.lookForSimplifications options) latestModel.track
-        --            |> Maybe.withDefault options
-        --
-        --    else
-        --        options
-        --graphEdge =
-        --    case latestModel.track of
-        --        Just isTrack ->
-        --            if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
-        --                Maybe.map Graph.previewTraversal isTrack.graph
-        --                    |> Maybe.withDefault []
-        --
-        --            else
-        --                []
-        --
-        --        Nothing ->
-        --            []
-        --curveFormerWithPreview =
-        --    Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
-        --        |> Maybe.withDefault latestModel.curveFormer
-        --
-        --curveFormerCircle =
-        --    if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
-        --        CurveFormer.getPreview curveFormerWithPreview
-        --
-        --    else
-        --        []
-    in
-    updatedMarkers
+            --updatedMoveAndStretchSettings =
+            --    let
+            --        settings =
+            --            latestModel.moveAndStretch
+            --    in
+            --    if
+            --        Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
+            --            && MoveAndStretch.settingNotZero latestModel.moveAndStretch
+            --    then
+            --            let
+            --                whiteMarker =
+            --                    SceneBuilder.renderMarkers
+            --Nothing isTrack
+            --        Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
+            --            |> Maybe.withDefault latestModel.moveAndStretch
+            --
+            --    else
+            --        { settings | preview = [] }
+            --updatedBendOptions =
+            --    if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
+            --        Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
+            --            |> Maybe.withDefault latestModel.bendOptions
+            --
+            --    else
+            --        BendSmoother.defaultOptions
+            --updatedStravaOptions =
+            --    -- TODO: ?? Move pointers to discovered paste start and end ??
+            --    let
+            --        options =
+            --            latestModel.stravaOptions
+            --    in
+            --    if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
+            --        { options
+            --            | preview =
+            --                Maybe.map (StravaTools.preview options) latestModel.track
+            --                    |> Maybe.withDefault []
+            --        }
+            --
+            --    else
+            --        { options | preview = [] }
+            --updatedStraightenOptions =
+            --    let
+            --        options =
+            --            latestModel.straightenOptions
+            --    in
+            --    if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
+            --        Maybe.map (Straightener.lookForSimplifications options) latestModel.track
+            --            |> Maybe.withDefault options
+            --
+            --    else
+            --        options
+            --graphEdge =
+            --    case latestModel.track of
+            --        Just isTrack ->
+            --            if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
+            --                Maybe.map Graph.previewTraversal isTrack.graph
+            --                    |> Maybe.withDefault []
+            --
+            --            else
+            --                []
+            --
+            --        Nothing ->
+            --            []
+            --curveFormerWithPreview =
+            --    Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
+            --        |> Maybe.withDefault latestModel.curveFormer
+            --
+            --curveFormerCircle =
+            --    if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
+            --        CurveFormer.getPreview curveFormerWithPreview
+            --
+            --    else
+            --        []
+            ]
+                |> Utils.combineLists
 
 
 renderTrackProfileSceneElements : Model -> Scene

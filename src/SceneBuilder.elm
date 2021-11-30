@@ -61,6 +61,22 @@ highlightPoints color points =
     List.map highlightPoint points
 
 
+previewLine : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+previewLine color points =
+    let
+        material =
+            Material.matte color
+
+        preview p =
+            paintSomethingBetween
+                (Length.meters 0.5)
+                material
+                p.xyz
+                (p.xyz |> Point3d.translateBy p.roadVector)
+    in
+    List.map preview points |> combineLists
+
+
 highlightPointsProfile : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
 highlightPointsProfile color points =
     let

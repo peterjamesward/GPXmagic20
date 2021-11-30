@@ -13,7 +13,7 @@ import Point3d
 import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
-import SceneBuilder exposing (highlightPoints, highlightPointsProfile)
+import SceneBuilder exposing (highlightPoints, highlightPointsProfile, previewLine)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showShortMeasure)
@@ -106,7 +106,7 @@ getPreview settings track =
         ( _, nudged, _ ) =
             undoEntry.editFunction track
     in
-    highlightPoints Color.lightOrange nudged
+    previewLine Color.yellow nudged
 
 
 getProfilePreview : NudgeSettings -> Track -> List (Entity LocalCoords)
