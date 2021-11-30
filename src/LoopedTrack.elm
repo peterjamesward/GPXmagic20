@@ -5,13 +5,14 @@ import Element exposing (..)
 import Element.Input exposing (button)
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Point3d
 import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
 import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
+import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (prettyButtonStyles)
 
@@ -37,9 +38,7 @@ tools across the start/finish, then move the start point back.
 """
 
 
-type
-    Loopiness
-    -- Not sure this is the best place, but better here than Main.
+type Loopiness
     = NotALoop (Quantity Float Meters)
     | IsALoop
     | AlmostLoop (Quantity Float Meters) -- if, say, less than 200m back to start.
@@ -49,6 +48,13 @@ type Msg
     = CloseTheLoop
     | ReverseTrack
     | ChangeLoopStart TrackPoint
+
+
+type alias UndoRedoInfo =
+    -- Early guess.
+    { startPoint : Point3d.Point3d Length LocalCoords
+    , endPoint : Point3d.Point3d Length LocalCoords
+    }
 
 
 viewLoopTools : Bool -> Loopiness -> Maybe Track -> (Msg -> msg) -> Element msg
@@ -124,25 +130,27 @@ update msg settings track =
         CloseTheLoop ->
             let
                 actionEntry : UndoEntry
-                actionEntry = defaultUndoEntry
+                actionEntry =
+                    defaultUndoEntry
             in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                actionEntry
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --                PostUpdateActions.EditPreservesNodePosition
+              --                actionEntry
             )
 
         ReverseTrack ->
             let
                 actionEntry : UndoEntry
-                actionEntry = defaultUndoEntry
+                actionEntry =
+                    defaultUndoEntry
             in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                actionEntry
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --                PostUpdateActions.EditPreservesNodePosition
+              --                actionEntry
             )
 
         ChangeLoopStart tp ->
@@ -151,13 +159,13 @@ update msg settings track =
                     settings
             in
             ( newSettings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                (changeLoopStart track)
---                ("move start to "
---                    ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
---                )
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --                PostUpdateActions.EditPreservesNodePosition
+              --                (changeLoopStart track)
+              --                ("move start to "
+              --                    ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
+              --                )
             )
 
 

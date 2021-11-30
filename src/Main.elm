@@ -62,7 +62,7 @@ import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
 import Url exposing (Url)
-import Utils exposing (useIcon)
+import Utils exposing (combineLists, useIcon)
 import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMessage, is3dVisible, isMapVisible, isProfileVisible, refreshSceneSearcher, setViewPaneSize, updatePointerInLinkedPanes)
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
@@ -190,10 +190,8 @@ init mflags origin navigationKey =
       , zone = Time.utc
       , track = Nothing
       , markerPositionAtLastSceneBuild = Quantity.zero
-
       , completeScene = []
       , completeProfile = []
-
       , renderingContext = Nothing
       , viewPanes = ViewPane.viewPanesWhenNoTrack
       , toolsAccordion = []
@@ -232,7 +230,7 @@ init mflags origin navigationKey =
       --, moveAndStretch = MoveAndStretch.defaultModel
       --, curveFormer = CurveFormer.defaultModel
       }
-        |> -- TODO: Fix Fugly Fudge. Here to make sure function is applied to model state.
+        |> -- TODO: Remove this Fugly Fudge. Here to make sure function is applied to model state.
            (\m -> { m | toolsAccordion = toolsAccordion m })
     , Cmd.batch
         [ authCmd
@@ -246,7 +244,8 @@ init mflags origin navigationKey =
     )
 
 
---TODO: Don't restore this.
+
+--TODO: Don't restore this. It's very, you know, imperative.
 --passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
 --passFlythroughToContext flight context =
 --    { context | flythrough = flight }
@@ -985,7 +984,7 @@ processPostUpdateAction model action =
                             (prefix ++ changed ++ suffix) |> prepareTrackPoints
                     }
             in
-            ( {model | track = Just newTrack }
+            ( { model | track = Just newTrack }
                 |> addToUndoStack undoEntry
                 |> reflectNewTrackViaGraph newTrack editType
                 |> repeatTrackDerivations
@@ -1405,19 +1404,57 @@ repeatTrackDerivations model =
                 | track = Just newTrack
                 , observations = deriveProblems newTrack model.problemOptions
             }
-                |> composeScene
 
         Nothing ->
             model
 
 
+
+{-
+   TODO NEXT - derive all elements with as few list passes as possible,
+   not keeping partials, using reverseCons instead of concatenation.
+   Can we do it all from a single pass, is the challenge.
+   Visual options should be used to compose a list of functions (think Applicative).
+-}
+
+
 composeScene : Model -> Model
 composeScene model =
+    --TODO: Reinstate variable detail rendering. Code should be in makeReducedTrack ??
+    --case model.track of
+    --    Just hasTrack ->
+    --        -- Force full track repaint if marker moved sufficiently
+    --        let
+    --            ( xSize, ySize, _ ) =
+    --                BoundingBox3d.dimensions hasTrack.box
+    --
+    --            threshold =
+    --                Quantity.max xSize ySize
+    --                    |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
+    --        in
+    --        if
+    --            model.displayOptions.levelOfDetailThreshold
+    --                > 0.0
+    --                && (Quantity.abs
+    --                        (hasTrack.currentNode.distanceFromStart
+    --                            |> Quantity.minus model.markerPositionAtLastSceneBuild
+    --                        )
+    --                        |> Quantity.greaterThan threshold
+    --                   )
+    --        then
+    --            renderTrackSceneElements model
+    --
+    --        else
+    --            model
+    --
+    --    Nothing ->
+    --        model
     { model
         | completeScene =
-            renderTrackSceneElements model
-                ++ renderVaryingSceneElements model
-                ++ renderTrackSceneElements model
+            combineLists
+                [ renderVaryingSceneElements model
+                , renderTrackSceneElements model
+                ]
         , completeProfile = []
     }
 
@@ -1428,34 +1465,6 @@ renderVaryingSceneElements model =
         latestModel =
             model
 
-        --case model.track of
-        --    Just hasTrack ->
-        --        -- Force full track repaint if marker moved sufficiently
-        --        let
-        --            ( xSize, ySize, _ ) =
-        --                BoundingBox3d.dimensions hasTrack.box
-        --
-        --            threshold =
-        --                Quantity.max xSize ySize
-        --                    |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
-        --        in
-        --        if
-        --            model.displayOptions.levelOfDetailThreshold
-        --                > 0.0
-        --                && (Quantity.abs
-        --                        (hasTrack.currentNode.distanceFromStart
-        --                            |> Quantity.minus model.markerPositionAtLastSceneBuild
-        --                        )
-        --                        |> Quantity.greaterThan threshold
-        --                   )
-        --        then
-        --            renderTrackSceneElements model
-        --
-        --        else
-        --            model
-        --
-        --    Nothing ->
-        --        model
         --stretchMarker =
         --    if Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion then
         --        Maybe.map (MoveAndStretch.getStretchPointer latestModel.moveAndStretch)
@@ -1464,36 +1473,37 @@ renderVaryingSceneElements model =
         --
         --    else
         --        Nothing
-        --
-        --updatedMarkers =
-        --    -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
-        --    case latestModel.track of
-        --        Just isTrack ->
-        --            let
-        --                whiteMarker =
-        --                    SceneBuilder.renderMarkers stretchMarker isTrack
-        --
-        --                renderingLimits =
-        --                    if model.displayOptions.showRenderingLimit then
-        --                        SceneBuilder.renderMRLimits isTrack
-        --
-        --                    else
-        --                        []
-        --            in
-        --            whiteMarker ++ renderingLimits
-        --
-        --        Nothing ->
-        --            []
-        --
-        --updatedProfileMarkers =
-        --    Maybe.map
-        --        (SceneBuilderProfile.renderMarkers
-        --            latestModel.displayOptions
-        --            stretchMarker
-        --        )
-        --        latestModel.track
-        --        |> Maybe.withDefault []
-        --
+        updatedMarkers =
+            -- Kind of ugly having the stretchPointer here. Maybe v3 will fix that!
+            case latestModel.track of
+                Just isTrack ->
+                    let
+                        whiteMarker =
+                            []
+
+                        --SceneBuilder.renderMarkers stretchMarker isTrack
+                        renderingLimits =
+                            if model.displayOptions.showRenderingLimit then
+                                SceneBuilder.renderMRLimits isTrack
+
+                            else
+                                []
+                    in
+                    whiteMarker ++ renderingLimits
+
+                Nothing ->
+                    []
+
+        updatedProfileMarkers =
+            Maybe.map
+                (SceneBuilderProfile.renderMarkers
+                    latestModel.displayOptions
+                    Nothing
+                 -- stretchMarker
+                )
+                latestModel.track
+                |> Maybe.withDefault []
+
         --updatedMoveAndStretchSettings =
         --    let
         --        settings =
@@ -1564,7 +1574,7 @@ renderVaryingSceneElements model =
         --    else
         --        []
     in
-    []
+    updatedMarkers
 
 
 renderTrackSceneElements : Model -> Scene
@@ -1612,12 +1622,6 @@ renderTrackSceneElements model =
             in
             updatedScene
 
-        --{ model
-        --    | completeScene = updatedScene
-        --    , completeProfile = updatedProfile
-        --    , viewPanes = ViewPane.mapOverAllContexts (refreshSceneSearcher isTrack) model.viewPanes
-        --    , markerPositionAtLastSceneBuild = isTrack.currentNode.distanceFromStart
-        --}
         Nothing ->
             []
 

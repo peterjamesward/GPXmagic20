@@ -28,7 +28,7 @@ import SpatialIndex exposing (SpatialContent, SpatialNode(..))
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
 import Triangle3d
-import Utils exposing (gradientColourPastel, gradientColourVivid, squareAspect, terrainColourFromHeight)
+import Utils exposing (combineLists, gradientColourPastel, gradientColourVivid, reversingCons, squareAspect, terrainColourFromHeight)
 import Vector3d
 
 
@@ -104,18 +104,6 @@ renderTrack options track =
             -- To draw the road curtains properly if below sea level.
             Plane3d.xy |> Plane3d.offsetBy (BoundingBox3d.minZ track.box)
 
-        reducedTrack =
-            track.trackPoints
-
-        trackShifted =
-            List.drop 1 reducedTrack
-
-        mapOverPairs f =
-            List.concat <| List.map2 f reducedTrack trackShifted
-
-        mapOverPoints f =
-            List.concatMap f reducedTrack
-
         graphNodes =
             Maybe.map showGraphNodes track.graph |> Maybe.withDefault []
 
@@ -133,38 +121,50 @@ renderTrack options track =
                 PastelCurtain ->
                     gradientColourPastel
 
+        scenePainterFunctions : List (TrackPoint -> Scene)
+        scenePainterFunctions =
+            [ if options.centreLine then
+                Just (centreLineBetween gradientColourPastel)
+
+              else
+                Nothing
+            , if options.roadTrack then
+                Just paintSurfaceBetween
+
+              else
+                Nothing
+            , if options.curtainStyle /= NoCurtain && not options.terrainOn then
+                Just (curtainBetween floorPlane gradientFunction)
+
+              else
+                Nothing
+            , if options.roadPillars && not options.terrainOn then
+                Just (roadSupportPillar floorPlane)
+
+              else
+                Nothing
+            , if options.roadCones && not options.terrainOn then
+                Just trackPointCone
+
+              else
+                Nothing
+            ]
+                |> List.filterMap identity
+
+        paintScenePart : TrackPoint -> Scene -> Scene
+        paintScenePart pt accum =
+            -- This is intended to allow us to touch each TP once, create all the
+            -- active scene elements, and build a scene list with minimal overhead.
+            scenePainterFunctions
+                |> List.map (\fn -> fn pt)
+                |> combineLists
+                |> reversingCons accum
+
+        scene : Scene
         scene =
-            List.concat
-                [ graphNodes
-                , if options.centreLine then
-                    mapOverPairs (centreLineBetween gradientColourPastel)
-
-                  else
-                    []
-                , if options.roadTrack then
-                    mapOverPairs paintSurfaceBetween
-
-                  else
-                    []
-                , if options.curtainStyle /= NoCurtain && not options.terrainOn then
-                    mapOverPairs (curtainBetween floorPlane gradientFunction)
-
-                  else
-                    []
-                , if options.roadPillars && not options.terrainOn then
-                    mapOverPoints (roadSupportPillar floorPlane)
-
-                  else
-                    []
-                , if options.roadCones && not options.terrainOn then
-                    mapOverPoints trackPointCone
-
-                  else
-                    []
-                , seaLevel options.seaLevel track.box
-                ]
+            List.foldl paintScenePart [] track.trackPoints
     in
-    scene
+    combineLists [ seaLevel options.seaLevel track.box, graphNodes, scene ]
 
 
 renderMarkers : Maybe TrackPoint -> Track -> Scene
@@ -295,25 +295,32 @@ renderMRLimits isTrack =
     showMarker forwardLimitLocation ++ showMarker behindLimitLocation
 
 
-paintSurfaceBetween : TrackPoint -> TrackPoint -> List (Entity LocalCoords)
-paintSurfaceBetween pt1 pt2 =
-    paintSomethingBetween roadWidth (Material.matte Color.grey) pt1 pt2
+paintSurfaceBetween : TrackPoint -> List (Entity LocalCoords)
+paintSurfaceBetween pt1 =
+    let
+        pt2 =
+            pt1.xyz |> Point3d.translateBy pt1.roadVector
+    in
+    paintSomethingBetween roadWidth (Material.matte Color.grey) pt1.xyz pt2
 
 
-centreLineBetween : (Float -> Color) -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
-centreLineBetween colouring pt1 pt2 =
+centreLineBetween : (Float -> Color) -> TrackPoint -> List (Entity LocalCoords)
+centreLineBetween colouring pt1 =
     let
         gradient =
             gradientFromPoint pt1
 
         smallUpshiftTo pt =
             -- To make line stand slightly proud of the road
-            { pt | xyz = pt.xyz |> Point3d.translateBy (Vector3d.meters 0.0 0.0 0.005) }
+            pt |> Point3d.translateBy (Vector3d.meters 0.0 0.0 0.005)
+
+        pt2 =
+            pt1.xyz |> Point3d.translateBy pt1.roadVector
     in
     paintSomethingBetween
         (Length.meters 0.5)
         (Material.color <| colouring gradient)
-        (smallUpshiftTo pt1)
+        (smallUpshiftTo pt1.xyz)
         (smallUpshiftTo pt2)
 
 
@@ -321,15 +328,17 @@ curtainBetween :
     Plane3d.Plane3d Length.Meters LocalCoords
     -> (Float -> Color)
     -> TrackPoint
-    -> TrackPoint
     -> List (Entity LocalCoords)
-curtainBetween floorPlane colouring pt1 pt2 =
+curtainBetween floorPlane colouring pt1 =
     let
         gradient =
             gradientFromPoint pt1
 
+        pt2 =
+            pt1.xyz |> Point3d.translateBy pt1.roadVector
+
         roadAsSegment =
-            LineSegment3d.from pt1.xyz pt2.xyz
+            LineSegment3d.from pt1.xyz pt2
 
         curtainHem =
             LineSegment3d.projectOnto floorPlane roadAsSegment
@@ -342,14 +351,17 @@ curtainBetween floorPlane colouring pt1 pt2 =
     ]
 
 
-sidewall : Quantity Float Meters -> TrackPoint -> TrackPoint -> List (Entity LocalCoords)
-sidewall baseElevation pt1 pt2 =
+sidewall : Quantity Float Meters -> TrackPoint -> List (Entity LocalCoords)
+sidewall baseElevation pt1 =
     let
+        pt2 =
+            pt1.xyz |> Point3d.translateBy pt1.roadVector
+
         roadAsSegment =
-            LineSegment3d.from pt1.xyz pt2.xyz
+            LineSegment3d.from pt1.xyz pt2
 
         halfWidth =
-            Vector3d.from pt1.xyz pt2.xyz
+            Vector3d.from pt1.xyz pt2
                 |> Vector3d.projectOnto Plane3d.xy
                 |> Vector3d.scaleTo roadWidth
 
@@ -390,10 +402,10 @@ sidewall baseElevation pt1 pt2 =
 paintSomethingBetween width material pt1 pt2 =
     let
         roadAsSegment =
-            LineSegment3d.from pt1.xyz pt2.xyz
+            LineSegment3d.from pt1 pt2
 
         halfWidth =
-            Vector3d.from pt1.xyz pt2.xyz
+            Vector3d.from pt1 pt2
                 |> Vector3d.projectOnto Plane3d.xy
                 |> Vector3d.scaleTo width
 
@@ -577,7 +589,7 @@ previewNudge : List TrackPoint -> List (Entity LocalCoords)
 previewNudge points =
     let
         nudgeElement tp1 tp2 =
-            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightOrange) tp1 tp2
+            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightOrange) tp1.xyz tp2.xyz
     in
     List.concat <|
         List.map2
@@ -590,7 +602,7 @@ previewMoveAndStretch : List TrackPoint -> List (Entity LocalCoords)
 previewMoveAndStretch points =
     let
         nudgeElement tp1 tp2 =
-            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.blue) tp1 tp2
+            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.blue) tp1.xyz tp2.xyz
     in
     List.concat <|
         List.map2
@@ -603,7 +615,7 @@ previewBend : List TrackPoint -> List (Entity LocalCoords)
 previewBend points =
     let
         section tp1 tp2 =
-            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightYellow) tp1 tp2
+            paintSomethingBetween (Length.meters 1.0) (Material.matte Color.lightYellow) tp1.xyz tp2.xyz
     in
     List.concat <|
         List.map2
@@ -613,7 +625,11 @@ previewBend points =
 
 
 previewStravaSegment : List TrackPoint -> List (Entity LocalCoords)
-previewStravaSegment points =
+previewStravaSegment trackpoints =
+    let
+        points =
+            List.map .xyz trackpoints
+    in
     List.concat <|
         List.map2
             (paintSomethingBetween (Length.meters 3.0) (Material.matte Color.purple))
@@ -685,20 +701,19 @@ makeTerrain :
 makeTerrain options box points =
     let
         roads =
-            List.map2
-                paintTheRoad
+            List.foldl
+                (paintTheRoad >> reversingCons)
+                []
                 points
-                (List.drop 1 points)
-                |> List.concat
 
         sidewallBase =
             BoundingBox3d.minZ box
 
-        paintTheRoad pt1 pt2 =
-            paintSurfaceBetween pt1 pt2
-                ++ sidewall sidewallBase pt1 pt2
+        paintTheRoad pt1 =
+            paintSurfaceBetween pt1
+                ++ sidewall sidewallBase pt1
                 ++ (if options.centreLine then
-                        centreLineBetween gradientColourPastel pt1 pt2
+                        centreLineBetween gradientColourPastel pt1
 
                     else
                         []

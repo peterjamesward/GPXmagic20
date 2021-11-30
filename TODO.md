@@ -6,10 +6,15 @@
 # TO-DO
 
 ** STATE OF PLAY ** 
-Good progress on Nudge.
-> Need to have some Track info (current, marker?) in closure otherwise nudge settings are re-used.
-> Also possible that the track lifecycle/versioning is not as it should be.
+Good progress on Nudge. Seems the latest closure stuff works fine.
 > Must streamline all post-edit/undo/redo actions; no reason why it need be so convoluted.
+> Put back markers, profile, previews, Map commands (with requisite tidy-up).
+++ Reduce passes over points to build Scenes, hence less list concat,
+++ Maybe compose the rendering fn and single map.
+++ Check ray searcher; is there a large closure there?
+
+++ Document graphics contribution to memory usage.
+> It's a fair chunk, and trackpoints surprisingly costly.
 
 Tools to be changed:
 - LoopedTrack
@@ -48,6 +53,13 @@ the markers separately? _Let's try not doing that._ (Quick test tends to confirm
 Consistent approach to **preview** (Curve Former is example).
 > This may largely fall out of the previous.
 > Nudge done. Better.
+
+**Samir**
+Is it possible to make a button/panel to find all curves with radius less then "insert number", 
+as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.
+> Involves direction changes v. distance changes across whole track (window calc).
+> Maybe, rather than a radius slider, have distance and length sliders and display the
+> equivalent radius. This will allow people to look only for hairpins, say.
 
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.
