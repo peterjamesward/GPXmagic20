@@ -97,7 +97,7 @@ makeUndoMessage imperial track =
             ++ showShortMeasure imperial to
 
     else
-        "Nudge node at"
+        "Nudge node at "
             ++ showShortMeasure imperial from
 
 
@@ -382,6 +382,8 @@ buildActions imperial settings track =
     { label = makeUndoMessage imperial track
     , editFunction = editFunction savedSettings
     , undoFunction = undoFunction savedSettings actualNudgeRegionIncludingFades
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
     }
 
 

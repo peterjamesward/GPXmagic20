@@ -42,6 +42,8 @@ type alias UndoEntry =
     { label : String
     , editFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
     , undoFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+    , newOrange : Int
+    , newPurple : Maybe Int
     }
 
 
@@ -50,4 +52,6 @@ defaultUndoEntry =
     { label = "You should not see this text"
     , editFunction = always ([], [], [])
     , undoFunction = always ([], [], [])
+    , newOrange = 0
+    , newPurple = Nothing
     }

@@ -7,12 +7,7 @@
 
 ** STATE OF PLAY ** 
 
-Put back: **Map commands** (with requisite tidy-up).
-> Implement Nudge.previewMap
-> Change the JS to hande "previews" tag.
-
-Tools to be changed:
-- LoopedTrack
+Tools to be changed to new Undo/Review/Preview style:
 - BendSmoother
 - CurveFormer
 - GradientLimiter
@@ -28,17 +23,6 @@ Tools to be changed:
 - StravaTools
 - RotateRoute
 - TrackSplitter
-
-**Deltas** on Undo/Redo rather than hold a full Track (with index!). 
-> I **shall** do this but it's a significant effort affecting all edits.
-1. New UndoEntry type
-2. New EditCommand type (extends PostUpdateAction) returns the UndoEntry
-3. Every update takes (start : Int, end : Int) of marked region ( == => no purple )
-4. Edit tool does not update the track, but returns EditCommand that describes the change
-5. Don't know how to encode "edit command"; could be closure from the update.
-6. Common code in Main applies the change and maintains Undo/Redo.
-7. Redo repeats the command (on what will be the same as-then track effectively)
-8. Always recreate any indexes post application.
 
 Automatically **reduce graphics** according to number of points.
 > Will hugely improve perceived performance.

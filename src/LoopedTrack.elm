@@ -7,10 +7,9 @@ import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
+import PostUpdateActions exposing (UndoEntry)
 import Quantity exposing (Quantity)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
@@ -18,20 +17,20 @@ import ViewPureStyles exposing (prettyButtonStyles)
 
 
 toolLabel =
-    "LoopedTrack maker"
+    "Looped Track maker"
 
 
 info =
-    """## LoopedTrack
+    """## Looped Track
 
-If your route is nearly a loop, but no close enough for RGT
+If your route is nearly a loop, but not close enough for RGT
 to recognise it, you can use this to add a final road section
 to return to the start. It will *not* make it smooth; that's up
 to you.
 
 Once you have a loop, you can reverse the direction of travel,
 or you can change the start point. This will not be the RGT Start/Finish
-location which is (famously) about 60m along the road.
+location which is about 60m along the road.
 
 You may want to temporarily move the start so you can use the other
 tools across the start/finish, then move the start point back.
@@ -50,10 +49,11 @@ type Msg
     | ChangeLoopStart TrackPoint
 
 
-type alias UndoRedoInfo =
-    -- Early guess.
-    { startPoint : Point3d.Point3d Length LocalCoords
-    , endPoint : Point3d.Point3d Length LocalCoords
+type alias ReverseUndoRedoInfo =
+    { startOfReversedSection : Int
+    , endOfReversedSection : Int
+    , orange : Int
+    , purple : Maybe Int
     }
 
 
@@ -129,48 +129,67 @@ update msg settings track =
     case msg of
         CloseTheLoop ->
             let
+                undoRedoInfo =
+                    saveContextForClosingLoop track settings
+
                 actionEntry : UndoEntry
                 actionEntry =
-                    defaultUndoEntry
+                    { label = "Close the loop"
+                    , editFunction = applyCloseLoop undoRedoInfo
+                    , undoFunction = revertCloseLoop undoRedoInfo
+                    , newOrange = track.currentNode.index
+                    , newPurple = Maybe.map .index track.markedNode
+                    }
             in
             ( settings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --                PostUpdateActions.EditPreservesNodePosition
-              --                actionEntry
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                actionEntry
             )
 
         ReverseTrack ->
             let
+                undoRedoInfo =
+                    saveContextForReverse track
+
                 actionEntry : UndoEntry
                 actionEntry =
-                    defaultUndoEntry
+                    { label = "Reverse track"
+                    , editFunction = applyReverse undoRedoInfo
+                    , undoFunction = revertReverse undoRedoInfo
+                    , newOrange = undoRedoInfo.orange
+                    , newPurple = undoRedoInfo.purple
+                    }
             in
             ( settings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --                PostUpdateActions.EditPreservesNodePosition
-              --                actionEntry
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                actionEntry
             )
 
         ChangeLoopStart tp ->
             let
-                newSettings =
-                    settings
+                undoRedoInfo =
+                    track.currentNode.index
+
+                actionEntry : UndoEntry
+                actionEntry =
+                    { label = "Move start to " ++ String.fromInt track.currentNode.index
+                    , editFunction = applyChangeLoopStart undoRedoInfo
+                    , undoFunction = revertChangeLoopStart undoRedoInfo
+                    , newOrange = 0
+                    , newPurple = Maybe.map .index track.markedNode
+                    }
             in
-            ( newSettings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --                PostUpdateActions.EditPreservesNodePosition
-              --                (changeLoopStart track)
-              --                ("move start to "
-              --                    ++ (showDecimal2 <| inMeters track.currentNode.distanceFromStart)
-              --                )
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesNodePosition
+                actionEntry
             )
 
 
-reverseTrackSection : Track -> List TrackPoint
-reverseTrackSection track =
+saveContextForReverse : Track -> ReverseUndoRedoInfo
+saveContextForReverse track =
     case track.markedNode of
         Just marker ->
             let
@@ -180,32 +199,107 @@ reverseTrackSection track =
                 ( start, end ) =
                     ( min current marked, max current marked )
 
-                ( beforeEnd, afterEnd ) =
-                    track.trackPoints |> List.Extra.splitAt (end - 1)
+                undoRedoInfo =
+                    { startOfReversedSection = start
+                    , endOfReversedSection = end
+                    , orange = List.length track.trackPoints - track.currentNode.index - 1
+                    , purple =
+                        case track.markedNode of
+                            Just purple ->
+                                Just <| List.length track.trackPoints - purple.index - 1
 
-                ( beforeStart, middle ) =
-                    beforeEnd |> List.Extra.splitAt start
-
-                newPoints =
-                    beforeStart ++ List.reverse middle ++ afterEnd
-
-                ( newOrange, newPurple ) =
-                    ( newPoints |> List.Extra.getAt current |> Maybe.withDefault track.currentNode
-                    , newPoints |> List.Extra.getAt marked
-                    )
+                            Nothing ->
+                                Nothing
+                    }
             in
-            newPoints
+            undoRedoInfo
 
         Nothing ->
-            List.reverse track.trackPoints
+            { startOfReversedSection = 0
+            , endOfReversedSection = List.length track.trackPoints - 1
+            , orange = List.length track.trackPoints - track.currentNode.index - 1
+            , purple = Nothing
+            }
 
 
-closeTheLoop : Loopiness -> Track -> List TrackPoint
-closeTheLoop loopiness track =
+applyReverse : ReverseUndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyReverse context track =
     let
-        maybeFirstPoint =
-            List.head track.trackPoints
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt context.startOfReversedSection
 
+        ( middle, suffix ) =
+            theRest
+                |> List.Extra.splitAt (context.endOfReversedSection - context.startOfReversedSection + 1)
+    in
+    ( prefix, List.reverse middle, suffix )
+
+
+revertReverse : ReverseUndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+revertReverse context track =
+    --TODO: Not working.
+    let
+        ( startInReverse, endInReverse ) =
+            ( List.length track.trackPoints - context.endOfReversedSection - 1
+            , List.length track.trackPoints - context.startOfReversedSection - 1
+            )
+
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt startInReverse
+
+        ( middle, suffix ) =
+            theRest
+                |> List.Extra.splitAt (endInReverse - startInReverse + 1)
+    in
+    ( prefix, List.reverse middle, suffix )
+
+
+type alias ClosingInfo =
+    { originalEnd : Point3d.Point3d Length.Meters LocalCoords
+    , pointWasAdded : Bool
+    , willClose : Bool
+    }
+
+
+saveContextForClosingLoop : Track -> Loopiness -> ClosingInfo
+saveContextForClosingLoop track loopiness =
+    let
+        originalEndXYZ : Point3d.Point3d Length.Meters LocalCoords
+        originalEndXYZ =
+            track.trackPoints
+                |> List.Extra.last
+                |> Maybe.map .xyz
+                |> Maybe.withDefault track.currentNode.xyz
+    in
+    case loopiness of
+        AlmostLoop gap ->
+            if gap |> Quantity.lessThanOrEqualTo (meters 1.0) then
+                { originalEnd = originalEndXYZ
+                , pointWasAdded = False
+                , willClose = True
+                }
+
+            else
+                -- A nicer solution here is to put a new trackpoint slightly "behind"
+                -- the existing start, and then join the current last trackpoint to
+                -- this new one. Existing tools can then be used to smooth as required.
+                { originalEnd = originalEndXYZ
+                , pointWasAdded = True
+                , willClose = True
+                }
+
+        _ ->
+            { originalEnd = originalEndXYZ
+            , pointWasAdded = False
+            , willClose = False
+            }
+
+
+applyCloseLoop : ClosingInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyCloseLoop editInfo track =
+    let
         backOneMeter : TrackPoint -> TrackPoint
         backOneMeter startPoint =
             let
@@ -223,36 +317,61 @@ closeTheLoop loopiness track =
                         startPoint.xyz
             in
             { startPoint | xyz = newLocation }
+
+        outcome =
+            case ( editInfo.willClose, editInfo.pointWasAdded ) of
+                ( True, False ) ->
+                    -- Replace last trackpoint with the first as we are so close.
+                    List.take (List.length track.trackPoints - 1) track.trackPoints
+                        ++ List.take 1 track.trackPoints
+
+                ( True, True ) ->
+                    -- A nicer solution here is to put a new trackpoint slightly "behind"
+                    -- the existing start, and then join the current last trackpoint to
+                    -- this new one. Existing tools can then be used to smooth as required.
+                    track.trackPoints
+                        ++ List.map backOneMeter (List.take 1 track.trackPoints)
+                        ++ List.take 1 track.trackPoints
+
+                ( False, _ ) ->
+                    track.trackPoints
     in
-    case loopiness of
-        AlmostLoop gap ->
-            if gap |> Quantity.lessThanOrEqualTo (meters 1.0) then
-                -- Replace last trackpoint with the first as we are so close.
-                List.take (List.length track.trackPoints - 1) track.trackPoints
-                    ++ List.take 1 track.trackPoints
-
-            else
-                -- A nicer solution here is to put a new trackpoint slightly "behind"
-                -- the existing start, and then join the current last trackpoint to
-                -- this new one. Existing tools can then be used to smooth as required.
-                track.trackPoints
-                    ++ List.map backOneMeter (List.take 1 track.trackPoints)
-                    ++ List.take 1 track.trackPoints
-
-        _ ->
-            track.trackPoints
+    ( [], outcome, [] )
 
 
-changeLoopStart : Track -> Track
-changeLoopStart track =
+revertCloseLoop : ClosingInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+revertCloseLoop editInfo track =
     let
-        n =
-            track.currentNode.index
+        outcome =
+            case ( editInfo.willClose, editInfo.pointWasAdded ) of
+                ( True, False ) ->
+                    -- Replace last trackpoint with the first as we are so close.
+                    List.take (List.length track.trackPoints - 1) track.trackPoints
 
+                ( True, True ) ->
+                    -- A nicer solution here is to put a new trackpoint slightly "behind"
+                    -- the existing start, and then join the current last trackpoint to
+                    -- this new one. Existing tools can then be used to smooth as required.
+                    List.take (List.length track.trackPoints - 2) track.trackPoints
+
+                ( False, _ ) ->
+                    track.trackPoints
+    in
+    ( [], outcome, [] )
+
+
+applyChangeLoopStart : Int -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyChangeLoopStart n track =
+    let
         ( startToCurrent, currentToEnd ) =
             List.Extra.splitAt n track.trackPoints
 
         newStart =
             List.take 1 currentToEnd
     in
-    { track | trackPoints = currentToEnd ++ startToCurrent ++ newStart }
+    ( [], currentToEnd ++ startToCurrent ++ newStart, [] )
+
+
+revertChangeLoopStart : Int -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+revertChangeLoopStart n track =
+    applyChangeLoopStart (List.length track.trackPoints - n - 1) track

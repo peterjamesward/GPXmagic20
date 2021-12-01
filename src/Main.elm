@@ -39,6 +39,7 @@ import Json.Decode as D
 import Json.Encode as Encode
 import Length
 import List.Extra
+import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
 import MoveAndStretch
@@ -87,7 +88,7 @@ type Msg
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
       --| BendSmoothMessage BendSmoother.Msg
-      --| LoopMsg LoopedTrack.Msg
+    | LoopMsg LoopedTrack.Msg
       --| GradientMessage GradientSmoother.Msg
       --| GradientLimiter GradientLimiter.Msg
       --| StraightenMessage Straightener.Msg
@@ -637,23 +638,22 @@ update msg (Model model) =
         --    processPostUpdateAction
         --        { model | bendOptions = newOptions }
         --        action
-        --
-        --LoopMsg loopMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (LoopedTrack.update loopMsg model.observations.loopiness) model.track
-        --                |> Maybe.withDefault ( model.observations.loopiness, ActionNoOp )
-        --
-        --        oldObs =
-        --            model.observations
-        --
-        --        newObs =
-        --            { oldObs | loopiness = newOptions }
-        --    in
-        --    processPostUpdateAction
-        --        { model | observations = newObs }
-        --        action
-        --
+        LoopMsg loopMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (LoopedTrack.update loopMsg model.observations.loopiness) model.track
+                        |> Maybe.withDefault ( model.observations.loopiness, ActionNoOp )
+
+                oldObs =
+                    model.observations
+
+                newObs =
+                    { oldObs | loopiness = newOptions }
+            in
+            processPostUpdateAction
+                { model | observations = newObs }
+                action
+
         --GradientLimiter limitMsg ->
         --    let
         --        ( newOptions, action ) =
@@ -992,10 +992,23 @@ processPostUpdateAction model action =
                 ( prefix, changed, suffix ) =
                     undoEntry.editFunction track
 
+                newPoints =
+                    (prefix ++ changed ++ suffix) |> prepareTrackPoints
+
                 newTrack =
                     { track
-                        | trackPoints =
-                            (prefix ++ changed ++ suffix) |> prepareTrackPoints
+                        | trackPoints = newPoints
+                        , currentNode =
+                            newPoints
+                                |> List.Extra.getAt undoEntry.newOrange
+                                |> Maybe.withDefault track.currentNode
+                        , markedNode =
+                            case undoEntry.newPurple of
+                                Just p ->
+                                    newPoints |> List.Extra.getAt p
+
+                                Nothing ->
+                                    Nothing
                     }
 
                 newModel =
@@ -1128,8 +1141,7 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionFetchMapElevations ) ->
-            ( Model model
-                |> refreshAccordion
+            ( model |> Model |> refreshAccordion
             , PortController.requestElevations
             )
 
@@ -1943,19 +1955,23 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = LoopedTrack.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                LoopedTrack.viewLoopTools
+                    m.displayOptions.imperialMeasure
+                    m.observations.loopiness
+                    m.track
+                    LoopMsg
+      , info = LoopedTrack.info
+      , video = Just "https://youtu.be/B3SGh8KhDu0"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = LoopedTrack.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        LoopedTrack.viewLoopTools
-    --            model.displayOptions.imperialMeasure
-    --            model.observations.loopiness
-    --            model.track
-    --            LoopMsg
-    --  , info = LoopedTrack.info
-    --  , video = Just "https://youtu.be/B3SGh8KhDu0"
-    --  , isFavourite = False
-    --  }
     --, { label = BendSmoother.toolLabel
     --  , state = Contracted
     --  , content =
