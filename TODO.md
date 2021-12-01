@@ -7,6 +7,8 @@
 
 ** STATE OF PLAY ** 
 
+--
+
 Tools to be changed to new Undo/Review/Preview style:
 - BendSmoother
 - CurveFormer

@@ -68,9 +68,21 @@ viewLoopTools imperial loopiness track wrap =
                 loopButton =
                     button
                         prettyButtonStyles
-                        { onPress = Just <| wrap CloseTheLoop
-                        , label = text "Make the track into a loop"
-                        }
+                        <| case loopiness of
+                            AlmostLoop _ ->
+                                { onPress = Just <| wrap CloseTheLoop
+                                , label = text "Make the track into a loop"
+                                }
+
+                            IsALoop ->
+                                { onPress = Nothing
+                                , label = text "Already a loop"
+                                }
+
+                            NotALoop _ ->
+                                { onPress = Nothing
+                                , label = text "Gap is too big"
+                                }
 
                 reverseButton =
                     button
