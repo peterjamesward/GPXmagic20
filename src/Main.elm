@@ -188,55 +188,55 @@ init mflags origin navigationKey =
         ( authData, authCmd ) =
             StravaAuth.init mflags origin navigationKey OAuthMessage
     in
-    ( Model
-        { filename = Nothing
-        , gpxSource = GpxNone
-        , time = Time.millisToPosix 0
-        , zone = Time.utc
-        , track = Nothing
-        , markerPositionAtLastSceneBuild = Quantity.zero
-        , completeScene = []
-        , completeProfile = []
-        , renderingContext = Nothing
-        , viewPanes = ViewPane.viewPanesWhenNoTrack
-        , toolsAccordion = []
-        , nudgeSettings = defaultNudgeSettings
-        , undoStack = []
-        , redoStack = []
-        , changeCounter = 0
-        , displayOptions = DisplayOptions.defaultDisplayOptions
+    ( { filename = Nothing
+      , gpxSource = GpxNone
+      , time = Time.millisToPosix 0
+      , zone = Time.utc
+      , track = Nothing
+      , markerPositionAtLastSceneBuild = Quantity.zero
+      , completeScene = []
+      , completeProfile = []
+      , renderingContext = Nothing
+      , viewPanes = ViewPane.viewPanesWhenNoTrack
+      , toolsAccordion = []
+      , nudgeSettings = defaultNudgeSettings
+      , undoStack = []
+      , redoStack = []
+      , changeCounter = 0
+      , displayOptions = DisplayOptions.defaultDisplayOptions
 
-        --, bendOptions = BendSmoother.defaultOptions
-        , observations = TrackObservations.defaultObservations
+      --, bendOptions = BendSmoother.defaultOptions
+      , observations = TrackObservations.defaultObservations
 
-        --, gradientOptions = GradientSmoother.defaultOptions
-        --, straightenOptions = Straightener.defaultOptions
-        --, flythrough = Flythrough.defaultOptions
-        --, filterOptions = Filters.defaultOptions
-        , problemOptions = TrackObservations.defaultOptions
+      --, gradientOptions = GradientSmoother.defaultOptions
+      --, straightenOptions = Straightener.defaultOptions
+      --, flythrough = Flythrough.defaultOptions
+      --, filterOptions = Filters.defaultOptions
+      , problemOptions = TrackObservations.defaultOptions
 
-        --, insertOptions = Interpolate.defaultOptions
-        --, stravaOptions = StravaTools.defaultOptions
-        , stravaAuthentication = authData
-        , ipInfo = Nothing
+      --, insertOptions = Interpolate.defaultOptions
+      --, stravaOptions = StravaTools.defaultOptions
+      , stravaAuthentication = authData
+      , ipInfo = Nothing
 
-        --, gradientLimiter = GradientLimiter.defaultOptions
-        --, rotateOptions = RotateRoute.defaultOptions
-        , lastMapClick = ( 0.0, 0.0 )
+      --, gradientLimiter = GradientLimiter.defaultOptions
+      --, rotateOptions = RotateRoute.defaultOptions
+      , lastMapClick = ( 0.0, 0.0 )
 
-        --, splitterOptions = TrackSplitter.defaultOptions
-        , svgData = SvgPathExtractor.empty
-        , mapElevations = []
-        , mapSketchMode = False
-        , accordionState = Accordion.defaultState
-        , splitInPixels = 800
-        , markerOptions = MarkerControls.defaultOptions
+      --, splitterOptions = TrackSplitter.defaultOptions
+      , svgData = SvgPathExtractor.empty
+      , mapElevations = []
+      , mapSketchMode = False
+      , accordionState = Accordion.defaultState
+      , splitInPixels = 800
+      , markerOptions = MarkerControls.defaultOptions
 
-        --, moveAndStretch = MoveAndStretch.defaultModel
-        --, curveFormer = CurveFormer.defaultModel
-        }
-      --|> -- Just make sure the Accordion reflects all the other state.
-      --   (\m -> { m | toolsAccordion = toolsAccordion m })
+      --, moveAndStretch = MoveAndStretch.defaultModel
+      --, curveFormer = CurveFormer.defaultModel
+      }
+        -- Just make sure the Accordion reflects all the other state.
+        |> (\record -> { record | toolsAccordion = toolsAccordion (Model record) })
+        |> Model
     , Cmd.batch
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
@@ -247,13 +247,6 @@ init mflags origin navigationKey =
         --, PortController.storageGetItem "panes"
         ]
     )
-
-
-
---TODO: Don't restore this. It's very, you know, imperative.
---passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
---passFlythroughToContext flight context =
---    { context | flythrough = flight }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -300,6 +293,10 @@ update msg (Model model) =
         --            Flythrough.advanceFlythrough
         --                newTime
         --                { flythrough | modelTime = newTime }
+        --
+        --        passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
+        --        passFlythroughToContext flight context =
+        --            { context | flythrough = flight }
         --    in
         --    ( { model
         --        | time = newTime
@@ -999,6 +996,7 @@ processPostUpdateAction model action =
                 |> repeatTrackDerivations
                 |> composeScene
                 |> Model
+                |> refreshAccordion
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack model.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1012,6 +1010,7 @@ processPostUpdateAction model action =
                 |> repeatTrackDerivations
                 |> composeScene
                 |> Model
+                |> refreshAccordion
             , Cmd.batch
                 [ ViewPane.makeMapCommands track model.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1034,6 +1033,7 @@ processPostUpdateAction model action =
             ( newModel
                 |> reflectNewTrackViaGraph track EditNoOp
                 |> Model
+                |> refreshAccordion
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack newModel.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1052,6 +1052,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> composeScene
                 |> Model
+                |> refreshAccordion
             , Cmd.batch
                 [--PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
                 ]
@@ -1072,6 +1073,7 @@ processPostUpdateAction model action =
               }
                 |> composeScene
                 |> Model
+                |> refreshAccordion
             , Cmd.batch
                 [ Cmd.none
 
@@ -1096,6 +1098,7 @@ processPostUpdateAction model action =
             ( { model | track = Just updatedTrack }
                 |> composeScene
                 |> Model
+                |> refreshAccordion
             , Cmd.batch
                 [ Cmd.none
 
@@ -1115,6 +1118,7 @@ processPostUpdateAction model action =
 
         ( Just track, ActionFetchMapElevations ) ->
             ( Model model
+                |> refreshAccordion
             , PortController.requestElevations
             )
 
@@ -1136,9 +1140,15 @@ processPostUpdateAction model action =
             ( Model model, a )
 
         ( _, ActionNewRoute content source ) ->
-            { model | gpxSource = source }
-                |> Model
-                |> processGpxLoaded content
+            let
+                ( newModel, cmds ) =
+                    { model | gpxSource = source }
+                        |> Model
+                        |> processGpxLoaded content
+            in
+            ( newModel |> refreshAccordion
+            , cmds
+            )
 
         _ ->
             ( Model model, Cmd.none )
@@ -1855,21 +1865,19 @@ viewAllPanes panes model ( scene, profile, plan ) wrapper =
             panes
 
 
-
---updatedAccordion :
---    List (AccordionEntry Msg)
---    -> List (AccordionEntry Msg)
---    -> List (AccordionEntry Msg)
---updatedAccordion currentAccordion referenceAccordion =
---    -- We have to reapply the accordion update functions with the current model,
---    let
---        blendAccordionStatus currentAccordionState refreshedContent =
---            { currentAccordionState | content = refreshedContent.content }
---    in
---    List.map2
---        blendAccordionStatus
---        currentAccordion
---        referenceAccordion
+refreshAccordion : Model -> Model
+refreshAccordion (Model model) =
+    let
+        preserveCurrentState currentVersion definedVersion =
+            { definedVersion | state = currentVersion.state }
+    in
+    Model
+        { model
+            | toolsAccordion =
+                List.map2 preserveCurrentState
+                    model.toolsAccordion
+                    (toolsAccordion (Model model))
+        }
 
 
 subscriptions : Model -> Sub Msg
