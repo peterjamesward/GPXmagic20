@@ -303,6 +303,7 @@ detectHit context options event =
 
 profilePointNearestRay : List TrackPoint -> Axis3d Meters LocalCoords -> Maybe TrackPoint
 profilePointNearestRay track ray =
+    -- Spatial index does not help this.
     let
         x =
             ray |> Axis3d.originPoint |> Point3d.xCoordinate

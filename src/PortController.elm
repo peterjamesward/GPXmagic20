@@ -1,5 +1,6 @@
 port module PortController exposing (..)
 
+import Accordion
 import BoundingBox3d exposing (BoundingBox3d)
 import Json.Decode exposing (Decoder, field, string)
 import Json.Encode as E
@@ -7,10 +8,11 @@ import Length
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import MapboxKey exposing (mapboxKey)
+import MoveAndStretch
+import Nudge
 import Point3d
 import Track exposing (Track, trackPointsToJSON, trackToJSON, withoutGhanianTransform)
 import TrackPoint exposing (TrackPoint)
-import MoveAndStretch
 import ViewingContext exposing (ViewingContext)
 
 
@@ -173,11 +175,8 @@ addTrackToMap context track =
 
 addMarkersToMap :
     Track
-    -> Track -- bend smoothing suggestion
-    -> Track -- node nudging preview
-    -> MoveAndStretch.Model -- move and stretch preview
     -> Cmd msg
-addMarkersToMap track smoothBend nudged moveAndStretch =
+addMarkersToMap track  =
     let
         realWorldPosition tp =
             Track.withoutGhanianTransform track tp.xyz
@@ -198,20 +197,26 @@ addMarkersToMap track smoothBend nudged moveAndStretch =
 
                 Nothing ->
                     ( "ignore", E.null )
-            , case moveAndStretch.stretchPointer of
-                Just idx ->
-                    case track.trackPoints |> List.Extra.getAt idx of
-                        Just white ->
-                            ( "white", encodePos <| realWorldPosition white )
 
-                        Nothing ->
-                            ( "ignore", E.null )
+            --, case moveAndStretch.stretchPointer of
+            --    Just idx ->
+            --        case track.trackPoints |> List.Extra.getAt idx of
+            --            Just white ->
+            --                ( "white", encodePos <| realWorldPosition white )
+            --
+            --            Nothing ->
+            --                ( "ignore", E.null )
+            --
+            --    Nothing ->
+            --        ( "ignore", E.null )
+            --, ( "bend", trackToJSON smoothBend )
+            --, if Accordion.tabIsOpen Nudge.toolLabel accordion then
+            --    ( "nudge", nudgePreview track )
+            --
+            --  else
+            --    ( "ignore", E.null )
 
-                Nothing ->
-                    ( "ignore", E.null )
-            , ( "bend", trackToJSON smoothBend )
-            , ( "nudge", trackToJSON nudged )
-            , ( "move", trackToJSON { track | trackPoints = moveAndStretch.preview } )
+            --, ( "move", trackToJSON { track | trackPoints = moveAndStretch.preview } )
             ]
 
 

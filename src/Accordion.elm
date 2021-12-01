@@ -13,7 +13,10 @@ import FlatColors.BritishPalette
 import Json.Decode as D exposing (Error, decodeValue, field)
 import Json.Encode as E
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Markdown
+import Scene exposing (Scene)
+import Track exposing (Track)
 import Utils exposing (useIcon)
 
 
@@ -23,18 +26,21 @@ type AccordionState
     | Disabled
 
 
-type alias AccordionEntry msg =
+type alias AccordionEntry mainModel msg =
     { label : String
     , state : AccordionState
-    , content : Element msg
+    , content : mainModel -> Element msg
     , info : String
     , video : Maybe String
     , isFavourite : Bool
+    , preview3D : Maybe (Track -> Scene)
+    , previewProfile : Maybe (Track -> Scene)
+    , previewMap : Maybe (Track -> E.Value)
     }
 
 
 type alias AccordionStoredState =
-    { model : Model
+    { model : AccordionModel
     , tabs : List ToolStoredState
     }
 
@@ -46,12 +52,12 @@ type alias ToolStoredState =
     }
 
 
-type alias Model =
+type alias AccordionModel =
     { reducedToolset : Bool
     }
 
 
-defaultState : Model
+defaultState : AccordionModel
 defaultState =
     { reducedToolset = False }
 
@@ -98,13 +104,13 @@ accordionTabStyles state =
     ]
 
 
-storedState : Model -> List (AccordionEntry msg) -> E.Value
+storedState : AccordionModel -> List (AccordionEntry model msg) -> E.Value
 storedState state entries =
     let
         encodedModel =
             E.object [ ( "reducedToolset", E.bool state.reducedToolset ) ]
 
-        encodedTab : AccordionEntry msg -> E.Value
+        encodedTab : AccordionEntry model msg -> E.Value
         encodedTab tab =
             E.object
                 [ ( "label", E.string tab.label )
@@ -129,17 +135,17 @@ storedState state entries =
         ]
 
 
-recoverStoredState : E.Value -> List (AccordionEntry msg) -> ( Model, List (AccordionEntry msg) )
+recoverStoredState : E.Value -> List (AccordionEntry model msg) -> ( AccordionModel, List (AccordionEntry model msg) )
 recoverStoredState savedState accordion =
     let
         fromStorage =
             D.decodeValue storedStateDecoder savedState
 
-        withSavedValues : List ToolStoredState -> List (AccordionEntry msg) -> List (AccordionEntry msg)
+        withSavedValues : List ToolStoredState -> List (AccordionEntry model msg) -> List (AccordionEntry model msg)
         withSavedValues stored original =
             List.map (applyStoredSettings stored) original
 
-        applyStoredSettings : List ToolStoredState -> AccordionEntry msg -> AccordionEntry msg
+        applyStoredSettings : List ToolStoredState -> AccordionEntry model msg -> AccordionEntry model msg
         applyStoredSettings stored entry =
             let
                 relevantStoredEntry : Maybe ToolStoredState
@@ -184,9 +190,9 @@ storedStateDecoder =
         (field "tabs" (D.list tabDecoder))
 
 
-modelDecoder : D.Decoder Model
+modelDecoder : D.Decoder AccordionModel
 modelDecoder =
-    D.map Model
+    D.map AccordionModel
         (field "reducedToolset" D.bool)
 
 
@@ -199,9 +205,9 @@ tabDecoder =
 
 
 accordionToggle :
-    List (AccordionEntry msg)
+    List (AccordionEntry model msg)
     -> String
-    -> List (AccordionEntry msg)
+    -> List (AccordionEntry model msg)
 accordionToggle entries label =
     let
         toggleMatching e =
@@ -226,9 +232,9 @@ accordionToggle entries label =
 
 
 accordionToggleInfo :
-    List (AccordionEntry msg)
+    List (AccordionEntry model msg)
     -> String
-    -> List (AccordionEntry msg)
+    -> List (AccordionEntry model msg)
 accordionToggleInfo entries label =
     let
         toggleMatching e =
@@ -250,9 +256,9 @@ accordionToggleInfo entries label =
 
 
 accordionToggleFavourite :
-    List (AccordionEntry msg)
+    List (AccordionEntry model msg)
     -> String
-    -> List (AccordionEntry msg)
+    -> List (AccordionEntry model msg)
 accordionToggleFavourite entries label =
     let
         toggleMatching e =
@@ -266,7 +272,7 @@ accordionToggleFavourite entries label =
 
 
 infoButton :
-    AccordionEntry msg
+    AccordionEntry model msg
     -> (Msg -> msg)
     -> Element msg
 infoButton entry msgWrap =
@@ -288,11 +294,12 @@ infoButton entry msgWrap =
 
 
 view :
-    Model
-    -> List (AccordionEntry msg)
+    AccordionModel
+    -> List (AccordionEntry mainModel msg)
     -> (Msg -> msg)
+    -> mainModel
     -> Element msg
-view model entries msgWrap =
+view accordion entries msgWrap mainModel =
     let
         favouriteButton entry =
             button
@@ -307,7 +314,7 @@ view model entries msgWrap =
                 , label = useIcon FeatherIcons.star
                 }
 
-        viewOpenEntry : AccordionEntry msg -> Element msg
+        viewOpenEntry : AccordionEntry mainModel msg -> Element msg
         viewOpenEntry entry =
             row [ width fill ]
                 [ infoButton entry msgWrap
@@ -338,18 +345,18 @@ view model entries msgWrap =
                         , width fill
                         , centerX
                         ]
-                        entry.content
+                        (entry.content mainModel)
                     ]
                 ]
 
-        viewClosedEntry : AccordionEntry msg -> Element msg
+        viewClosedEntry : AccordionEntry mainModel msg -> Element msg
         viewClosedEntry entry =
             button (accordionTabStyles entry.state)
                 { onPress = Just (msgWrap <| ToggleEntry entry.label)
                 , label = text entry.label
                 }
 
-        viewAnyEntry : AccordionEntry msg -> Element msg
+        viewAnyEntry : AccordionEntry mainModel msg -> Element msg
         viewAnyEntry e =
             if isOpen e then
                 viewOpenEntry e
@@ -381,7 +388,7 @@ view model entries msgWrap =
                 ]
                 { onPress = Just <| msgWrap ToggleToolSet
                 , label =
-                    if model.reducedToolset then
+                    if accordion.reducedToolset then
                         text "Show all"
 
                     else
@@ -403,7 +410,7 @@ view model entries msgWrap =
     column accordionMenuStyles
         [ row [ width fill ] [ showHideUnstarred, resetTools ]
         , column [] <| List.map viewOpenEntry allOpen
-        , if model.reducedToolset then
+        , if accordion.reducedToolset then
             wrappedRow [] <| List.map viewClosedEntry closedStarred
 
           else
@@ -411,7 +418,7 @@ view model entries msgWrap =
         ]
 
 
-update : Msg -> Model -> List (AccordionEntry msg) -> ( Model, List (AccordionEntry msg) )
+update : Msg -> AccordionModel -> List (AccordionEntry model msg) -> ( AccordionModel, List (AccordionEntry model msg) )
 update msg model accordion =
     let
         closeAndDefavourite entry =
@@ -461,7 +468,7 @@ viewInfo info =
             ]
 
 
-tabIsOpen : String -> List (AccordionEntry msg) -> Bool
+tabIsOpen : String -> List (AccordionEntry model msg) -> Bool
 tabIsOpen label entries =
     entries
         |> List.Extra.find
@@ -471,3 +478,17 @@ tabIsOpen label entries =
                     && (entry.state == Expanded True || entry.state == Expanded False)
             )
         |> (/=) Nothing
+
+
+openTabs : List (AccordionEntry model msg) -> List (AccordionEntry model msg)
+openTabs tabs =
+    tabs
+        |> List.filter
+            (\tab ->
+                case tab.state of
+                    Expanded _ ->
+                        True
+
+                    _ ->
+                        False
+            )

@@ -52,10 +52,8 @@ initialiseMap : ViewingContext -> Track -> Cmd msg
 initialiseMap context track =
     Cmd.batch
         [ PortController.addTrackToMap context track
-        , PortController.addMarkersToMap track
-            (emptyPreviewCopy track)
-            (emptyPreviewCopy track)
-            MoveAndStretch.defaultModel
+        , PortController.addMarkersToMap
+            track
         , PortController.centreMap context track
         , PortController.zoomMap context
         ]
@@ -65,9 +63,6 @@ mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)
 mapTrackHasChanged context track =
     [ PortController.addTrackToMap context track
     , PortController.addMarkersToMap track
-        (emptyPreviewCopy track)
-        (emptyPreviewCopy track)
-        MoveAndStretch.defaultModel
     ]
 
 

@@ -8,9 +8,11 @@
 ** STATE OF PLAY ** 
 
 > Must streamline all post-edit/undo/redo actions; no reason why it need be so convoluted.
-> Put back: reduced track, Map commands (with requisite tidy-up).
+> Put back: **Map commands** (with requisite tidy-up).
 
-++ Check ray searcher; is there a large closure there?
+Try again with "previewFn" in Accordion.
+> Should work if we make closures, as they will be updated.
+> Need 3D, Profile, Map variants.
 
 ++ Document graphics contribution to memory usage.
 > It's a fair chunk, and trackpoints surprisingly costly.

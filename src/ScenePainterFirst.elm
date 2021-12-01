@@ -22,7 +22,7 @@ import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
 import Scene3d exposing (backgroundColor)
-import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestFromIndexFor3d, trackPointNearestRay, withMouseCapture, zoomButtons, zoomLevelFromBoundingBox)
+import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestFromIndexFor3d, withMouseCapture, zoomButtons)
 import SketchPlane3d
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint, pointInEarthCoordinates)

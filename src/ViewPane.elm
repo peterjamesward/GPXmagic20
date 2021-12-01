@@ -253,6 +253,7 @@ refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
 refreshSceneSearcher track context =
     -- We refresh this if the track changes; the closure makes
     -- the latest version of Track available for searching.
+    -- Assuming these don't make deep copies of the index!
     case context.viewingMode of
         ViewThirdPerson ->
             { context | sceneSearcher = trackPointNearestFromIndexFor3d track.spatialIndex }

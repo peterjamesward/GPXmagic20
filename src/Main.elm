@@ -12,7 +12,7 @@ module Main exposing (main)
 --import Straightener
 --import StravaTools exposing (stravaRouteOption)
 
-import Accordion exposing (AccordionEntry, AccordionState(..), Model, view)
+import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
@@ -128,7 +128,11 @@ main =
         }
 
 
-type alias Model =
+type Model
+    = Model ModelRecord
+
+
+type alias ModelRecord =
     { filename : Maybe String
     , gpxSource : GpxSource
     , time : Time.Posix
@@ -139,7 +143,7 @@ type alias Model =
     , viewPanes : List ViewPane
     , track : Maybe Track
     , markerPositionAtLastSceneBuild : Quantity.Quantity Float Length.Meters
-    , toolsAccordion : List (AccordionEntry Msg)
+    , toolsAccordion : List (AccordionEntry Model Msg)
     , nudgeSettings : NudgeSettings
     , undoStack : List UndoEntry
     , redoStack : List UndoEntry
@@ -168,7 +172,7 @@ type alias Model =
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
     , mapSketchMode : Bool
-    , accordionState : Accordion.Model
+    , accordionState : Accordion.AccordionModel
     , splitInPixels : Int
     , markerOptions : MarkerControls.Options
 
@@ -184,54 +188,55 @@ init mflags origin navigationKey =
         ( authData, authCmd ) =
             StravaAuth.init mflags origin navigationKey OAuthMessage
     in
-    ( { filename = Nothing
-      , gpxSource = GpxNone
-      , time = Time.millisToPosix 0
-      , zone = Time.utc
-      , track = Nothing
-      , markerPositionAtLastSceneBuild = Quantity.zero
-      , completeScene = []
-      , completeProfile = []
-      , renderingContext = Nothing
-      , viewPanes = ViewPane.viewPanesWhenNoTrack
-      , toolsAccordion = []
-      , nudgeSettings = defaultNudgeSettings
-      , undoStack = []
-      , redoStack = []
-      , changeCounter = 0
-      , displayOptions = DisplayOptions.defaultDisplayOptions
+    ( Model
+        { filename = Nothing
+        , gpxSource = GpxNone
+        , time = Time.millisToPosix 0
+        , zone = Time.utc
+        , track = Nothing
+        , markerPositionAtLastSceneBuild = Quantity.zero
+        , completeScene = []
+        , completeProfile = []
+        , renderingContext = Nothing
+        , viewPanes = ViewPane.viewPanesWhenNoTrack
+        , toolsAccordion = []
+        , nudgeSettings = defaultNudgeSettings
+        , undoStack = []
+        , redoStack = []
+        , changeCounter = 0
+        , displayOptions = DisplayOptions.defaultDisplayOptions
 
-      --, bendOptions = BendSmoother.defaultOptions
-      , observations = TrackObservations.defaultObservations
+        --, bendOptions = BendSmoother.defaultOptions
+        , observations = TrackObservations.defaultObservations
 
-      --, gradientOptions = GradientSmoother.defaultOptions
-      --, straightenOptions = Straightener.defaultOptions
-      --, flythrough = Flythrough.defaultOptions
-      --, filterOptions = Filters.defaultOptions
-      , problemOptions = TrackObservations.defaultOptions
+        --, gradientOptions = GradientSmoother.defaultOptions
+        --, straightenOptions = Straightener.defaultOptions
+        --, flythrough = Flythrough.defaultOptions
+        --, filterOptions = Filters.defaultOptions
+        , problemOptions = TrackObservations.defaultOptions
 
-      --, insertOptions = Interpolate.defaultOptions
-      --, stravaOptions = StravaTools.defaultOptions
-      , stravaAuthentication = authData
-      , ipInfo = Nothing
+        --, insertOptions = Interpolate.defaultOptions
+        --, stravaOptions = StravaTools.defaultOptions
+        , stravaAuthentication = authData
+        , ipInfo = Nothing
 
-      --, gradientLimiter = GradientLimiter.defaultOptions
-      --, rotateOptions = RotateRoute.defaultOptions
-      , lastMapClick = ( 0.0, 0.0 )
+        --, gradientLimiter = GradientLimiter.defaultOptions
+        --, rotateOptions = RotateRoute.defaultOptions
+        , lastMapClick = ( 0.0, 0.0 )
 
-      --, splitterOptions = TrackSplitter.defaultOptions
-      , svgData = SvgPathExtractor.empty
-      , mapElevations = []
-      , mapSketchMode = False
-      , accordionState = Accordion.defaultState
-      , splitInPixels = 800
-      , markerOptions = MarkerControls.defaultOptions
+        --, splitterOptions = TrackSplitter.defaultOptions
+        , svgData = SvgPathExtractor.empty
+        , mapElevations = []
+        , mapSketchMode = False
+        , accordionState = Accordion.defaultState
+        , splitInPixels = 800
+        , markerOptions = MarkerControls.defaultOptions
 
-      --, moveAndStretch = MoveAndStretch.defaultModel
-      --, curveFormer = CurveFormer.defaultModel
-      }
-        |> -- TODO: Remove this Fugly Fudge. Here to make sure function is applied to model state.
-           (\m -> { m | toolsAccordion = toolsAccordion m })
+        --, moveAndStretch = MoveAndStretch.defaultModel
+        --, curveFormer = CurveFormer.defaultModel
+        }
+      --|> -- Just make sure the Accordion reflects all the other state.
+      --   (\m -> { m | toolsAccordion = toolsAccordion m })
     , Cmd.batch
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
@@ -252,10 +257,10 @@ init mflags origin navigationKey =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg (Model model) =
     case msg of
         AdjustTimeZone newZone ->
-            ( { model | zone = newZone }
+            ( Model { model | zone = newZone }
             , MyIP.requestIpInformation ReceivedIpDetails
             )
 
@@ -276,7 +281,7 @@ update msg model =
                         Nothing ->
                             defaultMapInfo
             in
-            ( { model | ipInfo = ipInfo }
+            ( Model { model | ipInfo = ipInfo }
             , Cmd.batch
                 [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
                 , PortController.createMap mapInfoWithLocation
@@ -284,7 +289,7 @@ update msg model =
             )
 
         IpInfoAcknowledged _ ->
-            ( model, Cmd.none )
+            ( Model model, Cmd.none )
 
         --Tick newTime ->
         --    let
@@ -313,24 +318,24 @@ update msg model =
             processPostUpdateAction (redo model) ActionRerender
 
         GpxRequested ->
-            ( model
+            ( Model model
             , Select.file [ "text/gpx" ] GpxSelected
             )
 
         GpxSelected file ->
-            ( { model | filename = Just (File.name file) }
+            ( Model { model | filename = Just (File.name file) }
             , Task.perform GpxLoaded (File.toString file)
             )
 
         GpxLoaded content ->
-            processGpxLoaded content model
+            processGpxLoaded content <| Model model
 
         ViewPaneMessage innerMsg ->
-            Maybe.map (processViewPaneMessage innerMsg model) model.track
-                |> Maybe.withDefault ( model, Cmd.none )
+            Maybe.map (processViewPaneMessage innerMsg (Model model)) model.track
+                |> Maybe.withDefault ( Model model, Cmd.none )
 
         RepaintMap ->
-            ( model, refreshMap )
+            ( Model model, refreshMap )
 
         GraphMessage innerMsg ->
             let
@@ -388,7 +393,7 @@ update msg model =
                         action
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( Model model, Cmd.none )
 
         --InsertMessage insertMsg ->
         --    let
@@ -422,7 +427,7 @@ update msg model =
                 isToken =
                     getStravaToken newAuthData
             in
-            ( { model | stravaAuthentication = newAuthData }
+            ( Model { model | stravaAuthentication = newAuthData }
             , Cmd.map OAuthMessage authCmd
             )
 
@@ -462,10 +467,10 @@ update msg model =
                                         (PostUpdateActions.ActionFocusMove point)
 
                                 Nothing ->
-                                    ( model, Cmd.none )
+                                    ( Model model, Cmd.none )
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( Model model, Cmd.none )
 
                 --( Ok "drag", Just track ) ->
                 --    case draggedOnMap json track of
@@ -518,18 +523,18 @@ update msg model =
                             in
                             case newTrack of
                                 Just track ->
-                                    applyTrack model track
+                                    applyTrack (Model model) track
 
                                 Nothing ->
-                                    ( model
+                                    ( Model model
                                     , Cmd.none
                                     )
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( Model model, Cmd.none )
 
                 ( Ok "no node", _ ) ->
-                    ( model
+                    ( Model model
                     , Cmd.none
                     )
 
@@ -550,10 +555,11 @@ update msg model =
                                         saved
                                         model.toolsAccordion
                             in
-                            ( { model
-                                | accordionState = restoreAccordionState
-                                , toolsAccordion = restoreAccordion
-                              }
+                            ( Model
+                                { model
+                                    | accordionState = restoreAccordionState
+                                    , toolsAccordion = restoreAccordion
+                                }
                             , Cmd.none
                             )
 
@@ -564,15 +570,16 @@ update msg model =
                             in
                             case p of
                                 Ok pixels ->
-                                    ( { model
-                                        | splitInPixels = pixels
-                                        , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
-                                      }
+                                    ( Model
+                                        { model
+                                            | splitInPixels = pixels
+                                            , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
+                                        }
                                     , Cmd.none
                                     )
 
                                 _ ->
-                                    ( model, Cmd.none )
+                                    ( Model model, Cmd.none )
 
                         ( Ok "panes", Ok saved ) ->
                             let
@@ -590,20 +597,20 @@ update msg model =
                             processPostUpdateAction newModel ActionRerender
 
                         ( Ok "display", Ok saved ) ->
-                            ( { model | displayOptions = DisplayOptions.decodeOptions saved }
+                            ( Model { model | displayOptions = DisplayOptions.decodeOptions saved }
                             , Cmd.none
                             )
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( Model model, Cmd.none )
 
                 ( Ok "storage.keys", _ ) ->
-                    ( model
+                    ( Model model
                     , Cmd.none
                     )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( Model model, Cmd.none )
 
         DisplayOptionsMessage dispMsg ->
             let
@@ -617,6 +624,7 @@ update msg model =
                 | displayOptions = newOptions
               }
                 |> composeScene
+                |> Model
             , PortController.storageSetItem "display" (DisplayOptions.encodeOptions newOptions)
             )
 
@@ -756,12 +764,12 @@ update msg model =
         --        { model | problemOptions = newOptions }
         --        action
         UserChangedFilename txt ->
-            ( { model | filename = Just txt }
+            ( Model { model | filename = Just txt }
             , Cmd.none
             )
 
         OutputGPX ->
-            ( { model | changeCounter = 0 }
+            ( Model { model | changeCounter = 0 }
             , outputGPX model
             )
 
@@ -816,10 +824,10 @@ update msg model =
             in
             case newData.track of
                 Just isTrack ->
-                    isTrack |> applyTrack model
+                    isTrack |> applyTrack (Model model)
 
                 Nothing ->
-                    ( { model | svgData = newData }
+                    ( Model { model | svgData = newData }
                     , cmd
                     )
 
@@ -835,7 +843,7 @@ update msg model =
             in
             case model.mapSketchMode of
                 False ->
-                    ( { model | mapSketchMode = True }
+                    ( Model { model | mapSketchMode = True }
                     , Cmd.batch
                         [ PortController.prepareSketchMap ( lon, lat )
                         , Delay.after 500 RepaintMap
@@ -843,15 +851,16 @@ update msg model =
                     )
 
                 True ->
-                    ( { model | mapSketchMode = False }
+                    ( Model { model | mapSketchMode = False }
                     , PortController.exitSketchMode
                     )
 
         ResizeViews newPosition ->
-            ( { model
-                | splitInPixels = newPosition
-                , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
-              }
+            ( Model
+                { model
+                    | splitInPixels = newPosition
+                    , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
+                }
             , Cmd.batch
                 [ Delay.after 50 RepaintMap
                 , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
@@ -859,7 +868,7 @@ update msg model =
             )
 
         StoreSplitterPosition ->
-            ( model
+            ( Model model
             , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
             )
 
@@ -894,7 +903,7 @@ update msg model =
         --        { model | curveFormer = newOptions }
         --        action
         _ ->
-            ( model, Cmd.none )
+            ( Model model, Cmd.none )
 
 
 draggedOnMap : Encode.Value -> Track -> Maybe Track
@@ -968,7 +977,7 @@ draggedOnMap json track =
 --( bendPreview, nudgePreview )
 
 
-processPostUpdateAction : Model -> PostUpdateAction Track (Cmd Msg) -> ( Model, Cmd Msg )
+processPostUpdateAction : ModelRecord -> PostUpdateAction Track (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
     -- I doubt that will ever be true.
@@ -989,6 +998,7 @@ processPostUpdateAction model action =
                 |> reflectNewTrackViaGraph newTrack editType
                 |> repeatTrackDerivations
                 |> composeScene
+                |> Model
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack model.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1001,6 +1011,7 @@ processPostUpdateAction model action =
                 |> reflectNewTrackViaGraph track EditNoOp
                 |> repeatTrackDerivations
                 |> composeScene
+                |> Model
             , Cmd.batch
                 [ ViewPane.makeMapCommands track model.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1022,6 +1033,7 @@ processPostUpdateAction model action =
             in
             ( newModel
                 |> reflectNewTrackViaGraph track EditNoOp
+                |> Model
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack newModel.viewPanes
                 , Delay.after 50 RepaintMap
@@ -1039,6 +1051,7 @@ processPostUpdateAction model action =
             in
             ( { model | track = Just updatedTrack }
                 |> composeScene
+                |> Model
             , Cmd.batch
                 [--PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
                 ]
@@ -1058,6 +1071,7 @@ processPostUpdateAction model action =
                 , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
               }
                 |> composeScene
+                |> Model
             , Cmd.batch
                 [ Cmd.none
 
@@ -1081,6 +1095,7 @@ processPostUpdateAction model action =
             in
             ( { model | track = Just updatedTrack }
                 |> composeScene
+                |> Model
             , Cmd.batch
                 [ Cmd.none
 
@@ -1089,23 +1104,23 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionRepaintMap ) ->
-            ( model
+            ( Model model
             , Delay.after 50 RepaintMap
             )
 
         ( Just track, ActionToggleMapDragging isDragging ) ->
-            ( model
+            ( Model model
             , PortController.toggleDragging isDragging track
             )
 
         ( Just track, ActionFetchMapElevations ) ->
-            ( model
+            ( Model model
             , PortController.requestElevations
             )
 
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
-            ( model |> composeScene
+            ( model |> composeScene |> Model
             , --if isMapVisible model.viewPanes then
               --    PortController.addMarkersToMap
               --        track
@@ -1118,38 +1133,41 @@ processPostUpdateAction model action =
             )
 
         ( _, ActionCommand a ) ->
-            ( model, a )
+            ( Model model, a )
 
         ( _, ActionNewRoute content source ) ->
             { model | gpxSource = source }
+                |> Model
                 |> processGpxLoaded content
 
         _ ->
-            ( model, Cmd.none )
+            ( Model model, Cmd.none )
 
 
 processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
-processGpxLoaded content model =
+processGpxLoaded content (Model model) =
     case Track.trackFromGpx content of
         Just track ->
             applyTrack
-                { model
-                    | viewPanes =
-                        -- Force third person view on first file load.
-                        if model.track == Nothing then
-                            ViewPane.viewPanesWithTrack
+                (Model
+                    { model
+                        | viewPanes =
+                            -- Force third person view on first file load.
+                            if model.track == Nothing then
+                                ViewPane.viewPanesWithTrack
 
-                        else
-                            model.viewPanes
-                }
+                            else
+                                model.viewPanes
+                    }
+                )
                 track
 
         Nothing ->
-            ( model, Cmd.none )
+            ( Model model, Cmd.none )
 
 
 applyTrack : Model -> Track -> ( Model, Cmd Msg )
-applyTrack model track =
+applyTrack (Model model) track =
     let
         ( newViewPanes, mapCommands ) =
             ( ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
@@ -1171,12 +1189,13 @@ applyTrack model track =
         , changeCounter = 0
       }
         |> repeatTrackDerivations
+        |> Model
     , mapCommands
     )
 
 
 processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
-processViewPaneMessage innerMsg model track =
+processViewPaneMessage innerMsg (Model model) track =
     let
         ( newPane, postUpdateAction ) =
             ViewPane.update innerMsg model.displayOptions model.viewPanes ViewPaneMessage
@@ -1212,10 +1231,14 @@ processViewPaneMessage innerMsg model track =
             )
 
         ViewPane.PaneNoOp ->
-            ( updatedModel, Cmd.none )
+            ( Model updatedModel, Cmd.none )
 
 
-processGraphMessage : Graph.Msg -> Model -> Track -> ( Model, PostUpdateActions.PostUpdateAction trck msg )
+processGraphMessage :
+    Graph.Msg
+    -> ModelRecord
+    -> Track
+    -> ( ModelRecord, PostUpdateActions.PostUpdateAction trck msg )
 processGraphMessage innerMsg model isTrack =
     ( model, ActionNoOp )
 
@@ -1288,7 +1311,7 @@ processGraphMessage innerMsg model isTrack =
 --        )
 
 
-reflectNewTrackViaGraph : Track -> TrackEditType -> Model -> Model
+reflectNewTrackViaGraph : Track -> TrackEditType -> ModelRecord -> ModelRecord
 reflectNewTrackViaGraph newTrack editType model =
     model
 
@@ -1369,7 +1392,7 @@ reflectNewTrackViaGraph newTrack editType model =
 --        model
 
 
-repeatTrackDerivations : Model -> Model
+repeatTrackDerivations : ModelRecord -> ModelRecord
 repeatTrackDerivations model =
     case model.track of
         Just isTrack ->
@@ -1409,7 +1432,7 @@ repeatTrackDerivations model =
             model
 
 
-composeScene : Model -> Model
+composeScene : ModelRecord -> ModelRecord
 composeScene model =
     case model.track of
         Nothing ->
@@ -1445,31 +1468,55 @@ composeScene model =
             }
 
 
-renderVaryingProfileSceneElements : Model -> Track -> Scene
+renderVaryingProfileSceneElements : ModelRecord -> Track -> Scene
 renderVaryingProfileSceneElements model isTrack =
-    [ SceneBuilderProfile.renderMarkers model.displayOptions isTrack
-    , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
-        Nudge.getProfilePreview model.displayOptions model.nudgeSettings isTrack
+    let
+        previews =
+            model.toolsAccordion
+                |> Accordion.openTabs
+                |> List.map
+                    (\tab ->
+                        case tab.previewProfile of
+                            Just fn ->
+                                Just (fn isTrack)
 
-      else
-        []
+                            Nothing ->
+                                Nothing
+                    )
+                |> List.filterMap identity
+                |> Utils.combineLists
+    in
+    [ SceneBuilderProfile.renderMarkers model.displayOptions isTrack
+    , previews
     ]
         |> Utils.combineLists
 
 
-renderVarying3dSceneElements : Model -> Track -> Scene
+renderVarying3dSceneElements : ModelRecord -> Track -> Scene
 renderVarying3dSceneElements model isTrack =
+    let
+        previews =
+            model.toolsAccordion
+                |> Accordion.openTabs
+                |> List.map
+                    (\tab ->
+                        case tab.preview3D of
+                            Just fn ->
+                                Just (fn isTrack)
+
+                            Nothing ->
+                                Nothing
+                    )
+                |> List.filterMap identity
+                |> Utils.combineLists
+    in
     [ SceneBuilder.renderMarkers isTrack
     , if model.displayOptions.showRenderingLimit then
         SceneBuilder.renderMRLimits isTrack
 
       else
         []
-    , if Accordion.tabIsOpen Nudge.toolLabel model.toolsAccordion then
-        Nudge.getPreview model.nudgeSettings isTrack
-
-      else
-        []
+    , previews
 
     --updatedMoveAndStretchSettings =
     --    let
@@ -1548,7 +1595,7 @@ renderVarying3dSceneElements model isTrack =
         |> Utils.combineLists
 
 
-renderTrackProfileSceneElements : Model -> Track -> Scene
+renderTrackProfileSceneElements : ModelRecord -> Track -> Scene
 renderTrackProfileSceneElements model isTrack =
     if isProfileVisible model.viewPanes then
         SceneBuilderProfile.renderTrack model.displayOptions isTrack
@@ -1557,7 +1604,7 @@ renderTrackProfileSceneElements model isTrack =
         []
 
 
-renderTrack3dSceneElements : Model -> Track -> Scene
+renderTrack3dSceneElements : ModelRecord -> Track -> Scene
 renderTrack3dSceneElements model isTrack =
     let
         updatedScene =
@@ -1575,7 +1622,7 @@ renderTrack3dSceneElements model isTrack =
 
 
 view : Model -> Browser.Document Msg
-view model =
+view (Model model) =
     { title = "GPXmagic 2.0"
     , body =
         [ layout
@@ -1635,7 +1682,7 @@ topLoadingBar model =
         ]
 
 
-footer : Model -> Element Msg
+footer : ModelRecord -> Element Msg
 footer model =
     -- Rather hacky addition of secondary map here.
     column [ spacing 20, padding 10 ]
@@ -1656,7 +1703,7 @@ footer model =
         ]
 
 
-mapSketchEnable : Model -> Element Msg
+mapSketchEnable : ModelRecord -> Element Msg
 mapSketchEnable model =
     if model.mapSketchMode then
         button
@@ -1693,7 +1740,7 @@ maximumLeftPane =
     1400
 
 
-contentArea : Model -> Element Msg
+contentArea : ModelRecord -> Element Msg
 contentArea model =
     let
         leftPane =
@@ -1715,8 +1762,9 @@ contentArea model =
                     , undoRedoButtons model
                     , Accordion.view
                         model.accordionState
-                        (updatedAccordion model.toolsAccordion toolsAccordion model)
+                        model.toolsAccordion
                         AccordionMessage
+                        (Model model)
                     ]
 
             else
@@ -1807,25 +1855,25 @@ viewAllPanes panes model ( scene, profile, plan ) wrapper =
             panes
 
 
-updatedAccordion :
-    List (AccordionEntry Msg)
-    -> (Model -> List (AccordionEntry Msg))
-    -> Model
-    -> List (AccordionEntry Msg)
-updatedAccordion currentAccordion referenceAccordion model =
-    -- We have to reapply the accordion update functions with the current model,
-    let
-        blendAccordionStatus currentAccordionState refreshedContent =
-            { currentAccordionState | content = refreshedContent.content }
-    in
-    List.map2
-        blendAccordionStatus
-        currentAccordion
-        (referenceAccordion model)
+
+--updatedAccordion :
+--    List (AccordionEntry Msg)
+--    -> List (AccordionEntry Msg)
+--    -> List (AccordionEntry Msg)
+--updatedAccordion currentAccordion referenceAccordion =
+--    -- We have to reapply the accordion update functions with the current model,
+--    let
+--        blendAccordionStatus currentAccordionState refreshedContent =
+--            { currentAccordionState | content = refreshedContent.content }
+--    in
+--    List.map2
+--        blendAccordionStatus
+--        currentAccordion
+--        referenceAccordion
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions (Model model) =
     --if Accordion.tabIsOpen Flythrough.toolLabel model.toolsAccordion then
     --    --if model.flythrough.flythrough /= Nothing then
     --    Sub.batch
@@ -1843,15 +1891,18 @@ subscriptions model =
         ]
 
 
-toolsAccordion : Model -> List (AccordionEntry Msg)
-toolsAccordion model =
+toolsAccordion : Model -> List (AccordionEntry Model Msg)
+toolsAccordion (Model model) =
     [ -- For V2 we see if a single collection works...
       { label = DisplayOptions.toolLabel
       , state = Contracted
-      , content = DisplayOptions.viewDisplayOptions model.displayOptions DisplayOptionsMessage
+      , content = \(Model m) -> DisplayOptions.viewDisplayOptions m.displayOptions DisplayOptionsMessage
       , info = DisplayOptions.info
       , video = Just "https://youtu.be/N7zGRJvke_M"
       , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
       }
 
     --, { label = LoopedTrack.toolLabel
@@ -1923,13 +1974,17 @@ toolsAccordion model =
     , { label = Nudge.toolLabel
       , state = Contracted
       , content =
-            viewNudgeTools
-                model.displayOptions.imperialMeasure
-                model.nudgeSettings
-                NudgeMessage
+            \(Model m) ->
+                viewNudgeTools
+                    m.displayOptions.imperialMeasure
+                    m.nudgeSettings
+                    NudgeMessage
       , info = Nudge.info
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
+      , preview3D = Just (Nudge.getPreview model.nudgeSettings)
+      , previewProfile = Just (Nudge.getProfilePreview model.displayOptions model.nudgeSettings)
+      , previewMap = Nothing
       }
 
     --, { label = MoveAndStretch.toolLabel
@@ -2033,49 +2088,65 @@ toolsAccordion model =
     , { label = "Road segment"
       , state = Contracted
       , content =
-            Maybe.map (summaryData model.displayOptions.imperialMeasure) model.track
-                |> Maybe.withDefault none
+            \(Model m) ->
+                Maybe.map (summaryData m.displayOptions.imperialMeasure) m.track
+                    |> Maybe.withDefault none
       , info = "Data about the road at the orange marker."
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
       }
     , { label = "Steep climbs"
       , state = Contracted
       , content =
-            Maybe.map
-                (TrackObservations.viewSteepClimbs
-                    model.problemOptions
-                    ProblemMessage
-                )
-                model.track
-                |> Maybe.withDefault none
+            \(Model m) ->
+                Maybe.map
+                    (TrackObservations.viewSteepClimbs
+                        m.problemOptions
+                        ProblemMessage
+                    )
+                    m.track
+                    |> Maybe.withDefault none
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
       }
     , { label = "Gradient problems"
       , state = Contracted
       , content =
-            TrackObservations.viewGradientChanges
-                model.displayOptions.imperialMeasure
-                model.problemOptions
-                model.observations
-                ProblemMessage
+            \(Model m) ->
+                TrackObservations.viewGradientChanges
+                    m.displayOptions.imperialMeasure
+                    m.problemOptions
+                    m.observations
+                    ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
       }
     , { label = "Bend problems"
       , state = Contracted
       , content =
-            TrackObservations.viewBearingChanges
-                model.displayOptions.imperialMeasure
-                model.problemOptions
-                model.observations
-                ProblemMessage
+            \(Model m) ->
+                TrackObservations.viewBearingChanges
+                    m.displayOptions.imperialMeasure
+                    m.problemOptions
+                    m.observations
+                    ProblemMessage
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
       }
 
     --, { label = "Intersections"
@@ -2142,8 +2213,8 @@ toolsAccordion model =
 
 addToUndoStack :
     UndoEntry
-    -> Model
-    -> Model
+    -> ModelRecord
+    -> ModelRecord
 addToUndoStack entry model =
     { model
         | undoStack = entry :: List.take 9 model.undoStack
@@ -2152,7 +2223,7 @@ addToUndoStack entry model =
     }
 
 
-undo : Model -> Model
+undo : ModelRecord -> ModelRecord
 undo model =
     case ( model.track, model.undoStack ) of
         ( Just track, entry :: undos ) ->
@@ -2177,7 +2248,7 @@ undo model =
             model
 
 
-redo : Model -> Model
+redo : ModelRecord -> ModelRecord
 redo model =
     case ( model.track, model.redoStack ) of
         ( Just track, entry :: redos ) ->
@@ -2249,7 +2320,7 @@ undoRedoButtons model =
 -- Bunch of small stuff here I can't be bothered to make modules for.
 
 
-viewAndEditFilename : Model -> Element Msg
+viewAndEditFilename : ModelRecord -> Element Msg
 viewAndEditFilename model =
     let
         filename =
@@ -2275,7 +2346,7 @@ viewAndEditFilename model =
                 ]
 
 
-saveButtonIfChanged : Model -> Element Msg
+saveButtonIfChanged : ModelRecord -> Element Msg
 saveButtonIfChanged model =
     -- Logic might be better with two buttons, as 1CQF could be applied at any time.
     row []
@@ -2292,7 +2363,7 @@ saveButtonIfChanged model =
         ]
 
 
-outputGPX : Model -> Cmd Msg
+outputGPX : ModelRecord -> Cmd Msg
 outputGPX model =
     let
         gpxString =
