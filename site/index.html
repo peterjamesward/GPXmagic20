@@ -423,81 +423,36 @@ function addOptionals(msg) {
             .addTo(map);
     };
 
-    // Map API calls not idempotent.
-    if (map.getLayer('bend')) map.removeLayer('bend');
-    if (map.getSource('bend')) map.removeSource('bend');
+//    console.log(msg.previews);
+    msg.previews.forEach(addPreview);
+};
 
-    if (typeof(msg.bend) != 'undefined') {
-        map.addSource('bend', {
-            'type': 'geojson',
-            'data': msg.bend
-            });
+function addPreview(preview) {
 
-        //console.log('adding bend');
-        map.addLayer({
-            'id': 'bend',
-            'type': 'line',
-            'source': 'bend',
-            'layout': {
-            'line-join': 'round',
-            'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#FEFF57',
-                'line-width': 5
-            }
+    //console.log(preview);
+
+    if (map.getLayer(preview.name)) map.removeLayer(preview.name);
+    if (map.getSource(preview.name)) map.removeSource(preview.name);
+
+    map.addSource(preview.name, {
+        'type': 'geojson',
+        'data': preview.points
         });
-    };
 
-    if (map.getLayer('nudge')) map.removeLayer('nudge');
-    if (map.getSource('nudge')) map.removeSource('nudge');
+    map.addLayer({
+        'id': preview.name,
+        'type': 'line',
+        'source': preview.name,
+        'layout': {
+        'line-join': 'round',
+        'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': preview.colour,
+            'line-width': 4
+        }
+    });
 
-    if (typeof(msg.nudge) != 'undefined') {
-        map.addSource('nudge', {
-            'type': 'geojson',
-            'data': msg.nudge
-            });
-
-        //console.log('adding nudge');
-        map.addLayer({
-            'id': 'nudge',
-            'type': 'line',
-            'source': 'nudge',
-            'layout': {
-            'line-join': 'round',
-            'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#FFA500',
-                'line-width': 5
-            }
-        });
-    };
-
-    if (map.getLayer('move')) map.removeLayer('move');
-    if (map.getSource('move')) map.removeSource('move');
-
-    if (typeof(msg.move) != 'undefined') {
-        map.addSource('move', {
-            'type': 'geojson',
-            'data': msg.move
-            });
-
-        //console.log('adding move');
-        map.addLayer({
-            'id': 'move',
-            'type': 'line',
-            'source': 'move',
-            'layout': {
-            'line-join': 'round',
-            'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#3333FF',
-                'line-width': 5
-            }
-        });
-    };
 };
 
 function createSketchMap(msg) {

@@ -7,6 +7,7 @@ import Direction3d
 import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
+import Json.Encode as E
 import Length exposing (Length, inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -100,8 +101,8 @@ makeUndoMessage imperial track =
             ++ showShortMeasure imperial from
 
 
-getPreview : NudgeSettings -> Track -> List (Entity LocalCoords)
-getPreview settings track =
+getPreview3D : NudgeSettings -> Track -> List (Entity LocalCoords)
+getPreview3D settings track =
     let
         undoEntry =
             buildActions False settings track
@@ -112,8 +113,8 @@ getPreview settings track =
     previewLine Color.yellow nudged
 
 
-getProfilePreview : DisplayOptions -> NudgeSettings -> Track -> List (Entity LocalCoords)
-getProfilePreview options settings track =
+getPreviewProfile : DisplayOptions -> NudgeSettings -> Track -> List (Entity LocalCoords)
+getPreviewProfile options settings track =
     let
         undoEntry =
             buildActions False settings track
@@ -122,6 +123,33 @@ getProfilePreview options settings track =
             undoEntry.editFunction track
     in
     previewProfileLine options Color.yellow nudged
+
+
+getPreviewMap : DisplayOptions -> NudgeSettings -> Track -> E.Value
+getPreviewMap options settings track =
+    {-
+       To return JSON:
+       { "name" : "nudge"
+       , "colour" : "#FFFFFF"
+       , "points" : <trackPointsToJSON ...>
+       }
+    -}
+    let
+        undoEntry =
+            buildActions False settings track
+
+        ( _, nudged, _ ) =
+            undoEntry.editFunction track
+
+        fakeTrack =
+            -- Just for the JSON
+            { track | trackPoints = nudged }
+    in
+    E.object
+        [ ( "name", E.string "nudge" )
+        , ( "colour", E.string "#FFFFFF" )
+        , ( "points", Track.trackToJSON fakeTrack )
+        ]
 
 
 nudgeTrackPoint : UndoRedoInfo -> Float -> TrackPoint -> TrackPoint
@@ -196,14 +224,15 @@ splitTheTrackAllowingForFade undoRedoInfo track =
 
         prefixLessOne =
             -- For the preview to show the start and end, we need to cheat slightly.
-         prefix |> List.take (List.length prefix - 1)
+            prefix |> List.take (List.length prefix - 1)
 
-        suffixLessOne = suffix |> List.drop 1
+        suffixLessOne =
+            suffix |> List.drop 1
 
         effectiveRegion =
             (prefix |> List.Extra.last |> Maybe.Extra.toList)
-            ++ actualNudgeRegionIncludingFades
-            ++ (List.take 1 suffix)
+                ++ actualNudgeRegionIncludingFades
+                ++ List.take 1 suffix
     in
     ( prefixLessOne, effectiveRegion, suffixLessOne )
 
@@ -334,6 +363,7 @@ buildActions imperial settings track =
                 |> Maybe.withDefault track.currentNode
                 |> .index
             )
+
         savedSettings : UndoRedoInfo
         savedSettings =
             -- Repetition is naff.
@@ -347,7 +377,6 @@ buildActions imperial settings track =
             , startAffected = start
             , endAffected = end
             }
-
     in
     -- This is the +/-ve delta for possible redo. We do not include track in the closure!
     { label = makeUndoMessage imperial track

@@ -175,8 +175,9 @@ addTrackToMap context track =
 
 addMarkersToMap :
     Track
+    -> List E.Value
     -> Cmd msg
-addMarkersToMap track  =
+addMarkersToMap track previews =
     let
         realWorldPosition tp =
             Track.withoutGhanianTransform track tp.xyz
@@ -197,26 +198,7 @@ addMarkersToMap track  =
 
                 Nothing ->
                     ( "ignore", E.null )
-
-            --, case moveAndStretch.stretchPointer of
-            --    Just idx ->
-            --        case track.trackPoints |> List.Extra.getAt idx of
-            --            Just white ->
-            --                ( "white", encodePos <| realWorldPosition white )
-            --
-            --            Nothing ->
-            --                ( "ignore", E.null )
-            --
-            --    Nothing ->
-            --        ( "ignore", E.null )
-            --, ( "bend", trackToJSON smoothBend )
-            --, if Accordion.tabIsOpen Nudge.toolLabel accordion then
-            --    ( "nudge", nudgePreview track )
-            --
-            --  else
-            --    ( "ignore", E.null )
-
-            --, ( "move", trackToJSON { track | trackPoints = moveAndStretch.preview } )
+            , ( "previews", E.list identity previews )
             ]
 
 

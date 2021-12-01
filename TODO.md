@@ -7,15 +7,9 @@
 
 ** STATE OF PLAY ** 
 
-> Must streamline all post-edit/undo/redo actions; no reason why it need be so convoluted.
-> Put back: **Map commands** (with requisite tidy-up).
-
-Try again with "previewFn" in Accordion.
-> Should work if we make closures, as they will be updated.
-> Need 3D, Profile, Map variants.
-
-++ Document graphics contribution to memory usage.
-> It's a fair chunk, and trackpoints surprisingly costly.
+Put back: **Map commands** (with requisite tidy-up).
+> Implement Nudge.previewMap
+> Change the JS to hande "previews" tag.
 
 Tools to be changed:
 - LoopedTrack
@@ -35,11 +29,6 @@ Tools to be changed:
 - RotateRoute
 - TrackSplitter
 
-**Suspicion** that keeping the separate Scene fragments is false economy as 
-rendering them after an edit is really not that expensive but keeping them
-all is a memory overhead. _We will stop this._ Do I still want to render
-the markers separately? _Let's try not doing that._ (Quick test tends to confirm.)
-
 **Deltas** on Undo/Redo rather than hold a full Track (with index!). 
 > I **shall** do this but it's a significant effort affecting all edits.
 1. New UndoEntry type
@@ -51,9 +40,8 @@ the markers separately? _Let's try not doing that._ (Quick test tends to confirm
 7. Redo repeats the command (on what will be the same as-then track effectively)
 8. Always recreate any indexes post application.
 
-Consistent approach to **preview** (Curve Former is example).
-> This may largely fall out of the previous.
-> Nudge done. Better.
+Automatically **reduce graphics** according to number of points.
+> Will hugely improve perceived performance.
 
 **Samir**
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 

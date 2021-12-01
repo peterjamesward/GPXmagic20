@@ -998,7 +998,7 @@ processPostUpdateAction model action =
                 |> Model
                 |> refreshAccordion
             , Cmd.batch
-                [ ViewPane.makeMapCommands newTrack model.viewPanes
+                [ ViewPane.makeMapCommands newTrack model.viewPanes (getMapPreviews model)
                 , Delay.after 50 RepaintMap
                 ]
             )
@@ -1012,7 +1012,7 @@ processPostUpdateAction model action =
                 |> Model
                 |> refreshAccordion
             , Cmd.batch
-                [ ViewPane.makeMapCommands track model.viewPanes
+                [ ViewPane.makeMapCommands track model.viewPanes (getMapPreviews model)
                 , Delay.after 50 RepaintMap
                 ]
             )
@@ -1035,7 +1035,7 @@ processPostUpdateAction model action =
                 |> Model
                 |> refreshAccordion
             , Cmd.batch
-                [ ViewPane.makeMapCommands newTrack newModel.viewPanes
+                [ ViewPane.makeMapCommands newTrack newModel.viewPanes (getMapPreviews model)
                 , Delay.after 50 RepaintMap
                 ]
             )
@@ -1054,7 +1054,7 @@ processPostUpdateAction model action =
                 |> Model
                 |> refreshAccordion
             , Cmd.batch
-                [--PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
+                [ PortController.addMarkersToMap updatedTrack (getMapPreviews model)
                 ]
             )
 
@@ -1076,8 +1076,7 @@ processPostUpdateAction model action =
                 |> refreshAccordion
             , Cmd.batch
                 [ Cmd.none
-
-                --, PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
+                , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
                 , if ViewPane.mapPaneIsLinked model.viewPanes then
                     PortController.centreMapOnCurrent updatedTrack
 
@@ -1090,10 +1089,6 @@ processPostUpdateAction model action =
             let
                 updatedTrack =
                     { track | markedNode = maybeTp }
-
-                --
-                --( bendPreview, nudgePreview ) =
-                --    updatePreviews model updatedTrack
             in
             ( { model | track = Just updatedTrack }
                 |> composeScene
@@ -1101,8 +1096,7 @@ processPostUpdateAction model action =
                 |> refreshAccordion
             , Cmd.batch
                 [ Cmd.none
-
-                --, PortController.addMarkersToMap updatedTrack bendPreview nudgePreview model.moveAndStretch
+                , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
                 ]
             )
 
@@ -1125,15 +1119,11 @@ processPostUpdateAction model action =
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
             ( model |> composeScene |> Model |> refreshAccordion
-            , --if isMapVisible model.viewPanes then
-              --    PortController.addMarkersToMap
-              --        track
-              --        bendPreview
-              --        nudgePreview
-              --        model.moveAndStretch
-              --
-              --else
-              Cmd.none
+            , if isMapVisible model.viewPanes then
+                PortController.addMarkersToMap track (getMapPreviews model)
+
+              else
+                Cmd.none
             )
 
         ( _, ActionCommand a ) ->
@@ -1152,6 +1142,26 @@ processPostUpdateAction model action =
 
         _ ->
             ( Model model, Cmd.none )
+
+
+getMapPreviews model =
+    case model.track of
+        Nothing ->
+            []
+
+        Just track ->
+            model.toolsAccordion
+                |> Accordion.openTabs
+                |> List.map
+                    (\tab ->
+                        case tab.previewMap of
+                            Just fn ->
+                                Just (fn track)
+
+                            Nothing ->
+                                Nothing
+                    )
+                |> List.filterMap identity
 
 
 processGpxLoaded : String -> Model -> ( Model, Cmd Msg )
@@ -1990,9 +2000,9 @@ toolsAccordion (Model model) =
       , info = Nudge.info
       , video = Just "https://youtu.be/HsH7R9SGaSs"
       , isFavourite = False
-      , preview3D = Just (Nudge.getPreview model.nudgeSettings)
-      , previewProfile = Just (Nudge.getProfilePreview model.displayOptions model.nudgeSettings)
-      , previewMap = Nothing
+      , preview3D = Just (Nudge.getPreview3D model.nudgeSettings)
+      , previewProfile = Just (Nudge.getPreviewProfile model.displayOptions model.nudgeSettings)
+      , previewMap = Just (Nudge.getPreviewMap model.displayOptions model.nudgeSettings)
       }
 
     --, { label = MoveAndStretch.toolLabel

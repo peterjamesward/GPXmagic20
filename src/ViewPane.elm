@@ -225,12 +225,12 @@ resetAllViews track pane =
     }
 
 
-makeMapCommands : Track -> List ViewPane -> Cmd msg
-makeMapCommands track viewPanes =
+makeMapCommands : Track -> List ViewPane -> List E.Value -> Cmd msg
+makeMapCommands track viewPanes previews =
     if isMapVisible viewPanes then
         case List.head viewPanes of
             Just pane ->
-                Cmd.batch <| ScenePainterMap.mapTrackHasChanged pane.mapContext track
+                Cmd.batch <| ScenePainterMap.mapTrackHasChanged pane.mapContext track previews
 
             Nothing ->
                 Cmd.none

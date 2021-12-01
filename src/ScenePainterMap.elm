@@ -10,6 +10,7 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
 import Html.Attributes exposing (id)
+import Json.Encode as E
 import Pixels exposing (Pixels, inPixels)
 import PortController
 import PostUpdateActions exposing (PostUpdateAction(..))
@@ -52,17 +53,16 @@ initialiseMap : ViewingContext -> Track -> Cmd msg
 initialiseMap context track =
     Cmd.batch
         [ PortController.addTrackToMap context track
-        , PortController.addMarkersToMap
-            track
+        , PortController.addMarkersToMap track []
         , PortController.centreMap context track
         , PortController.zoomMap context
         ]
 
 
-mapTrackHasChanged : ViewingContext -> Track -> List (Cmd msg)
-mapTrackHasChanged context track =
+mapTrackHasChanged : ViewingContext -> Track -> List E.Value -> List (Cmd msg)
+mapTrackHasChanged context track previews =
     [ PortController.addTrackToMap context track
-    , PortController.addMarkersToMap track
+    , PortController.addMarkersToMap track previews
     ]
 
 
