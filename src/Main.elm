@@ -1124,7 +1124,7 @@ processPostUpdateAction model action =
 
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
-            ( model |> composeScene |> Model
+            ( model |> composeScene |> Model |> refreshAccordion
             , --if isMapVisible model.viewPanes then
               --    PortController.addMarkersToMap
               --        track
