@@ -383,7 +383,10 @@ update msg (Model model) =
                 Just track ->
                     let
                         ( newSetttings, action ) =
-                            Nudge.update nudgeMsg model.displayOptions.imperialMeasure model.nudgeSettings track
+                            Nudge.update nudgeMsg
+                                model.displayOptions.imperialMeasure
+                                model.nudgeSettings
+                                track
                     in
                     processPostUpdateAction
                         { model | nudgeSettings = newSetttings }
@@ -978,6 +981,11 @@ processPostUpdateAction : ModelRecord -> PostUpdateAction Track (Cmd Msg) -> ( M
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
     -- I doubt that will ever be true.
+    let
+        fromModel (Model m) =
+            -- I dislike stuff like this.
+            m
+    in
     case ( model.track, action ) of
         ( Just track, ActionTrackChanged editType undoEntry ) ->
             let
@@ -989,16 +997,25 @@ processPostUpdateAction model action =
                         | trackPoints =
                             (prefix ++ changed ++ suffix) |> prepareTrackPoints
                     }
+
+                newModel =
+                    { model | track = Just newTrack }
+                        |> addToUndoStack undoEntry
+                        |> reflectNewTrackViaGraph newTrack editType
+                        |> repeatTrackDerivations
+                        |> composeScene
+                        |> Model
+                        |> refreshAccordion
+
+                newRecord =
+                    fromModel newModel
             in
-            ( { model | track = Just newTrack }
-                |> addToUndoStack undoEntry
-                |> reflectNewTrackViaGraph newTrack editType
-                |> repeatTrackDerivations
-                |> composeScene
-                |> Model
-                |> refreshAccordion
+            ( newModel
             , Cmd.batch
-                [ ViewPane.makeMapCommands newTrack model.viewPanes (getMapPreviews model)
+                [ ViewPane.makeMapCommands
+                    (newRecord.track |> Maybe.withDefault newTrack)
+                    newRecord.viewPanes
+                    (getMapPreviews newRecord)
                 , Delay.after 50 RepaintMap
                 ]
             )
@@ -1118,9 +1135,13 @@ processPostUpdateAction model action =
 
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
-            ( model |> composeScene |> Model |> refreshAccordion
+            let
+                newModel =
+                    model |> composeScene |> Model |> refreshAccordion
+            in
+            ( newModel
             , if isMapVisible model.viewPanes then
-                PortController.addMarkersToMap track (getMapPreviews model)
+                PortController.addMarkersToMap track (getMapPreviews <| fromModel newModel)
 
               else
                 Cmd.none
