@@ -7,8 +7,10 @@
 
 **STATE OF PLAY**
 
-Tools to be changed to new Undo/Review/Preview style:
+WIP:
 - BendSmoother
+
+Tools to be changed to new Undo/Review/Preview style:
 - CurveFormer
 - GradientLimiter
 - GradientSmoother

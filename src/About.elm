@@ -12,9 +12,9 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.11 update 2021-12-02
+## 2.8.0 update 2021-12-02
 
-- Stop mouse events on +/- zoom controls from being sent through to window below.
+- Internal improvements to reduce memory usage.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

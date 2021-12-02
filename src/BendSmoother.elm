@@ -3,10 +3,13 @@ module BendSmoother exposing (..)
 import Angle
 import Arc2d exposing (Arc2d)
 import Arc3d exposing (Arc3d)
+import Color
+import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Geometry101 as G exposing (..)
 import GeometryShared exposing (arc3dFromThreePoints)
+import Json.Encode as E
 import Length exposing (Meters, inMeters, meters)
 import LineSegment2d
 import LineSegment3d
@@ -16,13 +19,15 @@ import Point2d exposing (Point2d)
 import Point3d exposing (Point3d, xCoordinate, yCoordinate, zCoordinate)
 import Polyline2d
 import Polyline3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
+import Scene3d exposing (Entity)
+import SceneBuilder exposing (previewLine)
+import SceneBuilderProfile exposing (previewProfileLine)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
-import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
+import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
-import ViewPureStyles exposing (commonShortHorizontalSliderStyles, conditionallyVisible, prettyButtonStyles)
+import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
 toolLabel =
@@ -61,12 +66,14 @@ type Msg
 type alias BendOptions =
     { bendTrackPointSpacing : Float
     , segments : Int
+    , smoothBend : Maybe SmoothedBend
     }
 
 
 defaultOptions =
     { bendTrackPointSpacing = 5.0
     , segments = 1
+    , smoothBend = Nothing
     }
 
 
@@ -77,6 +84,11 @@ type alias SmoothedBend =
     , radius : Float
     , startIndex : Int -- Lead-in node that is NOT to be replaced
     , endIndex : Int -- ... and lead-out, not to be replaced.
+    }
+
+
+type alias UndoRedoInfo =
+    { newBend : SmoothedBend
     , oldNodes : List TrackPoint
     }
 
@@ -89,7 +101,7 @@ type alias DrawingRoad =
     }
 
 
-tryBendSmoother : Track -> BendOptions -> BendOptions
+tryBendSmoother : Track -> BendOptions -> Maybe SmoothedBend
 tryBendSmoother track options =
     let
         marker =
@@ -101,18 +113,42 @@ tryBendSmoother track options =
 
             else
                 ( marker, track.currentNode )
-
-        updatedOptions =
-            { options
-                | smoothedBend =
-                    if endPoint.index >= startPoint.index + 2 then
-                        lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
-
-                    else
-                        Nothing
-            }
     in
-    updatedOptions
+    if endPoint.index >= startPoint.index + 2 then
+        lookForSmoothBendOption options.bendTrackPointSpacing track startPoint endPoint
+
+    else
+        Nothing
+
+
+buildActions : BendOptions -> Track -> UndoEntry
+buildActions options track =
+    -- This is the +/-ve delta for possible redo. We do not include track in the closure!
+    case tryBendSmoother track options of
+        Just bend ->
+            let
+                undoRedoInfo =
+                    { newBend = bend
+                    , oldNodes =
+                        track.trackPoints
+                            |> List.drop bend.startIndex
+                            |> List.take (bend.endIndex - bend.startIndex)
+                    }
+            in
+            { label = makeUndoMessage options track
+            , editFunction = applySmoothBend undoRedoInfo
+            , undoFunction = undoSmoothBend undoRedoInfo
+            , newOrange = track.currentNode.index
+            , newPurple = Maybe.map .index track.markedNode
+            }
+
+        Nothing ->
+            { label = "Something amiss"
+            , editFunction = \t -> ( [], t.trackPoints, [] )
+            , undoFunction = \t -> ( [], t.trackPoints, [] )
+            , newOrange = track.currentNode.index
+            , newPurple = Maybe.map .index track.markedNode
+            }
 
 
 update :
@@ -126,9 +162,8 @@ update msg settings track =
             let
                 newSettings =
                     { settings | bendTrackPointSpacing = spacing }
-                        |> tryBendSmoother track
             in
-            ( newSettings
+            ( { newSettings | smoothBend = tryBendSmoother track newSettings }
             , PostUpdateActions.ActionPreview
             )
 
@@ -136,19 +171,16 @@ update msg settings track =
             let
                 newSettings =
                     { settings | segments = segments }
-                        |> tryBendSmoother track
             in
-            ( newSettings
+            ( { newSettings | smoothBend = tryBendSmoother track newSettings }
             , PostUpdateActions.ActionPreview
             )
 
         SmoothBend ->
             ( settings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --PostUpdateActions.EditPreservesNodePosition
-              --(smoothBend track settings)
-              --(makeUndoMessage settings track)
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildActions settings track)
             )
 
         SoftenBend ->
@@ -157,57 +189,34 @@ update msg settings track =
             )
 
 
-smoothBend : Track -> BendOptions -> Track
-smoothBend track options =
+applySmoothBend : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySmoothBend undoRedoInfo track =
     -- The replacement bend is a pre-computed list of Point3d,
     -- We splice them in as Trackpoints.
     let
-        marker =
-            Maybe.withDefault track.currentNode track.markedNode
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.newBend.startIndex
+
+        ( _, suffix ) =
+            theRest |> List.Extra.splitAt (undoRedoInfo.newBend.endIndex - undoRedoInfo.newBend.startIndex)
     in
-    case options.smoothedBend of
-        Just bend ->
-            let
-                numCurrentPoints =
-                    abs (track.currentNode.index - marker.index) - 1
+    ( prefix, undoRedoInfo.newBend.nodes, suffix )
 
-                numNewPoints =
-                    List.length bend.nodes - 2
 
-                newCurrent =
-                    if track.currentNode.index > bend.startIndex then
-                        List.Extra.getAt
-                            (track.currentNode.index - numCurrentPoints + numNewPoints)
-                            newTrackPoints
-                            |> Maybe.withDefault track.currentNode
+undoSmoothBend : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSmoothBend undoRedoInfo track =
+    -- The replacement bend is a pre-computed list of Point3d,
+    -- We splice them in as Trackpoints.
+    let
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.newBend.startIndex
 
-                    else
-                        track.currentNode
-
-                newMark =
-                    if marker.index > bend.startIndex then
-                        List.Extra.getAt
-                            (marker.index - numCurrentPoints + numNewPoints)
-                            newTrackPoints
-                            |> Maybe.withDefault marker
-
-                    else
-                        marker
-
-                newTrackPoints =
-                    List.take bend.startIndex track.trackPoints
-                        ++ bend.nodes
-                        ++ List.drop (bend.endIndex + 1) track.trackPoints
-                        |> TrackPoint.prepareTrackPoints
-            in
-            { track
-                | trackPoints = newTrackPoints
-                , currentNode = newCurrent
-                , markedNode = Just newMark
-            }
-
-        _ ->
-            track
+        ( _, suffix ) =
+            theRest |> List.Extra.splitAt (List.length undoRedoInfo.newBend.nodes)
+    in
+    ( prefix, undoRedoInfo.oldNodes, suffix )
 
 
 makeUndoMessage : BendOptions -> Track -> String
@@ -560,7 +569,7 @@ viewBendFixerPane imperial bendOptions wrap =
                         }
 
                     Nothing ->
-                        { onPress = Nothhing
+                        { onPress = Nothing
                         , label = text "No bend found"
                         }
 
@@ -573,7 +582,7 @@ viewBendFixerPane imperial bendOptions wrap =
     in
     wrappedRow [ spacing 10, padding 10 ] <|
         [ bendSmoothnessSlider imperial bendOptions wrap
-        , fixBendButton bendOptions.smoothedBend
+        , fixBendButton <| bendOptions.smoothBend
         , segmentSlider bendOptions wrap
         , softenButton
         ]
@@ -709,3 +718,53 @@ singlePoint3dArc track point =
 
         _ ->
             Nothing
+
+getPreview3D : BendOptions -> Track -> List (Entity LocalCoords)
+getPreview3D settings track =
+    let
+        undoEntry =
+            buildActions  settings track
+
+        ( _, bend, _ ) =
+            undoEntry.editFunction track
+    in
+    previewLine Color.yellow bend
+
+
+getPreviewProfile : DisplayOptions -> BendOptions -> Track -> List (Entity LocalCoords)
+getPreviewProfile options settings track =
+    let
+        undoEntry =
+            buildActions  settings track
+
+        ( _, bend, _ ) =
+            undoEntry.editFunction track
+    in
+    previewProfileLine options Color.yellow bend
+
+
+getPreviewMap : DisplayOptions -> BendOptions -> Track -> E.Value
+getPreviewMap options settings track =
+    {-
+       To return JSON:
+       { "name" : "nudge"
+       , "colour" : "#FFFFFF"
+       , "points" : <trackPointsToJSON ...>
+       }
+    -}
+    let
+        undoEntry =
+            buildActions  settings track
+
+        ( _, nudged, _ ) =
+            undoEntry.editFunction track
+
+        fakeTrack =
+            -- Just for the JSON
+            { track | trackPoints = nudged }
+    in
+    E.object
+        [ ( "name", E.string "bend" )
+        , ( "colour", E.string "#FFFFFF" )
+        , ( "points", Track.trackToJSON fakeTrack )
+        ]

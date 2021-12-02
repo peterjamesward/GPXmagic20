@@ -206,7 +206,7 @@ init mflags origin navigationKey =
       , changeCounter = 0
       , displayOptions = DisplayOptions.defaultDisplayOptions
 
-      --, bendOptions = BendSmoother.defaultOptions
+      , bendOptions = BendSmoother.defaultOptions
       , observations = TrackObservations.defaultObservations
 
       --, gradientOptions = GradientSmoother.defaultOptions
@@ -1974,7 +1974,7 @@ toolsAccordion (Model model) =
     , { label = BendSmoother.toolLabel
       , state = Contracted
       , content =
-            \Model m ->
+            \(Model m) ->
                 BendSmoother.viewBendFixerPane
                     model.displayOptions.imperialMeasure
                     model.bendOptions
@@ -1982,9 +1982,9 @@ toolsAccordion (Model model) =
       , info = BendSmoother.info
       , video = Just "https://youtu.be/VO5jsOZmTIg"
       , isFavourite = False
-      , preview3D = Nothing
-      , previewProfile = Nothing
-      , previewMap = Nothing
+      , preview3D = Just (BendSmoother.getPreview3D model.bendOptions)
+      , previewProfile = Just (BendSmoother.getPreviewProfile model.displayOptions model.bendOptions)
+      , previewMap = Just (BendSmoother.getPreviewMap model.displayOptions model.bendOptions)
       }
 
     --, { label = CurveFormer.toolLabel
