@@ -356,3 +356,15 @@ temporaryDecoder =
         |> optional "curtainStyle" int (encodeCurtain defaultDisplayOptions.curtainStyle)
         |> optional "LOC" float defaultDisplayOptions.levelOfDetailThreshold
         |> optional "MRlimit" bool defaultDisplayOptions.showRenderingLimit
+
+
+adjustDetail : DisplayOptions -> Int -> DisplayOptions
+adjustDetail options trackLength =
+    -- Auto reduce graphics for large tracks
+    { options
+        | levelOfDetailThreshold =
+            clamp 0.0 4.0 <|
+                toFloat <|
+                    ceiling <|
+                        logBase 10 (toFloat trackLength / 1000.0)
+    }

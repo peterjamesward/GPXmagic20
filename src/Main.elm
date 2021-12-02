@@ -1241,6 +1241,7 @@ applyTrack (Model model) track =
         , undoStack = []
         , redoStack = []
         , changeCounter = 0
+        , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
       }
         |> repeatTrackDerivations
         |> Model
