@@ -12,10 +12,9 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.10 update 2021-11-26
+## 2.7.11 update 2021-12-02
 
-- New visual option to show Magic Roads 1.5km rendering either side of the Orange marker.
-This will show as a dark blue disc, but only in 1st and 3rd person views.
+- Stop mouse events on +/- zoom controls from being sent through to window below.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")
