@@ -36,7 +36,7 @@ initialiseView viewSize track oldContext =
             zoomLevelFromBoundingBox viewSize track.trackPoints
     in
     { oldContext
-        | focalPoint = centralPoint
+        | focalPoint = track.currentNode.xyz
         , sceneSearcher = always Nothing
         , zoomLevel = zoom
         , defaultZoomLevel = zoom

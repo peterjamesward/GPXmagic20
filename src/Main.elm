@@ -748,21 +748,22 @@ update msg (Model model) =
         --    in
         --    processPostUpdateAction newModel action
         --
-        --ProblemMessage probMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map
-        --                (TrackObservations.update
-        --                    probMsg
-        --                    model.problemOptions
-        --                    model.bendOptions.segments
-        --                )
-        --                model.track
-        --                |> Maybe.withDefault ( model.problemOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | problemOptions = newOptions }
-        --        action
+        ProblemMessage probMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (TrackObservations.update
+                            probMsg
+                            model.problemOptions
+                            model.bendOptions.segments
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.problemOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | problemOptions = newOptions }
+                action
+
         UserChangedFilename txt ->
             ( Model { model | filename = Just txt }
             , Cmd.none

@@ -128,38 +128,9 @@ update msg settings numSegments track =
             )
 
         Autofix trackPoints ->
-            (settings, PostUpdateActions.ActionNoOp)
-        --    -- Apply the new 3D single point smoother.
-        --    -- Must do this from furthest point first, as points are added!
-        --    let
-        --        indicesToSmooth =
-        --            trackPoints |> List.map .index |> List.reverse
-        --
-        --        applyToSinglePointByIndex : Int -> Track -> Track
-        --        applyToSinglePointByIndex index changingTrack =
-        --            changingTrack
-            --        -- repeated use of prepareTrackPoints looks costly but check logic first.
-            --        Maybe.map
-            --            (BendSmoother.applySmoothPoint numSegments changingTrack)
-            --            (List.Extra.getAt index changingTrack.trackPoints)
-            --            |> Maybe.withDefault changingTrack
-            --
-            --    newTrack =
-            --        List.foldl
-            --            applyToSinglePointByIndex
-            --            track
-            --            indicesToSmooth
-            --in
-            --( settings
-            --,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                newTrack
---                ("Autofix "
---                    ++ (String.fromInt <| List.length trackPoints)
---                    ++ " points."
---                )
---            )
+            ( settings
+            , BendSmoother.multiplePointSmoothing trackPoints numSegments track
+            )
 
 
 deriveProblems : Track -> Options -> TrackObservations

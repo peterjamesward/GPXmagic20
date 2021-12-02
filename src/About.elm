@@ -16,6 +16,8 @@ aboutText ipInfo =
 
 - Internal improvements to reduce memory usage.
 
+- Initial view is centred on first track point.
+
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")
         ++ """
