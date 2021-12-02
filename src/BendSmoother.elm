@@ -60,7 +60,7 @@ type Msg
     = SmoothBend
     | SetBendTrackPointSpacing Float
     | SetSegments Int
-    | SoftenBend
+    | SmoothPoint
 
 
 type alias BendOptions =
@@ -121,8 +121,8 @@ tryBendSmoother track options =
         Nothing
 
 
-buildActions : BendOptions -> Track -> UndoEntry
-buildActions options track =
+buildSmoothBendActions : BendOptions -> Track -> UndoEntry
+buildSmoothBendActions options track =
     -- This is the +/-ve delta for possible redo. We do not include track in the closure!
     case tryBendSmoother track options of
         Just bend ->
@@ -180,12 +180,14 @@ update msg settings track =
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                (buildActions settings track)
+                (buildSmoothBendActions settings track)
             )
 
-        SoftenBend ->
+        SmoothPoint ->
             ( settings
-            , softenCurrentPoint settings track
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildSmoothPointActions settings track)
             )
 
 
@@ -579,7 +581,7 @@ viewBendFixerPane imperial bendOptions mtrack wrap =
                 softenButton =
                     button
                         prettyButtonStyles
-                        { onPress = Just <| wrap SoftenBend
+                        { onPress = Just <| wrap SmoothPoint
                         , label = text "Smooth current point"
                         }
             in
@@ -639,71 +641,79 @@ segmentSlider model wrap =
         }
 
 
-softenCurrentPoint : BendOptions -> Track -> PostUpdateActions.PostUpdateAction trck cmd
-softenCurrentPoint options track =
-    PostUpdateActions.ActionNoOp
+type alias SinglePointUndoRedo =
+    { index : Int
+    , numberOfPoints : Int
+    , xyz : Point3d.Point3d Length.Meters LocalCoords
+    }
 
 
-
---PostUpdateActions.ActionTrackChanged
---    PostUpdateActions.EditPreservesNodePosition
---    (softenSinglePoint options.segments track track.currentNode)
---    "Smooth single point"
-
-
-softenSinglePoint : Int -> Track -> TrackPoint -> Track
-softenSinglePoint numSegments track point =
-    -- Apply the new bend smoother to a single point, if possible.
-    case singlePoint3dArc track point of
-        Just arc ->
-            let
-                precedingTrack =
-                    List.take point.index track.trackPoints
-
-                remainingTrack =
-                    List.drop (point.index + 1) track.trackPoints
-
-                newPoints =
-                    Arc3d.startPoint arc
-                        :: (Arc3d.segments numSegments arc
-                                |> Polyline3d.segments
-                                |> List.map LineSegment3d.endPoint
-                           )
-
-                newBendPoints =
-                    List.map trackPointFromPoint newPoints
-
-                newTrackPoints =
-                    precedingTrack
-                        ++ newBendPoints
-                        ++ remainingTrack
-                        |> TrackPoint.prepareTrackPoints
-
-                newMark =
-                    case track.markedNode of
-                        Just marker ->
-                            if marker.index > point.index then
-                                List.Extra.getAt
-                                    (marker.index + numSegments)
-                                    newTrackPoints
-
-                            else
-                                Just marker
-
-                        Nothing ->
-                            Nothing
-            in
-            { track
-                | trackPoints = newTrackPoints
-                , markedNode = newMark
-                , currentNode =
-                    newTrackPoints
-                        |> List.Extra.getAt (track.currentNode.index + 1)
-                        |> Maybe.withDefault track.currentNode
+buildSmoothPointActions : BendOptions -> Track -> UndoEntry
+buildSmoothPointActions options track =
+    -- This is the +/-ve delta for possible redo. We do not include track in the closure!
+    let
+        undoRedoInfo : SinglePointUndoRedo
+        undoRedoInfo =
+            { index = track.currentNode.index
+            , numberOfPoints = options.segments
+            , xyz = track.currentNode.xyz
             }
+    in
+    { label = "Smooth point " ++ String.fromInt undoRedoInfo.index
+    , editFunction = applySmoothPoint undoRedoInfo
+    , undoFunction = undoSmoothPoint undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    }
 
+
+applySmoothPoint : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySmoothPoint undoRefoInfo track =
+    -- Apply the new bend smoother to a single point, if possible.
+    case List.Extra.getAt undoRefoInfo.index track.trackPoints of
         Nothing ->
-            track
+            ( [], track.trackPoints, [] )
+
+        Just point ->
+            case singlePoint3dArc track point of
+                Just arc ->
+                    let
+                        ( precedingTrack, theRest ) =
+                            track.trackPoints |> List.Extra.splitAt point.index
+
+                        remainingTrack =
+                            List.drop 1 theRest
+
+                        newPoints =
+                            Arc3d.startPoint arc
+                                :: (Arc3d.segments undoRefoInfo.numberOfPoints arc
+                                        |> Polyline3d.segments
+                                        |> List.map LineSegment3d.endPoint
+                                   )
+
+                        newBendPoints =
+                            List.map trackPointFromPoint newPoints
+                    in
+                    ( precedingTrack, newBendPoints, remainingTrack )
+
+                Nothing ->
+                    ( [], track.trackPoints, [] )
+
+
+undoSmoothPoint : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSmoothPoint undoRedoInfo track =
+    let
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.index
+
+        suffix =
+            theRest |> List.drop (1 + undoRedoInfo.numberOfPoints)
+
+        oldPoint =
+            trackPointFromPoint undoRedoInfo.xyz
+    in
+    ( prefix, [ oldPoint ], suffix )
 
 
 singlePoint3dArc : Track -> TrackPoint -> Maybe (Arc3d Meters LocalCoords)
@@ -731,7 +741,7 @@ getPreview3D options track =
             { options | smoothBend = tryBendSmoother track options }
 
         undoEntry =
-            buildActions updatedSettings track
+            buildSmoothBendActions updatedSettings track
 
         ( _, bend, _ ) =
             undoEntry.editFunction track
@@ -747,7 +757,7 @@ getPreviewProfile display options track =
             { options | smoothBend = tryBendSmoother track options }
 
         undoEntry =
-            buildActions updatedSettings track
+            buildSmoothBendActions updatedSettings track
 
         ( _, bend, _ ) =
             undoEntry.editFunction track
@@ -770,7 +780,7 @@ getPreviewMap display options track =
             { options | smoothBend = tryBendSmoother track options }
 
         undoEntry =
-            buildActions updatedSettings track
+            buildSmoothBendActions updatedSettings track
 
         ( _, bend, _ ) =
             undoEntry.editFunction track

@@ -128,28 +128,30 @@ update msg settings numSegments track =
             )
 
         Autofix trackPoints ->
-            -- Apply the new 3D single point smoother.
-            -- Must do this from furthest point first, as points are added!
-            let
-                indicesToSmooth =
-                    trackPoints |> List.map .index |> List.reverse
-
-                applyToSinglePointByIndex : Int -> Track -> Track
-                applyToSinglePointByIndex index changingTrack =
-                    -- repeated use of prepareTrackPoints looks costly but check logic first.
-                    Maybe.map
-                        (BendSmoother.softenSinglePoint numSegments changingTrack)
-                        (List.Extra.getAt index changingTrack.trackPoints)
-                        |> Maybe.withDefault changingTrack
-
-                newTrack =
-                    List.foldl
-                        applyToSinglePointByIndex
-                        track
-                        indicesToSmooth
-            in
-            ( settings
-            ,             PostUpdateActions.ActionNoOp
+            (settings, PostUpdateActions.ActionNoOp)
+        --    -- Apply the new 3D single point smoother.
+        --    -- Must do this from furthest point first, as points are added!
+        --    let
+        --        indicesToSmooth =
+        --            trackPoints |> List.map .index |> List.reverse
+        --
+        --        applyToSinglePointByIndex : Int -> Track -> Track
+        --        applyToSinglePointByIndex index changingTrack =
+        --            changingTrack
+            --        -- repeated use of prepareTrackPoints looks costly but check logic first.
+            --        Maybe.map
+            --            (BendSmoother.applySmoothPoint numSegments changingTrack)
+            --            (List.Extra.getAt index changingTrack.trackPoints)
+            --            |> Maybe.withDefault changingTrack
+            --
+            --    newTrack =
+            --        List.foldl
+            --            applyToSinglePointByIndex
+            --            track
+            --            indicesToSmooth
+            --in
+            --( settings
+            --,             PostUpdateActions.ActionNoOp
 --PostUpdateActions.ActionTrackChanged
 --                PostUpdateActions.EditPreservesNodePosition
 --                newTrack
@@ -157,7 +159,7 @@ update msg settings numSegments track =
 --                    ++ (String.fromInt <| List.length trackPoints)
 --                    ++ " points."
 --                )
-            )
+--            )
 
 
 deriveProblems : Track -> Options -> TrackObservations

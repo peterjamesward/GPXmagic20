@@ -8,7 +8,9 @@
 **STATE OF PLAY**
 
 WIP:
-- BendSmoother -- smooth single point todo.
+- Bend Smoother -- smooth single point todo.
+- Bend Smoother -- better marker positioning.
+- Bend Smoother -- multiple single points for Autofix (!!)
 
 Tools to be changed to new Undo/Review/Preview style:
 - CurveFormer
