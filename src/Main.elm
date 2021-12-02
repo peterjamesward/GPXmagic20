@@ -205,7 +205,6 @@ init mflags origin navigationKey =
       , redoStack = []
       , changeCounter = 0
       , displayOptions = DisplayOptions.defaultDisplayOptions
-
       , bendOptions = BendSmoother.defaultOptions
       , observations = TrackObservations.defaultObservations
 
@@ -629,15 +628,16 @@ update msg (Model model) =
             , PortController.storageSetItem "display" (DisplayOptions.encodeOptions newOptions)
             )
 
-        --BendSmoothMessage bendMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (BendSmoother.update bendMsg model.bendOptions) model.track
-        --                |> Maybe.withDefault ( model.bendOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | bendOptions = newOptions }
-        --        action
+        BendSmoothMessage bendMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (BendSmoother.update bendMsg model.bendOptions) model.track
+                        |> Maybe.withDefault ( model.bendOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | bendOptions = newOptions }
+                action
+
         LoopMsg loopMsg ->
             let
                 ( newOptions, action ) =
@@ -1978,6 +1978,7 @@ toolsAccordion (Model model) =
                 BendSmoother.viewBendFixerPane
                     model.displayOptions.imperialMeasure
                     model.bendOptions
+                    model.track
                     BendSmoothMessage
       , info = BendSmoother.info
       , video = Just "https://youtu.be/VO5jsOZmTIg"

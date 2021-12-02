@@ -552,40 +552,45 @@ parallelFindSemicircle r1 r2 =
             Nothing
 
 
-viewBendFixerPane : Bool -> BendOptions -> (Msg -> msg) -> Element msg
-viewBendFixerPane imperial bendOptions wrap =
-    let
-        fixBendButton smooth =
-            button
-                prettyButtonStyles
-            <|
-                case smooth of
-                    Just isSmooth ->
-                        { onPress = Just <| wrap SmoothBend
-                        , label =
-                            text <|
-                                "Smooth between markers\nRadius "
-                                    ++ showShortMeasure imperial (Length.meters isSmooth.radius)
-                        }
+viewBendFixerPane : Bool -> BendOptions -> Maybe Track -> (Msg -> msg) -> Element msg
+viewBendFixerPane imperial bendOptions mtrack wrap =
+    case mtrack of
+        Nothing ->
+            none
 
-                    Nothing ->
-                        { onPress = Nothing
-                        , label = text "No bend found"
-                        }
+        Just track ->
+            let
+                fixBendButton smooth =
+                    button
+                        prettyButtonStyles
+                    <|
+                        case tryBendSmoother track bendOptions of
+                            Just isSmooth ->
+                                { onPress = Just <| wrap SmoothBend
+                                , label =
+                                    text <|
+                                        "Smooth bend with\nradius "
+                                            ++ showShortMeasure imperial (Length.meters isSmooth.radius)
+                                }
 
-        softenButton =
-            button
-                prettyButtonStyles
-                { onPress = Just <| wrap SoftenBend
-                , label = text "Smooth current point"
-                }
-    in
-    wrappedRow [ spacing 10, padding 10 ] <|
-        [ bendSmoothnessSlider imperial bendOptions wrap
-        , fixBendButton <| bendOptions.smoothBend
-        , segmentSlider bendOptions wrap
-        , softenButton
-        ]
+                            Nothing ->
+                                { onPress = Nothing
+                                , label = text "No bend found"
+                                }
+
+                softenButton =
+                    button
+                        prettyButtonStyles
+                        { onPress = Just <| wrap SoftenBend
+                        , label = text "Smooth current point"
+                        }
+            in
+            wrappedRow [ spacing 10, padding 10 ] <|
+                [ bendSmoothnessSlider imperial bendOptions wrap
+                , fixBendButton <| bendOptions.smoothBend
+                , segmentSlider bendOptions wrap
+                , softenButton
+                ]
 
 
 bendSmoothnessSlider : Bool -> BendOptions -> (Msg -> msg) -> Element msg
@@ -719,11 +724,16 @@ singlePoint3dArc track point =
         _ ->
             Nothing
 
+
 getPreview3D : BendOptions -> Track -> List (Entity LocalCoords)
-getPreview3D settings track =
+getPreview3D options track =
     let
+        updatedSettings =
+            -- Because, say, someone moved the markers...
+            { options | smoothBend = tryBendSmoother track options }
+
         undoEntry =
-            buildActions  settings track
+            buildActions updatedSettings track
 
         ( _, bend, _ ) =
             undoEntry.editFunction track
@@ -732,19 +742,23 @@ getPreview3D settings track =
 
 
 getPreviewProfile : DisplayOptions -> BendOptions -> Track -> List (Entity LocalCoords)
-getPreviewProfile options settings track =
+getPreviewProfile display options track =
     let
+        updatedSettings =
+            -- Because, say, someone moved the markers...
+            { options | smoothBend = tryBendSmoother track options }
+
         undoEntry =
-            buildActions  settings track
+            buildActions updatedSettings track
 
         ( _, bend, _ ) =
             undoEntry.editFunction track
     in
-    previewProfileLine options Color.yellow bend
+    previewProfileLine display Color.yellow bend
 
 
 getPreviewMap : DisplayOptions -> BendOptions -> Track -> E.Value
-getPreviewMap options settings track =
+getPreviewMap display options track =
     {-
        To return JSON:
        { "name" : "nudge"
@@ -753,15 +767,19 @@ getPreviewMap options settings track =
        }
     -}
     let
-        undoEntry =
-            buildActions  settings track
+        updatedSettings =
+            -- Because, say, someone moved the markers...
+            { options | smoothBend = tryBendSmoother track options }
 
-        ( _, nudged, _ ) =
+        undoEntry =
+            buildActions updatedSettings track
+
+        ( _, bend, _ ) =
             undoEntry.editFunction track
 
         fakeTrack =
             -- Just for the JSON
-            { track | trackPoints = nudged }
+            { track | trackPoints = bend }
     in
     E.object
         [ ( "name", E.string "bend" )
