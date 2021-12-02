@@ -132,7 +132,7 @@ buildActions options track =
                     , oldNodes =
                         track.trackPoints
                             |> List.drop bend.startIndex
-                            |> List.take (bend.endIndex - bend.startIndex)
+                            |> List.take (bend.endIndex - bend.startIndex + 1)
                     }
             in
             { label = makeUndoMessage options track
@@ -206,8 +206,6 @@ applySmoothBend undoRedoInfo track =
 
 undoSmoothBend : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 undoSmoothBend undoRedoInfo track =
-    -- The replacement bend is a pre-computed list of Point3d,
-    -- We splice them in as Trackpoints.
     let
         ( prefix, theRest ) =
             track.trackPoints

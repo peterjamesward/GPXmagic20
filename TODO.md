@@ -8,7 +8,7 @@
 **STATE OF PLAY**
 
 WIP:
-- BendSmoother -- possible out by one error in splicing; smooth single point todo.
+- BendSmoother -- smooth single point todo.
 
 Tools to be changed to new Undo/Review/Preview style:
 - CurveFormer
