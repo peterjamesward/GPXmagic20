@@ -55,11 +55,14 @@ withMouseCapture wrap =
     , htmlAttribute <| Mouse.onClick (ImageClick >> wrap)
     , htmlAttribute <| Mouse.onDoubleClick (ImageDoubleClick >> wrap)
     , htmlAttribute <| Wheel.onWheel (\event -> wrap (ImageMouseWheel event.deltaY))
-    , htmlAttribute <| style "touch-action" "none"
     , onContextMenu (wrap ImageNoOpMsg)
     , width fill
     , pointer
     ]
+
+
+stopProp =
+    { stopPropagation = True, preventDefault = False }
 
 
 zoomButtons wrap =
@@ -72,16 +75,20 @@ zoomButtons wrap =
         , Font.size 40
         , padding 6
         , spacing 8
+        , htmlAttribute <| Mouse.onWithOptions "click" stopProp (always ImageNoOpMsg >> wrap)
+        , htmlAttribute <| Mouse.onWithOptions "dblclick" stopProp (always ImageNoOpMsg >> wrap)
+        , htmlAttribute <| Mouse.onWithOptions "mousedown" stopProp (always ImageNoOpMsg >> wrap)
+        , htmlAttribute <| Mouse.onWithOptions "mouseup" stopProp (always ImageNoOpMsg >> wrap)
         ]
-        [ button []
+        [ button [  ]
             { onPress = Just <| wrap ImageZoomIn
             , label = useIcon FeatherIcons.plus
             }
-        , button []
+        , button [  ]
             { onPress = Just <| wrap ImageZoomOut
             , label = useIcon FeatherIcons.minus
             }
-        , button []
+        , button [  ]
             { onPress = Just <| wrap ImageReset
             , label = useIcon FeatherIcons.maximize
             }
