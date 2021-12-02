@@ -828,7 +828,7 @@ buildMultiplePointAction trackPoints numSegments track =
                     |> List.map .index
                     |> List.sort
                     |> List.reverse
-            , originalPoints = trackPoints |> List.map .xyz
+            , originalPoints = track.trackPoints |> List.map .xyz
             }
     in
     { label = "Autofix " ++ String.fromInt (List.length trackPoints) ++ " points"
@@ -859,9 +859,9 @@ applyMultiplePoints undoRedoInfo track =
                     }
 
                 ( prefix, middle, suffix ) =
-                    applySmoothPoint innerInfo track
+                    applySmoothPoint innerInfo changingTrack
             in
-            { track
+            { changingTrack
                 | trackPoints =
                     prefix ++ middle ++ suffix
             }

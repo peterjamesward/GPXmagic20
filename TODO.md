@@ -8,10 +8,10 @@
 **STATE OF PLAY**
 
 WIP:
-- Bend Smoother -- Autofix needs some work!
+
+- CurveFormer
 
 Tools to be changed to new Undo/Review/Preview style:
-- CurveFormer
 - GradientLimiter
 - GradientSmoother
 - MoveAndStretch
