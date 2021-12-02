@@ -60,36 +60,37 @@ type Msg
 
 type alias BendOptions =
     { bendTrackPointSpacing : Float
-    , smoothedBend : Maybe SmoothedBend
     , segments : Int
     }
 
 
 defaultOptions =
     { bendTrackPointSpacing = 5.0
-    , smoothedBend = Nothing
     , segments = 1
     }
 
 
 type alias SmoothedBend =
+    -- This becomes the Undo/Redo info.
     { nodes : List TrackPoint
     , centre : Point2d Length.Meters LocalCoords
     , radius : Float
     , startIndex : Int -- Lead-in node that is NOT to be replaced
     , endIndex : Int -- ... and lead-out, not to be replaced.
+    , oldNodes : List TrackPoint
     }
 
 
 type alias DrawingRoad =
+    -- Helps with interacting with my v1 geometry routines.
     { startsAt : Point3d Meters LocalCoords
     , endsAt : Point3d Meters LocalCoords
     , index : Int
     }
 
 
-tryBendSmoother : BendOptions -> Track -> BendOptions
-tryBendSmoother options track =
+tryBendSmoother : Track -> BendOptions -> BendOptions
+tryBendSmoother track options =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
@@ -125,6 +126,7 @@ update msg settings track =
             let
                 newSettings =
                     { settings | bendTrackPointSpacing = spacing }
+                        |> tryBendSmoother track
             in
             ( newSettings
             , PostUpdateActions.ActionPreview
@@ -134,6 +136,7 @@ update msg settings track =
             let
                 newSettings =
                     { settings | segments = segments }
+                        |> tryBendSmoother track
             in
             ( newSettings
             , PostUpdateActions.ActionPreview
@@ -141,11 +144,11 @@ update msg settings track =
 
         SmoothBend ->
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
-                --PostUpdateActions.EditPreservesNodePosition
-                --(smoothBend track settings)
-                --(makeUndoMessage settings track)
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --PostUpdateActions.EditPreservesNodePosition
+              --(smoothBend track settings)
+              --(makeUndoMessage settings track)
             )
 
         SoftenBend ->
@@ -546,17 +549,20 @@ viewBendFixerPane imperial bendOptions wrap =
         fixBendButton smooth =
             button
                 prettyButtonStyles
-                { onPress = Just <| wrap SmoothBend
-                , label =
-                    case smooth of
-                        Just isSmooth ->
+            <|
+                case smooth of
+                    Just isSmooth ->
+                        { onPress = Just <| wrap SmoothBend
+                        , label =
                             text <|
                                 "Smooth between markers\nRadius "
                                     ++ showShortMeasure imperial (Length.meters isSmooth.radius)
+                        }
 
-                        Nothing ->
-                            text "No bend found"
-                }
+                    Nothing ->
+                        { onPress = Nothhing
+                        , label = text "No bend found"
+                        }
 
         softenButton =
             button
@@ -623,11 +629,14 @@ segmentSlider model wrap =
 
 softenCurrentPoint : BendOptions -> Track -> PostUpdateActions.PostUpdateAction trck cmd
 softenCurrentPoint options track =
-            PostUpdateActions.ActionNoOp
-    --PostUpdateActions.ActionTrackChanged
-    --    PostUpdateActions.EditPreservesNodePosition
-    --    (softenSinglePoint options.segments track track.currentNode)
-    --    "Smooth single point"
+    PostUpdateActions.ActionNoOp
+
+
+
+--PostUpdateActions.ActionTrackChanged
+--    PostUpdateActions.EditPreservesNodePosition
+--    (softenSinglePoint options.segments track track.currentNode)
+--    "Smooth single point"
 
 
 softenSinglePoint : Int -> Track -> TrackPoint -> Track

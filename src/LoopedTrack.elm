@@ -250,7 +250,6 @@ applyReverse context track =
 
 revertReverse : ReverseUndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 revertReverse context track =
-    --TODO: Not working.
     let
         ( startInReverse, endInReverse ) =
             ( List.length track.trackPoints - context.endOfReversedSection - 1

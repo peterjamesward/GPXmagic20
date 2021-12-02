@@ -13,6 +13,7 @@ module Main exposing (main)
 --import StravaTools exposing (stravaRouteOption)
 
 import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
+import BendSmoother
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
@@ -87,7 +88,7 @@ type Msg
     | PortMessage Encode.Value
     | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
-      --| BendSmoothMessage BendSmoother.Msg
+    | BendSmoothMessage BendSmoother.Msg
     | LoopMsg LoopedTrack.Msg
       --| GradientMessage GradientSmoother.Msg
       --| GradientLimiter GradientLimiter.Msg
@@ -150,8 +151,7 @@ type alias ModelRecord =
     , redoStack : List UndoEntry
     , changeCounter : Int
     , displayOptions : DisplayOptions.DisplayOptions
-
-    --, bendOptions : BendSmoother.BendOptions
+    , bendOptions : BendSmoother.BendOptions
     , observations : TrackObservations
 
     --, gradientOptions : GradientSmoother.Options
@@ -1971,18 +1971,22 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = BendSmoother.toolLabel
+      , state = Contracted
+      , content =
+            \Model m ->
+                BendSmoother.viewBendFixerPane
+                    model.displayOptions.imperialMeasure
+                    model.bendOptions
+                    BendSmoothMessage
+      , info = BendSmoother.info
+      , video = Just "https://youtu.be/VO5jsOZmTIg"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = BendSmoother.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        BendSmoother.viewBendFixerPane
-    --            model.displayOptions.imperialMeasure
-    --            model.bendOptions
-    --            BendSmoothMessage
-    --  , info = BendSmoother.info
-    --  , video = Just "https://youtu.be/VO5jsOZmTIg"
-    --  , isFavourite = False
-    --  }
     --, { label = CurveFormer.toolLabel
     --  , state = Contracted
     --  , content =

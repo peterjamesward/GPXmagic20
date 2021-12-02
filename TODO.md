@@ -5,9 +5,7 @@
 
 # TO-DO
 
-** STATE OF PLAY ** 
-
---
+**STATE OF PLAY**
 
 Tools to be changed to new Undo/Review/Preview style:
 - BendSmoother
@@ -35,6 +33,15 @@ as those are the ones that I would adjust for smooth riding in RGT? Thanks in ad
 > Involves direction changes v. distance changes across whole track (window calc).
 > Maybe, rather than a radius slider, have distance and length sliders and display the
 > equivalent radius. This will allow people to look only for hairpins, say.
+
+**Dan**
+Show gradient over distance. 
+> Perhaps optionally underneath the profile?
+> Might be better with SVG, with info overlay. Maybe use a library.
+> https://terezka.github.io/line-charts/
+
+**David Ogle**
+Save Zoom level? Or just make initial zoom tighter, and on the start point.
 
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.
