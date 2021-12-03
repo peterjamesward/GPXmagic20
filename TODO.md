@@ -7,9 +7,7 @@
 
 **STATE OF PLAY**
 
-WIP:
-
--- Autofix - address the multiple case primarily, let single point be trivial case.
+**WIP**
 
 Tools to be changed to new Undo/Review/Preview style:
 - CurveFormer

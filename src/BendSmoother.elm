@@ -692,12 +692,6 @@ applySmoothPoints undoRefoInfo track =
                 |> Utils.subListsByWithSingletons
                     (\tp -> List.member tp.index undoRefoInfo.indices)
 
-        _ =
-            Debug.log "sublists"
-                ( sectionsUntouched |> List.map (List.map .index)
-                , List.map .index nodesToSmooth
-                )
-
         ( prefix, suffix ) =
             -- There may be large sections either side; let's respect that.
             ( List.head sectionsUntouched |> Maybe.withDefault []
@@ -728,7 +722,47 @@ undoSmoothPoints undoRedoInfo track =
     -- The essence of 'undo' is to split the track into fragments at the nominated points,
     -- (accounting for the additional points added by the 'apply')
     -- replace the the smoothed verions with the single points, and recombine.
-    ( [], [], [] )
+    -- Similar approach to apply but each point is replaced by (numSegments + 1) points,
+    -- so we need to work out the new numbers and hence our splitting predicate.
+    -- E.g. if our nodes were [1, 10, 20], and numSegments = 3
+    -- [1] is now [1..4] so rest bumped by 3.
+    -- [10] is now [13..16], so rest bumped by 6.
+    -- [20] is now [26..29].
+    let
+        indexBumps =
+            List.range 0 (List.length undoRedoInfo.indices - 1)
+                |> List.map ((*) undoRedoInfo.numberOfSegments)
+
+        bumpedIndices =
+            List.map2 (+) undoRedoInfo.indices indexBumps
+
+        ( sectionsUntouched, bendNodes ) =
+            Utils.subListsByGreedy
+                (\tp -> List.member tp.index bumpedIndices)
+                (undoRedoInfo.numberOfSegments + 1)
+                track.trackPoints
+
+        ( prefix, suffix ) =
+            -- There may be large sections either side; let's respect that.
+            ( List.head sectionsUntouched |> Maybe.withDefault []
+            , List.Extra.last sectionsUntouched |> Maybe.withDefault []
+            )
+
+        fillers : List (List TrackPoint)
+        fillers =
+            -- These are what we interweave between the new curved nodes.
+            sectionsUntouched
+                |> List.take (List.length sectionsUntouched - 1)
+                |> List.drop 1
+
+        restoredPoints =
+            undoRedoInfo.xyzs
+                |> List.map (trackPointFromPoint >> List.singleton)
+    in
+    ( prefix
+    , List.Extra.interweave restoredPoints fillers |> List.concat
+    , suffix
+    )
 
 
 singlePoint3dArc : Track -> TrackPoint -> Maybe (Arc3d Meters LocalCoords)

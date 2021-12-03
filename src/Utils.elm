@@ -142,6 +142,41 @@ subListsByWithSingletons predicate items =
     ( List.reverse falseSections, List.reverse trueSections )
 
 
+subListsByGreedy : (a -> Bool) -> Int -> List a -> ( List (List a), List (List a) )
+subListsByGreedy predicate numberToTake items =
+    -- Return is (<bits of list where predicate False>, <bits where True>)
+    -- but here when we find a True, we consume `numberToTake`, this will reflect
+    -- the number of inserted segments.
+    -- Return is (<bits of list where predicate False>, <singletons where True>)
+    let
+        startState =
+            { falseSections = []
+            , trueSections = []
+            }
+
+        consumeFalseSection state source =
+            case source |> List.Extra.splitWhen predicate of
+                Nothing ->
+                    { state | falseSections = source :: state.falseSections }
+
+                Just ( falseSection, remaining ) ->
+                    consumeTrueCluster
+                        { state | falseSections = falseSection :: state.falseSections }
+                        remaining
+
+        consumeTrueCluster state source =
+            case source of
+                shouldHaveEnough ->
+                    consumeFalseSection
+                        { state | trueSections = List.take numberToTake shouldHaveEnough :: state.trueSections }
+                        (List.drop numberToTake shouldHaveEnough)
+
+        { falseSections, trueSections } =
+            consumeFalseSection startState items
+    in
+    ( List.reverse falseSections, List.reverse trueSections )
+
+
 elide : List a -> List a
 elide input =
     -- Fold is essential  for performance.
