@@ -219,7 +219,7 @@ update message model wrapper track =
 
                             else
                                 model.referencePoint
-                      }
+                      } |> seekNewCurve track
                     , PostUpdateActions.ActionPreview
                     )
 
@@ -264,7 +264,7 @@ update message model wrapper track =
             )
 
         DraggerApply ->
-            ( { model | dragging = Nothing, referencePoint = Nothing }
+            ( defaultModel
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
                 (buildEditUndoActions model track)

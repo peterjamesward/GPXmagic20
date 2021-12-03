@@ -1016,9 +1016,9 @@ processPostUpdateAction model action =
                         |> addToUndoStack undoEntry
                         |> reflectNewTrackViaGraph newTrack editType
                         |> repeatTrackDerivations
+                        |> refreshAccordion
                         |> composeScene
                         |> Model
-                        |> refreshAccordion
 
                 newRecord =
                     fromModel newModel
@@ -1038,9 +1038,9 @@ processPostUpdateAction model action =
             ( model
                 |> reflectNewTrackViaGraph track EditNoOp
                 |> repeatTrackDerivations
+                |> refreshAccordion
                 |> composeScene
                 |> Model
-                |> refreshAccordion
             , Cmd.batch
                 [ ViewPane.makeMapCommands track model.viewPanes (getMapPreviews model)
                 , Delay.after 50 RepaintMap
@@ -1062,8 +1062,10 @@ processPostUpdateAction model action =
             in
             ( newModel
                 |> reflectNewTrackViaGraph track EditNoOp
-                |> Model
+                |> repeatTrackDerivations
                 |> refreshAccordion
+                |> composeScene
+                |> Model
             , Cmd.batch
                 [ ViewPane.makeMapCommands newTrack newModel.viewPanes (getMapPreviews model)
                 , Delay.after 50 RepaintMap
@@ -1080,9 +1082,9 @@ processPostUpdateAction model action =
                 --    updatePreviews model updatedTrack
             in
             ( { model | track = Just updatedTrack }
+                |> refreshAccordion
                 |> composeScene
                 |> Model
-                |> refreshAccordion
             , Cmd.batch
                 [ PortController.addMarkersToMap updatedTrack (getMapPreviews model)
                 ]
@@ -1101,9 +1103,9 @@ processPostUpdateAction model action =
                 | track = Just updatedTrack
                 , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
               }
+                |> refreshAccordion
                 |> composeScene
                 |> Model
-                |> refreshAccordion
             , Cmd.batch
                 [ Cmd.none
                 , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
@@ -1121,9 +1123,9 @@ processPostUpdateAction model action =
                     { track | markedNode = maybeTp }
             in
             ( { model | track = Just updatedTrack }
+                |> refreshAccordion
                 |> composeScene
                 |> Model
-                |> refreshAccordion
             , Cmd.batch
                 [ Cmd.none
                 , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
@@ -1141,7 +1143,10 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionFetchMapElevations ) ->
-            ( model |> Model |> refreshAccordion
+            ( model
+                |> refreshAccordion
+                |> composeScene
+                |> Model
             , PortController.requestElevations
             )
 
@@ -1149,7 +1154,10 @@ processPostUpdateAction model action =
             -- We make dummy "Tracks" here for the Map.
             let
                 newModel =
-                    model |> composeScene |> Model |> refreshAccordion
+                    model
+                        |> refreshAccordion
+                        |> composeScene
+                        |> Model
             in
             ( newModel
             , if isMapVisible model.viewPanes then
@@ -1164,12 +1172,15 @@ processPostUpdateAction model action =
 
         ( _, ActionNewRoute content source ) ->
             let
-                ( newModel, cmds ) =
+                ( Model newModel, cmds ) =
                     { model | gpxSource = source }
                         |> Model
                         |> processGpxLoaded content
             in
-            ( newModel |> refreshAccordion
+            ( newModel
+                |> refreshAccordion
+                |> composeScene
+                |> Model
             , cmds
             )
 
@@ -1635,16 +1646,6 @@ renderVarying3dSceneElements model isTrack =
     --
     --        Nothing ->
     --            []
-    --curveFormerWithPreview =
-    --    Maybe.map (CurveFormer.preview latestModel.curveFormer) latestModel.track
-    --        |> Maybe.withDefault latestModel.curveFormer
-    --
-    --curveFormerCircle =
-    --    if Accordion.tabIsOpen CurveFormer.toolLabel latestModel.toolsAccordion then
-    --        CurveFormer.getPreview curveFormerWithPreview
-    --
-    --    else
-    --        []
     ]
         |> Utils.combineLists
 
@@ -1909,19 +1910,18 @@ viewAllPanes panes model ( scene, profile, plan ) wrapper =
             panes
 
 
-refreshAccordion : Model -> Model
-refreshAccordion (Model model) =
+refreshAccordion : ModelRecord -> ModelRecord
+refreshAccordion model =
     let
         preserveCurrentState currentVersion definedVersion =
             { definedVersion | state = currentVersion.state }
     in
-    Model
-        { model
-            | toolsAccordion =
-                List.map2 preserveCurrentState
-                    model.toolsAccordion
-                    (toolsAccordion (Model model))
-        }
+    { model
+        | toolsAccordion =
+            List.map2 preserveCurrentState
+                model.toolsAccordion
+                (toolsAccordion (Model model))
+    }
 
 
 subscriptions : Model -> Sub Msg
