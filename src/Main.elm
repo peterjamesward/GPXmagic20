@@ -2003,7 +2003,7 @@ toolsAccordion (Model model) =
       , info = CurveFormer.info
       , video = Just "https://youtu.be/DjdwAFkgw2o"
       , isFavourite = False
-      , preview3D = Nothing
+      , preview3D = Just (CurveFormer.getPreview3D model.curveFormer)
       , previewProfile = Nothing
       , previewMap = Nothing
       }

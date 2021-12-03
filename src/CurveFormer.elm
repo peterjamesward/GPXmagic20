@@ -1210,8 +1210,8 @@ seekNewCurve track model =
     }
 
 
-getPreview : Model -> List (Entity LocalCoords)
-getPreview model =
+getPreview3D : Model -> Track -> List (Entity LocalCoords)
+getPreview3D model track =
     showCircle model
         ++ showDisc model
         ++ highlightPoints Color.white model.pointsWithinCircle
