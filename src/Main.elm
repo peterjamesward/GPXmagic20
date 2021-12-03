@@ -17,6 +17,7 @@ import BendSmoother
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import CurveFormer
 import Delay exposing (after)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
@@ -111,10 +112,7 @@ type Msg
     | ResizeViews Int
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
-
-
-
---| CurveFormerMsg CurveFormer.Msg
+    | CurveFormerMsg CurveFormer.Msg
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -178,7 +176,7 @@ type alias ModelRecord =
     , markerOptions : MarkerControls.Options
 
     --, moveAndStretch : MoveAndStretch.Model
-    --, curveFormer : CurveFormer.Model
+    , curveFormer : CurveFormer.Model
     }
 
 
@@ -232,7 +230,7 @@ init mflags origin navigationKey =
       , markerOptions = MarkerControls.defaultOptions
 
       --, moveAndStretch = MoveAndStretch.defaultModel
-      --, curveFormer = CurveFormer.defaultModel
+      , curveFormer = CurveFormer.defaultModel
       }
         -- Just make sure the Accordion reflects all the other state.
         |> (\record -> { record | toolsAccordion = toolsAccordion (Model record) })
@@ -888,21 +886,22 @@ update msg (Model model) =
         --    processPostUpdateAction
         --        { model | moveAndStretch = newOptions }
         --        action
-        --CurveFormerMsg curveMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map
-        --                (CurveFormer.update
-        --                    curveMsg
-        --                    model.curveFormer
-        --                    CurveFormerMsg
-        --                )
-        --                model.track
-        --                |> Maybe.withDefault ( model.curveFormer, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | curveFormer = newOptions }
-        --        action
+        CurveFormerMsg curveMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (CurveFormer.update
+                            curveMsg
+                            model.curveFormer
+                            CurveFormerMsg
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.curveFormer, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | curveFormer = newOptions }
+                action
+
         _ ->
             ( Model model, Cmd.none )
 
@@ -1978,9 +1977,9 @@ toolsAccordion (Model model) =
       , content =
             \(Model m) ->
                 BendSmoother.viewBendFixerPane
-                    model.displayOptions.imperialMeasure
-                    model.bendOptions
-                    model.track
+                    m.displayOptions.imperialMeasure
+                    m.bendOptions
+                    m.track
                     BendSmoothMessage
       , info = BendSmoother.info
       , video = Just "https://youtu.be/VO5jsOZmTIg"
@@ -1989,22 +1988,26 @@ toolsAccordion (Model model) =
       , previewProfile = Just (BendSmoother.getPreviewProfile model.displayOptions model.bendOptions)
       , previewMap = Just (BendSmoother.getPreviewMap model.displayOptions model.bendOptions)
       }
+    , { label = CurveFormer.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (CurveFormer.view
+                        m.displayOptions.imperialMeasure
+                        m.curveFormer
+                        CurveFormerMsg
+                    )
+                    m.track
+                    |> Maybe.withDefault none
+      , info = CurveFormer.info
+      , video = Just "https://youtu.be/DjdwAFkgw2o"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = CurveFormer.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (CurveFormer.view
-    --                model.displayOptions.imperialMeasure
-    --                model.curveFormer
-    --                CurveFormerMsg
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = CurveFormer.info
-    --  , video = Just "https://youtu.be/DjdwAFkgw2o"
-    --  , isFavourite = False
-    --  }
     --, { label = GradientLimiter.toolLabel
     --  , state = Contracted
     --  , content =

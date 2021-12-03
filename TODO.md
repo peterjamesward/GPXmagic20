@@ -9,8 +9,9 @@
 
 **WIP**
 
-Tools to be changed to new Undo/Review/Preview style:
 - CurveFormer
+
+Tools to be changed to new Undo/Review/Preview style:
 - GradientLimiter
 - GradientSmoother
 - MoveAndStretch
@@ -24,6 +25,8 @@ Tools to be changed to new Undo/Review/Preview style:
 - StravaTools
 - RotateRoute
 - TrackSplitter
+- Drag on Map
+- One Click Quick Fix
 
 Automatically **reduce graphics** according to number of points.
 > Will hugely improve perceived performance.

@@ -3,13 +3,10 @@ module CurveFormer exposing (..)
 import Angle
 import Arc2d
 import Arc3d
-import Area
 import Axis2d
-import Axis3d
 import Circle3d
 import Color
 import ColourPalette exposing (warningColor)
-import Dict exposing (Dict)
 import Direction2d
 import Direction3d
 import Element exposing (..)
@@ -21,28 +18,25 @@ import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
 import Length exposing (meters)
 import LineSegment2d
-import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra
-import Pixels
-import Plane3d
 import Point2d
 import Point3d
 import Polyline2d
 import Polyline3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
+import SceneBuilder exposing (highlightPoints)
 import SketchPlane3d
 import SpatialIndex
 import Svg
 import Svg.Attributes as SA
 import SweptAngle
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
-import TrackPoint exposing (TrackPoint)
+import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (flatBox, showShortMeasure, useIcon)
 import Vector2d
 import Vector3d
@@ -68,7 +62,7 @@ type alias Model =
     , pointsWithinDisc : List TrackPoint
     , circle : Maybe (Circle3d.Circle3d Length.Meters LocalCoords)
     , pointsAreContiguous : Bool
-    , newTrackPoints : List TrackPoint
+    , newTrackPoints : List (Point3d.Point3d Length.Meters LocalCoords)
     , fixedAttachmentPoints : Maybe ( Int, Int )
     , transitionRadius : Length.Length
     , lastVector : Vector2d.Vector2d Length.Meters LocalCoords
@@ -116,6 +110,13 @@ type Msg
     | SetTransitionRadius Float
     | SetSpacing Float
     | ToggleUsePullRadius Bool
+
+
+type alias UndoRedoInfo =
+    { newNodes : List (Point3d.Point3d Length.Meters LocalCoords)
+    , oldNodes : List (Point3d.Point3d Length.Meters LocalCoords)
+    , attachmentPoints : Maybe ( Int, Int )
+    }
 
 
 toLength : Float -> Length.Length
@@ -190,7 +191,7 @@ update :
     -> Model
     -> (Msg -> msg)
     -> Track
-    -> ( Model, PostUpdateActions.PostUpdateAction (Cmd msg) )
+    -> ( Model, PostUpdateActions.PostUpdateAction trck (Cmd msg) )
 update message model wrapper track =
     case message of
         DraggerGrab offset ->
@@ -227,6 +228,7 @@ update message model wrapper track =
                 | dragging = Nothing
                 , lastVector = model.vector
               }
+                |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
@@ -240,11 +242,13 @@ update message model wrapper track =
                         Holistic ->
                             Piecewise
               }
+                |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
         ToggleUsePullRadius bool ->
             ( { model | usePullRadius = not model.usePullRadius }
+                |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
@@ -255,36 +259,73 @@ update message model wrapper track =
                 , lastVector = Vector2d.zero
                 , vector = Vector2d.zero
               }
+                |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
         DraggerApply ->
             ( { model | dragging = Nothing, referencePoint = Nothing }
             , PostUpdateActions.ActionTrackChanged
-                (PostUpdateActions.EditExtendsBeyondMarkers model.fixedAttachmentPoints)
-                (apply track model)
-                (makeUndoMessage model)
+                PostUpdateActions.EditPreservesNodePosition
+                (buildEditUndoActions model track)
             )
 
         SetPushRadius x ->
-            ( { model | pushRadius = toLength x }
+            ( { model | pushRadius = toLength x } |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
         SetPullRadius x ->
-            ( { model | pullDiscWidth = toLength x }
+            ( { model | pullDiscWidth = toLength x } |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
         SetTransitionRadius x ->
-            ( { model | transitionRadius = toLength x }
+            ( { model | transitionRadius = toLength x } |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
 
         SetSpacing x ->
-            ( { model | spacing = toLength x }
+            ( { model | spacing = toLength x } |> seekNewCurve track
             , PostUpdateActions.ActionPreview
             )
+
+
+buildEditUndoActions : Model -> Track -> UndoEntry
+buildEditUndoActions options track =
+    -- This is the +/-ve delta for possible redo. We do not include track in the closure!
+    let
+        updated =
+            seekNewCurve track options
+    in
+    case updated.fixedAttachmentPoints of
+        Just ( start, end ) ->
+            let
+                undoRedoInfo : UndoRedoInfo
+                undoRedoInfo =
+                    { newNodes = updated.newTrackPoints
+                    , oldNodes =
+                        track.trackPoints
+                            |> List.drop start
+                            |> List.take (end - start + 1)
+                            |> List.map .xyz
+                    , attachmentPoints = updated.fixedAttachmentPoints
+                    }
+            in
+            { label = makeUndoMessage options
+            , editFunction = apply undoRedoInfo
+            , undoFunction = undo undoRedoInfo
+            , newOrange = track.currentNode.index
+            , newPurple = Maybe.map .index track.markedNode
+            }
+
+        Nothing ->
+            { label = "Something amiss"
+            , editFunction = \t -> ( [], t.trackPoints, [] )
+            , undoFunction = \t -> ( [], t.trackPoints, [] )
+            , newOrange = track.currentNode.index
+            , newPurple = Maybe.map .index track.markedNode
+            }
 
 
 view : Bool -> Model -> (Msg -> msg) -> Track -> Element msg
@@ -449,31 +490,52 @@ The tool will seek a smooth transition to track outside the circle, using a coun
 arc of the same radius. This may extend beyond the marked points. The preview reflects
 what the Apply button will do.
 
-A uniform gradient is applied along the new region of track.
+You can choose to have a uniform gradient is applied along the new region of track, or
+to derive elevations by interpolation of the original track according to distance.
 
 Reducing spacing gives a smoother curve by adding more new trackpoints.
 
 """
 
 
-apply : Track -> Model -> Track
-apply track model =
-    case model.fixedAttachmentPoints of
+apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply undoRedo track =
+    case undoRedo.attachmentPoints of
         Just ( from, to ) ->
             let
-                ( beforeAndIncluding, followingTrack ) =
-                    List.Extra.splitAt to track.trackPoints
+                ( prefix, theRest ) =
+                    List.Extra.splitAt from track.trackPoints
 
-                ( precedingTrack, replacedTrack ) =
-                    List.Extra.splitAt (from + 1) beforeAndIncluding
-
-                recombinedTrack =
-                    precedingTrack ++ model.newTrackPoints ++ followingTrack
+                ( replacedTrack, suffix ) =
+                    List.Extra.splitAt (to - from + 1) theRest
             in
-            { track | trackPoints = TrackPoint.prepareTrackPoints recombinedTrack }
+            ( prefix
+            , List.map trackPointFromPoint undoRedo.newNodes
+            , suffix
+            )
 
         Nothing ->
-            track
+            ( [], track.trackPoints, [] )
+
+
+undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo undoRedo track =
+    case undoRedo.attachmentPoints of
+        Just ( from, to ) ->
+            let
+                ( prefix, theRest ) =
+                    List.Extra.splitAt from track.trackPoints
+
+                ( replacedTrack, suffix ) =
+                    List.Extra.splitAt (from + List.length undoRedo.newNodes) theRest
+            in
+            ( prefix
+            , List.map trackPointFromPoint undoRedo.oldNodes
+            , suffix
+            )
+
+        Nothing ->
+            ( [], track.trackPoints, [] )
 
 
 getCircle : Model -> TrackPoint -> Circle3d.Circle3d Length.Meters LocalCoords
@@ -584,6 +646,7 @@ showDisc model =
         Nothing ->
             []
 
+
 type alias IntersectionInformation =
     { intersection : Point2d.Point2d Length.Meters LocalCoords
     , distanceAlong : Length.Length
@@ -598,8 +661,8 @@ type TransitionMode
     | ExitMode
 
 
-preview : Model -> Track -> Model
-preview model track =
+seekNewCurve : Track -> Model -> Model
+seekNewCurve track model =
     -- The compute we do here is most of the work for the Apply, so
     -- we keep it in our model.
     let
@@ -665,8 +728,6 @@ preview model track =
             in
             SpatialIndex.queryWithFilter track.spatialIndex boundingBox isWithinDisc
                 |> List.map .content
-                --|> List.filter (\p -> p.index >= startRange && p.index <= endRange)
-                --|> List.filter (\p -> p.index > lowestInteriorIndex && p.index < highestInteriorIndex)
 
         allPoints =
             List.sortBy .index (pointsWithinCircle ++ pointsWithinDisc)
@@ -1118,7 +1179,6 @@ preview model track =
                                         (Point2d.xCoordinate originalSegmentStart)
                                         (Point2d.yCoordinate originalSegmentStart)
                                         newAltitude
-                                        |> TrackPoint.trackPointFromPoint
                                 )
                                 (List.drop 0 completeSegments)
                                 cumulativeDistances
@@ -1156,7 +1216,7 @@ getPreview model =
         ++ showDisc model
         ++ highlightPoints Color.white model.pointsWithinCircle
         ++ highlightPoints Color.blue model.pointsWithinDisc
-        ++ highlightPoints Color.lightYellow model.newTrackPoints
+        ++ (highlightPoints Color.lightYellow <| List.map trackPointFromPoint model.newTrackPoints)
 
 
 usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint
