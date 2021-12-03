@@ -524,10 +524,10 @@ undo undoRedo track =
         Just ( from, to ) ->
             let
                 ( prefix, theRest ) =
-                    List.Extra.splitAt from track.trackPoints
+                    List.Extra.splitAt (1 + from) track.trackPoints
 
                 ( replacedTrack, suffix ) =
-                    List.Extra.splitAt (from + List.length undoRedo.newNodes) theRest
+                    List.Extra.splitAt (List.length undoRedo.newNodes) theRest
             in
             ( prefix
             , List.map trackPointFromPoint undoRedo.oldNodes
