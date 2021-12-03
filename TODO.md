@@ -9,9 +9,10 @@
 
 WIP:
 
-- CurveFormer
+-- Autofix - address the multiple case primarily, let single point be trivial case.
 
 Tools to be changed to new Undo/Review/Preview style:
+- CurveFormer
 - GradientLimiter
 - GradientSmoother
 - MoveAndStretch
@@ -42,9 +43,6 @@ Show gradient over distance.
 > Might be better with SVG, with info overlay. Maybe use a library.
 > https://terezka.github.io/line-charts/
 
-**David Ogle**
-Save Zoom level? Or just make initial zoom tighter, and on the start point.
-
 **Feature** Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.
 > We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
@@ -57,7 +55,8 @@ Save Zoom level? Or just make initial zoom tighter, and on the start point.
 
 **DEBT**: At least three similar forms of new Track creation.
 
-**DEBT**: Don't copy information into ViewContext that doesn't belong there.
+**DEBT**: Don't copy information into ViewContext that doesn't belong there. 
+> Only Flythrough?
 > Safer & easier to pass through the data needed.  
 > Now I know how to write type signatures that don't require the whole Main.Model!
 
@@ -66,6 +65,8 @@ Save Zoom level? Or just make initial zoom tighter, and on the start point.
 **DEBT**: Switch currentPoint to : Int, avoid stale state worries.
 
 **DEBT**: Factor out the common pattern of min, max for the pointers.
+
+**Terrain** on empty squares; make it related to context of neighbours.
 
 ---
 

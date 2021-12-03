@@ -13,6 +13,7 @@ import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Http
 import Length exposing (Meters)
 import LineSegment3d
+import List.Extra
 import Pixels
 import Point3d
 import Quantity exposing (Quantity)
@@ -69,6 +70,76 @@ combineLists lists =
 
 eyeHeight =
     2.0
+
+
+subListsBy : (a -> Bool) -> List a -> ( List (List a), List (List a) )
+subListsBy predicate items =
+    -- Return is (<bits of list where predicate False>, <bits where True>)
+    let
+        startState =
+            { falseSections = []
+            , trueSections = []
+            }
+
+        consumeFalseSection state source =
+            case source |> List.Extra.splitWhen predicate of
+                Nothing ->
+                    state
+
+                Just ( falseSection, remaining ) ->
+                    consumeTrueSection
+                        { state | falseSections = falseSection :: state.falseSections }
+                        remaining
+
+        consumeTrueSection state source =
+            case source |> List.Extra.splitWhen (not << predicate) of
+                Nothing ->
+                    state
+
+                Just ( trueSection, remaining ) ->
+                    consumeFalseSection
+                        { state | trueSections = trueSection :: state.trueSections }
+                        remaining
+
+        { falseSections, trueSections } =
+            consumeFalseSection startState items
+    in
+    ( List.reverse falseSections, List.reverse trueSections )
+
+
+subListsByWithSingletons : (a -> Bool) -> List a -> ( List (List a), List a )
+subListsByWithSingletons predicate items =
+    -- Return is (<bits of list where predicate False>, <singletons where True>)
+    let
+        startState =
+            { falseSections = []
+            , trueSections = []
+            }
+
+        consumeFalseSection state source =
+            case source |> List.Extra.splitWhen predicate of
+                Nothing ->
+                    { state | falseSections = source :: state.falseSections }
+
+                Just ( falseSection, remaining ) ->
+                    consumeTrueSingleton
+                        { state | falseSections = falseSection :: state.falseSections }
+                        remaining
+
+        consumeTrueSingleton state source =
+            case source of
+                singleton :: remaining ->
+                    consumeFalseSection
+                        { state | trueSections = singleton :: state.trueSections }
+                        remaining
+
+                _ ->
+                    state
+
+        { falseSections, trueSections } =
+            consumeFalseSection startState items
+    in
+    ( List.reverse falseSections, List.reverse trueSections )
 
 
 elide : List a -> List a

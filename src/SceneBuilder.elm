@@ -776,6 +776,9 @@ terrainFromIndex myBox enclosingBox orientation options baseElevation index =
             -- Just avoid interference with road surface.
             topBeforeAdjustment |> Quantity.minus (meters 0.1)
 
+        elevatiomIncrease =
+            topBeforeAdjustment |> Quantity.minus baseElevation
+
         myExtrema =
             BoundingBox2d.extrema myBox
 
@@ -790,6 +793,14 @@ terrainFromIndex myBox enclosingBox orientation options baseElevation index =
 
         contentExtrema =
             BoundingBox2d.extrema contentBox
+
+        plateauExtrema =
+            -- How big would the top be if we sloped the sides at 45 degrees?
+            { minX = Quantity.min contentExtrema.minX (myExtrema.minX |> Quantity.plus elevatiomIncrease)
+            , minY = Quantity.min contentExtrema.minY (myExtrema.minY |> Quantity.plus elevatiomIncrease)
+            , maxX = Quantity.max contentExtrema.maxX (myExtrema.maxX |> Quantity.minus elevatiomIncrease)
+            , maxY = Quantity.max contentExtrema.maxY (myExtrema.maxY |> Quantity.minus elevatiomIncrease)
+            }
 
         { nwChildBox, neChildBox, swChildBox, seChildBox } =
             { nwChildBox =
@@ -860,42 +871,42 @@ terrainFromIndex myBox enclosingBox orientation options baseElevation index =
         northernSlope =
             -- Better to write this slowly. Use inner minX, maxX at top
             Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz contentExtrema.minX contentExtrema.maxY top)
-                (Point3d.xyz contentExtrema.maxX contentExtrema.maxY top)
+                (Point3d.xyz plateauExtrema.minX plateauExtrema.maxY top)
+                (Point3d.xyz plateauExtrema.maxX plateauExtrema.maxY top)
                 (Point3d.xyz easternBottomEdge northernBottomEdge baseElevation)
                 (Point3d.xyz westernBottomEdge northernBottomEdge baseElevation)
 
         southernSlope =
             -- Better to write this slowly. Use inner minX, maxX at top
             Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz contentExtrema.minX contentExtrema.minY top)
-                (Point3d.xyz contentExtrema.maxX contentExtrema.minY top)
+                (Point3d.xyz plateauExtrema.minX plateauExtrema.minY top)
+                (Point3d.xyz plateauExtrema.maxX plateauExtrema.minY top)
                 (Point3d.xyz easternBottomEdge southernBottomEdge baseElevation)
                 (Point3d.xyz westernBottomEdge southernBottomEdge baseElevation)
 
         westernSlope =
             -- Better to write this slowly. Use inner minX, maxX at top
             Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz contentExtrema.minX contentExtrema.minY top)
-                (Point3d.xyz contentExtrema.minX contentExtrema.maxY top)
+                (Point3d.xyz plateauExtrema.minX plateauExtrema.minY top)
+                (Point3d.xyz plateauExtrema.minX plateauExtrema.maxY top)
                 (Point3d.xyz westernBottomEdge northernBottomEdge baseElevation)
                 (Point3d.xyz westernBottomEdge southernBottomEdge baseElevation)
 
         easternSlope =
             -- Better to write this slowly. Use inner minX, maxX at top
             Scene3d.quad (Material.matte sideColour)
-                (Point3d.xyz contentExtrema.maxX contentExtrema.minY top)
-                (Point3d.xyz contentExtrema.maxX contentExtrema.maxY top)
+                (Point3d.xyz plateauExtrema.maxX plateauExtrema.minY top)
+                (Point3d.xyz plateauExtrema.maxX plateauExtrema.maxY top)
                 (Point3d.xyz easternBottomEdge northernBottomEdge baseElevation)
                 (Point3d.xyz easternBottomEdge southernBottomEdge baseElevation)
 
         thisLevelSceneElements =
             if top |> Quantity.greaterThan baseElevation then
                 [ Scene3d.quad (Material.matte topColour)
-                    (Point3d.xyz contentExtrema.maxX contentExtrema.maxY top)
-                    (Point3d.xyz contentExtrema.maxX contentExtrema.minY top)
-                    (Point3d.xyz contentExtrema.minX contentExtrema.minY top)
-                    (Point3d.xyz contentExtrema.minX contentExtrema.maxY top)
+                    (Point3d.xyz plateauExtrema.maxX plateauExtrema.maxY top)
+                    (Point3d.xyz plateauExtrema.maxX plateauExtrema.minY top)
+                    (Point3d.xyz plateauExtrema.minX plateauExtrema.minY top)
+                    (Point3d.xyz plateauExtrema.minX plateauExtrema.maxY top)
                 , northernSlope
                 , southernSlope
                 , westernSlope

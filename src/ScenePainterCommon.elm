@@ -153,7 +153,7 @@ zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
         desiredMetresPerPixel =
             1.5 * max horizontalMetresPerPixel verticalMetresPerPixel
 
-        zoom =
+        zoom = 1 +
             logBase 2 (cos (degrees medianLatitude) * metresPerPixelAtEquatorZoomZero / desiredMetresPerPixel)
     in
     ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )

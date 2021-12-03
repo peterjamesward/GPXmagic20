@@ -642,9 +642,9 @@ segmentSlider model wrap =
 
 
 type alias SinglePointUndoRedo =
-    { index : Int
-    , numberOfSegments : Int
-    , xyz : Point3d.Point3d Length.Meters LocalCoords
+    { numberOfSegments : Int
+    , indices : List Int
+    , xyzs : List (Point3d.Point3d Length.Meters LocalCoords)
     }
 
 
@@ -654,66 +654,81 @@ buildSmoothPointActions options track =
     let
         undoRedoInfo : SinglePointUndoRedo
         undoRedoInfo =
-            { index = track.currentNode.index
+            { indices = [ track.currentNode.index ]
             , numberOfSegments = options.segments
-            , xyz = track.currentNode.xyz
+            , xyzs = [ track.currentNode.xyz ]
             }
     in
-    { label = "Smooth point " ++ String.fromInt undoRedoInfo.index
-    , editFunction = applySmoothPoint undoRedoInfo
-    , undoFunction = undoSmoothPoint undoRedoInfo
+    { label = "Smooth point " ++ String.fromInt track.currentNode.index
+    , editFunction = applySmoothPoints undoRedoInfo
+    , undoFunction = undoSmoothPoints undoRedoInfo
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
     }
 
 
-applySmoothPoint : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
-applySmoothPoint undoRefoInfo track =
-    -- Apply the new bend smoother to a single point, if possible.
-    case List.Extra.getAt undoRefoInfo.index track.trackPoints of
-        Nothing ->
-            ( [], track.trackPoints, [] )
-
-        Just point ->
+applySmoothPoints : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySmoothPoints undoRefoInfo track =
+    -- Best to do the multiple point case, and the single one is just the trivial case.
+    -- The essence of 'apply' is to split the track into fragments at the nominated points,
+    -- replace the single points with the smoothed verions, and recombine.
+    let
+        curveAtPoint point =
             case singlePoint3dArc track point of
                 Just arc ->
-                    let
-                        ( precedingTrack, theRest ) =
-                            track.trackPoints |> List.Extra.splitAt point.index
-
-                        remainingTrack =
-                            List.drop 1 theRest
-
-                        newPoints =
-                            Arc3d.startPoint arc
-                                :: (Arc3d.segments undoRefoInfo.numberOfSegments arc
-                                        |> Polyline3d.segments
-                                        |> List.map LineSegment3d.endPoint
-                                   )
-
-                        newBendPoints =
-                            List.map trackPointFromPoint newPoints
-                    in
-                    ( precedingTrack, newBendPoints, remainingTrack )
+                    Arc3d.startPoint arc
+                        :: (Arc3d.segments undoRefoInfo.numberOfSegments arc
+                                |> Polyline3d.segments
+                                |> List.map LineSegment3d.endPoint
+                           )
+                        |> List.map trackPointFromPoint
 
                 Nothing ->
-                    ( [], track.trackPoints, [] )
+                    -- We know there's an arc, because the button is enabled, but ...
+                    []
 
-
-undoSmoothPoint : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
-undoSmoothPoint undoRedoInfo track =
-    let
-        ( prefix, theRest ) =
+        ( sectionsUntouched, nodesToSmooth ) =
             track.trackPoints
-                |> List.Extra.splitAt undoRedoInfo.index
+                |> Utils.subListsByWithSingletons
+                    (\tp -> List.member tp.index undoRefoInfo.indices)
 
-        suffix =
-            theRest |> List.drop (1 + undoRedoInfo.numberOfSegments)
+        _ =
+            Debug.log "sublists"
+                ( sectionsUntouched |> List.map (List.map .index)
+                , List.map .index nodesToSmooth
+                )
 
-        oldPoint =
-            trackPointFromPoint undoRedoInfo.xyz
+        ( prefix, suffix ) =
+            -- There may be large sections either side; let's respect that.
+            ( List.head sectionsUntouched |> Maybe.withDefault []
+            , List.Extra.last sectionsUntouched |> Maybe.withDefault []
+            )
+
+        fillers : List (List TrackPoint)
+        fillers =
+            -- These are what we interweave between the new curved nodes.
+            sectionsUntouched
+                |> List.take (List.length sectionsUntouched - 1)
+                |> List.drop 1
+
+        smoothedNodes : List (List TrackPoint)
+        smoothedNodes =
+            -- Note that nodesToSmooth is a list of list. We can't
+            List.map curveAtPoint nodesToSmooth
     in
-    ( prefix, [ oldPoint ], suffix )
+    ( prefix
+    , List.Extra.interweave smoothedNodes fillers |> List.concat
+    , suffix
+    )
+
+
+undoSmoothPoints : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSmoothPoints undoRedoInfo track =
+    -- Best to do the multiple point case, and the single one is just the trivial case.
+    -- The essence of 'undo' is to split the track into fragments at the nominated points,
+    -- (accounting for the additional points added by the 'apply')
+    -- replace the the smoothed verions with the single points, and recombine.
+    ( [], [], [] )
 
 
 singlePoint3dArc : Track -> TrackPoint -> Maybe (Arc3d Meters LocalCoords)
@@ -804,89 +819,19 @@ multiplePointSmoothing :
 multiplePointSmoothing trackPoints numSegments track =
     -- This is called only from the Track Observations tab.
     -- Tempted to deprecate it, but people.
+    let
+        undoRedoInfo : SinglePointUndoRedo
+        undoRedoInfo =
+            { indices = List.map .index trackPoints
+            , numberOfSegments = numSegments
+            , xyzs = List.map .xyz trackPoints
+            }
+    in
     PostUpdateActions.ActionTrackChanged
         PostUpdateActions.EditPreservesIndex
-        (buildMultiplePointAction trackPoints numSegments track)
-
-
-type alias MultiplePointUndoRedoInfo =
-    -- If I apply these in the appropriate order, will it "just work"?
-    -- Edits must be applied in descending index order, Undos contrariwise, probably.
-    { pointsToSmooth : List Int
-    , originalPoints : List (Point3d.Point3d Length.Meters LocalCoords)
-    }
-
-
-buildMultiplePointAction : List TrackPoint -> Int -> Track -> UndoEntry
-buildMultiplePointAction trackPoints numSegments track =
-    -- Sorely tempted to snapshot the track for undo, given unknown locality.
-    let
-        undoRedoInfo : MultiplePointUndoRedoInfo
-        undoRedoInfo =
-            { pointsToSmooth =
-                trackPoints
-                    |> List.map .index
-                    |> List.sort
-                    |> List.reverse
-            , originalPoints = track.trackPoints |> List.map .xyz
-            }
-    in
-    { label = "Autofix " ++ String.fromInt (List.length trackPoints) ++ " points"
-    , editFunction = applyMultiplePoints undoRedoInfo
-    , undoFunction = undoMultiplePoints undoRedoInfo
-    , newOrange = track.currentNode.index
-    , newPurple = Maybe.map .index track.markedNode
-    }
-
-
-applyMultiplePoints :
-    MultiplePointUndoRedoInfo
-    -> Track
-    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
-applyMultiplePoints undoRedoInfo track =
-    -- Points are in correct order, farthest first.
-    -- We need to fold the smoothing operation.
-    -- We will return the whole track (what the heck).
-    let
-        applyToSinglePointByIndex : TrackPoint -> Track -> Track
-        applyToSinglePointByIndex point changingTrack =
-            let
-                innerInfo : SinglePointUndoRedo
-                innerInfo =
-                    { index = point.index
-                    , numberOfSegments = 1
-                    , xyz = point.xyz
-                    }
-
-                ( prefix, middle, suffix ) =
-                    applySmoothPoint innerInfo changingTrack
-            in
-            { changingTrack
-                | trackPoints =
-                    prefix ++ middle ++ suffix
-            }
-
-        trackpoints =
-            undoRedoInfo.pointsToSmooth
-                |> List.map
-                    (\i -> List.Extra.getAt i track.trackPoints)
-                |> List.filterMap identity
-
-        newTrack =
-            List.foldl
-                applyToSinglePointByIndex
-                track
-                trackpoints
-    in
-    ( [], newTrack.trackPoints, [] )
-
-
-undoMultiplePoints :
-    MultiplePointUndoRedoInfo
-    -> Track
-    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
-undoMultiplePoints undoRedoInfo track =
-    ( []
-    , List.map trackPointFromPoint undoRedoInfo.originalPoints
-    , []
-    )
+        { label = "Smooth " ++ (String.fromInt <| List.length trackPoints) ++ " points"
+        , editFunction = applySmoothPoints undoRedoInfo
+        , undoFunction = undoSmoothPoints undoRedoInfo
+        , newOrange = track.currentNode.index
+        , newPurple = Maybe.map .index track.markedNode
+        }
