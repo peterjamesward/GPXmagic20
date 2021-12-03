@@ -9,7 +9,8 @@
 
 **WIP**
 
-- CurveFormer
+- CurveFormer. Undo not quite right.
+- Poss. dropping first attachment point. See sharp bend example.
 
 Tools to be changed to new Undo/Review/Preview style:
 - GradientLimiter
