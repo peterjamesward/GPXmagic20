@@ -19,7 +19,7 @@ import Quantity exposing (Quantity)
 import SketchPlane3d
 import SpatialIndex
 import Spherical
-import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, gradientFromPoint, prepareTrackPoints)
 import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, minmax, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d exposing (..)
 
