@@ -292,13 +292,7 @@ viewSteepClimbs options wrap track =
 
         exceedingThreshold =
             track.trackPoints
-                |> List.filter
-                    (\pt ->
-                        (pt.length |> Quantity.greaterThan Quantity.zero)
-                            && (gradientFromPoint pt
-                                    |> exceeds options.gradientThreshold
-                               )
-                    )
+                |> List.filter (gradientFromPoint >> exceeds options.gradientThreshold)
 
         linkButton point =
             button prettyButtonStyles

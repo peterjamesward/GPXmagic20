@@ -1,11 +1,12 @@
 
 # **BUGS**
 
-Gradient calculation not consistent between Steep Climbs and Road Segments.
-
 ---
 
 # TO-DO
+
+Revisit all uses of gradient to ensure using earth distance.
+Note: GradientSmoother and GradientLimit !!
 
 **WIP**
 

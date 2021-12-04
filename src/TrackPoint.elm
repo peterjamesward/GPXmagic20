@@ -94,9 +94,13 @@ applyGhanianTransform ( baseLon, baseLat, _ ) points =
 
 gradientFromPoint : TrackPoint -> Float
 gradientFromPoint pt =
-    100.0
-        * Quantity.ratio (Vector3d.zComponent pt.roadVector)
-            (pt.roadVector |> Vector3d.projectInto SketchPlane3d.xy |> Vector2d.length)
+    if pt.length == Quantity.zero then
+        0.0
+
+    else
+        100.0
+            * Quantity.ratio (Vector3d.zComponent pt.roadVector)
+                pt.length
 
 
 temporaryIndices points =
