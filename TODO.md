@@ -9,9 +9,11 @@
 
 **WIP**
 
-Tools to be changed to new Undo/Review/Preview style:
-- GradientLimiter
 - GradientSmoother
+
+- Changes to PostUpdateAction good but probably broken some map commands.
+
+Tools to be changed to new Undo/Review/Preview style:
 - MoveAndStretch
 - Straightener
 - Interpolate
@@ -63,6 +65,12 @@ Show gradient over distance.
 **DEBT**: Factor out the common pattern of min, max for the pointers.
 
 **Terrain** on empty squares; make it related to context of neighbours.
+
+Allow Tool to place a control on the view pane. When selected, drag messages are
+forwarded to the Tool. Would, for example, allow direct dragging on the view.
+
+On similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
+then Main.update becomes nice dispatch system.
 
 ---
 

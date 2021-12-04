@@ -12,14 +12,11 @@ import LineSegment3d exposing (LineSegment3d)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
 import Quantity
-import SketchPlane3d
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2, useIcon)
-import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 
@@ -65,6 +62,14 @@ defaultOptions =
     }
 
 
+type alias UndoRedoInfo =
+    { regionStart : Int
+    , regionEnd : Int
+    , originalAltitudes : List Length.Length
+    , revisedAltitudes : List Length.Length
+    }
+
+
 update :
     Msg
     -> Options
@@ -83,22 +88,15 @@ update msg settings track =
             )
 
         LimitGradient ->
-            let
-                ( newTrack, undoMsg ) =
-                    limitGradient settings track
-            in
             ( settings
-            ,
-                        PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesIndex
---                newTrack
---                undoMsg
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildActions settings track)
             )
 
 
-limitGradient : Options -> Track -> ( Track, String )
-limitGradient settings track =
+buildActions : Options -> Track -> UndoEntry
+buildActions settings track =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
@@ -112,13 +110,6 @@ limitGradient settings track =
 
             else
                 ( marker.index, track.currentNode.index, marker )
-
-        undoMessage =
-            "limit gradient from "
-                ++ showDecimal0 settings.maximumDescent
-                ++ " to "
-                ++ showDecimal0 settings.maximumAscent
-                ++ "."
 
         ( beforeEnd, afterEnd ) =
             -- Note we must include point after the end, I think, so we can do a map2.
@@ -223,12 +214,41 @@ limitGradient settings track =
                 (Point3d.zCoordinate referenceNode.xyz)
                 finalYDeltas
 
-        applyLimitsWithinRegion =
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { regionStart = startIndex
+            , regionEnd = endIndex
+            , originalAltitudes = targetZone |> List.map (.xyz >> Point3d.zCoordinate)
+            , revisedAltitudes = resultingElevations
+            }
+    in
+    { label = "Limit gradients"
+    , editFunction = apply undoRedoInfo
+    , undoFunction = undo undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    }
+
+
+apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply undoRedoInfo track =
+    let
+        _ = Debug.log "info" undoRedoInfo
+
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.regionStart
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (undoRedoInfo.regionEnd - undoRedoInfo.regionStart)
+
+        adjusted =
             -- Make it so.
             List.map2
                 (\pt ele ->
                     let
-                        ( oldX, oldY, oldZ ) =
+                        ( oldX, oldY, _ ) =
                             pt.xyz |> Point3d.coordinates
 
                         newXYZ =
@@ -236,12 +256,39 @@ limitGradient settings track =
                     in
                     { pt | xyz = newXYZ }
                 )
-                targetZone
-                resultingElevations
+                region
+                undoRedoInfo.revisedAltitudes
     in
-    ( { track | trackPoints = beforeStart ++ applyLimitsWithinRegion ++ afterEnd }
-    , undoMessage
-    )
+    ( prefix, adjusted, suffix )
+
+undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo undoRedoInfo track =
+    let
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.regionStart
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (undoRedoInfo.regionEnd - undoRedoInfo.regionStart)
+
+        adjusted =
+            -- Make it so.
+            List.map2
+                (\pt ele ->
+                    let
+                        ( oldX, oldY, _ ) =
+                            pt.xyz |> Point3d.coordinates
+
+                        newXYZ =
+                            Point3d.xyz oldX oldY ele
+                    in
+                    { pt | xyz = newXYZ }
+                )
+                region
+                undoRedoInfo.originalAltitudes
+    in
+    ( prefix, adjusted, suffix )
 
 
 viewGradientLimitPane : Options -> (Msg -> msg) -> Track -> Element msg

@@ -412,13 +412,6 @@ view imperial model wrapper track =
                             { label = paragraph [ width fill ] <| [ text "Points must be contiguous" ]
                             , onPress = Nothing
                             }
-
-                --( False, _ ) ->
-                --    Input.button
-                --        disabledButtonStyles
-                --        { label = paragraph [] <| [ text "Need at least three points" ]
-                --        , onPress = Nothing
-                --        }
                 ]
 
         showModeSelection =

@@ -34,6 +34,7 @@ import FlatColors.BritishPalette
 import FlatColors.ChinesePalette exposing (white)
 import GeoCodeDecoders exposing (IpInfo)
 import GpxSource exposing (..)
+import GradientLimiter
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id, style)
 import Http
@@ -92,7 +93,7 @@ type Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg LoopedTrack.Msg
       --| GradientMessage GradientSmoother.Msg
-      --| GradientLimiter GradientLimiter.Msg
+    | GradientLimiter GradientLimiter.Msg
       --| StraightenMessage Straightener.Msg
       --| FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
@@ -162,8 +163,8 @@ type alias ModelRecord =
     --, stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
+    , gradientLimiter : GradientLimiter.Options
 
-    --, gradientLimiter : GradientLimiter.Options
     --, rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
 
@@ -216,8 +217,8 @@ init mflags origin navigationKey =
       --, stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
+      , gradientLimiter = GradientLimiter.defaultOptions
 
-      --, gradientLimiter = GradientLimiter.defaultOptions
       --, rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
 
@@ -652,17 +653,17 @@ update msg (Model model) =
                 { model | observations = newObs }
                 action
 
-        --GradientLimiter limitMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (GradientLimiter.update limitMsg model.gradientLimiter)
-        --                model.track
-        --                |> Maybe.withDefault ( model.gradientLimiter, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | gradientLimiter = newOptions }
-        --        action
-        --
+        GradientLimiter limitMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (GradientLimiter.update limitMsg model.gradientLimiter)
+                        model.track
+                        |> Maybe.withDefault ( model.gradientLimiter, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | gradientLimiter = newOptions }
+                action
+
         --GradientMessage gradMsg ->
         --    let
         --        ( newOptions, action ) =
@@ -980,7 +981,6 @@ draggedOnMap json track =
 processPostUpdateAction : ModelRecord -> PostUpdateAction Track (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
-    -- I doubt that will ever be true.
     let
         fromModel (Model m) =
             -- I dislike stuff like this.
@@ -1014,24 +1014,19 @@ processPostUpdateAction model action =
                 newModel =
                     { model | track = Just newTrack }
                         |> addToUndoStack undoEntry
-                        |> reflectNewTrackViaGraph newTrack editType
-                        |> repeatTrackDerivations
-                        |> refreshAccordion
-                        |> composeScene
-                        |> Model
 
-                newRecord =
-                    fromModel newModel
+
             in
-            ( newModel
-            , Cmd.batch
-                [ ViewPane.makeMapCommands
-                    (newRecord.track |> Maybe.withDefault newTrack)
-                    newRecord.viewPanes
-                    (getMapPreviews newRecord)
-                , Delay.after 50 RepaintMap
-                ]
-            )
+            processPostUpdateAction newModel ActionRerender
+            --( newModel
+            --, Cmd.batch
+            --    [ ViewPane.makeMapCommands
+            --        (newRecord.track |> Maybe.withDefault newTrack)
+            --        newRecord.viewPanes
+            --        (getMapPreviews newRecord)
+            --    , Delay.after 50 RepaintMap
+            --    ]
+            --)
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
@@ -1060,77 +1055,74 @@ processPostUpdateAction model action =
                 newModel =
                     { model | track = Just newTrack }
             in
-            ( newModel
-                |> reflectNewTrackViaGraph track EditNoOp
-                |> repeatTrackDerivations
-                |> refreshAccordion
-                |> composeScene
-                |> Model
-            , Cmd.batch
-                [ ViewPane.makeMapCommands newTrack newModel.viewPanes (getMapPreviews model)
-                , Delay.after 50 RepaintMap
-                ]
-            )
+            processPostUpdateAction newModel ActionRerender
+            --( newModel
+            --    |> reflectNewTrackViaGraph track EditNoOp
+            --    |> repeatTrackDerivations
+            --    |> refreshAccordion
+            --    |> composeScene
+            --    |> Model
+            --, Cmd.batch
+            --    [ ViewPane.makeMapCommands newTrack newModel.viewPanes (getMapPreviews model)
+            --    , Delay.after 50 RepaintMap
+            --    ]
+            --)
 
         ( Just track, ActionPointerMove tp ) ->
             let
                 updatedTrack =
                     { track | currentNode = tp }
 
-                --
-                --( bendPreview, nudgePreview ) =
-                --    updatePreviews model updatedTrack
+                newModel =
+                    { model | track = Just updatedTrack }
             in
-            ( { model | track = Just updatedTrack }
-                |> refreshAccordion
-                |> composeScene
-                |> Model
-            , Cmd.batch
-                [ PortController.addMarkersToMap updatedTrack (getMapPreviews model)
-                ]
-            )
+            processPostUpdateAction newModel ActionRerender
 
         ( Just track, ActionFocusMove tp ) ->
             let
                 updatedTrack =
                     { track | currentNode = tp }
 
-                --
-                --( bendPreview, nudgePreview ) =
-                --    updatePreviews model updatedTrack
+                newModel =
+                    { model | track = Just updatedTrack }
             in
-            ( { model
-                | track = Just updatedTrack
-                , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
-              }
-                |> refreshAccordion
-                |> composeScene
-                |> Model
-            , Cmd.batch
-                [ Cmd.none
-                , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
-                , if ViewPane.mapPaneIsLinked model.viewPanes then
-                    PortController.centreMapOnCurrent updatedTrack
-
-                  else
-                    Cmd.none
-                ]
-            )
+            processPostUpdateAction newModel ActionRerender
+            --( { model
+            --    | track = Just updatedTrack
+            --    , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
+            --  }
+            --    |> refreshAccordion
+            --    |> composeScene
+            --    |> Model
+            --, Cmd.batch
+            --    [ Cmd.none
+            --    , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
+            --    , if ViewPane.mapPaneIsLinked model.viewPanes then
+            --        PortController.centreMapOnCurrent updatedTrack
+            --
+            --      else
+            --        Cmd.none
+            --    ]
+            --)
 
         ( Just track, ActionMarkerMove maybeTp ) ->
             let
                 updatedTrack =
                     { track | markedNode = maybeTp }
+
+                newModel =
+                    { model | track = Just updatedTrack }
             in
-            ( { model | track = Just updatedTrack }
-                |> refreshAccordion
-                |> composeScene
-                |> Model
-            , Cmd.batch
-                [ Cmd.none
-                , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
-                ]
-            )
+            processPostUpdateAction newModel ActionRerender
+            --( { model | track = Just updatedTrack }
+            --    |> refreshAccordion
+            --    |> composeScene
+            --    |> Model
+            --, Cmd.batch
+            --    [ Cmd.none
+            --    , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
+            --    ]
+            --)
 
         ( Just track, ActionRepaintMap ) ->
             ( Model model
@@ -1152,20 +1144,21 @@ processPostUpdateAction model action =
 
         ( Just track, ActionPreview ) ->
             -- We make dummy "Tracks" here for the Map.
-            let
-                newModel =
-                    model
-                        |> refreshAccordion
-                        |> composeScene
-                        |> Model
-            in
-            ( newModel
-            , if isMapVisible model.viewPanes then
-                PortController.addMarkersToMap track (getMapPreviews <| fromModel newModel)
-
-              else
-                Cmd.none
-            )
+            --let
+            --    newModel =
+            --        model
+            --            |> refreshAccordion
+            --            |> composeScene
+            --            |> Model
+            --in
+            processPostUpdateAction model ActionRerender
+            --( newModel
+            --, if isMapVisible model.viewPanes then
+            --    PortController.addMarkersToMap track (getMapPreviews <| fromModel newModel)
+            --
+            --  else
+            --    Cmd.none
+            --)
 
         ( _, ActionCommand a ) ->
             ( Model model, a )
@@ -1177,12 +1170,13 @@ processPostUpdateAction model action =
                         |> Model
                         |> processGpxLoaded content
             in
-            ( newModel
-                |> refreshAccordion
-                |> composeScene
-                |> Model
-            , cmds
-            )
+            processPostUpdateAction newModel ActionRerender
+            --( newModel
+            --    |> refreshAccordion
+            --    |> composeScene
+            --    |> Model
+            --, cmds
+            --)
 
         _ ->
             ( Model model, Cmd.none )
@@ -2007,21 +2001,25 @@ toolsAccordion (Model model) =
       , previewProfile = Just (CurveFormer.getPreviewProfile model.displayOptions model.curveFormer)
       , previewMap = Just (CurveFormer.getPreviewMap model.displayOptions model.curveFormer)
       }
+    , { label = GradientLimiter.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (GradientLimiter.viewGradientLimitPane
+                        m.gradientLimiter
+                        GradientLimiter
+                    )
+                    m.track
+                    |> Maybe.withDefault none
+      , info = GradientLimiter.info
+      , video = Just "https://youtu.be/LtcYi4fzImE"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = GradientLimiter.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (GradientLimiter.viewGradientLimitPane
-    --                model.gradientLimiter
-    --                GradientLimiter
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = GradientLimiter.info
-    --  , video = Just "https://youtu.be/LtcYi4fzImE"
-    --  , isFavourite = False
-    --  }
     --, { label = GradientSmoother.toolLabel
     --  , state = Contracted
     --  , content =

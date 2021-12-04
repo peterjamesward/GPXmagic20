@@ -564,7 +564,7 @@ viewBendFixerPane imperial bendOptions mtrack wrap =
                     button
                         prettyButtonStyles
                     <|
-                        case tryBendSmoother track bendOptions of
+                        case bendOptions.smoothBend of
                             Just isSmooth ->
                                 { onPress = Just <| wrap SmoothBend
                                 , label =
