@@ -16,17 +16,16 @@ aboutText ipInfo =
 
 - Internal improvements to reduce memory usage.
 
-- Initial view is centred on first track point, with slightly tighter zoom.
+- Use consistent gradient calculation in Steep Climbs and Road Segment tabs.
 
-- Terrain slope is relaxed slightly.
-
-- Reduces graphic detail setting when loading longer tracks to improve response.
+- Steep climbs list is scrollable.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")
         ++ """
 
-Don't worry, it's all possible with the yellow button at the top.
+Don't worry, it's all possible with the Interthingy.
+Use the not so subtle yellow button at the top.
 Donations will be passed on to our local hospice.
 
 ## Guidance on use

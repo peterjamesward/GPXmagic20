@@ -282,9 +282,7 @@ summaryData imperial track =
             track.currentNode
 
         gradient =
-            100.0
-                * (Vector3d.zComponent pt.roadVector |> inMeters)
-                / (pt.length |> inMeters)
+            gradientFromPoint pt
 
         ( lat, lon ) =
             pt.latLon
