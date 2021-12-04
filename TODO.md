@@ -1,11 +1,11 @@
 
 # **BUGS**
 
+Gradient calculation not consistent between Steep Climbs and Road Segments.
+
 ---
 
 # TO-DO
-
-**STATE OF PLAY**
 
 **WIP**
 
