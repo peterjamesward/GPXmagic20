@@ -1018,15 +1018,6 @@ processPostUpdateAction model action =
 
             in
             processPostUpdateAction newModel ActionRerender
-            --( newModel
-            --, Cmd.batch
-            --    [ ViewPane.makeMapCommands
-            --        (newRecord.track |> Maybe.withDefault newTrack)
-            --        newRecord.viewPanes
-            --        (getMapPreviews newRecord)
-            --    , Delay.after 50 RepaintMap
-            --    ]
-            --)
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
@@ -1056,17 +1047,6 @@ processPostUpdateAction model action =
                     { model | track = Just newTrack }
             in
             processPostUpdateAction newModel ActionRerender
-            --( newModel
-            --    |> reflectNewTrackViaGraph track EditNoOp
-            --    |> repeatTrackDerivations
-            --    |> refreshAccordion
-            --    |> composeScene
-            --    |> Model
-            --, Cmd.batch
-            --    [ ViewPane.makeMapCommands newTrack newModel.viewPanes (getMapPreviews model)
-            --    , Delay.after 50 RepaintMap
-            --    ]
-            --)
 
         ( Just track, ActionPointerMove tp ) ->
             let
@@ -1087,23 +1067,6 @@ processPostUpdateAction model action =
                     { model | track = Just updatedTrack }
             in
             processPostUpdateAction newModel ActionRerender
-            --( { model
-            --    | track = Just updatedTrack
-            --    , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
-            --  }
-            --    |> refreshAccordion
-            --    |> composeScene
-            --    |> Model
-            --, Cmd.batch
-            --    [ Cmd.none
-            --    , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
-            --    , if ViewPane.mapPaneIsLinked model.viewPanes then
-            --        PortController.centreMapOnCurrent updatedTrack
-            --
-            --      else
-            --        Cmd.none
-            --    ]
-            --)
 
         ( Just track, ActionMarkerMove maybeTp ) ->
             let
@@ -1114,15 +1077,6 @@ processPostUpdateAction model action =
                     { model | track = Just updatedTrack }
             in
             processPostUpdateAction newModel ActionRerender
-            --( { model | track = Just updatedTrack }
-            --    |> refreshAccordion
-            --    |> composeScene
-            --    |> Model
-            --, Cmd.batch
-            --    [ Cmd.none
-            --    , PortController.addMarkersToMap updatedTrack (getMapPreviews model)
-            --    ]
-            --)
 
         ( Just track, ActionRepaintMap ) ->
             ( Model model
@@ -1135,30 +1089,13 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionFetchMapElevations ) ->
-            ( model
-                |> refreshAccordion
-                |> composeScene
-                |> Model
+            ( Model model
             , PortController.requestElevations
             )
 
         ( Just track, ActionPreview ) ->
-            -- We make dummy "Tracks" here for the Map.
-            --let
-            --    newModel =
-            --        model
-            --            |> refreshAccordion
-            --            |> composeScene
-            --            |> Model
-            --in
             processPostUpdateAction model ActionRerender
-            --( newModel
-            --, if isMapVisible model.viewPanes then
-            --    PortController.addMarkersToMap track (getMapPreviews <| fromModel newModel)
-            --
-            --  else
-            --    Cmd.none
-            --)
+
 
         ( _, ActionCommand a ) ->
             ( Model model, a )
@@ -1171,12 +1108,6 @@ processPostUpdateAction model action =
                         |> processGpxLoaded content
             in
             processPostUpdateAction newModel ActionRerender
-            --( newModel
-            --    |> refreshAccordion
-            --    |> composeScene
-            --    |> Model
-            --, cmds
-            --)
 
         _ ->
             ( Model model, Cmd.none )
