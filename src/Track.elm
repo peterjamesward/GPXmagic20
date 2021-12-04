@@ -19,7 +19,7 @@ import Quantity exposing (Quantity)
 import SketchPlane3d
 import SpatialIndex
 import Spherical
-import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
+import TrackPoint exposing (TrackPoint, applyGhanianTransform, gradientFromPoint, prepareTrackPoints)
 import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
 import Vector3d exposing (..)
 
@@ -282,9 +282,7 @@ summaryData imperial track =
             track.currentNode
 
         gradient =
-            100.0
-                * (Vector3d.zComponent pt.roadVector |> inMeters)
-                / (pt.length |> inMeters)
+            gradientFromPoint pt
 
         ( lat, lon ) =
             pt.latLon

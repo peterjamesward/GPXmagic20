@@ -12,9 +12,11 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.7.11 update 2021-12-02
+## 2.7.12 update 2021-12-04
 
-- Stop mouse events on +/- zoom controls from being sent through to window below.
+- Use consistent gradient calculation in Steep Climbs and Road Segment tabs.
+
+- Steep climbs list is scrollable.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

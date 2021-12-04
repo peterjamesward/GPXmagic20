@@ -332,11 +332,9 @@ viewSteepClimbs options wrap track =
                 , label = text <| showDecimal0 <| inMeters point.distanceFromStart
                 }
     in
-    column [ spacing 5, padding 10 ]
-        [ gradientThresholdSlider options wrap
-        , wrappedRow [ spacing 5, padding 10, width fill, alignLeft ] <|
-            List.map linkButton exceedingThreshold
-        ]
+    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 400), scrollbarY ] <|
+        [ gradientThresholdSlider options wrap ]
+            ++ List.map linkButton exceedingThreshold
 
 
 viewGradientChanges : Bool -> Options -> TrackObservations -> (Msg -> msg) -> Element msg
@@ -370,7 +368,7 @@ viewGradientChanges imperial options obs wrap =
                         , label = text "Smooth these points in 3D"
                         }
     in
-    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 600), scrollbarY ] <|
+    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 400), scrollbarY ] <|
         [ gradientChangeThresholdSlider options wrap
         , autosmoothButton
         ]
@@ -408,7 +406,7 @@ viewBearingChanges imperial options obs wrap =
                         , label = text "Smooth these points in 3D"
                         }
     in
-    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 600), scrollbarY ] <|
+    wrappedRow [ spacing 10, padding 10, height (fill |> maximum 400), scrollbarY ] <|
         [ bearingChangeThresholdSlider options wrap
         , autosmoothButton
         ]
