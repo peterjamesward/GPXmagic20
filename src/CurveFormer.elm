@@ -219,7 +219,8 @@ update message model wrapper track =
 
                             else
                                 model.referencePoint
-                      } |> seekNewCurve track
+                      }
+                        |> seekNewCurve track
                     , PostUpdateActions.ActionPreview
                     )
 
@@ -1125,11 +1126,10 @@ seekNewCurve track model =
                 ( Just entry, Just exit ) ->
                     let
                         completeSegments =
-                            --[ LineSegment2d.from
-                            --    (Point3d.projectInto drawingPlane entry.originalTrackPoint.xyz)
-                            --    entry.tangentPoint
-                            --]
-                            []
+                            [ LineSegment2d.from
+                                (Point3d.projectInto drawingPlane entry.originalTrackPoint.xyz)
+                                entry.tangentPoint
+                            ]
                                 ++ entryCurve
                                 ++ theArcItself
                                 ++ exitCurve
