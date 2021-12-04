@@ -5,7 +5,6 @@ module Main exposing (main)
 --import DeletePoints exposing (Action(..), viewDeleteTools)
 --import Flythrough exposing (Flythrough)
 --import GradientLimiter
---import GradientSmoother
 --import Interpolate
 --import LoopedTrack
 --import RotateRoute
@@ -35,6 +34,7 @@ import FlatColors.ChinesePalette exposing (white)
 import GeoCodeDecoders exposing (IpInfo)
 import GpxSource exposing (..)
 import GradientLimiter
+import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id, style)
 import Http
@@ -92,7 +92,7 @@ type Msg
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg LoopedTrack.Msg
-      --| GradientMessage GradientSmoother.Msg
+    | GradientMessage GradientSmoother.Msg
     | GradientLimiter GradientLimiter.Msg
       --| StraightenMessage Straightener.Msg
       --| FlythroughMessage Flythrough.Msg
@@ -152,8 +152,8 @@ type alias ModelRecord =
     , displayOptions : DisplayOptions.DisplayOptions
     , bendOptions : BendSmoother.BendOptions
     , observations : TrackObservations
+    , gradientOptions : GradientSmoother.Options
 
-    --, gradientOptions : GradientSmoother.Options
     --, straightenOptions : Straightener.Options
     --, flythrough : Flythrough.Options
     --, filterOptions : Filters.Options
@@ -206,8 +206,8 @@ init mflags origin navigationKey =
       , displayOptions = DisplayOptions.defaultDisplayOptions
       , bendOptions = BendSmoother.defaultOptions
       , observations = TrackObservations.defaultObservations
+      , gradientOptions = GradientSmoother.defaultOptions
 
-      --, gradientOptions = GradientSmoother.defaultOptions
       --, straightenOptions = Straightener.defaultOptions
       --, flythrough = Flythrough.defaultOptions
       --, filterOptions = Filters.defaultOptions
@@ -664,17 +664,17 @@ update msg (Model model) =
                 { model | gradientLimiter = newOptions }
                 action
 
-        --GradientMessage gradMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (GradientSmoother.update gradMsg model.gradientOptions)
-        --                model.track
-        --                |> Maybe.withDefault ( model.gradientOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | gradientOptions = newOptions }
-        --        action
-        --
+        GradientMessage gradMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (GradientSmoother.update gradMsg model.gradientOptions)
+                        model.track
+                        |> Maybe.withDefault ( model.gradientOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | gradientOptions = newOptions }
+                action
+
         --StraightenMessage straight ->
         --    let
         --        ( newOptions, action ) =
@@ -951,33 +951,6 @@ draggedOnMap json track =
                 Nothing
 
 
-
---
---updatePreviews : Model -> Track -> ( Track, Track )
---updatePreviews model track =
---    -- Interim step in re-factor!
---    let
---        bendPreview =
----- Give classic smoother priority but if not used see if the Curve Former has anything.
---if Accordion.tabIsOpen BendSmoother.toolLabel model.toolsAccordion then
---    { track
---        | trackPoints =
---            Maybe.map .nodes model.bendOptions.smoothedBend
---                |> Maybe.withDefault []
---    }
---
---else if Accordion.tabIsOpen CurveFormer.toolLabel model.toolsAccordion then
---    { track | trackPoints = model.curveFormer.newTrackPoints }
---
---else
---        { track | trackPoints = [] }
---
---    nudgePreview =
---        Nudge.getPreview model.nudgeSettings track
---in
---( bendPreview, nudgePreview )
-
-
 processPostUpdateAction : ModelRecord -> PostUpdateAction Track (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
@@ -1014,8 +987,6 @@ processPostUpdateAction model action =
                 newModel =
                     { model | track = Just newTrack }
                         |> addToUndoStack undoEntry
-
-
             in
             processPostUpdateAction newModel ActionRerender
 
@@ -1064,9 +1035,24 @@ processPostUpdateAction model action =
                     { track | currentNode = tp }
 
                 newModel =
-                    { model | track = Just updatedTrack }
+                    { model
+                        | track = Just updatedTrack
+                        , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
+                    }
+
+                ( finalModel, cmd ) =
+                    processPostUpdateAction newModel ActionRerender
+
+                refocusMapCmd =
+                    if ViewPane.mapPaneIsLinked model.viewPanes then
+                        PortController.centreMapOnCurrent track
+
+                    else
+                        Cmd.none
             in
-            processPostUpdateAction newModel ActionRerender
+            ( finalModel
+            , Cmd.batch [ refocusMapCmd, cmd ]
+            )
 
         ( Just track, ActionMarkerMove maybeTp ) ->
             let
@@ -1095,7 +1081,6 @@ processPostUpdateAction model action =
 
         ( Just track, ActionPreview ) ->
             processPostUpdateAction model ActionRerender
-
 
         ( _, ActionCommand a ) ->
             ( Model model, a )
@@ -1950,21 +1935,24 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
-
-    --, { label = GradientSmoother.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (GradientSmoother.viewGradientFixerPane
-    --                model.gradientOptions
-    --                GradientMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = GradientSmoother.info
-    --  , video = Just "https://youtu.be/YTY2CSl0wo8"
-    --  , isFavourite = False
-    --  }
+    , { label = GradientSmoother.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (GradientSmoother.viewGradientFixerPane
+                        m.gradientOptions
+                        GradientMessage
+                    )
+                    m.track
+                    |> Maybe.withDefault none
+      , info = GradientSmoother.info
+      , video = Just "https://youtu.be/YTY2CSl0wo8"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
     , { label = Nudge.toolLabel
       , state = Contracted
       , content =

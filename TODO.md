@@ -9,14 +9,9 @@
 
 **WIP**
 
-- GradientSmoother
-
-+ Changes to PostUpdateAction good but probably broken some map commands.
-+ Profile view not centering using scaledZ.
-+ Focus change not propagating to view panes (should be a "pull", not a "push").
+- MoveAndStretch
 
 Tools to be changed to new Undo/Review/Preview style:
-- MoveAndStretch
 - Straightener
 - Interpolate
 - DeletePoints

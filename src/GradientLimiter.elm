@@ -1,22 +1,15 @@
 module GradientLimiter exposing (..)
 
-import Angle
-import ColourPalette exposing (warningColor)
-import Direction3d
 import Element exposing (..)
-import Element.Background as Background
 import Element.Input as Input exposing (button)
-import FeatherIcons
-import Length exposing (Meters, inMeters, meters)
-import LineSegment3d exposing (LineSegment3d)
+import Length exposing (Meters, meters)
 import List.Extra
-import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (UndoEntry, defaultUndoEntry)
+import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2, useIcon)
+import Utils exposing (showDecimal0)
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
 

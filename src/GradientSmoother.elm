@@ -4,15 +4,16 @@ import Angle
 import Direction3d
 import Element exposing (..)
 import Element.Input as Input exposing (button)
+import Float.Extra exposing (interpolateFrom)
 import Length exposing (Meters, inMeters, meters)
 import LineSegment3d exposing (LineSegment3d)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import SketchPlane3d
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -47,6 +48,14 @@ type alias Options =
     }
 
 
+type alias UndoRedoInfo =
+    { regionStart : Int
+    , regionEnd : Int
+    , originalAltitudes : List Length.Length
+    , revisedAltitudes : List Length.Length
+    }
+
+
 defaultOptions =
     { bumpinessFactor = 0.5 }
 
@@ -55,7 +64,7 @@ update :
     Msg
     -> Options
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
         SetBumpinessFactor bumpiness ->
@@ -64,15 +73,10 @@ update msg settings track =
             )
 
         SmoothGradient bumpiness ->
-            let
-                ( newTrack, undoMsg ) =
-                    smoothGradient track bumpiness
-            in
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                newTrack
-                undoMsg
+                (buildActions settings track)
             )
 
 
@@ -92,8 +96,8 @@ averageSlopeLine pt1 pt2 =
     LineSegment3d.from pt1.profileXZ pt2.profileXZ
 
 
-smoothGradient : Track -> Float -> ( Track, String )
-smoothGradient track bumpiness =
+buildActions : Options -> Track -> UndoEntry
+buildActions options track =
     -- This feels like a simple foldl, creating a new list of TrackPoints
     -- which we then splice into the model.
     -- It's a fold because we must keep track of the current elevation
@@ -131,37 +135,107 @@ smoothGradient track bumpiness =
                 - inMeters startPoint.distanceFromStart
             )
 
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt startPoint.index
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (endPoint.index - startPoint.index)
+
         applyAverageWithinRegion =
-            List.map applyAdjustment track.trackPoints
+            List.map applyAdjustment region
 
-        applyAdjustment : TrackPoint -> TrackPoint
+        applyAdjustment : TrackPoint -> Length.Length
         applyAdjustment pt =
-            -- This reads nicer than the v1 splicing and folding method.
-            if pt.index > startPoint.index && pt.index < endPoint.index then
-                let
-                    current =
-                        Point3d.toRecord inMeters pt.xyz
+            let
+                smoothedElevation =
+                    LineSegment3d.interpolate slope
+                        ((inMeters pt.distanceFromStart - xAtStart) / xLength)
+                        |> Point3d.zCoordinate
+            in
+            Quantity.interpolateFrom
+                smoothedElevation
+                (Point3d.zCoordinate pt.xyz)
+                options.bumpinessFactor
 
-                    smoothedElevation =
-                        LineSegment3d.interpolate slope
-                            ((inMeters pt.distanceFromStart - xAtStart) / xLength)
-                            |> Point3d.zCoordinate
-                            |> inMeters
-
-                    smoothedPoint =
-                        Point3d.fromRecord meters { current | z = smoothedElevation }
-
-                    blendedElevation =
-                        Point3d.interpolateFrom smoothedPoint pt.xyz bumpiness
-                in
-                { pt | xyz = blendedElevation }
-
-            else
-                pt
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { regionStart = startPoint.index
+            , regionEnd = endPoint.index
+            , originalAltitudes = region |> List.map (.xyz >> Point3d.zCoordinate)
+            , revisedAltitudes = applyAverageWithinRegion
+            }
     in
-    ( { track | trackPoints = applyAverageWithinRegion }
-    , undoMessage
-    )
+    { label = "Smooth gradients"
+    , editFunction = apply undoRedoInfo
+    , undoFunction = undo undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    }
+
+
+apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply undoRedoInfo track =
+    let
+        _ =
+            Debug.log "info" undoRedoInfo
+
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.regionStart
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (undoRedoInfo.regionEnd - undoRedoInfo.regionStart)
+
+        adjusted =
+            -- Make it so.
+            List.map2
+                (\pt ele ->
+                    let
+                        ( oldX, oldY, _ ) =
+                            pt.xyz |> Point3d.coordinates
+
+                        newXYZ =
+                            Point3d.xyz oldX oldY ele
+                    in
+                    { pt | xyz = newXYZ }
+                )
+                region
+                undoRedoInfo.revisedAltitudes
+    in
+    ( prefix, adjusted, suffix )
+
+
+undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo undoRedoInfo track =
+    let
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.regionStart
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (undoRedoInfo.regionEnd - undoRedoInfo.regionStart)
+
+        adjusted =
+            -- Make it so.
+            List.map2
+                (\pt ele ->
+                    let
+                        ( oldX, oldY, _ ) =
+                            pt.xyz |> Point3d.coordinates
+
+                        newXYZ =
+                            Point3d.xyz oldX oldY ele
+                    in
+                    { pt | xyz = newXYZ }
+                )
+                region
+                undoRedoInfo.originalAltitudes
+    in
+    ( prefix, adjusted, suffix )
 
 
 viewGradientFixerPane : Options -> (Msg -> msg) -> Track -> Element msg
