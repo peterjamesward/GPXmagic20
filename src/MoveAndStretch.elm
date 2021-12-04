@@ -10,13 +10,12 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point2d
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import Quantity
 import Svg
 import Svg.Attributes as SA
-import TabCommonElements exposing (markerTextHelper, nudgeProfilePreviewNotice)
+import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showShortMeasure)
 import Vector2d
@@ -56,6 +55,14 @@ defaultModel =
     , mode = Translate
     , stretchPointer = Nothing
     , heightSliderSetting = 0.0
+    }
+
+
+type alias UndoRedoInfo =
+    { regionStart : Int
+    , regionEnd : Int
+    , originalPoints : List (Point3d.Point3d Length.Meters LocalCoords)
+    , revisedPoints : List (Point3d.Point3d Length.Meters LocalCoords)
     }
 
 
@@ -214,11 +221,9 @@ update message model wrapper track =
 
         DraggerApply ->
             ( { model | preview = [] }
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesIndex
---                (apply track model)
---                (makeUndoMessage model)
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildActions model track)
             )
 
         StretchHeight x ->
@@ -347,9 +352,8 @@ sections of track either side will expand or contract to follow it. This could b
 separating hairpins, or just to avoid a close pass, or because you can.
 """
 
-
-apply : Track -> Model -> Track
-apply track model =
+buildActions : Model -> Track -> UndoEntry
+buildActions options track =
     let
         markerPosition =
             track.markedNode |> Maybe.withDefault track.currentNode
@@ -359,172 +363,126 @@ apply track model =
             , max track.currentNode.index markerPosition.index
             )
 
-        newTrackPoints =
-            case model.mode of
-                Translate ->
-                    movePoints model track
+        ( beforeEnd, suffix ) =
+            track.trackPoints |> List.Extra.splitAt (to + 1)
 
-                Stretch ->
-                    stretchPoints model track
+        ( prefix, region ) =
+            beforeEnd |> List.Extra.splitAt from
 
-        newCurrent =
-            List.Extra.getAt track.currentNode.index newTrackPoints
-                |> Maybe.withDefault track.currentNode
+        stretchPoint = case options.stretchPointer of
+            Just s -> track.trackPoints |> List.Extra.getAt s
+            Nothing -> Nothing
 
-        newMarker =
-            case track.markedNode of
-                Just isMarked ->
-                    List.Extra.getAt isMarked.index newTrackPoints
+        newPoints =
+            case (options.mode, stretchPoint) of
+                (Stretch, Just stretcher) ->
+                    -- Avoid potential division by zero.
+                    if from < stretcher.index && stretcher.index < to then
+                        stretchPoints options stretcher region
+                    else
+                        region |> List.map .xyz
 
-                Nothing ->
-                    Nothing
+                (_, _) ->
+                    movePoints options region
+
+
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { regionStart = from
+            , regionEnd = to
+            , originalPoints = List.map .xyz region
+            , revisedPoints = newPoints
+            }
     in
-    { track
-        | trackPoints = newTrackPoints
-        , currentNode = newCurrent
-        , markedNode = newMarker
+    { label = "Move & Stretch"
+    , editFunction = apply undoRedoInfo
+    , undoFunction = undo undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
     }
 
 
-preview : Model -> Track -> Model
-preview model track =
-    -- Change the locations of the track points within the closed interval between
-    -- markers, or just the current node if no purple cone.
+apply : UndoRedoInfo -> Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+apply undoRedoInfo track =
     let
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
+        ( beforeEnd, suffix ) =
+            track.trackPoints |> List.Extra.splitAt (undoRedoInfo.regionEnd + 1)
 
-        ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
+        ( prefix, region ) =
+            beforeEnd |> List.Extra.splitAt undoRedoInfo.regionStart
 
-        previewTrackPoints =
-            case model.mode of
-                Translate ->
-                    movePoints model track
-
-                Stretch ->
-                    stretchPoints model track
-
-        ( trackBeforePreviewEnd, trackAfterPreviewEnd ) =
-            List.Extra.splitAt (to + 2) previewTrackPoints
-
-        ( trackBeforePreviewStart, previewZone ) =
-            List.Extra.splitAt (from - 1) trackBeforePreviewEnd
+        newPoints =
+            undoRedoInfo.revisedPoints |> List.map TrackPoint.trackPointFromPoint
     in
-    { model | preview = previewZone }
+    (prefix, newPoints, suffix)
+
+undo : UndoRedoInfo -> Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+undo undoRedoInfo track =
+    let
+        ( beforeEnd, suffix ) =
+            track.trackPoints |> List.Extra.splitAt (undoRedoInfo.regionEnd + 1)
+
+        ( prefix, region ) =
+            beforeEnd |> List.Extra.splitAt undoRedoInfo.regionStart
+
+        newPoints =
+            undoRedoInfo.originalPoints |> List.map TrackPoint.trackPointFromPoint
+    in
+    (prefix, newPoints, suffix)
 
 
-movePoints : Model -> Track -> List TrackPoint
-movePoints model track =
+
+movePoints : Model -> List TrackPoint -> List (Point3d.Point3d Length.Meters LocalCoords)
+movePoints options region =
     -- This used by preview and action.
     let
         ( xShift, yShift ) =
-            Vector2d.components model.vector
+            Vector2d.components options.vector
 
         zShift =
-            heightOffset model.heightSliderSetting
+            heightOffset options.heightSliderSetting
 
         translation =
             -- Negate y because SVG coordinates go downards.
             Point3d.translateBy (Vector3d.xyz xShift (Quantity.negate yShift) zShift)
-
-        newPoint trackpoint =
-            let
-                newXYZ =
-                    translation trackpoint.xyz
-
-                newXZ =
-                    -- Ignoring for now the impact on track length.
-                    trackpoint.profileXZ
-                        |> Point3d.translateBy (Vector3d.xyz Quantity.zero Quantity.zero zShift)
-            in
-            { trackpoint | xyz = newXYZ, profileXZ = newXZ }
-
-        markerPosition =
-            track.markedNode |> Maybe.withDefault track.currentNode
-
-        ( from, to ) =
-            ( min track.currentNode.index markerPosition.index
-            , max track.currentNode.index markerPosition.index
-            )
-
-        ( beforeEnd, afterEnd ) =
-            List.Extra.splitAt (to + 1) track.trackPoints
-
-        ( beforeStart, affectedRegion ) =
-            List.Extra.splitAt from beforeEnd
-
-        adjustedPoints =
-            List.map newPoint affectedRegion
     in
-    beforeStart ++ adjustedPoints ++ afterEnd
+    List.map (.xyz >> translation) region
 
 
-stretchPoints : Model -> Track -> List TrackPoint
-stretchPoints model track =
+stretchPoints : Model -> TrackPoint -> List TrackPoint -> List (Point3d.Point3d Length.Meters LocalCoords)
+stretchPoints options stretcher region =
     -- This used by preview and action.
     -- Here we move points either side of the stretch marker.
     let
         ( xShift, yShift ) =
-            Vector2d.components model.vector
+            Vector2d.components options.vector
 
         zShiftMax =
             Vector3d.xyz
                 Quantity.zero
                 Quantity.zero
-                (heightOffset model.heightSliderSetting)
+                (heightOffset options.heightSliderSetting)
 
         horizontalTranslation =
             -- Negate y because SVG coordinates go downards.
             Vector3d.xyz xShift (Quantity.negate yShift) (meters 0)
 
-        -- Point2d.signedDistanceAlong and .signedDistanceFrom give axis relative coordinates.
-        -- Then we need only translate along the axis by the proportionate distanceAlong, so we're home.
-        marker =
-            track.markedNode |> Maybe.withDefault track.currentNode
-
-        referenceIdx =
-            case model.stretchPointer of
-                Just idx ->
-                    idx
-
-                Nothing ->
-                    -- Won't happen but have to do this
-                    track.currentNode.index
-
-        referencePoint =
-            List.Extra.getAt referenceIdx track.trackPoints
-                |> Maybe.withDefault track.currentNode
-
-        ( from, to ) =
-            ( min track.currentNode.index marker.index
-            , max track.currentNode.index marker.index
-            )
-
         ( startAnchor, endAnchor ) =
-            ( track.trackPoints |> List.Extra.getAt from |> Maybe.withDefault track.currentNode
-            , track.trackPoints |> List.Extra.getAt to |> Maybe.withDefault track.currentNode
+            ( region |> List.head |> Maybe.withDefault stretcher
+            , region |> List.Extra.last |> Maybe.withDefault stretcher
             )
 
-        ( beforeEnd, afterEnd ) =
-            track.trackPoints |> List.Extra.splitAt (to + 1)
-
-        ( beforeReference, secondPart ) =
-            beforeEnd |> List.Extra.splitAt referenceIdx
-
-        ( beforeStart, firstPart ) =
-            beforeReference |> List.Extra.splitAt from
+        ( firstPart, secondPart ) =
+            region |> List.Extra.splitAt (stretcher.index - startAnchor.index)
 
         ( firstPartAxis, secondPartAxis ) =
-            ( Axis3d.throughPoints startAnchor.xyz referencePoint.xyz
-            , Axis3d.throughPoints endAnchor.xyz referencePoint.xyz
+            ( Axis3d.throughPoints startAnchor.xyz stretcher.xyz
+            , Axis3d.throughPoints endAnchor.xyz stretcher.xyz
             )
 
         ( firstPartDistance, secondPartDistance ) =
-            ( Point3d.distanceFrom startAnchor.xyz referencePoint.xyz
-            , Point3d.distanceFrom endAnchor.xyz referencePoint.xyz
+            ( Point3d.distanceFrom startAnchor.xyz stretcher.xyz
+            , Point3d.distanceFrom endAnchor.xyz stretcher.xyz
             )
 
         distanceAlong maybeAxis p =
@@ -537,10 +495,10 @@ stretchPoints model track =
 
         ( adjustedFirstPoints, adjustedSecondPoints ) =
             ( List.map
-                (adjustRelativeToStart >> adjustRelativeToProfileStart)
+                (adjustRelativeToStart )
                 firstPart
             , List.map
-                (adjustRelativeToEnd >> adjustRelativeToProfileEnd)
+                (adjustRelativeToEnd )
                 secondPart
             )
 
@@ -551,12 +509,9 @@ stretchPoints model track =
                         (pt.xyz |> distanceAlong firstPartAxis)
                         firstPartDistance
             in
-            { pt
-                | xyz =
-                    pt.xyz
-                        |> Point3d.translateBy (horizontalTranslation |> Vector3d.scaleBy proportion)
-                        |> Point3d.translateBy (zShiftMax |> Vector3d.scaleBy proportion)
-            }
+            pt.xyz
+                |> Point3d.translateBy (horizontalTranslation |> Vector3d.scaleBy proportion)
+                |> Point3d.translateBy (zShiftMax |> Vector3d.scaleBy proportion)
 
         adjustRelativeToEnd pt =
             let
@@ -565,57 +520,11 @@ stretchPoints model track =
                         (pt.xyz |> distanceAlong secondPartAxis)
                         secondPartDistance
             in
-            { pt
-                | xyz =
-                    pt.xyz
-                        |> Point3d.translateBy (horizontalTranslation |> Vector3d.scaleBy proportion)
-                        |> Point3d.translateBy (zShiftMax |> Vector3d.scaleBy proportion)
-            }
-
-        adjustRelativeToProfileStart : TrackPoint -> TrackPoint
-        adjustRelativeToProfileStart pt =
-            let
-                proportion =
-                    Quantity.ratio
-                        (Point3d.xCoordinate pt.profileXZ
-                            |> Quantity.minus (Point3d.xCoordinate startAnchor.profileXZ)
-                        )
-                        (Point3d.xCoordinate referencePoint.profileXZ
-                            |> Quantity.minus (Point3d.xCoordinate startAnchor.profileXZ)
-                        )
-            in
-            { pt
-                | profileXZ =
-                    pt.profileXZ
-                        |> Point3d.translateBy
-                            (zShiftMax |> Vector3d.scaleBy proportion)
-            }
-
-        adjustRelativeToProfileEnd : TrackPoint -> TrackPoint
-        adjustRelativeToProfileEnd pt =
-            let
-                proportion =
-                    Quantity.ratio
-                        (Point3d.xCoordinate endAnchor.profileXZ
-                            |> Quantity.minus (Point3d.xCoordinate pt.profileXZ)
-                        )
-                        (Point3d.xCoordinate endAnchor.profileXZ
-                            |> Quantity.minus (Point3d.xCoordinate referencePoint.profileXZ)
-                        )
-            in
-            { pt
-                | profileXZ =
-                    pt.profileXZ
-                        |> Point3d.translateBy
-                            (zShiftMax |> Vector3d.scaleBy proportion)
-            }
+            pt.xyz
+                |> Point3d.translateBy (horizontalTranslation |> Vector3d.scaleBy proportion)
+                |> Point3d.translateBy (zShiftMax |> Vector3d.scaleBy proportion)
     in
-    -- Avoid potential division by zero.
-    if from < referenceIdx && referenceIdx < to then
-        beforeStart ++ adjustedFirstPoints ++ adjustedSecondPoints ++ afterEnd
-
-    else
-        track.trackPoints
+    adjustedFirstPoints ++ adjustedSecondPoints
 
 
 getStretchPointer : Model -> Track -> Maybe TrackPoint

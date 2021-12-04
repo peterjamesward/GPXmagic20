@@ -5,14 +5,10 @@
 
 # TO-DO
 
-Revisit all uses of gradient to ensure using earth distance.
-Note: GradientSmoother and GradientLimit !!
-
-**WIP**
-
-- MoveAndStretch
-
 Tools to be changed to new Undo/Review/Preview style:
+
+- MoveAndStretch (WIP - needs Previews)
+
 - Straightener
 - Interpolate
 - DeletePoints
@@ -64,10 +60,10 @@ Show gradient over distance.
 
 **Terrain** on empty squares; make it related to context of neighbours.
 
-Allow Tool to place a control on the view pane. When selected, drag messages are
+Allow Tools to place a control on the view pane. When selected, drag messages are
 forwarded to the Tool. Would, for example, allow direct dragging on the view.
 
-On similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
+In similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
 then Main.update becomes nice dispatch system.
 
 ---

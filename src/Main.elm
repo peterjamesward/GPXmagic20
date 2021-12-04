@@ -175,8 +175,7 @@ type alias ModelRecord =
     , accordionState : Accordion.AccordionModel
     , splitInPixels : Int
     , markerOptions : MarkerControls.Options
-
-    --, moveAndStretch : MoveAndStretch.Model
+    , moveAndStretch : MoveAndStretch.Model
     , curveFormer : CurveFormer.Model
     }
 
@@ -229,8 +228,7 @@ init mflags origin navigationKey =
       , accordionState = Accordion.defaultState
       , splitInPixels = 800
       , markerOptions = MarkerControls.defaultOptions
-
-      --, moveAndStretch = MoveAndStretch.defaultModel
+      , moveAndStretch = MoveAndStretch.defaultModel
       , curveFormer = CurveFormer.defaultModel
       }
         -- Just make sure the Accordion reflects all the other state.
@@ -872,21 +870,22 @@ update msg (Model model) =
             , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
             )
 
-        --TwoWayDragMsg dragMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map
-        --                (MoveAndStretch.update
-        --                    dragMsg
-        --                    model.moveAndStretch
-        --                    TwoWayDragMsg
-        --                )
-        --                model.track
-        --                |> Maybe.withDefault ( model.moveAndStretch, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | moveAndStretch = newOptions }
-        --        action
+        TwoWayDragMsg dragMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (MoveAndStretch.update
+                            dragMsg
+                            model.moveAndStretch
+                            TwoWayDragMsg
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.moveAndStretch, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | moveAndStretch = newOptions }
+                action
+
         CurveFormerMsg curveMsg ->
             let
                 ( newOptions, action ) =
@@ -1968,22 +1967,26 @@ toolsAccordion (Model model) =
       , previewProfile = Just (Nudge.getPreviewProfile model.displayOptions model.nudgeSettings)
       , previewMap = Just (Nudge.getPreviewMap model.displayOptions model.nudgeSettings)
       }
+    , { label = MoveAndStretch.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (MoveAndStretch.view
+                        m.displayOptions.imperialMeasure
+                        m.moveAndStretch
+                        TwoWayDragMsg
+                    )
+                    m.track
+                    |> Maybe.withDefault none
+      , info = MoveAndStretch.info
+      , video = Just "https://youtu.be/9ag2iSS4OE8"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = MoveAndStretch.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (MoveAndStretch.view
-    --                model.displayOptions.imperialMeasure
-    --                model.moveAndStretch
-    --                TwoWayDragMsg
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = MoveAndStretch.info
-    --  , video = Just "https://youtu.be/9ag2iSS4OE8"
-    --  , isFavourite = False
-    --  }
     --, { label = Straightener.toolLabel
     --  , state = Contracted
     --  , content =
