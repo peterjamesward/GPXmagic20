@@ -26,9 +26,6 @@ Tools to be changed to new Undo/Review/Preview style:
 - Drag on Map
 - One Click Quick Fix
 
-Automatically **reduce graphics** according to number of points.
-> Will hugely improve perceived performance.
-
 **Samir**
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
 as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.

@@ -2004,8 +2004,8 @@ toolsAccordion (Model model) =
       , video = Just "https://youtu.be/DjdwAFkgw2o"
       , isFavourite = False
       , preview3D = Just (CurveFormer.getPreview3D model.curveFormer)
-      , previewProfile = Nothing
-      , previewMap = Nothing
+      , previewProfile = Just (CurveFormer.getPreviewProfile model.displayOptions model.curveFormer)
+      , previewMap = Just (CurveFormer.getPreviewMap model.displayOptions model.curveFormer)
       }
 
     --, { label = GradientLimiter.toolLabel

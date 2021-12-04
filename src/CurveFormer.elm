@@ -9,6 +9,7 @@ import Color
 import ColourPalette exposing (warningColor)
 import Direction2d
 import Direction3d
+import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Input as Input
@@ -16,6 +17,7 @@ import FeatherIcons
 import Geometry101
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
+import Json.Encode as E
 import Length exposing (meters)
 import LineSegment2d
 import List.Extra
@@ -30,6 +32,7 @@ import Quantity
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
 import SceneBuilder exposing (highlightPoints)
+import SceneBuilderProfile exposing (previewProfileLine)
 import SketchPlane3d
 import SpatialIndex
 import Svg
@@ -1219,14 +1222,30 @@ getPreview3D model track =
         ++ (highlightPoints Color.lightYellow <| List.map trackPointFromPoint model.newTrackPoints)
 
 
-usePiecewiseGradientSmoothing : Model -> Track -> List TrackPoint
-usePiecewiseGradientSmoothing model track =
-    track.trackPoints
+getPreviewProfile : DisplayOptions -> Model -> Track -> List (Entity LocalCoords)
+getPreviewProfile display model track =
+    previewProfileLine display Color.lightYellow <| List.map trackPointFromPoint model.newTrackPoints
 
 
-useHolisticGradientSmoothing : Model -> Track -> List TrackPoint
-useHolisticGradientSmoothing model track =
-    track.trackPoints
+getPreviewMap : DisplayOptions -> Model -> Track -> E.Value
+getPreviewMap _ model track =
+    {-
+       To return JSON:
+       { "name" : "nudge"
+       , "colour" : "#FFFFFF"
+       , "points" : <trackPointsToJSON ...>
+       }
+    -}
+    let
+        fakeTrack =
+            -- Just for the JSON
+            { track | trackPoints = List.map trackPointFromPoint model.newTrackPoints }
+    in
+    E.object
+        [ ( "name", E.string "curve" )
+        , ( "colour", E.string "#FFFF00" )
+        , ( "points", Track.trackToJSON fakeTrack )
+        ]
 
 
 makeUndoMessage : Model -> String
