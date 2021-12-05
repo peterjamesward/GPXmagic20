@@ -1,10 +1,14 @@
 module MoveAndStretch exposing (..)
 
 import Axis3d
+import Color
+import Direction3d
+import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Input as Input
 import Html.Attributes
 import Html.Events.Extra.Pointer as Pointer
+import Json.Encode as E
 import Length exposing (meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -12,6 +16,9 @@ import Point2d
 import Point3d
 import PostUpdateActions exposing (UndoEntry)
 import Quantity
+import Scene3d exposing (Entity)
+import SceneBuilder exposing (previewLine)
+import SceneBuilderProfile exposing (previewProfileLine)
 import Svg
 import Svg.Attributes as SA
 import TabCommonElements exposing (markerTextHelper)
@@ -63,6 +70,7 @@ type alias UndoRedoInfo =
     , regionEnd : Int
     , originalPoints : List (Point3d.Point3d Length.Meters LocalCoords)
     , revisedPoints : List (Point3d.Point3d Length.Meters LocalCoords)
+    , originalProfileXZ : List (Point3d.Point3d Length.Meters LocalCoords)
     }
 
 
@@ -288,8 +296,8 @@ view imperial model wrapper track =
                         , label =
                             Input.labelBelow []
                                 (text "Choose the point to drag")
-                        , min = from
-                        , max = to
+                        , min = from + 1
+                        , max = to - 1
                         , step = Just 1.0
                         , value = model.stretchPointer |> Maybe.withDefault 0 |> toFloat
                         , thumb = Input.defaultThumb
@@ -352,6 +360,7 @@ sections of track either side will expand or contract to follow it. This could b
 separating hairpins, or just to avoid a close pass, or because you can.
 """
 
+
 buildActions : Model -> Track -> UndoEntry
 buildActions options track =
     let
@@ -369,22 +378,26 @@ buildActions options track =
         ( prefix, region ) =
             beforeEnd |> List.Extra.splitAt from
 
-        stretchPoint = case options.stretchPointer of
-            Just s -> track.trackPoints |> List.Extra.getAt s
-            Nothing -> Nothing
+        stretchPoint =
+            case options.stretchPointer of
+                Just s ->
+                    track.trackPoints |> List.Extra.getAt s
+
+                Nothing ->
+                    Nothing
 
         newPoints =
-            case (options.mode, stretchPoint) of
-                (Stretch, Just stretcher) ->
+            case ( options.mode, stretchPoint ) of
+                ( Stretch, Just stretcher ) ->
                     -- Avoid potential division by zero.
                     if from < stretcher.index && stretcher.index < to then
                         stretchPoints options stretcher region
+
                     else
                         region |> List.map .xyz
 
-                (_, _) ->
+                ( _, _ ) ->
                     movePoints options region
-
 
         undoRedoInfo : UndoRedoInfo
         undoRedoInfo =
@@ -392,6 +405,7 @@ buildActions options track =
             , regionEnd = to
             , originalPoints = List.map .xyz region
             , revisedPoints = newPoints
+            , originalProfileXZ = List.map .profileXZ region
             }
     in
     { label = "Move & Stretch"
@@ -402,7 +416,7 @@ buildActions options track =
     }
 
 
-apply : UndoRedoInfo -> Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 apply undoRedoInfo track =
     let
         ( beforeEnd, suffix ) =
@@ -411,12 +425,30 @@ apply undoRedoInfo track =
         ( prefix, region ) =
             beforeEnd |> List.Extra.splitAt undoRedoInfo.regionStart
 
-        newPoints =
-            undoRedoInfo.revisedPoints |> List.map TrackPoint.trackPointFromPoint
-    in
-    (prefix, newPoints, suffix)
+        translatePoint tp original revised =
+            -- To make the profile come out right is more sutle.
+            let
+                translation =
+                    Vector3d.from original revised
 
-undo : UndoRedoInfo -> Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+                verticalVector =
+                    Vector3d.xyz Quantity.zero Quantity.zero (Vector3d.zComponent translation)
+
+                newProfileXZ =
+                    tp.profileXZ |> Point3d.translateBy verticalVector
+            in
+            { tp | xyz = revised, profileXZ = newProfileXZ }
+
+        newPoints =
+            List.map3 translatePoint
+                region
+                undoRedoInfo.originalPoints
+                undoRedoInfo.revisedPoints
+    in
+    ( prefix, newPoints, suffix )
+
+
+undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 undo undoRedoInfo track =
     let
         ( beforeEnd, suffix ) =
@@ -425,11 +457,17 @@ undo undoRedoInfo track =
         ( prefix, region ) =
             beforeEnd |> List.Extra.splitAt undoRedoInfo.regionStart
 
-        newPoints =
-            undoRedoInfo.originalPoints |> List.map TrackPoint.trackPointFromPoint
-    in
-    (prefix, newPoints, suffix)
+        translatePoint tp original originalProfileXZ =
+            -- To make the profile come out right is more sutle.
+            { tp | xyz = original, profileXZ = originalProfileXZ }
 
+        newPoints =
+            List.map3 translatePoint
+                region
+                undoRedoInfo.originalPoints
+                undoRedoInfo.originalProfileXZ
+    in
+    ( prefix, newPoints, suffix )
 
 
 movePoints : Model -> List TrackPoint -> List (Point3d.Point3d Length.Meters LocalCoords)
@@ -445,8 +483,16 @@ movePoints options region =
         translation =
             -- Negate y because SVG coordinates go downards.
             Point3d.translateBy (Vector3d.xyz xShift (Quantity.negate yShift) zShift)
+
+        ( notLast, last ) =
+            region |> List.Extra.splitAt (List.length region - 1)
+
+        ( first, regionExcludingEnds ) =
+            notLast |> List.Extra.splitAt 1
     in
-    List.map (.xyz >> translation) region
+    List.map .xyz first
+        ++ List.map (.xyz >> translation) regionExcludingEnds
+        ++ List.map .xyz last
 
 
 stretchPoints : Model -> TrackPoint -> List TrackPoint -> List (Point3d.Point3d Length.Meters LocalCoords)
@@ -495,10 +541,10 @@ stretchPoints options stretcher region =
 
         ( adjustedFirstPoints, adjustedSecondPoints ) =
             ( List.map
-                (adjustRelativeToStart )
+                adjustRelativeToStart
                 firstPart
             , List.map
-                (adjustRelativeToEnd )
+                adjustRelativeToEnd
                 secondPart
             )
 
@@ -527,21 +573,68 @@ stretchPoints options stretcher region =
     adjustedFirstPoints ++ adjustedSecondPoints
 
 
-getStretchPointer : Model -> Track -> Maybe TrackPoint
-getStretchPointer model track =
-    case ( model.mode, model.stretchPointer ) of
-        ( Stretch, Just n ) ->
-            List.Extra.getAt n track.trackPoints
+getPreview3D : Model -> Track -> List (Entity LocalCoords)
+getPreview3D options track =
+    let
+        undoEntry =
+            buildActions options track
 
-        _ ->
-            Nothing
+        ( _, region, _ ) =
+            undoEntry.editFunction track
+
+        stretchPoint =
+            case options.stretchPointer of
+                Just sp ->
+                    makeWhiteMarker sp
+
+                Nothing ->
+                    []
+
+        makeWhiteMarker i =
+            case track.trackPoints |> List.Extra.getAt i of
+                Just stretch ->
+                    Utils.lollipop stretch.xyz Color.white
+
+                Nothing ->
+                    []
+    in
+    stretchPoint ++ previewLine Color.lightPurple region
 
 
-makeUndoMessage : Model -> String
-makeUndoMessage model =
-    case model.mode of
-        Translate ->
-            "Slide a section of track"
+getPreviewProfile : DisplayOptions -> Model -> Track -> List (Entity LocalCoords)
+getPreviewProfile display options track =
+    let
+        undoEntry =
+            buildActions options track
 
-        Stretch ->
-            "Stretch a section of track"
+        ( _, region, _ ) =
+            undoEntry.editFunction track
+    in
+    previewProfileLine display Color.white region
+
+
+getPreviewMap : DisplayOptions -> Model -> Track -> E.Value
+getPreviewMap display options track =
+    {-
+       To return JSON:
+       { "name" : "nudge"
+       , "colour" : "#FFFFFF"
+       , "points" : <trackPointsToJSON ...>
+       }
+    -}
+    let
+        undoEntry =
+            buildActions options track
+
+        ( _, region, _ ) =
+            undoEntry.editFunction track
+
+        fakeTrack =
+            -- Just for the JSON
+            { track | trackPoints = region }
+    in
+    E.object
+        [ ( "name", E.string "stretch" )
+        , ( "colour", E.string "#800080" )
+        , ( "points", Track.trackToJSON fakeTrack )
+        ]

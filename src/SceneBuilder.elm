@@ -14,17 +14,14 @@ import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra as Maybe
-import MoveAndStretch
 import Pixels
 import Plane3d
 import Point2d
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import Scene3d exposing (Entity, cone, cylinder)
+import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
-import SceneBuilderProfile exposing (scaledXZ)
-import SketchPlane3d
 import SpatialIndex exposing (SpatialContent, SpatialNode(..))
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)

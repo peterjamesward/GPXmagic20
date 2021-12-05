@@ -9,7 +9,6 @@ import Length exposing (Length, Meters, meters)
 import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
-import MoveAndStretch
 import Pixels
 import Plane3d
 import Point3d exposing (Point3d)
@@ -18,7 +17,6 @@ import Scene3d exposing (Entity, cone)
 import Scene3d.Material as Material exposing (Material)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
-import Triangle3d
 import Utils exposing (combineLists, gradientColourPastel, gradientColourVivid)
 import Vector3d
 

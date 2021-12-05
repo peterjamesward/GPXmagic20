@@ -5,9 +5,9 @@
 
 # TO-DO
 
-Tools to be changed to new Undo/Review/Preview style:
+Profile previews disregard vertical scale.
 
-- MoveAndStretch (WIP - needs Previews)
+Tools to be changed to new Undo/Review/Preview style:
 
 - Straightener
 - Interpolate

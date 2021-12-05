@@ -1982,9 +1982,9 @@ toolsAccordion (Model model) =
       , info = MoveAndStretch.info
       , video = Just "https://youtu.be/9ag2iSS4OE8"
       , isFavourite = False
-      , preview3D = Nothing
-      , previewProfile = Nothing
-      , previewMap = Nothing
+      , preview3D = Just (MoveAndStretch.getPreview3D model.moveAndStretch)
+      , previewProfile = Just (MoveAndStretch.getPreviewProfile model.displayOptions model.moveAndStretch)
+      , previewMap = Just (MoveAndStretch.getPreviewMap model.displayOptions model.moveAndStretch)
       }
 
     --, { label = Straightener.toolLabel
