@@ -51,6 +51,7 @@ import Nudge exposing (NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix)
+import Point3d
 import PortController exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..), UndoEntry)
 import Quantity
@@ -995,6 +996,7 @@ processPostUpdateAction model action =
             ( model
                 |> reflectNewTrackViaGraph track EditNoOp
                 |> repeatTrackDerivations
+                |> refreshSceneSearchers
                 |> refreshAccordion
                 |> composeScene
                 |> Model
@@ -1167,6 +1169,21 @@ applyTrack (Model model) track =
         |> Model
     , mapCommands
     )
+
+
+refreshSceneSearchers : ModelRecord -> ModelRecord
+refreshSceneSearchers model =
+    case model.track of
+        Just isTrack ->
+            { model
+                | viewPanes =
+                    ViewPane.mapOverAllContexts
+                        (ViewPane.refreshSceneSearcher isTrack)
+                        model.viewPanes
+            }
+
+        Nothing ->
+            model
 
 
 processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
@@ -1390,12 +1407,16 @@ repeatTrackDerivations model =
                 newPurple =
                     Maybe.map replacePointer isTrack.markedNode
 
+                newBox =
+                    BoundingBox3d.hullOfN .xyz earthTrack
+                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+
                 newTrack =
                     { isTrack
                         | trackPoints = earthTrack
                         , currentNode = newOrange
                         , markedNode = newPurple
-                        , spatialIndex = Track.buildSpatialIndex earthTrack isTrack.box
+                        , spatialIndex = Track.buildSpatialIndex earthTrack newBox
                     }
             in
             { model

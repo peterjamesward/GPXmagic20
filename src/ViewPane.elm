@@ -168,6 +168,7 @@ mapOverAllContexts f panes =
 
 mapOverProfileContexts : (ViewingContext -> ViewingContext) -> List ViewPane -> List ViewPane
 mapOverProfileContexts f panes =
+    -- Need this if the exaggeration changes, which is naff, really.
     List.map
         (\pane -> { pane | profileContext = f pane.profileContext })
         panes

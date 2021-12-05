@@ -5,13 +5,12 @@
 
 # TO-DO
 
-Profile previews disregard vertical scale.
+Need function to **refresh open tools** on any track change including marker moves.
 
-Simplify messes up click detection.
+Profile previews disregard **vertical scale**.
 
 Tools to be changed to new Undo/Review/Preview style:
 
-- Simplify (Straightener)
 - Interpolate
 - DeletePoints
 - Flythrough
