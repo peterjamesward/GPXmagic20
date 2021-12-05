@@ -5,7 +5,6 @@ module Main exposing (main)
 --import DeletePoints exposing (Action(..), viewDeleteTools)
 --import Flythrough exposing (Flythrough)
 --import GradientLimiter
---import Interpolate
 --import LoopedTrack
 --import RotateRoute
 --import Straightener
@@ -38,6 +37,7 @@ import GradientSmoother
 import Graph exposing (Graph, GraphActionImpact(..), viewGraphControls)
 import Html.Attributes exposing (id, style)
 import Http
+import Interpolate
 import Json.Decode as D
 import Json.Encode as Encode
 import Length
@@ -100,7 +100,7 @@ type Msg
       --| FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
-      --| InsertMessage Interpolate.Msg
+    | InsertMessage Interpolate.Msg
     | SplitterMessage TrackSplitter.Msg
     | UserChangedFilename String
     | OutputGPX
@@ -160,8 +160,8 @@ type alias ModelRecord =
     --, flythrough : Flythrough.Options
     --, filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
+    , insertOptions : Interpolate.Options
 
-    --, insertOptions : Interpolate.Options
     --, stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
@@ -213,8 +213,8 @@ init mflags origin navigationKey =
       --, flythrough = Flythrough.defaultOptions
       --, filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
+      , insertOptions = Interpolate.defaultOptions
 
-      --, insertOptions = Interpolate.defaultOptions
       --, stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
@@ -394,21 +394,21 @@ update msg (Model model) =
                 Nothing ->
                     ( Model model, Cmd.none )
 
-        --InsertMessage insertMsg ->
-        --    let
-        --        ( newSettings, action ) =
-        --            Maybe.map
-        --                (Interpolate.update
-        --                    insertMsg
-        --                    model.insertOptions
-        --                )
-        --                model.track
-        --                |> Maybe.withDefault ( model.insertOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | insertOptions = newSettings }
-        --        action
-        --
+        InsertMessage insertMsg ->
+            let
+                ( newSettings, action ) =
+                    Maybe.map
+                        (Interpolate.update
+                            insertMsg
+                            model.insertOptions
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.insertOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | insertOptions = newSettings }
+                action
+
         --DeleteMessage deleteMsg ->
         --    let
         --        action =
@@ -619,9 +619,8 @@ update msg (Model model) =
                         dispMsg
                         DisplayOptionsMessage
             in
-            ( { model
-                | displayOptions = newOptions
-              }
+            ( { model | displayOptions = newOptions }
+                |> refreshAccordion
                 |> composeScene
                 |> Model
             , PortController.storageSetItem "display" (DisplayOptions.encodeOptions newOptions)
@@ -2026,23 +2025,27 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = Interpolate.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                case m.track of
+                    Just _ ->
+                        Interpolate.viewTools
+                            m.displayOptions.imperialMeasure
+                            m.insertOptions
+                            InsertMessage
 
-    --, { label = Interpolate.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        case model.track of
-    --            Just _ ->
-    --                Interpolate.viewTools
-    --                    model.displayOptions.imperialMeasure
-    --                    model.insertOptions
-    --                    InsertMessage
-    --
-    --            Nothing ->
-    --                none
-    --  , info = Interpolate.info
-    --  , video = Just "https://youtu.be/C3chnX2Ij_8"
-    --  , isFavourite = False
-    --  }
+                    Nothing ->
+                        none
+      , info = Interpolate.info
+      , video = Just "https://youtu.be/C3chnX2Ij_8"
+      , isFavourite = False
+      , preview3D = Just (Interpolate.getPreview3D model.insertOptions)
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
+
     --, { label = DeletePoints.toolLabel
     --  , state = Contracted
     --  , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage

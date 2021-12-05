@@ -62,8 +62,8 @@ oneClickQuickFix originalTrack =
             { track
                 | trackPoints =
                     track
-                        |> Interpolate.insertPoints Interpolate.defaultOptions
-                        |> Tuple.first
+                        --|> Interpolate.insertPoints Interpolate.defaultOptions
+                        --|> Tuple.first
                         |> .trackPoints
                         |> TrackPoint.prepareTrackPoints
             }

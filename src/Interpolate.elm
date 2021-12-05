@@ -1,15 +1,18 @@
 module Interpolate exposing (..)
 
+import Color
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (inMeters)
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (TrackEditType(..), UndoEntry)
+import Scene3d exposing (Entity)
+import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
-import TrackPoint exposing (temporaryIndices, trackPointFromPoint)
-import Utils exposing (showDecimal0, showDecimal2, showShortMeasure)
+import TrackPoint exposing (TrackPoint, trackPointFromPoint)
+import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
 
@@ -45,6 +48,17 @@ defaultOptions =
     { maxSpacing = 10.0 }
 
 
+type alias UndoRedoInfo =
+    -- We should be able to Undo by working out the new points afresh.
+    -- The options will also be available in the closure.
+    { start : Int
+    , end : Int
+    , originalPoints : List TrackPoint
+    , spacing : Float
+    , newEnd : Int
+    }
+
+
 update :
     Msg
     -> Options
@@ -54,21 +68,14 @@ update msg settings track =
     case msg of
         SetMaxSpacing spacing ->
             ( { settings | maxSpacing = spacing }
-            , PostUpdateActions.ActionNoOp
+            , PostUpdateActions.ActionPreview
             )
 
         InsertPoints ->
-            let
-                ( newTrack, undoMsg ) =
-                    insertPoints settings track
-            in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
-
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                newTrack
---                undoMsg
+            , PostUpdateActions.ActionTrackChanged
+                EditPreservesNodePosition
+                (buildActions settings track)
             )
 
 
@@ -113,32 +120,83 @@ viewTools imperial options wrap =
         ]
 
 
-insertPoints : Options -> Track -> ( Track, String )
-insertPoints options track =
-    -- Introduce additional trackpoints in all segments **between** markers.
+buildActions : Options -> Track -> UndoEntry
+buildActions options track =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( startPoint, endPoint ) =
-            if track.currentNode.index == marker.index then
-                -- Make explicit whole track if no range.
-                ( List.head track.trackPoints |> Maybe.withDefault track.currentNode
-                , List.Extra.last track.trackPoints |> Maybe.withDefault track.currentNode
-                )
+            ( if track.currentNode.index <= marker.index then
+                track.currentNode
 
-            else if track.currentNode.index < marker.index then
-                ( track.currentNode, marker )
+              else
+                marker
+            , if track.currentNode.index > marker.index then
+                track.currentNode
 
-            else
-                ( marker, track.currentNode )
+              else
+                marker
+            )
 
         undoMessage =
-            "Insert between "
+            "Interpolate from "
                 ++ showDecimal0 (inMeters startPoint.distanceFromStart)
-                ++ " and "
+                ++ " to "
                 ++ showDecimal0 (inMeters endPoint.distanceFromStart)
                 ++ "."
+
+        originalPoints =
+            track.trackPoints |> List.take (1 + endPoint.index) |> List.drop startPoint.index
+
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { start = startPoint.index
+            , end = endPoint.index
+            , originalPoints = originalPoints
+            , spacing = options.maxSpacing
+            , newEnd = 0
+            }
+
+        ( _, newPoints, _ ) =
+            -- Yes, dummy run just to get the length.
+            apply undoRedoInfo track
+
+        revisedUndoRedo =
+            { undoRedoInfo
+                | newEnd =
+                    endPoint.index - List.length originalPoints + List.length newPoints
+            }
+
+        newOrange =
+            if track.currentNode.index == endPoint.index then
+                endPoint.index + List.length newPoints - List.length originalPoints + 1
+
+            else
+                track.currentNode.index
+
+        newPurple =
+            if track.markedNode == Just endPoint then
+                Just (endPoint.index + List.length newPoints - List.length originalPoints + 1)
+
+            else
+                Maybe.map .index track.markedNode
+    in
+    { label = undoMessage
+    , editFunction = apply revisedUndoRedo
+    , undoFunction = undo revisedUndoRedo
+    , newOrange = newOrange
+    , newPurple = newPurple
+    }
+
+
+apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply undoRedo track =
+    -- Introduce additional trackpoints in all segments **between** markers.
+    -- Yes, there's some redundant track splitting. Not worth worrying about.
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
 
         newPointsBetween pt1 pt2 =
             let
@@ -147,7 +205,7 @@ insertPoints options track =
                     -- Replacing this should make it easier for the multiple segment case.
                     ceiling <|
                         (inMeters <| Vector3d.length pt1.roadVector)
-                            / options.maxSpacing
+                            / undoRedo.spacing
             in
             List.map
                 (\i ->
@@ -160,8 +218,8 @@ insertPoints options track =
 
         pointsToInterpolate =
             track.trackPoints
-                |> List.take (endPoint.index + 1)
-                |> List.drop startPoint.index
+                |> List.take (undoRedo.end + 1)
+                |> List.drop undoRedo.start
 
         allNewTrackPoints =
             List.map2
@@ -172,40 +230,82 @@ insertPoints options track =
                 |> List.map trackPointFromPoint
 
         precedingTrackPoints =
-            List.take (startPoint.index + 1) track.trackPoints
+            List.take undoRedo.start track.trackPoints
 
         subsequentTrackPoints =
-            List.drop (endPoint.index + 1) track.trackPoints
+            List.drop (undoRedo.end + 1) track.trackPoints
 
         newTrackPointList =
             precedingTrackPoints
                 ++ allNewTrackPoints
                 ++ subsequentTrackPoints
                 |> TrackPoint.prepareTrackPoints
-
-        currentNode =
-            if track.currentNode.index == endPoint.index then
-                List.Extra.getAt
-                    (endPoint.index + List.length allNewTrackPoints - List.length pointsToInterpolate + 1)
-                    newTrackPointList
-                    |> Maybe.withDefault track.currentNode
-
-            else
-                track.currentNode
-
-        markedNode =
-            if track.markedNode == Just endPoint then
-                List.Extra.getAt
-                    (endPoint.index + List.length allNewTrackPoints - List.length pointsToInterpolate + 1)
-                    newTrackPointList
-
-            else
-                track.markedNode
     in
-    ( { track
-        | trackPoints = newTrackPointList
-        , currentNode = currentNode
-        , markedNode = markedNode
-      }
-    , undoMessage
-    )
+    ( precedingTrackPoints, newTrackPointList, subsequentTrackPoints )
+
+
+undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo undoRedo track =
+    -- Introduce additional trackpoints in all segments **between** markers.
+    -- Yes, there's some redundant track splitting. Not worth worrying about.
+    -- In Undo, we work out which are the new ones, so we can remove them.
+    -- Or something like that.
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        pointsToDeinterpolate =
+            track.trackPoints
+                |> List.take undoRedo.newEnd
+                |> List.drop undoRedo.start
+
+        precedingTrackPoints =
+            List.take (undoRedo.start + 1) track.trackPoints
+
+        subsequentTrackPoints =
+            List.drop (undoRedo.newEnd + 1) track.trackPoints
+
+        originalTrackPointList =
+            -- Maybe not the cheapest solution.
+            pointsToDeinterpolate |> pointsNotIn undoRedo.originalPoints
+    in
+    ( precedingTrackPoints, originalTrackPointList, subsequentTrackPoints )
+
+
+pointsNotIn referenceList testList =
+    testList
+        |> List.filter
+            (\pt1 ->
+                List.Extra.find
+                    (\pt2 ->
+                        Point3d.equalWithin Length.centimeter pt1.xyz pt2.xyz
+                    )
+                    referenceList
+                    /= Nothing
+            )
+
+
+getPreview3D : Options -> Track -> List (Entity LocalCoords)
+getPreview3D options track =
+    -- To heck with the expense here.
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        ( startPoint, endPoint ) =
+             if track.currentNode.index <= marker.index then
+                (track.currentNode, marker)
+
+              else
+                (marker, track.currentNode)
+
+        originalPoints =
+            track.trackPoints |> List.take (1 + endPoint.index) |> List.drop startPoint.index
+
+        actions =
+            buildActions options track
+
+        ( _, points, _ ) =
+            actions.editFunction track
+    in
+    highlightPoints Color.white (points |> pointsNotIn originalPoints)

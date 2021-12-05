@@ -5,13 +5,10 @@
 
 # TO-DO
 
-Need function to **refresh open tools** on any track change including marker moves.
-
-Profile previews disregard **vertical scale**.
-
 Tools to be changed to new Undo/Review/Preview style:
 
-- Interpolate
+- Interpolate (WIP) : good start. Out by one somewhere. Preview wrong.
+
 - DeletePoints
 - Flythrough
 - Filters
