@@ -234,14 +234,8 @@ apply undoRedo track =
 
         subsequentTrackPoints =
             List.drop (undoRedo.end + 1) track.trackPoints
-
-        newTrackPointList =
-            precedingTrackPoints
-                ++ allNewTrackPoints
-                ++ subsequentTrackPoints
-                |> TrackPoint.prepareTrackPoints
     in
-    ( precedingTrackPoints, newTrackPointList, subsequentTrackPoints )
+    ( precedingTrackPoints, allNewTrackPoints, subsequentTrackPoints )
 
 
 undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
@@ -267,12 +261,12 @@ undo undoRedo track =
 
         originalTrackPointList =
             -- Maybe not the cheapest solution.
-            pointsToDeinterpolate |> pointsNotIn undoRedo.originalPoints
+            pointsToDeinterpolate |> pointsIn undoRedo.originalPoints
     in
     ( precedingTrackPoints, originalTrackPointList, subsequentTrackPoints )
 
 
-pointsNotIn referenceList testList =
+pointsIn referenceList testList =
     testList
         |> List.filter
             (\pt1 ->
@@ -285,6 +279,19 @@ pointsNotIn referenceList testList =
             )
 
 
+pointsNotIn referenceList testList =
+    testList
+        |> List.filter
+            (\pt1 ->
+                List.Extra.find
+                    (\pt2 ->
+                        Point3d.equalWithin Length.centimeter pt1.xyz pt2.xyz
+                    )
+                    referenceList
+                    == Nothing
+            )
+
+
 getPreview3D : Options -> Track -> List (Entity LocalCoords)
 getPreview3D options track =
     -- To heck with the expense here.
@@ -293,11 +300,11 @@ getPreview3D options track =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( startPoint, endPoint ) =
-             if track.currentNode.index <= marker.index then
-                (track.currentNode, marker)
+            if track.currentNode.index <= marker.index then
+                ( track.currentNode, marker )
 
-              else
-                (marker, track.currentNode)
+            else
+                ( marker, track.currentNode )
 
         originalPoints =
             track.trackPoints |> List.take (1 + endPoint.index) |> List.drop startPoint.index
