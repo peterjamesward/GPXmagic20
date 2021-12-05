@@ -4,10 +4,11 @@ import Element exposing (..)
 import Element.Input exposing (button)
 import Length exposing (inMeters, meters)
 import LineSegment3d
+import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0)
 import ViewPureStyles exposing (prettyButtonStyles)
@@ -48,6 +49,16 @@ defaultOptions =
     { metricFilteredPoints = [] }
 
 
+type alias StraightenInfo =
+    -- No real need to put the 'after' values in here.
+    -- Just an easier code change to make.
+    { start : Int
+    , end : Int
+    , before : List (Point3d.Point3d Length.Meters LocalCoords)
+    , after : List (Point3d.Point3d Length.Meters LocalCoords)
+    }
+
+
 update :
     Msg
     -> Options
@@ -56,16 +67,10 @@ update :
 update msg settings track =
     case msg of
         StraightenStraight ->
-            let
-                ( newTrack, undoMsg ) =
-                    straightenStraight track
-            in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesIndex
---                newTrack
---                undoMsg
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildStraightenActions settings track)
             )
 
         SimplifyTrack ->
@@ -74,11 +79,11 @@ update msg settings track =
                     simplifyTrack settings track
             in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                newTrack
---                undoMsg
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --                PostUpdateActions.EditPreservesNodePosition
+              --                newTrack
+              --                undoMsg
             )
 
 
@@ -173,13 +178,8 @@ lookForSimplifications options track =
     { options | metricFilteredPoints = filteredPointIndices }
 
 
-straightenStraight : Track -> ( Track, String )
-straightenStraight track =
-    -- In contrast to v1, we will just map over the whole track,
-    -- ignoring anything outside the selected range.
-    -- We will just interpolate (x,y) using the distance from
-    -- start of range.
-    -- Very similar to SmoothGradient but working on (xy) not (z).
+buildStraightenActions : Options -> Track -> UndoEntry
+buildStraightenActions options track =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
@@ -213,34 +213,83 @@ straightenStraight track =
                 - inMeters startPoint.distanceFromStart
             )
 
-        straightenWithinRegion =
-            List.map applyAdjustment track.trackPoints
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt startPoint.index
 
-        applyAdjustment : TrackPoint -> TrackPoint
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (endPoint.index - startPoint.index)
+
+        applyAdjustment : TrackPoint -> Point3d.Point3d Length.Meters LocalCoords
         applyAdjustment pt =
-            -- This reads nicer than the v1 splicing and folding method.
-            if pt.index > startPoint.index && pt.index < endPoint.index then
-                let
-                    current =
-                        Point3d.toRecord inMeters pt.xyz
+            let
+                current =
+                    Point3d.toRecord inMeters pt.xyz
 
-                    straightenedPoint =
-                        LineSegment3d.interpolate idealLine
-                            ((inMeters pt.distanceFromStart - xAtStart) / xLength)
-                            |> Point3d.toRecord inMeters
+                straightenedPoint =
+                    LineSegment3d.interpolate idealLine
+                        ((inMeters pt.distanceFromStart - xAtStart) / xLength)
+                        |> Point3d.toRecord inMeters
 
-                    newPoint =
-                        Point3d.fromRecord meters { straightenedPoint | z = current.z }
-                in
-                { pt | xyz = newPoint }
+            in
+            Point3d.fromRecord meters { straightenedPoint | z = current.z }
 
-            else
-                pt
+        undoRedoInfo : StraightenInfo
+        undoRedoInfo =
+            { start = startPoint.index
+            , end = endPoint.index
+            , before = region |> List.map .xyz
+            , after = region |> List.map applyAdjustment
+            }
     in
-    ( { track | trackPoints = straightenWithinRegion }
-    , undoMessage
-    )
+    { label = undoMessage
+    , editFunction = applyStraighten undoRedoInfo
+    , undoFunction = undoStraighten undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    }
 
+applyStraighten : StraightenInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyStraighten undoRedoInfo track =
+    let
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.start
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (undoRedoInfo.end - undoRedoInfo.start)
+
+        adjusted =
+            -- Make it so.
+            List.map2
+                (\pt new ->  { pt | xyz = new }  )
+                region
+                undoRedoInfo.after
+    in
+    ( prefix, adjusted, suffix )
+
+
+undoStraighten : StraightenInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoStraighten undoRedoInfo track =
+    let
+        ( prefix, theRest ) =
+            track.trackPoints
+                |> List.Extra.splitAt undoRedoInfo.start
+
+        ( region, suffix ) =
+            theRest
+                |> List.Extra.splitAt (undoRedoInfo.end - undoRedoInfo.start)
+
+        adjusted =
+            -- Make it so.
+            List.map2
+                (\pt new ->  { pt | xyz = new }  )
+                region
+                undoRedoInfo.before
+    in
+    ( prefix, adjusted, suffix )
 
 simplifyTrack : Options -> Track -> ( Track, String )
 simplifyTrack options track =

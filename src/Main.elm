@@ -57,6 +57,7 @@ import Quantity
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
+import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import SvgPathExtractor
 import Task
@@ -94,7 +95,7 @@ type Msg
     | LoopMsg LoopedTrack.Msg
     | GradientMessage GradientSmoother.Msg
     | GradientLimiter GradientLimiter.Msg
-      --| StraightenMessage Straightener.Msg
+    | StraightenMessage Straightener.Msg
       --| FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
@@ -153,8 +154,8 @@ type alias ModelRecord =
     , bendOptions : BendSmoother.BendOptions
     , observations : TrackObservations
     , gradientOptions : GradientSmoother.Options
+    , straightenOptions : Straightener.Options
 
-    --, straightenOptions : Straightener.Options
     --, flythrough : Flythrough.Options
     --, filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
@@ -206,8 +207,8 @@ init mflags origin navigationKey =
       , bendOptions = BendSmoother.defaultOptions
       , observations = TrackObservations.defaultObservations
       , gradientOptions = GradientSmoother.defaultOptions
+      , straightenOptions = Straightener.defaultOptions
 
-      --, straightenOptions = Straightener.defaultOptions
       --, flythrough = Flythrough.defaultOptions
       --, filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
@@ -673,17 +674,17 @@ update msg (Model model) =
                 { model | gradientOptions = newOptions }
                 action
 
-        --StraightenMessage straight ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (Straightener.update straight model.straightenOptions)
-        --                model.track
-        --                |> Maybe.withDefault ( model.straightenOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | straightenOptions = newOptions }
-        --        action
-        --
+        StraightenMessage straight ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (Straightener.update straight model.straightenOptions)
+                        model.track
+                        |> Maybe.withDefault ( model.straightenOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | straightenOptions = newOptions }
+                action
+
         --FlythroughMessage flythroughMsg ->
         --    let
         --        ( newOptions, action ) =
@@ -1986,21 +1987,25 @@ toolsAccordion (Model model) =
       , previewProfile = Just (MoveAndStretch.getPreviewProfile model.displayOptions model.moveAndStretch)
       , previewMap = Just (MoveAndStretch.getPreviewMap model.displayOptions model.moveAndStretch)
       }
+    , { label = Straightener.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (Straightener.viewStraightenTools
+                        m.straightenOptions
+                        StraightenMessage
+                    )
+                    m.track
+                    |> Maybe.withDefault none
+      , info = Straightener.info
+      , video = Just "https://youtu.be/MQ67mzShvxg"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = Straightener.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (Straightener.viewStraightenTools
-    --                model.straightenOptions
-    --                StraightenMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = Straightener.info
-    --  , video = Just "https://youtu.be/MQ67mzShvxg"
-    --  , isFavourite = False
-    --  }
     --, { label = Interpolate.toolLabel
     --  , state = Contracted
     --  , content =
