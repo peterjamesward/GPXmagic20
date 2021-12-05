@@ -7,9 +7,11 @@
 
 Profile previews disregard vertical scale.
 
+Simplify messes up click detection.
+
 Tools to be changed to new Undo/Review/Preview style:
 
-- Straightener
+- Simplify (Straightener)
 - Interpolate
 - DeletePoints
 - Flythrough

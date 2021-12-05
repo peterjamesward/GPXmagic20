@@ -47,10 +47,10 @@ oneClickQuickFix originalTrack =
 
                         remainingTrackPoints =
                             t
-                                |> Straightener.simplifyTrack candidatesForRemoval
-                                |> Tuple.first
+                                --|> Straightener.simplifyTrack candidatesForRemoval
+                                --|> Tuple.first
                                 |> .trackPoints
-                                |> TrackPoint.prepareTrackPoints
+                                --|> TrackPoint.prepareTrackPoints
                     in
                     { t | trackPoints = remainingTrackPoints }
             in

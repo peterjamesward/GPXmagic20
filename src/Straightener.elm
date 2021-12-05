@@ -1,5 +1,6 @@
 module Straightener exposing (..)
 
+import Color
 import Element exposing (..)
 import Element.Input exposing (button)
 import Length exposing (inMeters, meters)
@@ -8,6 +9,8 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
 import PostUpdateActions exposing (UndoEntry)
+import Scene3d exposing (Entity)
+import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0)
@@ -39,10 +42,11 @@ start with an IRL ride, as these contain a lot of noise."""
 type Msg
     = SimplifyTrack
     | StraightenStraight
+    | SearchForSimplifications
 
 
 type alias Options =
-    { metricFilteredPoints : List Int }
+    { metricFilteredPoints : List TrackPoint }
 
 
 defaultOptions =
@@ -66,6 +70,11 @@ update :
     -> ( Options, PostUpdateActions.PostUpdateAction trck msg )
 update msg settings track =
     case msg of
+        SearchForSimplifications ->
+            ( lookForSimplifications settings track
+            , PostUpdateActions.ActionPreview
+            )
+
         StraightenStraight ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
@@ -74,16 +83,10 @@ update msg settings track =
             )
 
         SimplifyTrack ->
-            let
-                ( newTrack, undoMsg ) =
-                    simplifyTrack settings track
-            in
-            ( settings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --                PostUpdateActions.EditPreservesNodePosition
-              --                newTrack
-              --                undoMsg
+            ( { settings | metricFilteredPoints = [] }
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildSimplifyActions settings track)
             )
 
 
@@ -93,15 +96,24 @@ viewStraightenTools options wrapper track =
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
+        searchButton =
+            button
+                prettyButtonStyles
+                { onPress = Just <| wrapper SearchForSimplifications
+                , label =
+                    text <|
+                        "Look for simplifications"
+                }
+
         simplifyButton =
             button
                 prettyButtonStyles
                 { onPress = Just <| wrapper SimplifyTrack
                 , label =
                     text <|
-                        "Remove up to "
-                            ++ String.fromInt (List.length options.metricFilteredPoints)
-                            ++ " track points\nto simplify the route."
+                        "Remove "
+                            ++ (String.fromInt <| List.length options.metricFilteredPoints)
+                            ++ "\ntrack points"
                 }
 
         straightenButton =
@@ -122,60 +134,16 @@ viewStraightenTools options wrapper track =
                 [ text "The straighten tool requires a range. "
                 , text "Drop the marker and move it away from the current pointer."
                 ]
-        , simplifyButton
+        , if List.length options.metricFilteredPoints > 0 then
+            simplifyButton
+
+          else
+            searchButton
         , paragraph [ padding 10 ]
             [ text "Simplify works across a range if available,"
             , text " otherwise the whole track."
             ]
         ]
-
-
-lookForSimplifications : Options -> Track -> Options
-lookForSimplifications options track =
-    let
-        numberOfNodes =
-            List.length track.trackPoints
-
-        sortedByMetric =
-            List.sortBy .costMetric track.trackPoints
-
-        fraction =
-            --TODO: Expose this parameter to the user.
-            0.2
-
-        numberToRemove =
-            truncate <| fraction * toFloat numberOfNodes
-
-        selectionForRemoval =
-            List.take numberToRemove sortedByMetric
-
-        forRemovalInIndexOrder =
-            List.sort <|
-                List.map
-                    .index
-                    selectionForRemoval
-
-        avoidingNeighbours lastRemoved suggestions =
-            -- Don't remove adjacent nodes
-            case suggestions of
-                [] ->
-                    []
-
-                [ n ] ->
-                    [ n ]
-
-                n1 :: ns ->
-                    if n1 == lastRemoved + 1 then
-                        -- remove it from the removal list.
-                        avoidingNeighbours lastRemoved ns
-
-                    else
-                        n1 :: avoidingNeighbours n1 ns
-
-        filteredPointIndices =
-            avoidingNeighbours -1 forRemovalInIndexOrder
-    in
-    { options | metricFilteredPoints = filteredPointIndices }
 
 
 buildStraightenActions : Options -> Track -> UndoEntry
@@ -231,7 +199,6 @@ buildStraightenActions options track =
                     LineSegment3d.interpolate idealLine
                         ((inMeters pt.distanceFromStart - xAtStart) / xLength)
                         |> Point3d.toRecord inMeters
-
             in
             Point3d.fromRecord meters { straightenedPoint | z = current.z }
 
@@ -250,6 +217,7 @@ buildStraightenActions options track =
     , newPurple = Maybe.map .index track.markedNode
     }
 
+
 applyStraighten : StraightenInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 applyStraighten undoRedoInfo track =
     let
@@ -264,7 +232,7 @@ applyStraighten undoRedoInfo track =
         adjusted =
             -- Make it so.
             List.map2
-                (\pt new ->  { pt | xyz = new }  )
+                (\pt new -> { pt | xyz = new })
                 region
                 undoRedoInfo.after
     in
@@ -285,14 +253,23 @@ undoStraighten undoRedoInfo track =
         adjusted =
             -- Make it so.
             List.map2
-                (\pt new ->  { pt | xyz = new }  )
+                (\pt new -> { pt | xyz = new })
                 region
                 undoRedoInfo.before
     in
     ( prefix, adjusted, suffix )
 
-simplifyTrack : Options -> Track -> ( Track, String )
-simplifyTrack options track =
+
+type alias SimplifyInfo =
+    -- Can this work?
+    { start : Int
+    , end : Int
+    , nodesToRemove : List TrackPoint
+    }
+
+
+buildSimplifyActions : Options -> Track -> UndoEntry
+buildSimplifyActions options track =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
@@ -309,25 +286,41 @@ simplifyTrack options track =
 
         undoMessage =
             "Remove "
-                ++ String.fromInt (List.length nodesToRemove)
-                ++ " track points"
+                ++ String.fromInt removeCount
+                ++ " points"
 
         nodesToRemove =
             List.filter
-                (\n -> n > startPoint && n < endPoint)
+                (\pt -> pt.index > startPoint && pt.index < endPoint)
                 options.metricFilteredPoints
+
+        removeCount =
+            List.length nodesToRemove
+
+        undoRedoInfo : SimplifyInfo
+        undoRedoInfo =
+            { start = startPoint
+            , end = endPoint
+            , nodesToRemove = nodesToRemove
+            }
     in
-    ( { track | trackPoints = removeByIndexNumbers nodesToRemove track.trackPoints }
-    , undoMessage
-    )
+    { label = undoMessage
+    , editFunction = applySimplify undoRedoInfo
+    , undoFunction = undoSimplify undoRedoInfo
+    , newOrange = min 0 (track.currentNode.index - removeCount)
+    , newPurple = Maybe.map .index track.markedNode
+    }
 
 
-removeByIndexNumbers : List Int -> List TrackPoint -> List TrackPoint
-removeByIndexNumbers idxsToRemove trackPoints =
+applySimplify : SimplifyInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySimplify undoRedoInfo track =
     -- Both input lists are sorted in index order.
     let
+        idxsToRemove =
+            List.map .index undoRedoInfo.nodesToRemove
+
         ( _, _, retained ) =
-            helper idxsToRemove trackPoints []
+            helper idxsToRemove track.trackPoints []
 
         helper idxs tps kept =
             case ( idxs, tps ) of
@@ -347,5 +340,125 @@ removeByIndexNumbers idxsToRemove trackPoints =
                     else
                         -- t.idx > i
                         helper is tps kept
+
+        --_ =
+        --    Debug.log "APPLY" undoRedoInfo
     in
-    List.reverse retained
+    ( [], List.reverse retained, [] )
+
+
+type alias UndoFolder =
+    { lastInserted : Int
+    , fragments : List (List TrackPoint)
+    }
+
+
+undoSimplify : SimplifyInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSimplify undoRedoInfo track =
+    -- We have a list of the track points that were removed.
+    -- We need to put them back in their respective places.
+    -- I think we can recurse down the two lists, much like apply.
+    let
+        startState : UndoFolder
+        startState =
+            { lastInserted = -1
+            , fragments = []
+            }
+
+        showState state =
+            "inserted "
+                ++ String.fromInt state.lastInserted
+                ++ ", fragments "
+                ++ (String.concat <|
+                        List.concat <|
+                            List.map
+                                (List.map
+                                    (\pt -> String.fromInt pt.index ++ ",")
+                                )
+                                state.fragments
+                   )
+
+        helper : UndoFolder -> List TrackPoint -> List TrackPoint -> UndoFolder
+        helper state toInsert source =
+            case ( toInsert, source ) of
+                ( [], _ ) ->
+                    { state | fragments = source :: state.fragments }
+
+                ( _, [] ) ->
+                    { state | fragments = source :: state.fragments }
+
+                ( nextInsert :: moreInserts, _ ) ->
+                    let
+                        nextSplit =
+                            -- How many to consume before inserting.
+                            nextInsert.index - state.lastInserted - 1
+
+                        ( prefix, residue ) =
+                            source |> List.Extra.splitAt nextSplit
+                    in
+                    helper
+                        { lastInserted = nextInsert.index
+                        , fragments = [ nextInsert ] :: prefix :: state.fragments
+                        }
+                        moreInserts
+                        residue
+
+        endState =
+            helper startState undoRedoInfo.nodesToRemove track.trackPoints
+
+        reconstruction =
+            endState.fragments
+                |> List.reverse
+                |> List.concat
+    in
+    ( [], reconstruction, [] )
+
+
+lookForSimplifications : Options -> Track -> Options
+lookForSimplifications options track =
+    let
+        numberOfNodes =
+            List.length track.trackPoints
+
+        sortedByMetric =
+            track.trackPoints
+                |> List.take (numberOfNodes - 1)
+                |> List.drop 1
+                |> List.sortBy .costMetric
+
+        fraction =
+            --TODO: Expose this parameter to the user.
+            0.2
+
+        numberToRemove =
+            truncate <| fraction * toFloat numberOfNodes
+
+        selectionForRemoval =
+            List.take numberToRemove sortedByMetric
+
+        forRemovalInIndexOrder =
+            List.sortBy .index selectionForRemoval
+
+        avoidingNeighbours : Int -> List TrackPoint -> List TrackPoint
+        avoidingNeighbours lastRemoved suggestions =
+            -- Don't remove adjacent nodes
+            case suggestions of
+                [] ->
+                    []
+
+                pt1 :: pts ->
+                    if pt1.index == lastRemoved + 1 then
+                        -- remove it from the removal list, but not at either track end.
+                        avoidingNeighbours lastRemoved pts
+
+                    else
+                        pt1 :: avoidingNeighbours pt1.index pts
+
+        filteredPointIndices =
+            avoidingNeighbours -1 forRemovalInIndexOrder
+    in
+    { options | metricFilteredPoints = filteredPointIndices }
+
+getPreview3D : Options -> Track -> List (Entity LocalCoords)
+getPreview3D options track =
+        highlightPoints Color.white options.metricFilteredPoints

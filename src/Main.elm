@@ -2001,7 +2001,7 @@ toolsAccordion (Model model) =
       , info = Straightener.info
       , video = Just "https://youtu.be/MQ67mzShvxg"
       , isFavourite = False
-      , preview3D = Nothing
+      , preview3D = Just (Straightener.getPreview3D model.straightenOptions)
       , previewProfile = Nothing
       , previewMap = Nothing
       }
