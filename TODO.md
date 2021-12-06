@@ -7,10 +7,17 @@
 
 Tools to be changed to new Undo/Review/Preview style:
 
+- RotateRoute (this does not conform with the 3-part form because of earth issues)
+> May need editFunctions that returns Track, but that messes up the previews!
+> Should I make them Track -> Track and have "special" ones for the Previews?
+> Perhaps neater is a previewFunction in UndoEntry that returns 
+> only the centre section as List TrackPoint.
+> **OR** (_less remedial work_) -- put some wrapper functions in PostUpdateActions
+> that call the editFunction and return the appropriate elements.
+
+- TrackSplitter
 - Graph
 - StravaTools
-- RotateRoute
-- TrackSplitter
 - Drag on Map
 
 **Samir**

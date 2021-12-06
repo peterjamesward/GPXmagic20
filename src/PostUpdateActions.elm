@@ -27,21 +27,20 @@ type TrackEditType
     | EditNoOp -- only for Undo/Redo use
 
 
-
--- This may not stay here. Import loops are a problem potentially.
+type alias EditFunction =
+    Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 
 
 type alias UndoEntry =
     -- Use the editFunction to do or redo, other to undo.
     -- These can use 'always' if the function is not (readily) reversible.
-    -- I think Track -> List Trackpoint is best.
     -- These functions should return only the changed "middle section" of track.
     -- Or (thinking) they could return three parts. That way, we can just use the middle
     -- part for the preview but easily concat them for the whole track.
     -- Seems that would avoid more work elsewhere since we need to split it anyway.
     { label : String
-    , editFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
-    , undoFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
+    , editFunction : EditFunction
+    , undoFunction : EditFunction
     , newOrange : Int
     , newPurple : Maybe Int
     , oldOrange : Int
@@ -52,10 +51,28 @@ type alias UndoEntry =
 defaultUndoEntry : UndoEntry
 defaultUndoEntry =
     { label = "You should not see this text"
-    , editFunction = always ([], [], [])
-    , undoFunction = always ([], [], [])
+    , editFunction = always ( [], [], [] )
+    , undoFunction = always ( [], [], [] )
     , newOrange = 0
     , newPurple = Nothing
     , oldOrange = 0
     , oldPurple = Nothing
     }
+
+
+editAsTrack : EditFunction -> Track -> Track
+editAsTrack f t =
+    let
+        ( a, b, c ) =
+            f t
+    in
+    { t | trackPoints = TrackPoint.prepareTrackPoints <| a ++ b ++ c }
+
+
+editAsPreview : EditFunction -> Track -> List TrackPoint
+editAsPreview f t =
+    let
+        ( a, b, c ) =
+            f t
+    in
+    b
