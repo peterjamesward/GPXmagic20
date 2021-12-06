@@ -308,3 +308,15 @@ getPreview3D options track =
     in
     highlightPoints Color.white (points |> pointsNotIn originalPoints)
 
+
+interpolateWithDefaults : Track -> List TrackPoint
+interpolateWithDefaults track =
+    -- Helper for One-Click-Quick-Fix
+    let
+        actions =
+            buildActions defaultOptions track
+
+        ( _, points, _ ) =
+            actions.editFunction track
+    in
+    points |> TrackPoint.prepareTrackPoints

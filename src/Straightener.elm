@@ -316,6 +316,19 @@ buildSimplifyActions options track =
     }
 
 
+simplifyWithDefaults : Track -> List TrackPoint
+simplifyWithDefaults track =
+    -- Helper for One-Click-Quick-Fix
+    let
+        actions =
+            buildSimplifyActions defaultOptions track
+
+        ( _, points, _ ) =
+            actions.editFunction track
+    in
+    points |> TrackPoint.prepareTrackPoints
+
+
 applySimplify : SimplifyInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 applySimplify undoRedoInfo track =
     -- Both input lists are sorted in index order.

@@ -8,6 +8,7 @@ import LoopedTrack exposing (Loopiness(..))
 import Maybe.Extra
 import Point3d exposing (Point3d)
 import PostUpdateActions exposing (UndoEntry)
+import Quantity
 import TabCommonElements exposing (wholeTrackTextHelper)
 import Track exposing (Track)
 import TrackObservations exposing (TrackObservations)
@@ -63,7 +64,7 @@ type alias Options =
 
 defaultOptions : Options
 defaultOptions =
-    { filterBias = 100.0
+    { filterBias = 50.0
     , bezierTension = 0.5
     , bezierTolerance = 5.0
     , applyToPosition = True
@@ -230,7 +231,20 @@ type alias FilterFunction =
     -> Float
 
 
-buildCentroidAverageActions : TrackObservations -> Options -> Track -> UndoEntry
+smoothWithDefaults : Track -> List TrackPoint
+smoothWithDefaults track =
+    -- Helper for One-Click-Quick-Fix
+    let
+        actions =
+            buildCentroidAverageActions { loopiness = NotALoop Quantity.zero } defaultOptions track
+
+        ( _, points, _ ) =
+            actions.editFunction track
+    in
+    points |> TrackPoint.prepareTrackPoints
+
+
+buildCentroidAverageActions : { a | loopiness : Loopiness } -> Options -> Track -> UndoEntry
 buildCentroidAverageActions observations options track =
     let
         marker =
@@ -332,9 +346,26 @@ undoCentroidAverage options undoRedo track =
     ( prefix, undoRedo.originalPoints, suffix )
 
 
+bezierWithDefaults : Track -> List TrackPoint
+bezierWithDefaults track =
+    -- Helper for One-Click-Quick-Fix
+    let
+        actions =
+            buildBezierActions
+                BezierSplines.bezierApproximation
+                { loopiness = NotALoop Quantity.zero }
+                defaultOptions
+                track
+
+        ( _, points, _ ) =
+            actions.editFunction track
+    in
+    points |> TrackPoint.prepareTrackPoints
+
+
 buildBezierActions :
     (Bool -> Float -> Float -> List TrackPoint -> List TrackPoint)
-    -> TrackObservations
+    -> { a | loopiness : Loopiness }
     -> Options
     -> Track
     -> UndoEntry

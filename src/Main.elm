@@ -769,34 +769,39 @@ update msg (Model model) =
             , outputGPX model
             )
 
-        --OneClickQuickFix ->
-        --    case model.track of
-        --        Just track ->
-        --            let
-        --                newTrack =
-        --                    oneClickQuickFix track
-        --
-        --                newModel =
-        --                    model
-        --                        |> addToUndoStack "One-click Quick-fix"
-        --                        |> (\m ->
-        --                                { m
-        --                                    | track = Just newTrack
-        --                                    , observations = deriveProblems newTrack m.problemOptions
-        --                                }
-        --                           )
-        --                        |> repeatTrackDerivations
-        --                        |> renderTrackSceneElements
-        --            in
-        --            ( newModel
-        --            , Cmd.batch
-        --                [ outputGPX newModel
-        --                , ViewPane.makeMapCommands newTrack model.viewPanes
-        --                ]
-        --            )
-        --
-        --        Nothing ->
-        --            ( model, Cmd.none )
+        OneClickQuickFix ->
+            case model.track of
+                Just track ->
+                    let
+                        undoEntry : UndoEntry
+                        undoEntry =
+                            { label = "One-click Quick-Fix"
+                            , editFunction = oneClickQuickFix
+                            , undoFunction = always ( [], track.trackPoints, [] )
+                            , newOrange = 0
+                            , newPurple = Nothing
+                            , oldOrange = 0
+                            , oldPurple = Nothing
+                            }
+
+                        ( Model newModel, cmds ) =
+                            processPostUpdateAction
+                                model
+                                (PostUpdateActions.ActionTrackChanged
+                                    PostUpdateActions.EditPreservesNodePosition
+                                    undoEntry
+                                )
+                    in
+                    ( Model newModel
+                    , Cmd.batch
+                        [ outputGPX newModel
+                        , cmds
+                        ]
+                    )
+
+                Nothing ->
+                    ( Model model, Cmd.none )
+
         --StravaMessage stravaMsg ->
         --    let
         --        ( newOptions, action ) =

@@ -1,4 +1,4 @@
-module OneClickQuickFix exposing (oneClickQuickFix)
+module OneClickQuickFix exposing (oneClickQuickFix, oneClickQuickFixTrack )
 
 import BezierSplines
 import BoundingBox3d
@@ -13,7 +13,7 @@ import Quantity
 import Straightener
 import Track exposing (Track)
 import TrackObservations exposing (TrackObservations)
-import TrackPoint
+import TrackPoint exposing (TrackPoint)
 
 
 
@@ -28,7 +28,16 @@ import TrackPoint
 -}
 
 
-oneClickQuickFix : Track -> Track
+oneClickQuickFixTrack : Track -> Track
+oneClickQuickFixTrack track =
+    let
+        ( _, newPoints, _ ) =
+            oneClickQuickFix track
+    in
+    { track | trackPoints = newPoints }
+
+
+oneClickQuickFix : Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 oneClickQuickFix originalTrack =
     let
         simplifyTrack =
@@ -41,61 +50,26 @@ oneClickQuickFix originalTrack =
                     obs.meanSpacing < 25.0
 
                 removeSomePoints t =
-                    let
-                        candidatesForRemoval =
-                            Straightener.lookForSimplifications Straightener.defaultOptions t
-
-                        remainingTrackPoints =
-                            t
-                                --|> Straightener.simplifyTrack candidatesForRemoval
-                                --|> Tuple.first
-                                |> .trackPoints
-                                --|> TrackPoint.prepareTrackPoints
-                    in
-                    { t | trackPoints = remainingTrackPoints }
+                    { t | trackPoints = t |> Straightener.simplifyWithDefaults }
             in
-            Loop.while
-                isCloselySpaced
-                removeSomePoints
+            Loop.while isCloselySpaced removeSomePoints
 
         interpolateTrack track =
-            { track
-                | trackPoints =
-                    track
-                        --|> Interpolate.insertPoints Interpolate.defaultOptions
-                        --|> Tuple.first
-                        |> .trackPoints
-                        |> TrackPoint.prepareTrackPoints
-            }
+            { track | trackPoints = track |> Interpolate.interpolateWithDefaults }
 
         smoothTrack track =
-            track
-            --{ track
-            --    | trackPoints =
-            --        track
-            --            |> Filters.applyCentroidAverage
-            --                Filters.defaultOptions
-            --                (LoopedTrack.NotALoop Quantity.zero)
-            --            |> TrackPoint.temporaryIndices
-            --            -- ??
-            --            |> TrackPoint.prepareTrackPoints
-            --}
+            { track | trackPoints = track |> Filters.smoothWithDefaults }
 
-        --bezierApprox track =
-        --    Filters.applyBezierSpline
-        --        BezierSplines.bezierApproximation
-        --        track
-        --        Filters.defaultOptions.bezierTension
-        --        Filters.defaultOptions.bezierTolerance
-        --        (LoopedTrack.NotALoop Quantity.zero)
+        bezierApprox track =
+            { track | trackPoints = track |> Filters.bezierWithDefaults }
+
+        finalTrack =
+            { originalTrack
+                | currentNode = List.head originalTrack.trackPoints |> Maybe.withDefault originalTrack.currentNode
+                , markedNode = Nothing
+            }
+                |> simplifyTrack
+                |> bezierApprox
+                |> Loop.for 3 smoothTrack
     in
-    -- Ignore markers for Quick Fix.
-    { originalTrack
-        | currentNode = List.head originalTrack.trackPoints |> Maybe.withDefault originalTrack.currentNode
-        , markedNode = Nothing
-    }
-        |> simplifyTrack
-        --|> bezierApprox
-        |> Loop.for 3 smoothTrack
-
-
+    ( [], finalTrack.trackPoints, [] )

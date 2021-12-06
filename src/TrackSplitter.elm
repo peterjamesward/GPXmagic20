@@ -213,7 +213,7 @@ update msg settings observations mTrack msgWrapper =
 
                         processingFunction =
                             if settings.applyAutofix then
-                                oneClickQuickFix
+                                OneClickQuickFix.oneClickQuickFixTrack
 
                             else
                                 identity

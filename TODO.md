@@ -7,15 +7,11 @@
 
 Tools to be changed to new Undo/Review/Preview style:
 
-- Filters (WIP)
-
 - Graph
-- TrackObservations
 - StravaTools
 - RotateRoute
 - TrackSplitter
 - Drag on Map
-- One Click Quick Fix
 
 **Samir**
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 

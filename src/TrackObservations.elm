@@ -346,9 +346,6 @@ viewGradientChanges imperial options obs wrap =
 viewBearingChanges : Bool -> Options -> TrackObservations -> (Msg -> msg) -> Element msg
 viewBearingChanges imperial options obs wrap =
     let
-        exceeds b a =
-            a > b
-
         exceedingThreshold =
             obs.abruptBearingChanges
                 |> List.filter
