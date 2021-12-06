@@ -140,6 +140,8 @@ buildSmoothBendActions options track =
             , undoFunction = undoSmoothBend undoRedoInfo
             , newOrange = track.currentNode.index
             , newPurple = Maybe.map .index track.markedNode
+            , oldOrange = track.currentNode.index
+            , oldPurple = Maybe.map .index track.markedNode
             }
 
         Nothing ->
@@ -148,6 +150,8 @@ buildSmoothBendActions options track =
             , undoFunction = \t -> ( [], t.trackPoints, [] )
             , newOrange = track.currentNode.index
             , newPurple = Maybe.map .index track.markedNode
+            , oldOrange = track.currentNode.index
+            , oldPurple = Maybe.map .index track.markedNode
             }
 
 
@@ -664,6 +668,8 @@ buildSmoothPointActions options track =
     , undoFunction = undoSmoothPoints undoRedoInfo
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
 
 
@@ -868,4 +874,6 @@ multiplePointSmoothing trackPoints numSegments track =
         , undoFunction = undoSmoothPoints undoRedoInfo
         , newOrange = track.currentNode.index
         , newPurple = Maybe.map .index track.markedNode
+        , oldOrange = track.currentNode.index
+        , oldPurple = Maybe.map .index track.markedNode
         }

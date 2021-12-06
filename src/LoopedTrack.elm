@@ -68,7 +68,8 @@ viewLoopTools imperial loopiness track wrap =
                 loopButton =
                     button
                         prettyButtonStyles
-                        <| case loopiness of
+                    <|
+                        case loopiness of
                             AlmostLoop _ ->
                                 { onPress = Just <| wrap CloseTheLoop
                                 , label = text "Make the track into a loop"
@@ -151,6 +152,8 @@ update msg settings track =
                     , undoFunction = revertCloseLoop undoRedoInfo
                     , newOrange = track.currentNode.index
                     , newPurple = Maybe.map .index track.markedNode
+                    , oldOrange = track.currentNode.index
+                    , oldPurple = Maybe.map .index track.markedNode
                     }
             in
             ( settings
@@ -171,6 +174,8 @@ update msg settings track =
                     , undoFunction = revertReverse undoRedoInfo
                     , newOrange = undoRedoInfo.orange
                     , newPurple = undoRedoInfo.purple
+                    , oldOrange = track.currentNode.index
+                    , oldPurple = Maybe.map .index track.markedNode
                     }
             in
             ( settings
@@ -191,6 +196,8 @@ update msg settings track =
                     , undoFunction = revertChangeLoopStart undoRedoInfo
                     , newOrange = 0
                     , newPurple = Maybe.map .index track.markedNode
+                    , oldOrange = track.currentNode.index
+                    , oldPurple = Maybe.map .index track.markedNode
                     }
             in
             ( settings

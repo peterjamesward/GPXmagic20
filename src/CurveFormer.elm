@@ -321,6 +321,8 @@ buildEditUndoActions options track =
             , undoFunction = undo undoRedoInfo
             , newOrange = track.currentNode.index
             , newPurple = Maybe.map .index track.markedNode
+            , oldOrange = track.currentNode.index
+            , oldPurple = Maybe.map .index track.markedNode
             }
 
         Nothing ->
@@ -329,6 +331,8 @@ buildEditUndoActions options track =
             , undoFunction = \t -> ( [], t.trackPoints, [] )
             , newOrange = track.currentNode.index
             , newPurple = Maybe.map .index track.markedNode
+            , oldOrange = track.currentNode.index
+            , oldPurple = Maybe.map .index track.markedNode
             }
 
 

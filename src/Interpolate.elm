@@ -127,17 +127,11 @@ buildActions options track =
             Maybe.withDefault track.currentNode track.markedNode
 
         ( startPoint, endPoint ) =
-            ( if track.currentNode.index <= marker.index then
-                track.currentNode
+            if track.currentNode.index <= marker.index then
+                ( track.currentNode, marker )
 
-              else
-                marker
-            , if track.currentNode.index > marker.index then
-                track.currentNode
-
-              else
-                marker
-            )
+            else
+                ( marker, track.currentNode )
 
         undoMessage =
             "Interpolate from "
@@ -170,14 +164,14 @@ buildActions options track =
 
         newOrange =
             if track.currentNode.index == endPoint.index then
-                endPoint.index + List.length newPoints - List.length originalPoints + 1
+                endPoint.index + List.length newPoints - List.length originalPoints
 
             else
                 track.currentNode.index
 
         newPurple =
             if track.markedNode == Just endPoint then
-                Just (endPoint.index + List.length newPoints - List.length originalPoints + 1)
+                Just (endPoint.index + List.length newPoints - List.length originalPoints)
 
             else
                 Maybe.map .index track.markedNode
@@ -187,6 +181,8 @@ buildActions options track =
     , undoFunction = undo revisedUndoRedo
     , newOrange = newOrange
     , newPurple = newPurple
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
 
 
@@ -195,9 +191,6 @@ apply undoRedo track =
     -- Introduce additional trackpoints in all segments **between** markers.
     -- Yes, there's some redundant track splitting. Not worth worrying about.
     let
-        marker =
-            Maybe.withDefault track.currentNode track.markedNode
-
         newPointsBetween pt1 pt2 =
             let
                 trackPointsNeeded =
@@ -232,38 +225,34 @@ apply undoRedo track =
         precedingTrackPoints =
             List.take undoRedo.start track.trackPoints
 
+        firstTrackPointOfInterpolatedSection =
+            List.take 1 pointsToInterpolate
+
         subsequentTrackPoints =
             List.drop (undoRedo.end + 1) track.trackPoints
     in
-    ( precedingTrackPoints, allNewTrackPoints, subsequentTrackPoints )
+    ( precedingTrackPoints
+    , firstTrackPointOfInterpolatedSection ++ allNewTrackPoints
+    , subsequentTrackPoints
+    )
 
 
 undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 undo undoRedo track =
-    -- Introduce additional trackpoints in all segments **between** markers.
-    -- Yes, there's some redundant track splitting. Not worth worrying about.
     -- In Undo, we work out which are the new ones, so we can remove them.
-    -- Or something like that.
     let
-        marker =
-            Maybe.withDefault track.currentNode track.markedNode
-
         pointsToDeinterpolate =
             track.trackPoints
                 |> List.take undoRedo.newEnd
                 |> List.drop undoRedo.start
 
         precedingTrackPoints =
-            List.take (undoRedo.start + 1) track.trackPoints
+            List.take undoRedo.start track.trackPoints
 
         subsequentTrackPoints =
-            List.drop (undoRedo.newEnd + 1) track.trackPoints
-
-        originalTrackPointList =
-            -- Maybe not the cheapest solution.
-            pointsToDeinterpolate |> pointsIn undoRedo.originalPoints
+            List.drop undoRedo.newEnd track.trackPoints
     in
-    ( precedingTrackPoints, originalTrackPointList, subsequentTrackPoints )
+    ( precedingTrackPoints, undoRedo.originalPoints, subsequentTrackPoints )
 
 
 pointsIn referenceList testList =

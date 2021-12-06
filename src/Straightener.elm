@@ -215,6 +215,8 @@ buildStraightenActions options track =
     , undoFunction = undoStraighten undoRedoInfo
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
 
 
@@ -309,6 +311,8 @@ buildSimplifyActions options track =
     , undoFunction = undoSimplify undoRedoInfo
     , newOrange = min 0 (track.currentNode.index - removeCount)
     , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
 
 
@@ -459,6 +463,7 @@ lookForSimplifications options track =
     in
     { options | metricFilteredPoints = filteredPointIndices }
 
+
 getPreview3D : Options -> Track -> List (Entity LocalCoords)
 getPreview3D options track =
-        highlightPoints Color.white options.metricFilteredPoints
+    highlightPoints Color.white options.metricFilteredPoints

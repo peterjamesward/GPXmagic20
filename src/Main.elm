@@ -2249,7 +2249,22 @@ undo model =
                     (prefix ++ middle ++ suffix) |> prepareTrackPoints
 
                 oldTrack =
-                    { track | trackPoints = points }
+                    { track
+                        | trackPoints = points
+                        , currentNode =
+                            List.Extra.getAt entry.oldOrange points
+                                |> Maybe.withDefault
+                                    (List.head points
+                                        |> Maybe.withDefault track.currentNode
+                                    )
+                        , markedNode =
+                            case entry.oldPurple of
+                                Just purple ->
+                                    List.Extra.getAt purple points
+
+                                Nothing ->
+                                    Nothing
+                    }
             in
             { model
                 | undoStack = undos

@@ -44,6 +44,8 @@ type alias UndoEntry =
     , undoFunction : Track -> (List TrackPoint, List TrackPoint, List TrackPoint)
     , newOrange : Int
     , newPurple : Maybe Int
+    , oldOrange : Int
+    , oldPurple : Maybe Int
     }
 
 
@@ -54,4 +56,6 @@ defaultUndoEntry =
     , undoFunction = always ([], [], [])
     , newOrange = 0
     , newPurple = Nothing
+    , oldOrange = 0
+    , oldPurple = Nothing
     }

@@ -220,13 +220,16 @@ buildActions settings track =
     , undoFunction = undo undoRedoInfo
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
 
 
 apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 apply undoRedoInfo track =
     let
-        _ = Debug.log "info" undoRedoInfo
+        _ =
+            Debug.log "info" undoRedoInfo
 
         ( prefix, theRest ) =
             track.trackPoints
@@ -253,6 +256,7 @@ apply undoRedoInfo track =
                 undoRedoInfo.revisedAltitudes
     in
     ( prefix, adjusted, suffix )
+
 
 undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
 undo undoRedoInfo track =

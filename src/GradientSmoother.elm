@@ -172,6 +172,8 @@ buildActions options track =
     , undoFunction = undo undoRedoInfo
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
 
 
