@@ -1,11 +1,6 @@
 module Main exposing (main)
 
---import BendSmoother exposing (SmoothedBend, tryBendSmoother)
---import CurveFormer
---import GradientLimiter
---import LoopedTrack
 --import RotateRoute
---import Straightener
 --import StravaTools exposing (stravaRouteOption)
 
 import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
@@ -157,8 +152,7 @@ type alias ModelRecord =
     , gradientOptions : GradientSmoother.Options
     , straightenOptions : Straightener.Options
     , flythrough : Flythrough.Options
-
-    --, filterOptions : Filters.Options
+    , filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
     , insertOptions : Interpolate.Options
 
@@ -210,8 +204,7 @@ init mflags origin navigationKey =
       , gradientOptions = GradientSmoother.defaultOptions
       , straightenOptions = Straightener.defaultOptions
       , flythrough = Flythrough.defaultOptions
-
-      --, filterOptions = Filters.defaultOptions
+      , filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
       , insertOptions = Interpolate.defaultOptions
 
@@ -711,17 +704,17 @@ update msg (Model model) =
                 }
                 action
 
-        --FilterMessage filter ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (Filters.update filter model.filterOptions model.observations)
-        --                model.track
-        --                |> Maybe.withDefault ( model.filterOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | filterOptions = newOptions }
-        --        action
-        --
+        FilterMessage filter ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (Filters.update filter model.filterOptions model.observations)
+                        model.track
+                        |> Maybe.withDefault ( model.filterOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | filterOptions = newOptions }
+                action
+
         --RotateMessage rotate ->
         --    let
         --        ( newOptions, action ) =
@@ -2076,20 +2069,24 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = Filters.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (Filters.viewFilterControls m.filterOptions
+                        FilterMessage
+                    )
+                    model.track
+                    |> Maybe.withDefault none
+      , info = Filters.info
+      , video = Just "https://youtu.be/N48cDi_N_x0"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = Filters.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (Filters.viewFilterControls model.filterOptions
-    --                FilterMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = Filters.info
-    --  , video = Just "https://youtu.be/N48cDi_N_x0"
-    --  , isFavourite = False
-    --  }
     --, { label = Graph.toolLabel
     --  , state = Contracted
     --  , content =

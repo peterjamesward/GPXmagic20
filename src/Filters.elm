@@ -5,11 +5,11 @@ import Element exposing (..)
 import Element.Input as Input exposing (button)
 import List.Extra
 import LoopedTrack exposing (Loopiness(..))
+import Maybe.Extra
 import Point3d exposing (Point3d)
-import PostUpdateActions
+import PostUpdateActions exposing (UndoEntry)
 import TabCommonElements exposing (wholeTrackTextHelper)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackObservations exposing (TrackObservations)
 import TrackPoint exposing (TrackPoint, temporaryIndices, trackPointFromPoint)
 import Triangle3d exposing (Triangle3d)
@@ -71,6 +71,14 @@ defaultOptions =
     }
 
 
+type alias UndoRedoInfo =
+    { start : Int
+    , end : Int
+    , originalPoints : List TrackPoint
+    , isLoop : Bool
+    }
+
+
 update :
     Msg
     -> Options
@@ -105,23 +113,10 @@ update msg settings observations track =
             )
 
         FilterWeightedAverage ->
-            let
-                newTrack =
-                    { track
-                        | trackPoints =
-                            temporaryIndices <|
-                                applyWeightedAverageFilter
-                                    settings
-                                    observations.loopiness
-                                    track
-                    }
-            in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesIndex
---                newTrack
---                "Centroid average"
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildCentroidAverageActions observations settings track)
             )
 
         BezierSplines ->
@@ -135,11 +130,11 @@ update msg settings observations track =
                         observations.loopiness
             in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                newTrack
---                "Bezier splines"
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --                PostUpdateActions.EditPreservesNodePosition
+              --                newTrack
+              --                "Bezier splines"
             )
 
         BezierApproximation ->
@@ -153,11 +148,11 @@ update msg settings observations track =
                         observations.loopiness
             in
             ( settings
-            ,             PostUpdateActions.ActionNoOp
---PostUpdateActions.ActionTrackChanged
---                PostUpdateActions.EditPreservesNodePosition
---                newTrack
---                "Bezier approximation"
+            , PostUpdateActions.ActionNoOp
+              --PostUpdateActions.ActionTrackChanged
+              --                PostUpdateActions.EditPreservesNodePosition
+              --                newTrack
+              --                "Bezier approximation"
             )
 
 
@@ -256,71 +251,105 @@ type alias FilterFunction =
     -> Float
 
 
-applyWeightedAverageFilter :
-    Options
-    -> Loopiness
-    -> Track
-    -> List TrackPoint
-applyWeightedAverageFilter settings loopiness track =
+buildCentroidAverageActions : TrackObservations -> Options -> Track -> UndoEntry
+buildCentroidAverageActions observations options track =
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        ( startPoint, endPoint ) =
+            if track.markedNode == Nothing then
+                ( 0, List.length track.trackPoints - 1 )
+
+            else if track.currentNode.index <= marker.index then
+                ( track.currentNode.index, marker.index )
+
+            else
+                ( marker.index, track.currentNode.index )
+
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { start = startPoint
+            , end = endPoint
+            , originalPoints =
+                track.trackPoints
+                    |> List.take (endPoint + 1)
+                    |> List.drop startPoint
+            , isLoop = observations.loopiness == IsALoop
+            }
+    in
+    { label = "Centroid average"
+    , editFunction = applyCentroidAverage options undoRedoInfo
+    , undoFunction = undoCentroidAverage options undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+applyCentroidAverage : Options -> UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyCentroidAverage options undoRedo track =
     let
         points =
             track.trackPoints
 
-        ( startPoint, endPoint ) =
-            case track.markedNode of
-                Just marker ->
-                    if track.currentNode.index <= marker.index then
-                        ( Just track.currentNode, track.markedNode )
+        ( prefix, theRest ) =
+            -- These possible one outs.
+            points |> List.Extra.splitAt undoRedo.start
 
-                    else
-                        ( track.markedNode, Just track.currentNode )
-
-                Nothing ->
-                    ( List.head points, List.Extra.last points )
-
-        ( start, finish ) =
-            ( Maybe.map .index startPoint |> Maybe.withDefault 0
-            , Maybe.map .index endPoint |> Maybe.withDefault (List.length points - 1)
-            )
+        ( withinRange, suffix ) =
+            -- These possible one outs.
+            theRest |> List.Extra.splitAt (undoRedo.end - undoRedo.start + 1)
 
         ( firstPoint, lastPoint ) =
-            -- This is used for wrap-around on loop, in which case use second point
-            -- Yes, this is expensive code. Might improve one day.
-            if loopiness == IsALoop && track.markedNode == Nothing then
-                ( List.take 1 <| List.drop 1 points
-                , List.take 1 <| List.drop 1 <| List.reverse points
+            -- These are points outside the range so are not affected but are needed
+            -- for the filters on each end of the region.
+            if undoRedo.isLoop && track.markedNode == Nothing then
+                -- This is used for wrap-around on loop, in which case use second point
+                ( withinRange |> List.Extra.getAt 2 |> Maybe.Extra.toList
+                , withinRange |> List.Extra.getAt (List.length withinRange - 2) |> Maybe.Extra.toList
                 )
 
             else
-                ( List.take 1 points
-                , List.take 1 <| List.reverse points
+                ( prefix |> List.Extra.getAt (List.length prefix - 1) |> Maybe.Extra.toList
+                , suffix |> List.take 1
                 )
 
-        withinRange =
-            List.take finish >> List.drop (start + 1)
-
-        ( fixedFirst, fixedLast ) =
-            ( List.take (start + 1) points, List.drop finish points )
-    in
-    if track.markedNode == Nothing && loopiness == IsALoop then
-        List.map3
-            (weightedAverage settings)
-            (lastPoint ++ points)
-            points
-            (List.drop 1 points ++ firstPoint)
-
-    else
-        let
-            filtered =
+        filteredPoints =
+            if track.markedNode == Nothing && undoRedo.isLoop then
+                -- Whole track, wraps around for a loop.
                 List.map3
-                    (weightedAverage settings)
-                    (firstPoint ++ points)
+                    (weightedAverage options)
+                    (lastPoint ++ points)
                     points
-                    (List.drop 1 points ++ lastPoint)
-        in
-        fixedFirst
-            ++ withinRange filtered
-            ++ fixedLast
+                    (List.drop 1 points ++ firstPoint)
+
+            else
+                List.map3
+                    (weightedAverage options)
+                    (firstPoint ++ withinRange)
+                    withinRange
+                    (List.drop 1 withinRange ++ lastPoint)
+    in
+    ( prefix, filteredPoints, suffix )
+
+
+undoCentroidAverage : Options -> UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoCentroidAverage options undoRedo track =
+    let
+        points =
+            track.trackPoints
+
+        ( prefix, theRest ) =
+            -- These possible one outs.
+            points |> List.Extra.splitAt undoRedo.start
+
+        ( withinRange, suffix ) =
+            -- These possible one outs.
+            theRest |> List.Extra.splitAt (undoRedo.end - undoRedo.start + 1)
+    in
+    ( prefix, undoRedo.originalPoints, suffix )
 
 
 bezierSplineHelper :

@@ -69,16 +69,17 @@ oneClickQuickFix originalTrack =
             }
 
         smoothTrack track =
-            { track
-                | trackPoints =
-                    track
-                        |> Filters.applyWeightedAverageFilter
-                            Filters.defaultOptions
-                            (LoopedTrack.NotALoop Quantity.zero)
-                        |> TrackPoint.temporaryIndices
-                        -- ??
-                        |> TrackPoint.prepareTrackPoints
-            }
+            track
+            --{ track
+            --    | trackPoints =
+            --        track
+            --            |> Filters.applyCentroidAverage
+            --                Filters.defaultOptions
+            --                (LoopedTrack.NotALoop Quantity.zero)
+            --            |> TrackPoint.temporaryIndices
+            --            -- ??
+            --            |> TrackPoint.prepareTrackPoints
+            --}
 
         bezierApprox track =
             Filters.bezierSplineHelper
