@@ -221,42 +221,6 @@ showGraphNodes graph =
     graph |> Graph.nodePointList |> List.map makeNode
 
 
-previewNudge : DisplayOptions -> List TrackPoint -> List (Entity LocalCoords)
-previewNudge options points =
-    let
-        nudgeElement tp1 tp2 =
-            paintSomethingBetween
-                options.verticalExaggeration
-                0.5
-                (Material.matte Color.darkGrey)
-                tp1
-                tp2
-    in
-    List.concat <|
-        List.map2
-            nudgeElement
-            points
-            (List.drop 1 points)
-
-
-previewMoveAndStretch : DisplayOptions -> List TrackPoint -> List (Entity LocalCoords)
-previewMoveAndStretch options points =
-    let
-        element tp1 tp2 =
-            paintSomethingBetween
-                options.verticalExaggeration
-                0.5
-                (Material.matte Color.blue)
-                tp1
-                tp2
-    in
-    List.concat <|
-        List.map2
-            element
-            points
-            (List.drop 1 points)
-
-
 roadSupportPillar : Float -> TrackPoint -> Entity LocalCoords
 roadSupportPillar scale pt =
     let
@@ -294,13 +258,16 @@ previewProfileLine options color points =
     List.map2 preview points (List.drop 1 points) |> combineLists
 
 
-highlightPointsProfile : Color.Color -> List TrackPoint -> List (Entity LocalCoords)
-highlightPointsProfile color points =
+highlightPointsProfile : DisplayOptions -> Color.Color -> List TrackPoint -> List (Entity LocalCoords)
+highlightPointsProfile display color points =
     let
         material =
             Material.color color
 
-        highlightPoint p =
-            Scene3d.point { radius = Pixels.pixels 5 } material p.profileXZ
+        highlightPoint scale p =
+            Scene3d.point
+                { radius = Pixels.pixels 5 }
+                material
+                (scaledXZ scale p)
     in
-    List.map highlightPoint points
+    List.map (highlightPoint display.verticalExaggeration) points

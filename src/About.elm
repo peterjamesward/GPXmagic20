@@ -16,9 +16,7 @@ aboutText ipInfo =
 
 - Internal improvements to reduce memory usage.
 
-- Use consistent gradient calculation in Steep Climbs and Road Segment tabs.
-
-- Steep climbs list is scrollable.
+- Previews in 3D for Interpolate and Simplify.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

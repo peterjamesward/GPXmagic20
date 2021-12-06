@@ -7,9 +7,8 @@
 
 Tools to be changed to new Undo/Review/Preview style:
 
-- Interpolate (WIP) : good start. Out by one somewhere. Marker positioning wrong.
+- DeletePoints (WIP)
 
-- DeletePoints
 - Flythrough
 - Filters
 - Graph

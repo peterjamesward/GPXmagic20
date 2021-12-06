@@ -466,4 +466,4 @@ lookForSimplifications options track =
 
 getPreview3D : Options -> Track -> List (Entity LocalCoords)
 getPreview3D options track =
-    highlightPoints Color.white options.metricFilteredPoints
+    highlightPoints Color.lightRed options.metricFilteredPoints

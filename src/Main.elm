@@ -2,7 +2,6 @@ module Main exposing (main)
 
 --import BendSmoother exposing (SmoothedBend, tryBendSmoother)
 --import CurveFormer
---import DeletePoints exposing (Action(..), viewDeleteTools)
 --import Flythrough exposing (Flythrough)
 --import GradientLimiter
 --import LoopedTrack
@@ -17,6 +16,7 @@ import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import CurveFormer
 import Delay exposing (after)
+import DeletePoints exposing (Action(..), viewDeleteTools)
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
 import Element.Background as Background
@@ -86,7 +86,7 @@ type Msg
     | Tick Time.Posix
     | Undo
     | Redo
-      --| DeleteMessage DeletePoints.Msg
+    | DeleteMessage DeletePoints.Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
     | PortMessage Encode.Value
@@ -409,15 +409,16 @@ update msg (Model model) =
                 { model | insertOptions = newSettings }
                 action
 
-        --DeleteMessage deleteMsg ->
-        --    let
-        --        action =
-        --            Maybe.map (DeletePoints.update model.displayOptions.imperialMeasure deleteMsg) model.track
-        --                |> Maybe.withDefault ActionNoOp
-        --    in
-        --    processPostUpdateAction model action
-        -- Delegate wrapped OAuthmessages. Be bowled over if this works first time. Or fiftieth.
-        -- Maybe look after to see if there is yet a token. Easy way to know.
+        DeleteMessage deleteMsg ->
+            let
+                action =
+                    Maybe.map (DeletePoints.update model.displayOptions.imperialMeasure deleteMsg) model.track
+                        |> Maybe.withDefault ActionNoOp
+            in
+            processPostUpdateAction model action
+
+        --Delegate wrapped OAuthmessages. Be bowled over if this works first time. Or fiftieth.
+        --Maybe look after to see if there is yet a token. Easy way to know.
         OAuthMessage authMsg ->
             let
                 ( newAuthData, authCmd ) =
@@ -2045,14 +2046,19 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = DeletePoints.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                viewDeleteTools m.displayOptions.imperialMeasure m.track DeleteMessage
+      , info = DeletePoints.info
+      , video = Nothing
+      , isFavourite = False
+      , preview3D = Just DeletePoints.getPreview3D
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = DeletePoints.toolLabel
-    --  , state = Contracted
-    --  , content = viewDeleteTools model.displayOptions.imperialMeasure model.track DeleteMessage
-    --  , info = DeletePoints.info
-    --  , video = Nothing
-    --  , isFavourite = False
-    --  }
     --, { label = Flythrough.toolLabel
     --  , state = Contracted
     --  , content =

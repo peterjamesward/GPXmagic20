@@ -1,6 +1,7 @@
 module Interpolate exposing (..)
 
 import Color
+import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
 import Element.Input as Input exposing (button)
 import Length exposing (inMeters)
@@ -10,6 +11,7 @@ import Point3d
 import PostUpdateActions exposing (TrackEditType(..), UndoEntry)
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
+import SceneBuilderProfile exposing (highlightPointsProfile)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal0, showShortMeasure)
@@ -305,3 +307,4 @@ getPreview3D options track =
             actions.editFunction track
     in
     highlightPoints Color.white (points |> pointsNotIn originalPoints)
+

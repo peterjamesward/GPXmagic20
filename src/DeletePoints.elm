@@ -1,16 +1,18 @@
 module DeletePoints exposing (..)
 
+import Color
 import Element exposing (Element, column, text)
 import Element.Input exposing (button)
 import Graph exposing (applyNodePreservingEditsToGraph)
-import Length
 import List.Extra
-import PostUpdateActions exposing (PostUpdateAction)
+import LocalCoords exposing (LocalCoords)
+import PostUpdateActions exposing (PostUpdateAction, UndoEntry)
 import Quantity
+import Scene3d exposing (Entity)
+import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint)
-import Utils exposing (showDecimal0, showDecimal2, showLongMeasure)
+import Utils exposing (showLongMeasure)
 import ViewPureStyles exposing (defaultColumnLayout, prettyButtonStyles)
 
 
@@ -21,6 +23,15 @@ type Msg
 type Action
     = DeleteTrackChanged String
     | DeleteNoOp
+
+
+type alias UndoRedoInfo =
+    -- We should be able to Undo by working out the new points afresh.
+    -- The options will also be available in the closure.
+    { start : Int
+    , end : Int
+    , originalPoints : List TrackPoint
+    }
 
 
 toolLabel =
@@ -80,55 +91,104 @@ makeUndoMessage imperial track =
         "Delete from " ++ showLongMeasure imperial start ++ " to " ++ showLongMeasure imperial finish
 
 
-update : Bool -> Msg -> Track -> PostUpdateAction msg
+update : Bool -> Msg -> Track -> PostUpdateAction trck msg
 update imperial msg track =
     case msg of
         DeleteTrackPoints ->
             PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesNodePosition
-                (deletePoints track)
-                (makeUndoMessage imperial track)
+                (buildActions imperial track)
 
 
-deletePoints : Track -> Track
-deletePoints track =
+buildActions : Bool -> Track -> UndoEntry
+buildActions imperial track =
     let
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
-        ( start, finish ) =
-            ( min track.currentNode.index marker.index
-            , max track.currentNode.index marker.index
-            )
+        ( startPoint, endPoint ) =
+            if track.currentNode.index <= marker.index then
+                ( track.currentNode, marker )
+
+            else
+                ( marker, track.currentNode )
 
         safeStart =
-            if start == 0 && finish == List.length track.trackPoints - 1 then
+            -- Avoid deletion of whole track.
+            if startPoint.index == 0 && endPoint.index == List.length track.trackPoints - 1 then
                 1
 
             else
-                start
+                startPoint.index
 
-        pointsToDelete =
-            finish - safeStart + 1
+        undoMessage =
+            makeUndoMessage imperial track
 
-        newRoute =
-            track.trackPoints
-                |> List.Extra.removeIfIndex (\i -> i >= safeStart && i <= finish)
-                |> TrackPoint.prepareTrackPoints
+        originalPoints =
+            track.trackPoints |> List.take (1 + endPoint.index) |> List.drop safeStart
 
-        newCurrent =
-            if start == track.currentNode.index then
-                List.Extra.getAt
-                    (max 0 (track.currentNode.index - 1))
-                    newRoute
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { start = safeStart
+            , end = endPoint.index
+            , originalPoints = originalPoints
+            }
+
+        newOrange =
+            if track.currentNode.index == endPoint.index then
+                endPoint.index - List.length originalPoints
 
             else
-                List.Extra.getAt
-                    (min (finish - pointsToDelete) (List.length track.trackPoints - 1))
-                    newRoute
+                track.currentNode.index
+
+        newPurple =
+            if track.markedNode == Just endPoint then
+                Just (endPoint.index - List.length originalPoints)
+
+            else
+                Maybe.map .index track.markedNode
     in
-    { track
-        | trackPoints = newRoute
-        , currentNode = newCurrent |> Maybe.withDefault track.currentNode
-        , markedNode = Nothing
+    { label = undoMessage
+    , editFunction = apply undoRedoInfo
+    , undoFunction = undo undoRedoInfo
+    , newOrange = newOrange
+    , newPurple = newPurple
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
     }
+
+
+apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply undoRedo track =
+    let
+        pointsToDelete =
+            undoRedo.end - undoRedo.start + 1
+
+        ( prefix, theRest ) =
+            track.trackPoints |> List.Extra.splitAt undoRedo.start
+
+        ( toDelete, suffix ) =
+            theRest |> List.Extra.splitAt pointsToDelete
+    in
+    ( prefix, [], suffix )
+
+
+undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo undoRedo track =
+    let
+        ( prefix, suffix ) =
+            track.trackPoints |> List.Extra.splitAt undoRedo.start
+    in
+    ( prefix, undoRedo.originalPoints, suffix )
+
+
+getPreview3D : Track -> List (Entity LocalCoords)
+getPreview3D track =
+    let
+        actions =
+            buildActions False track
+
+        ( _, toDelete, _ ) =
+            actions.undoFunction track
+    in
+    highlightPoints Color.lightRed toDelete
