@@ -2,7 +2,6 @@ module Main exposing (main)
 
 --import BendSmoother exposing (SmoothedBend, tryBendSmoother)
 --import CurveFormer
---import Flythrough exposing (Flythrough)
 --import GradientLimiter
 --import LoopedTrack
 --import RotateRoute
@@ -30,6 +29,7 @@ import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
 import FlatColors.ChinesePalette exposing (white)
+import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GpxSource exposing (..)
 import GradientLimiter
@@ -97,7 +97,7 @@ type Msg
     | GradientMessage GradientSmoother.Msg
     | GradientLimiter GradientLimiter.Msg
     | StraightenMessage Straightener.Msg
-      --| FlythroughMessage Flythrough.Msg
+    | FlythroughMessage Flythrough.Msg
     | FilterMessage Filters.Msg
     | ProblemMessage TrackObservations.Msg
     | InsertMessage Interpolate.Msg
@@ -156,8 +156,8 @@ type alias ModelRecord =
     , observations : TrackObservations
     , gradientOptions : GradientSmoother.Options
     , straightenOptions : Straightener.Options
+    , flythrough : Flythrough.Options
 
-    --, flythrough : Flythrough.Options
     --, filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
     , insertOptions : Interpolate.Options
@@ -209,8 +209,8 @@ init mflags origin navigationKey =
       , observations = TrackObservations.defaultObservations
       , gradientOptions = GradientSmoother.defaultOptions
       , straightenOptions = Straightener.defaultOptions
+      , flythrough = Flythrough.defaultOptions
 
-      --, flythrough = Flythrough.defaultOptions
       --, filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
       , insertOptions = Interpolate.defaultOptions
@@ -248,6 +248,11 @@ init mflags origin navigationKey =
     )
 
 
+passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
+passFlythroughToContext flight context =
+    { context | flythrough = flight }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
@@ -283,30 +288,28 @@ update msg (Model model) =
         IpInfoAcknowledged _ ->
             ( Model model, Cmd.none )
 
-        --Tick newTime ->
-        --    let
-        --        flythrough =
-        --            model.flythrough
-        --
-        --        updatedFlythrough =
-        --            Flythrough.advanceFlythrough
-        --                newTime
-        --                { flythrough | modelTime = newTime }
-        --
-        --        passFlythroughToContext : Maybe Flythrough -> ViewingContext -> ViewingContext
-        --        passFlythroughToContext flight context =
-        --            { context | flythrough = flight }
-        --    in
-        --    ( { model
-        --        | time = newTime
-        --        , flythrough = updatedFlythrough
-        --        , viewPanes =
-        --            ViewPane.mapOverAllContexts
-        --                (passFlythroughToContext updatedFlythrough.flythrough)
-        --                model.viewPanes
-        --      }
-        --    , Cmd.none
-        --    )
+        Tick newTime ->
+            let
+                flythrough =
+                    model.flythrough
+
+                updatedFlythrough =
+                    Flythrough.advanceFlythrough
+                        newTime
+                        { flythrough | modelTime = newTime }
+            in
+            ( Model
+                { model
+                    | time = newTime
+                    , flythrough = updatedFlythrough
+                    , viewPanes =
+                        ViewPane.mapOverAllContexts
+                            (passFlythroughToContext updatedFlythrough.flythrough)
+                            model.viewPanes
+                }
+            , Cmd.none
+            )
+
         Undo ->
             processPostUpdateAction (undo model) ActionRerender
 
@@ -686,28 +689,28 @@ update msg (Model model) =
                 { model | straightenOptions = newOptions }
                 action
 
-        --FlythroughMessage flythroughMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map
-        --                (Flythrough.update
-        --                    model.flythrough
-        --                    flythroughMsg
-        --                    FlythroughMessage
-        --                )
-        --                model.track
-        --                |> Maybe.withDefault ( model.flythrough, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model
-        --            | flythrough = newOptions
-        --            , viewPanes =
-        --                ViewPane.mapOverAllContexts
-        --                    (passFlythroughToContext newOptions.flythrough)
-        --                    model.viewPanes
-        --        }
-        --        action
-        --
+        FlythroughMessage flythroughMsg ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map
+                        (Flythrough.update
+                            model.flythrough
+                            flythroughMsg
+                            FlythroughMessage
+                        )
+                        model.track
+                        |> Maybe.withDefault ( model.flythrough, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model
+                    | flythrough = newOptions
+                    , viewPanes =
+                        ViewPane.mapOverAllContexts
+                            (passFlythroughToContext newOptions.flythrough)
+                            model.viewPanes
+                }
+                action
+
         --FilterMessage filter ->
         --    let
         --        ( newOptions, action ) =
@@ -1857,21 +1860,21 @@ refreshAccordion model =
 
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
-    --if Accordion.tabIsOpen Flythrough.toolLabel model.toolsAccordion then
-    --    --if model.flythrough.flythrough /= Nothing then
-    --    Sub.batch
-    --        [ PortController.messageReceiver PortMessage
-    --        , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-    --        , Time.every 50 Tick
-    --        , MarkerControls.subscription model.markerOptions MarkerMessage
-    --        ]
-    --
-    --else
-    Sub.batch
-        [ PortController.messageReceiver PortMessage
-        , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
-        , MarkerControls.subscription model.markerOptions MarkerMessage
-        ]
+    if Accordion.tabIsOpen Flythrough.toolLabel model.toolsAccordion then
+        --if model.flythrough.flythrough /= Nothing then
+        Sub.batch
+            [ PortController.messageReceiver PortMessage
+            , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , Time.every 50 Tick
+            , MarkerControls.subscription model.markerOptions MarkerMessage
+            ]
+
+    else
+        Sub.batch
+            [ PortController.messageReceiver PortMessage
+            , randomBytes (\ints -> OAuthMessage (GotRandomBytes ints))
+            , MarkerControls.subscription model.markerOptions MarkerMessage
+            ]
 
 
 toolsAccordion : Model -> List (AccordionEntry Model Msg)
@@ -2058,18 +2061,22 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = Flythrough.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Flythrough.flythroughControls
+                    m.displayOptions.imperialMeasure
+                    m.flythrough
+                    FlythroughMessage
+      , info = Flythrough.info
+      , video = Just "https://youtu.be/lRukK-do_dE"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = Flythrough.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Flythrough.flythroughControls
-    --            model.displayOptions.imperialMeasure
-    --            model.flythrough
-    --            FlythroughMessage
-    --  , info = Flythrough.info
-    --  , video = Just "https://youtu.be/lRukK-do_dE"
-    --  , isFavourite = False
-    --  }
     --, { label = Filters.toolLabel
     --  , state = Contracted
     --  , content =

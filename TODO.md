@@ -7,9 +7,8 @@
 
 Tools to be changed to new Undo/Review/Preview style:
 
-- DeletePoints (WIP)
+- Flythrough (WIP)
 
-- Flythrough
 - Filters
 - Graph
 - TrackObservations
