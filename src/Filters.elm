@@ -76,6 +76,7 @@ type alias UndoRedoInfo =
     , end : Int
     , originalPoints : List TrackPoint
     , isLoop : Bool
+    , splineFunction : List TrackPoint -> List TrackPoint
     }
 
 
@@ -120,39 +121,17 @@ update msg settings observations track =
             )
 
         BezierSplines ->
-            let
-                newTrack =
-                    bezierSplineHelper
-                        BezierSplines.bezierSplines
-                        track
-                        settings.bezierTension
-                        settings.bezierTolerance
-                        observations.loopiness
-            in
             ( settings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --                PostUpdateActions.EditPreservesNodePosition
-              --                newTrack
-              --                "Bezier splines"
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildBezierActions BezierSplines.bezierSplines observations settings track)
             )
 
         BezierApproximation ->
-            let
-                newTrack =
-                    bezierSplineHelper
-                        BezierSplines.bezierApproximation
-                        track
-                        settings.bezierTension
-                        settings.bezierTolerance
-                        observations.loopiness
-            in
             ( settings
-            , PostUpdateActions.ActionNoOp
-              --PostUpdateActions.ActionTrackChanged
-              --                PostUpdateActions.EditPreservesNodePosition
-              --                newTrack
-              --                "Bezier approximation"
+            , PostUpdateActions.ActionTrackChanged
+                PostUpdateActions.EditPreservesIndex
+                (buildBezierActions BezierSplines.bezierApproximation observations settings track)
             )
 
 
@@ -276,6 +255,7 @@ buildCentroidAverageActions observations options track =
                     |> List.take (endPoint + 1)
                     |> List.drop startPoint
             , isLoop = observations.loopiness == IsALoop
+            , splineFunction = identity
             }
     in
     { label = "Centroid average"
@@ -352,103 +332,90 @@ undoCentroidAverage options undoRedo track =
     ( prefix, undoRedo.originalPoints, suffix )
 
 
-bezierSplineHelper :
+buildBezierActions :
     (Bool -> Float -> Float -> List TrackPoint -> List TrackPoint)
+    -> TrackObservations
+    -> Options
     -> Track
-    -> Float
-    -> Float
-    -> Loopiness
-    -> Track
-bezierSplineHelper splineFunction track tension tolerance loopiness =
+    -> UndoEntry
+buildBezierActions splineFunction observations options track =
+    let
+        marker =
+            Maybe.withDefault track.currentNode track.markedNode
+
+        ( startPoint, endPoint ) =
+            if track.markedNode == Nothing then
+                ( 0, List.length track.trackPoints - 1 )
+
+            else if track.currentNode.index <= marker.index then
+                ( track.currentNode.index, marker.index )
+
+            else
+                ( marker.index, track.currentNode.index )
+
+        undoRedoInfo : UndoRedoInfo
+        undoRedoInfo =
+            { start = startPoint
+            , end = endPoint
+            , originalPoints =
+                track.trackPoints
+                    |> List.take (endPoint + 1)
+                    |> List.drop startPoint
+            , isLoop = observations.loopiness == IsALoop
+            , splineFunction =
+                splineFunction
+                    (observations.loopiness == IsALoop)
+                    options.bezierTension
+                    options.bezierTolerance
+            }
+    in
+    { label = "Bezier splines"
+    , editFunction = applyBezierSpline undoRedoInfo
+    , undoFunction = undoBezierSpline undoRedoInfo
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+applyBezierSpline : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyBezierSpline undoRedo track =
+    --TODO: May need to puyt back the special code for loops.
     let
         points =
             track.trackPoints
 
-        ( startPoint, endPoint ) =
-            case track.markedNode of
-                Just marker ->
-                    if track.currentNode.index <= marker.index then
-                        ( Just track.currentNode, track.markedNode )
+        ( theRest, suffix ) =
+            points |> List.Extra.splitAt (undoRedo.end + 1)
 
-                    else
-                        ( track.markedNode, Just track.currentNode )
-
-                Nothing ->
-                    ( List.head points, List.Extra.last points )
-
-        ( start, finish ) =
-            ( Maybe.map .index startPoint |> Maybe.withDefault 0
-            , Maybe.map .index endPoint |> Maybe.withDefault (List.length points - 1)
-            )
-
-        ( firstPoint, lastPoint ) =
-            -- This is used for wrap-around on loop, in which case use second point
-            -- Yes, this is expensive code. Might improve one day.
-            if loopiness == IsALoop && track.markedNode == Nothing then
-                ( List.take 1 <| List.drop 1 points
-                , List.take 1 <| List.drop 1 <| List.reverse points
-                )
-
-            else
-                ( List.take 1 points
-                , List.take 1 <| List.reverse points
-                )
-
-        withinRange =
-            List.take (finish + 1) >> List.drop start
-
-        ( fixedFirst, fixedLast ) =
-            ( List.take start points, List.drop finish points )
+        ( prefix, region ) =
+            theRest |> List.Extra.splitAt undoRedo.start
 
         splinedSection =
-            case ( loopiness, track.markedNode ) of
-                ( IsALoop, Nothing ) ->
-                    splineFunction
-                        True
-                        tension
-                        tolerance
-                        points
+            case ( undoRedo.isLoop, track.markedNode ) of
+                ( True, Nothing ) ->
+                    undoRedo.splineFunction points
 
                 ( _, _ ) ->
-                    splineFunction
-                        False
-                        tension
-                        tolerance
-                        (withinRange points)
-
-        modifiedTrack =
-            TrackPoint.prepareTrackPoints <|
-                fixedFirst
-                    ++ splinedSection
-                    ++ fixedLast
-
-        newFinish =
-            finish + (List.length modifiedTrack - List.length points)
-
-        newPurple =
-            case track.markedNode of
-                Just mark ->
-                    if mark.index > start then
-                        List.Extra.getAt newFinish modifiedTrack
-
-                    else
-                        List.Extra.getAt mark.index modifiedTrack
-
-                Nothing ->
-                    Nothing
-
-        newOrange =
-            if track.currentNode.index > start then
-                List.Extra.getAt newFinish modifiedTrack
-
-            else
-                List.Extra.getAt start modifiedTrack
+                    undoRedo.splineFunction region
     in
-    { track
-        | trackPoints = modifiedTrack
-        , currentNode = newOrange |> Maybe.withDefault track.currentNode
-        , markedNode = newPurple
-    }
+    ( prefix, splinedSection, suffix )
+
+
+undoBezierSpline : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoBezierSpline undoRedo track =
+    let
+        points =
+            track.trackPoints
+
+        ( theRest, suffix ) =
+            points |> List.Extra.splitAt (undoRedo.end + 1)
+
+        ( prefix, region ) =
+            theRest |> List.Extra.splitAt undoRedo.start
+    in
+    ( prefix, undoRedo.originalPoints, suffix )
 
 
 weightedAverage :

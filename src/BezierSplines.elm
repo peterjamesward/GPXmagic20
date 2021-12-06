@@ -3,7 +3,9 @@ module BezierSplines exposing (..)
 import CubicSpline3d exposing (CubicSpline3d)
 import Length
 import LineSegment3d exposing (LineSegment3d)
+import List.Extra
 import LocalCoords exposing (LocalCoords)
+import Maybe.Extra
 import Point3d exposing (Point3d)
 import Polyline3d exposing (Polyline3d)
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
@@ -25,18 +27,18 @@ bezierSplines isLoop tension tolerance trackPoints =
         firstPoint =
             -- This is used for wrap-around on loop, in which case use second point
             if isLoop then
-                List.take 1 <| List.drop 1 points
+                points |> List.Extra.getAt 2 |> Maybe.Extra.toList
 
             else
-                List.take 1 points
+                points |> List.take 1
 
         lastPoint =
             -- This is used for wrap-around on loop, in which case use penultimate point
             if isLoop then
-                List.take 1 <| List.drop 1 <| List.reverse points
+                points |> List.Extra.getAt (List.length points - 2) |> Maybe.Extra.toList
 
             else
-                List.take 1 <| List.reverse points
+                points |> List.Extra.getAt (List.length points - 1) |> Maybe.Extra.toList
 
         makeTriangles : List (Triangle3d Length.Meters LocalCoords)
         makeTriangles =
@@ -111,11 +113,7 @@ bezierSplines isLoop tension tolerance trackPoints =
             -> ( ControlPoint, ControlPoint, ControlPoint )
             -> CubicSpline3d Length.Meters LocalCoords
         makeSpline ( _, start, control1 ) ( control2, end, _ ) =
-            CubicSpline3d.fromControlPoints
-                start
-                control1
-                control2
-                end
+            CubicSpline3d.fromControlPoints start control1 control2 end
 
         makeSplines : List (CubicSpline3d Length.Meters LocalCoords)
         makeSplines =
@@ -156,6 +154,12 @@ bezierApproximation _ _ tolerance points =
         rawPoints =
             List.map .xyz points
 
+        firstPoint =
+            points |> List.take 1
+
+        lastPoint =
+            points |> List.Extra.getAt (List.length points - 1) |> Maybe.Extra.toList
+
         makeSpline first second third =
             let
                 ( start, end ) =
@@ -163,11 +167,7 @@ bezierApproximation _ _ tolerance points =
                     , Point3d.midpoint second third
                     )
             in
-            CubicSpline3d.fromControlPoints
-                start
-                second
-                second
-                end
+            CubicSpline3d.fromControlPoints start second second end
 
         makeSplines =
             List.map3
@@ -194,9 +194,9 @@ bezierApproximation _ _ tolerance points =
                     LineSegment3d.endPoint
                     asSegments
     in
-    List.take 1 points
+    firstPoint
         ++ List.map trackPointFromPoint asPointsAgain
-        ++ List.drop (List.length points - 1) points
+        ++ lastPoint
 
 
 

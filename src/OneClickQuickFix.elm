@@ -81,13 +81,13 @@ oneClickQuickFix originalTrack =
             --            |> TrackPoint.prepareTrackPoints
             --}
 
-        bezierApprox track =
-            Filters.bezierSplineHelper
-                BezierSplines.bezierApproximation
-                track
-                Filters.defaultOptions.bezierTension
-                Filters.defaultOptions.bezierTolerance
-                (LoopedTrack.NotALoop Quantity.zero)
+        --bezierApprox track =
+        --    Filters.applyBezierSpline
+        --        BezierSplines.bezierApproximation
+        --        track
+        --        Filters.defaultOptions.bezierTension
+        --        Filters.defaultOptions.bezierTolerance
+        --        (LoopedTrack.NotALoop Quantity.zero)
     in
     -- Ignore markers for Quick Fix.
     { originalTrack
@@ -95,7 +95,7 @@ oneClickQuickFix originalTrack =
         , markedNode = Nothing
     }
         |> simplifyTrack
-        |> bezierApprox
+        --|> bezierApprox
         |> Loop.for 3 smoothTrack
 
 
