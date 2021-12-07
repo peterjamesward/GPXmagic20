@@ -26,6 +26,7 @@ import Scene3d exposing (Entity, backgroundColor)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackSearchQueries exposing (trackPointNearestFromIndexFor3d)
 import Vector3d
 import ViewingContext exposing (DragAction(..), ViewingContext, newViewingContext)
 import Viewpoint3d exposing (Viewpoint3d)

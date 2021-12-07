@@ -1,6 +1,7 @@
 module Track exposing (..)
 
 import Angle
+import Axis3d
 import BoundingBox2d
 import BoundingBox3d exposing (BoundingBox3d)
 import Dict
@@ -18,10 +19,9 @@ import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import SketchPlane3d
 import SpatialIndex
-import Spherical
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, gradientFromPoint, prepareTrackPoints)
+import TrackSearchQueries exposing (trackPointNearestFromIndexForPlan)
 import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, minmax, showDecimal2, showDecimal6, showLabelledValues, showLongMeasure, showShortMeasure)
-import Vector3d exposing (..)
 
 
 type alias Track =
@@ -314,25 +314,22 @@ summaryData imperial track =
 searchTrackPointFromLonLat : ( Float, Float ) -> Track -> Maybe TrackPoint
 searchTrackPointFromLonLat ( lon, lat ) track =
     let
-        trackLonLats =
-            List.Extra.zip
-                (removeGhanianTransform track)
-                (List.range 0 (List.length track.trackPoints))
+        localPoint =
+            applyGhanianTransform track.earthReferenceCoordinates [ ( lon, lat, 0.0 ) ]
+                |> List.head
 
-        searchLatLon =
-            ( Angle.degrees lat, Angle.degrees lon )
+        axisForIndexSearch =
+            case localPoint of
+                Just point ->
+                    Axis3d.through point.xyz Direction3d.positiveZ
 
-        nearestPair =
-            trackLonLats
-                |> List.Extra.minimumBy
-                    (\( ( lon1, lat1, _ ), _ ) -> Spherical.range ( Angle.degrees lat1, Angle.degrees lon1 ) searchLatLon)
+                Nothing ->
+                    Axis3d.through Point3d.origin Direction3d.positiveZ
+
+        result =
+            trackPointNearestFromIndexForPlan track.spatialIndex axisForIndexSearch
     in
-    case nearestPair of
-        Just ( _, index ) ->
-            List.Extra.getAt index track.trackPoints
-
-        _ ->
-            Nothing
+    result
 
 
 updateTrackPointLonLat : ( Float, Float ) -> Track -> TrackPoint -> TrackPoint

@@ -7,14 +7,12 @@ import Color
 import Delay
 import Direction3d exposing (negativeZ, positiveZ)
 import DisplayOptions exposing (DisplayOptions)
-import EarthConstants exposing (metresPerPixel)
 import Element exposing (Element, el, html, inFront, none, row)
 import Flythrough exposing (eyeHeight)
 import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
 import Length exposing (meters)
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels)
-import Plane3d
 import Point2d
 import Point3d
 import PostUpdateActions exposing (PostUpdateAction(..))
@@ -22,13 +20,13 @@ import Quantity exposing (Quantity, toFloatQuantity)
 import Rectangle2d
 import Scene exposing (Scene)
 import Scene3d exposing (backgroundColor)
-import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, trackPointNearestFromIndexFor3d, withMouseCapture, zoomButtons)
+import ScenePainterCommon exposing (ImageMsg(..), headUpDisplay, withMouseCapture, zoomButtons)
 import SketchPlane3d
 import Track exposing (Track)
-import TrackPoint exposing (TrackPoint, gradientFromPoint, pointInEarthCoordinates)
+import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackSearchQueries exposing (trackPointNearestFromIndexFor3d)
 import Vector3d
-import ViewingContext exposing (DragAction(..), ViewingContext, newViewingContext)
-import ViewingMode exposing (ViewingMode(..))
+import ViewingContext exposing (DragAction(..), ViewingContext)
 import Viewpoint3d
 
 

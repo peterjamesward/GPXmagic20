@@ -27,6 +27,7 @@ import SketchPlane3d
 import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
+import TrackSearchQueries exposing (trackPointNearestFromIndexForPlan)
 import Vector3d
 import ViewingContext exposing (DragAction(..), ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))

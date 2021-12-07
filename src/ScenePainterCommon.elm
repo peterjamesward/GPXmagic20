@@ -1,8 +1,5 @@
 module ScenePainterCommon exposing (..)
 
-import Angle
-import Axis2d
-import Axis3d exposing (Axis3d)
 import BoundingBox3d
 import ColourPalette exposing (white)
 import EarthConstants exposing (metresPerPixelAtEquatorZoomZero)
@@ -12,21 +9,15 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
-import Html.Attributes exposing (style)
 import Html.Events as HE
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
 import Json.Decode as D
 import Length exposing (Meters, inMeters)
-import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
-import Plane3d
-import Point2d
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
-import SketchPlane3d
-import SpatialIndex
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (elmuiColour, showDecimal0, showDecimal1, useIcon)
 import ViewingContext exposing (ViewingContext)
@@ -157,52 +148,6 @@ zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
             logBase 2 (cos (degrees medianLatitude) * metresPerPixelAtEquatorZoomZero / desiredMetresPerPixel)
     in
     ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )
-
-
-trackPointNearestFromIndexFor3d :
-    SpatialIndex.SpatialNode TrackPoint Length.Meters LocalCoords
-    -> Axis3d Meters LocalCoords
-    -> Maybe TrackPoint
-trackPointNearestFromIndexFor3d index ray =
-    let
-        rayShadow =
-            ray
-                |> Axis3d.projectInto SketchPlane3d.xy
-                |> Maybe.withDefault Axis2d.x
-
-        distanceFunction =
-            .xyz
-                >> Point3d.distanceFromAxis ray
-                >> Length.inMeters
-    in
-    SpatialIndex.queryNearestToAxisUsing index rayShadow distanceFunction
-        |> Maybe.map .content
-
-
-trackPointNearestFromIndexForPlan :
-    SpatialIndex.SpatialNode TrackPoint Length.Meters LocalCoords
-    -> Axis3d Meters LocalCoords
-    -> Maybe TrackPoint
-trackPointNearestFromIndexForPlan index ray =
-    let
-        groundZero =
-            ray
-                |> Axis3d.intersectionWithPlane Plane3d.xy
-                |> Maybe.withDefault Point3d.origin
-                |> Point3d.projectInto SketchPlane3d.xy
-
-        nearbyPoints =
-            SpatialIndex.queryAllContaining index groundZero
-    in
-    List.Extra.minimumBy
-        (.content
-            >> .xyz
-            >> Point3d.projectInto SketchPlane3d.xy
-            >> Point2d.distanceFrom groundZero
-            >> Length.inMeters
-        )
-        nearbyPoints
-        |> Maybe.map .content
 
 
 changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
