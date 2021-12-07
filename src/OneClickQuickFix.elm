@@ -42,6 +42,7 @@ oneClickQuickFix : Track -> EditResult
 oneClickQuickFix originalTrack =
     let
         simplifyTrack =
+            --TODO: Beware infinite loop!!
             let
                 isCloselySpaced t =
                     let
@@ -53,7 +54,7 @@ oneClickQuickFix originalTrack =
                 removeSomePoints t =
                     { t | trackPoints = t |> Straightener.simplifyWithDefaults }
             in
-            Loop.while isCloselySpaced removeSomePoints
+            Loop.while (isCloselySpaced) removeSomePoints
 
         interpolateTrack track =
             { track | trackPoints = track |> Interpolate.interpolateWithDefaults }

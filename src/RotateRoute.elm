@@ -3,24 +3,21 @@ module RotateRoute exposing (..)
 import Angle exposing (Angle)
 import Axis3d
 import BoundingBox3d
-import ColourPalette exposing (scrollbarBackground)
+import Color
 import Direction3d
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Input as Input exposing (button)
+import Json.Encode as E
 import Length exposing (Meters, inMeters, meters)
-import LineSegment3d exposing (LineSegment3d)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
-import Maybe.Extra
 import Plane3d
 import Point3d
-import PostUpdateActions
+import PostUpdateActions exposing (EditResult, UndoEntry, editAsTrack)
 import Quantity
-import SketchPlane3d
+import Scene3d exposing (Entity)
+import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
-import TrackEditType as PostUpdateActions
 import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2, showLongMeasure)
 import Vector3d
@@ -71,53 +68,39 @@ update :
     -> Options
     -> ( Float, Float )
     -> Track
-    -> ( Options, PostUpdateActions.PostUpdateAction msg )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck cmd )
 update msg settings lastMapClick track =
     case msg of
         SetRotateAngle theta ->
             ( { settings | rotateAngle = theta }
-            , PostUpdateActions.ActionNoOp
+            , PostUpdateActions.ActionPreview
             )
 
         SetScale scale ->
             ( { settings | scaleFactor = scale }
-            , PostUpdateActions.ActionNoOp
+            , PostUpdateActions.ActionPreview
             )
 
         RotateRoute ->
-            let
-                ( newTrack, undoMsg ) =
-                    rotateRoute settings track
-            in
+            -- As of 2.8, does rotate & scale
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                newTrack
-                undoMsg
+                (buildRotateAndScale settings track)
             )
 
         Recentre ->
-            let
-                ( newTrack, undoMsg ) =
-                    recentre settings lastMapClick track
-            in
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                newTrack
-                undoMsg
+                (buildRecentre settings lastMapClick track)
             )
 
         ScaleRoute ->
-            let
-                ( newTrack, undoMsg ) =
-                    rescale settings track
-            in
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
-                newTrack
-                undoMsg
+                (buildRescale settings track)
             )
 
         UseMapElevations ->
@@ -151,13 +134,22 @@ applyMapElevations elevations track =
     }
 
 
-rotateRoute : Options -> Track -> ( Track, String )
-rotateRoute settings track =
-    let
-        undoMessage =
-            "rotate by "
-                ++ (showDecimal0 <| Angle.inDegrees settings.rotateAngle)
+buildRotate : Options -> Track -> UndoEntry
+buildRotate settings track =
+    { label = "Rotate by " ++ (showDecimal0 <| Angle.inDegrees settings.rotateAngle)
+    , editFunction = rotateRoute settings
+    , undoFunction = rotateRoute { settings | rotateAngle = Quantity.negate settings.rotateAngle }
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
 
+
+rotateRoute : Options -> Track -> EditResult
+rotateRoute settings track =
+    -- Gotta like how this serves for undo as well.
+    let
         rotatedRoute =
             List.map rotatePoint track.trackPoints
 
@@ -169,13 +161,27 @@ rotateRoute settings track =
                 >> Point3d.rotateAround axisOfRotation settings.rotateAngle
                 >> trackPointFromPoint
     in
-    ( { track | trackPoints = rotatedRoute }
-    , undoMessage
-    )
+    { before = []
+    , edited = rotatedRoute
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-recentre : Options -> ( Float, Float ) -> Track -> ( Track, String )
-recentre settings ( lon, lat ) track =
+buildRecentre : Options -> ( Float, Float ) -> Track -> UndoEntry
+buildRecentre settings ( lon, lat ) track =
+    { label = "Recentre"
+    , editFunction = recentre settings ( lon, lat, 0.0 )
+    , undoFunction = recentre settings track.earthReferenceCoordinates
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+recentre : Options -> ( Float, Float, Float ) -> Track -> EditResult
+recentre settings ( lon, lat, _ ) track =
     -- To allow us to use the Purple marker as a designated reference,
     -- we need to move the earth reference coords AND shift the track
     -- by the opposite of the Purple position (?).
@@ -198,40 +204,41 @@ recentre settings ( lon, lat ) track =
             .xyz
                 >> Point3d.translateBy shiftVector
                 >> trackPointFromPoint
-
-        shiftedTrack =
-            { track
-                | trackPoints = shiftedTrackPoints
-                , box =
-                    BoundingBox3d.hullOfN .xyz shiftedTrackPoints
-                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
-                , earthReferenceCoordinates = ( lon, lat, 0.0 )
-                , currentNode = newOrange
-                , markedNode = newPurple
-            }
-
-        newOrange =
-            shiftedTrackPoints
-                |> List.Extra.getAt track.currentNode.index
-                |> Maybe.withDefault track.currentNode
-
-        newPurple =
-            case track.markedNode of
-                Just purple ->
-                    shiftedTrackPoints
-                        |> List.Extra.getAt purple.index
-                        |> Maybe.withDefault purple
-                        |> Just
-
-                Nothing ->
-                    Nothing
     in
-    ( shiftedTrack
-    , "recentre"
-    )
+    { before = []
+    , edited = shiftedTrackPoints
+    , after = []
+    , earthReferenceCoordinates = ( lon, lat, 0.0 )
+    }
 
 
-rescale : Options -> Track -> ( Track, String )
+buildRescale : Options -> Track -> UndoEntry
+buildRescale settings track =
+    { label = "Rescale"
+    , editFunction = rescale settings
+    , undoFunction = rescale { settings | scaleFactor = 1.0 / settings.scaleFactor }
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+buildRotateAndScale : Options -> Track -> UndoEntry
+buildRotateAndScale settings track =
+    { label = "Rotate & Scale"
+    , editFunction = editAsTrack (rescale settings) >> rotateRoute settings
+    , undoFunction =
+        editAsTrack (rescale { settings | scaleFactor = 1.0 / settings.scaleFactor })
+            >> rotateRoute { settings | rotateAngle = Quantity.negate settings.rotateAngle }
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+rescale : Options -> Track -> EditResult
 rescale settings track =
     let
         centre =
@@ -247,22 +254,72 @@ rescale settings track =
 
         scaledPoints =
             List.map
-                (.xyz >> scaleAboutCentre)
+                (.xyz >> scaleAboutCentre >> trackPointFromPoint)
                 track.trackPoints
-
-        scaledTrack =
-            { track
-                | trackPoints =
-                    List.map TrackPoint.trackPointFromPoint scaledPoints
-                        |> TrackPoint.prepareTrackPoints
-                , box =
-                    BoundingBox3d.hullN scaledPoints
-                        |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
-            }
     in
-    ( scaledTrack
-    , "rescale"
-    )
+    { before = []
+    , edited = scaledPoints
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
+
+
+buildFullTransform : Options -> ( Float, Float ) -> Track -> UndoEntry
+buildFullTransform settings ( lon, lat ) track =
+    -- Wow.
+    { label = "Preview"
+    , editFunction =
+        editAsTrack (recentre settings ( lon, lat, 0.0 ))
+            >> editAsTrack (rescale settings)
+            >> rotateRoute settings
+    , undoFunction =
+        editAsTrack (rotateRoute { settings | rotateAngle = Quantity.negate settings.rotateAngle })
+            >> editAsTrack (rescale { settings | scaleFactor = 1.0 / settings.scaleFactor })
+            >> recentre settings track.earthReferenceCoordinates
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+getPreview3D : Options -> ( Float, Float ) -> Track -> List (Entity LocalCoords)
+getPreview3D options lastMapClick track =
+    let
+        actions =
+            buildFullTransform options lastMapClick track
+
+        result =
+            actions.editFunction track
+    in
+    highlightPoints Color.lightGreen result.edited
+
+
+getPreviewMap : Options -> ( Float, Float ) -> Track -> E.Value
+getPreviewMap options lastMapClick track =
+    let
+        {-
+           To return JSON:
+           { "name" : "nudge"
+           , "colour" : "#FFFFFF"
+           , "points" : <trackPointsToJSON ...>
+           }
+        -}
+        actions =
+            buildFullTransform options lastMapClick track
+
+        results =
+            actions.editFunction track
+
+        fakeTrack =
+            -- Just for the JSON
+            { track | trackPoints = results.edited }
+    in
+    E.object
+        [ ( "name", E.string "transform" )
+        , ( "colour", E.string "#3BDD3B" )
+        , ( "points", Track.trackToJSON fakeTrack )
+        ]
 
 
 view : Bool -> Options -> ( Float, Float ) -> (Msg -> msg) -> Track -> Element msg
@@ -317,7 +374,7 @@ view imperial options ( lastX, lastY ) wrapper track =
                 { onPress = Just <| wrapper RotateRoute
                 , label =
                     text <|
-                        "Rotate"
+                        "Rotate & Scale"
                 }
 
         recentreButton =
@@ -351,8 +408,9 @@ view imperial options ( lastX, lastY ) wrapper track =
                 }
     in
     wrappedRow [ spacing 5, padding 5 ]
-        [ column [ spacing 5, padding 5 ] [ rotationSlider, rotateButton ]
-        , column [ spacing 5, padding 5 ] [ scaleSlider, scaleButton ]
+        [ rotationSlider
+        , scaleSlider
+        , rotateButton
         , recentreButton
         , elevationFetchButton
         ]

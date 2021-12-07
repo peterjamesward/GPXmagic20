@@ -1,6 +1,5 @@
 module Main exposing (main)
 
---import RotateRoute
 --import StravaTools exposing (stravaRouteOption)
 
 import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
@@ -50,6 +49,7 @@ import Point3d
 import PortController exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..), UndoEntry)
 import Quantity
+import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
@@ -103,7 +103,7 @@ type Msg
     | AdjustTimeZone Time.Zone
     | ReceivedIpDetails (Result Http.Error IpInfo)
     | IpInfoAcknowledged (Result Http.Error ())
-      --| RotateMessage RotateRoute.Msg
+    | RotateMessage RotateRoute.Msg
     | OneClickQuickFix
     | SvgMessage SvgPathExtractor.Msg
     | EnableMapSketchMode
@@ -111,6 +111,7 @@ type Msg
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
     | CurveFormerMsg CurveFormer.Msg
+    | ClearMapClickDebounce
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -160,8 +161,7 @@ type alias ModelRecord =
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
     , gradientLimiter : GradientLimiter.Options
-
-    --, rotateOptions : RotateRoute.Options
+    , rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
 
     --, splitterOptions : TrackSplitter.Options
@@ -173,6 +173,7 @@ type alias ModelRecord =
     , markerOptions : MarkerControls.Options
     , moveAndStretch : MoveAndStretch.Model
     , curveFormer : CurveFormer.Model
+    , mapClickDebounce : Bool
     }
 
 
@@ -212,8 +213,7 @@ init mflags origin navigationKey =
       , stravaAuthentication = authData
       , ipInfo = Nothing
       , gradientLimiter = GradientLimiter.defaultOptions
-
-      --, rotateOptions = RotateRoute.defaultOptions
+      , rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
 
       --, splitterOptions = TrackSplitter.defaultOptions
@@ -225,6 +225,7 @@ init mflags origin navigationKey =
       , markerOptions = MarkerControls.defaultOptions
       , moveAndStretch = MoveAndStretch.defaultModel
       , curveFormer = CurveFormer.defaultModel
+      , mapClickDebounce = False
       }
         -- Just make sure the Accordion reflects all the other state.
         |> (\record -> { record | toolsAccordion = toolsAccordion (Model record) })
@@ -427,6 +428,11 @@ update msg (Model model) =
             , Cmd.map OAuthMessage authCmd
             )
 
+        ClearMapClickDebounce ->
+            ( Model { model | mapClickDebounce = False }
+            , Cmd.none
+            )
+
         PortMessage json ->
             -- So we don't need to keep going to the PortController.
             -- These will be Model-domain messages.
@@ -454,13 +460,22 @@ update msg (Model model) =
                     --, 'lat' : e.lat()
                     --, 'lon' : e.lon()
                     --} );
-                    case ( lat, lon ) of
-                        ( Ok lat1, Ok lon1 ) ->
+                    case ( model.mapClickDebounce, lat, lon ) of
+                        ( False, Ok lat1, Ok lon1 ) ->
                             case searchTrackPointFromLonLat ( lon1, lat1 ) track of
                                 Just point ->
-                                    processPostUpdateAction
-                                        { model | lastMapClick = ( lon1, lat1 ) }
-                                        (PostUpdateActions.ActionFocusMove point)
+                                    let
+                                        ( outcome, cmds ) =
+                                            processPostUpdateAction
+                                                { model
+                                                    | lastMapClick = ( lon1, lat1 )
+                                                    , mapClickDebounce = True
+                                                }
+                                                (PostUpdateActions.ActionFocusMove point)
+                                    in
+                                    ( outcome
+                                    , Cmd.batch [ cmds, after 100 ClearMapClickDebounce ]
+                                    )
 
                                 Nothing ->
                                     ( Model model, Cmd.none )
@@ -715,17 +730,17 @@ update msg (Model model) =
                 { model | filterOptions = newOptions }
                 action
 
-        --RotateMessage rotate ->
-        --    let
-        --        ( newOptions, action ) =
-        --            Maybe.map (RotateRoute.update rotate model.rotateOptions model.lastMapClick)
-        --                model.track
-        --                |> Maybe.withDefault ( model.rotateOptions, ActionNoOp )
-        --    in
-        --    processPostUpdateAction
-        --        { model | rotateOptions = newOptions }
-        --        action
-        --
+        RotateMessage rotate ->
+            let
+                ( newOptions, action ) =
+                    Maybe.map (RotateRoute.update rotate model.rotateOptions model.lastMapClick)
+                        model.track
+                        |> Maybe.withDefault ( model.rotateOptions, ActionNoOp )
+            in
+            processPostUpdateAction
+                { model | rotateOptions = newOptions }
+                action
+
         --SplitterMessage splitter ->
         --    let
         --        ( newOptions, action ) =
@@ -2205,22 +2220,27 @@ toolsAccordion (Model model) =
     --  , video = Just "https://youtu.be/31qVuc3klUE"
     --  , isFavourite = False
     --  }
-    --, { label = RotateRoute.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (RotateRoute.view
-    --                model.displayOptions.imperialMeasure
-    --                model.rotateOptions
-    --                model.lastMapClick
-    --                RotateMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = RotateRoute.info
-    --  , video = Just "https://youtu.be/P602MjJLrZ0"
-    --  , isFavourite = False
-    --  }
+    , { label = RotateRoute.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (RotateRoute.view
+                        m.displayOptions.imperialMeasure
+                        m.rotateOptions
+                        m.lastMapClick
+                        RotateMessage
+                    )
+                    m.track
+                    |> Maybe.withDefault none
+      , info = RotateRoute.info
+      , video = Just "https://youtu.be/P602MjJLrZ0"
+      , isFavourite = False
+      , preview3D = Just <| RotateRoute.getPreview3D model.rotateOptions model.lastMapClick
+      , previewProfile = Nothing
+      , previewMap = Just <| RotateRoute.getPreviewMap model.rotateOptions model.lastMapClick
+      }
+
     --, { label = TrackSplitter.toolLabel
     --  , state = Contracted
     --  , content =

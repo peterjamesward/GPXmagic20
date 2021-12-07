@@ -7,21 +7,18 @@
 
 ## Tools to be changed to new Undo/Review/Preview style:
 
-- **RotateRoute** (this does not conform with the 3-part form because of earth issues)
+- **RotateRoute** 
+- Not resetting bounding box.
+- Undo recentre not working.
+> likely interaction with lastClick location (should this be cleared?)
+- 
+- Preview is called A LOT when click on map
+> Twice when moving controls, but click on map is bad!
+  Possibly shit load of messages from map to be filtered.
 
-> Need to be able to return Track, but must escape the trap of putting "track" into 
-> a closure, as that would effectively put it back on the Undo stack, which all of 
-> this work set out to remove!
+Use spatial index in `searchTrackPointFromLonLat` !!
 
-Use this more incremental approach, adding what we lack:
-```
-type alias EditResult =
-  { prefix : List TrackPoint
-  , edited : List TrackPoint
-  , suffix : List TrackPoint
-  , earthReferenceCoordinates : (Float, Float, Float)
-  }
-```
+Avoid infinite loop in 1CQF.
 
 - TrackSplitter
 - Graph
