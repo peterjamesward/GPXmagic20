@@ -42,11 +42,11 @@ Rescale will linearly increase the route dimensions by the scale factor you set.
 
 
 type Msg
-    = RotateRoute
+    = RotateAndScale
     | SetRotateAngle Angle
     | Recentre
     | SetScale Float
-    | ScaleRoute
+    | Zero
     | UseMapElevations
 
 
@@ -81,8 +81,7 @@ update msg settings lastMapClick track =
             , PostUpdateActions.ActionPreview
             )
 
-        RotateRoute ->
-            -- As of 2.8, does rotate & scale
+        RotateAndScale ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
                 PostUpdateActions.EditPreservesIndex
@@ -96,11 +95,9 @@ update msg settings lastMapClick track =
                 (buildRecentre settings lastMapClick track)
             )
 
-        ScaleRoute ->
-            ( settings
-            , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
-                (buildRescale settings track)
+        Zero ->
+            ( defaultOptions
+            , PostUpdateActions.ActionPreview
             )
 
         UseMapElevations ->
@@ -134,45 +131,11 @@ applyMapElevations elevations track =
     }
 
 
-buildRotate : Options -> Track -> UndoEntry
-buildRotate settings track =
-    { label = "Rotate by " ++ (showDecimal0 <| Angle.inDegrees settings.rotateAngle)
-    , editFunction = rotateRoute settings
-    , undoFunction = rotateRoute { settings | rotateAngle = Quantity.negate settings.rotateAngle }
-    , newOrange = track.currentNode.index
-    , newPurple = Maybe.map .index track.markedNode
-    , oldOrange = track.currentNode.index
-    , oldPurple = Maybe.map .index track.markedNode
-    }
-
-
-rotateRoute : Options -> Track -> EditResult
-rotateRoute settings track =
-    -- Gotta like how this serves for undo as well.
-    let
-        rotatedRoute =
-            List.map rotatePoint track.trackPoints
-
-        axisOfRotation =
-            Axis3d.through track.currentNode.xyz Direction3d.z
-
-        rotatePoint =
-            .xyz
-                >> Point3d.rotateAround axisOfRotation settings.rotateAngle
-                >> trackPointFromPoint
-    in
-    { before = []
-    , edited = rotatedRoute
-    , after = []
-    , earthReferenceCoordinates = track.earthReferenceCoordinates
-    }
-
-
 buildRecentre : Options -> ( Float, Float ) -> Track -> UndoEntry
-buildRecentre settings ( lon, lat ) track =
+buildRecentre settings lastMapClick track =
     { label = "Recentre"
-    , editFunction = recentre settings ( lon, lat, 0.0 )
-    , undoFunction = recentre settings track.earthReferenceCoordinates
+    , editFunction = recentre lastMapClick
+    , undoFunction = undoRecentre track.earthReferenceCoordinates
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
     , oldOrange = track.currentNode.index
@@ -180,8 +143,8 @@ buildRecentre settings ( lon, lat ) track =
     }
 
 
-recentre : Options -> ( Float, Float, Float ) -> Track -> EditResult
-recentre settings ( lon, lat, _ ) track =
+recentre : ( Float, Float ) -> Track -> EditResult
+recentre ( lon, lat ) track =
     -- To allow us to use the Purple marker as a designated reference,
     -- we need to move the earth reference coords AND shift the track
     -- by the opposite of the Purple position (?).
@@ -212,25 +175,48 @@ recentre settings ( lon, lat, _ ) track =
     }
 
 
-buildRescale : Options -> Track -> UndoEntry
-buildRescale settings track =
-    { label = "Rescale"
-    , editFunction = rescale settings
-    , undoFunction = rescale { settings | scaleFactor = 1.0 / settings.scaleFactor }
-    , newOrange = track.currentNode.index
-    , newPurple = Maybe.map .index track.markedNode
-    , oldOrange = track.currentNode.index
-    , oldPurple = Maybe.map .index track.markedNode
+undoRecentre : ( Float, Float, Float ) -> Track -> EditResult
+undoRecentre ( lon, lat, alt ) track =
+    -- To allow us to use the Purple marker as a designated reference,
+    -- we need to move the earth reference coords AND shift the track
+    -- by the opposite of the Purple position (?).
+    let
+        shiftedTrackPoints =
+            List.map shiftPoint track.trackPoints
+
+        shiftBasis =
+            case track.markedNode of
+                Just purple ->
+                    purple.xyz |> Point3d.projectOnto Plane3d.xy
+
+                Nothing ->
+                    Point3d.origin
+
+        shiftVector =
+            Vector3d.from Point3d.origin shiftBasis
+
+        shiftPoint =
+            .xyz
+                >> Point3d.translateBy shiftVector
+                >> trackPointFromPoint
+    in
+    { before = []
+    , edited = shiftedTrackPoints
+    , after = []
+    , earthReferenceCoordinates = ( lon, lat, alt )
     }
 
 
 buildRotateAndScale : Options -> Track -> UndoEntry
 buildRotateAndScale settings track =
     { label = "Rotate & Scale"
-    , editFunction = editAsTrack (rescale settings) >> rotateRoute settings
+    , editFunction = rotateAndScale settings
     , undoFunction =
-        editAsTrack (rescale { settings | scaleFactor = 1.0 / settings.scaleFactor })
-            >> rotateRoute { settings | rotateAngle = Quantity.negate settings.rotateAngle }
+        rotateAndScale
+            { settings
+                | scaleFactor = 1.0 / settings.scaleFactor
+                , rotateAngle = Quantity.negate settings.rotateAngle
+            }
     , newOrange = track.currentNode.index
     , newPurple = Maybe.map .index track.markedNode
     , oldOrange = track.currentNode.index
@@ -238,56 +224,50 @@ buildRotateAndScale settings track =
     }
 
 
-rescale : Options -> Track -> EditResult
-rescale settings track =
+rotateAndScale : Options -> Track -> EditResult
+rotateAndScale settings track =
     let
         centre =
+            -- Scale about centre of bounding box
             Point3d.xyz
                 (BoundingBox3d.midX track.box)
                 (BoundingBox3d.midY track.box)
                 (BoundingBox3d.minZ track.box)
+
+        axisOfRotation =
+            -- Rotate acts around Orange marker
+            Axis3d.through track.currentNode.xyz Direction3d.z
+
+        rotatedRoute =
+            List.map rotatePoint track.trackPoints
+
+        rotatePoint =
+            .xyz
+                >> Point3d.rotateAround axisOfRotation settings.rotateAngle
+                >> trackPointFromPoint
 
         scaleAboutCentre point =
             centre
                 |> Point3d.translateBy
                     (point |> Vector3d.from centre |> Vector3d.scaleBy settings.scaleFactor)
 
-        scaledPoints =
+        transformedPoints =
             List.map
                 (.xyz >> scaleAboutCentre >> trackPointFromPoint)
-                track.trackPoints
+                rotatedRoute
     in
     { before = []
-    , edited = scaledPoints
+    , edited = transformedPoints
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
     }
 
 
-buildFullTransform : Options -> ( Float, Float ) -> Track -> UndoEntry
-buildFullTransform settings ( lon, lat ) track =
-    -- Wow.
-    { label = "Preview"
-    , editFunction =
-        editAsTrack (recentre settings ( lon, lat, 0.0 ))
-            >> editAsTrack (rescale settings)
-            >> rotateRoute settings
-    , undoFunction =
-        editAsTrack (rotateRoute { settings | rotateAngle = Quantity.negate settings.rotateAngle })
-            >> editAsTrack (rescale { settings | scaleFactor = 1.0 / settings.scaleFactor })
-            >> recentre settings track.earthReferenceCoordinates
-    , newOrange = track.currentNode.index
-    , newPurple = Maybe.map .index track.markedNode
-    , oldOrange = track.currentNode.index
-    , oldPurple = Maybe.map .index track.markedNode
-    }
-
-
-getPreview3D : Options -> ( Float, Float ) -> Track -> List (Entity LocalCoords)
-getPreview3D options lastMapClick track =
+getPreview3D : Options -> Track -> List (Entity LocalCoords)
+getPreview3D options track =
     let
         actions =
-            buildFullTransform options lastMapClick track
+            buildRotateAndScale options track
 
         result =
             actions.editFunction track
@@ -295,8 +275,8 @@ getPreview3D options lastMapClick track =
     highlightPoints Color.lightGreen result.edited
 
 
-getPreviewMap : Options -> ( Float, Float ) -> Track -> E.Value
-getPreviewMap options lastMapClick track =
+getPreviewMap : Options -> Track -> E.Value
+getPreviewMap options track =
     let
         {-
            To return JSON:
@@ -306,7 +286,7 @@ getPreviewMap options lastMapClick track =
            }
         -}
         actions =
-            buildFullTransform options lastMapClick track
+            buildRotateAndScale options track
 
         results =
             actions.editFunction track
@@ -371,7 +351,7 @@ view imperial options ( lastX, lastY ) wrapper track =
         rotateButton =
             button
                 prettyButtonStyles
-                { onPress = Just <| wrapper RotateRoute
+                { onPress = Just <| wrapper RotateAndScale
                 , label =
                     text <|
                         "Rotate & Scale"
@@ -390,14 +370,11 @@ view imperial options ( lastX, lastY ) wrapper track =
                             ++ ")"
                 }
 
-        scaleButton =
+        zeroButton =
             button
                 prettyButtonStyles
-                { onPress = Just <| wrapper ScaleRoute
-                , label =
-                    text <|
-                        "Scale track to "
-                            ++ showLongMeasure imperial (Length.meters <| options.scaleFactor * trackLength)
+                { onPress = Just <| wrapper Zero
+                , label = text "Zero"
                 }
 
         elevationFetchButton =
@@ -411,6 +388,7 @@ view imperial options ( lastX, lastY ) wrapper track =
         [ rotationSlider
         , scaleSlider
         , rotateButton
+        , zeroButton
         , recentreButton
         , elevationFetchButton
         ]

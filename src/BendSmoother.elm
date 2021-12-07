@@ -856,7 +856,7 @@ getPreviewMap display options track =
     in
     E.object
         [ ( "name", E.string "bend" )
-        , ( "colour", E.string "#FFFFFF" )
+        , ( "colour", E.string "#FFFF00" )
         , ( "points", Track.trackToJSON fakeTrack )
         ]
 

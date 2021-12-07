@@ -1019,16 +1019,19 @@ processPostUpdateAction model action =
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
-            ( model
-                |> reflectNewTrackViaGraph track EditNoOp
-                |> repeatTrackDerivations
-                |> refreshSceneSearchers
-                |> refreshAccordion
-                |> composeScene
-                |> Model
+            let
+                polishedModel =
+                    model
+                        |> reflectNewTrackViaGraph track EditNoOp
+                        |> repeatTrackDerivations
+                        |> refreshSceneSearchers
+                        |> refreshAccordion
+                        |> composeScene
+            in
+            ( Model polishedModel
             , Cmd.batch
-                [ ViewPane.makeMapCommands track model.viewPanes (getMapPreviews model)
-                , Delay.after 50 RepaintMap
+                [ ViewPane.makeMapCommands track polishedModel.viewPanes (getMapPreviews polishedModel)
+                , Delay.after 100 RepaintMap
                 ]
             )
 
@@ -1442,6 +1445,7 @@ repeatTrackDerivations model =
                         | trackPoints = earthTrack
                         , currentNode = newOrange
                         , markedNode = newPurple
+                        , box = newBox
                         , spatialIndex = Track.buildSpatialIndex earthTrack newBox
                     }
             in
@@ -2242,9 +2246,9 @@ toolsAccordion (Model model) =
       , info = RotateRoute.info
       , video = Just "https://youtu.be/P602MjJLrZ0"
       , isFavourite = False
-      , preview3D = Just <| RotateRoute.getPreview3D model.rotateOptions model.lastMapClick
+      , preview3D = Just <| RotateRoute.getPreview3D model.rotateOptions
       , previewProfile = Nothing
-      , previewMap = Just <| RotateRoute.getPreviewMap model.rotateOptions model.lastMapClick
+      , previewMap = Just <| RotateRoute.getPreviewMap model.rotateOptions
       }
 
     --, { label = TrackSplitter.toolLabel
@@ -2276,7 +2280,7 @@ addToUndoStack :
     -> ModelRecord
 addToUndoStack entry model =
     { model
-        | undoStack = entry :: List.take 9 model.undoStack
+        | undoStack = entry :: List.take 19 model.undoStack
         , redoStack = []
         , changeCounter = model.changeCounter + 1
     }
@@ -2312,6 +2316,7 @@ undo model =
 
                                 Nothing ->
                                     Nothing
+                        , earthReferenceCoordinates = results.earthReferenceCoordinates
                     }
             in
             { model

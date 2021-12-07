@@ -5,15 +5,14 @@
 
 # Backlog
 
+**Stop infinite loop in 1CQF.**
+
+When tab closed, remove any map preview. 
+> There is no mechanism for this, it's an omission not a bug.
+
 ## Tools to be changed to new Undo/Review/Preview style:
-
-- **RotateRoute** 
-- Not resetting bounding box.
-- Undo recentre not working.
-> likely interaction with lastClick location (should this be cleared?)
-
-Avoid infinite loop in 1CQF.
-
+ 
+- Fetch Elevation from Map
 - TrackSplitter
 - Graph
 - StravaTools
