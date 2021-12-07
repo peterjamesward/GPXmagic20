@@ -8,7 +8,7 @@ import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
@@ -220,7 +220,7 @@ buildStraightenActions options track =
     }
 
 
-applyStraighten : StraightenInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyStraighten : StraightenInfo -> Track -> EditResult
 applyStraighten undoRedoInfo track =
     let
         ( prefix, theRest ) =
@@ -238,10 +238,14 @@ applyStraighten undoRedoInfo track =
                 region
                 undoRedoInfo.after
     in
-    ( prefix, adjusted, suffix )
+    { before = prefix
+    , edited = adjusted
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undoStraighten : StraightenInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoStraighten : StraightenInfo -> Track -> EditResult
 undoStraighten undoRedoInfo track =
     let
         ( prefix, theRest ) =
@@ -259,7 +263,11 @@ undoStraighten undoRedoInfo track =
                 region
                 undoRedoInfo.before
     in
-    ( prefix, adjusted, suffix )
+    { before = prefix
+    , edited = adjusted
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 type alias SimplifyInfo =
@@ -323,13 +331,13 @@ simplifyWithDefaults track =
         actions =
             buildSimplifyActions defaultOptions track
 
-        ( _, points, _ ) =
+        results =
             actions.editFunction track
     in
-    points |> TrackPoint.prepareTrackPoints
+    results.edited |> TrackPoint.prepareTrackPoints
 
 
-applySimplify : SimplifyInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySimplify : SimplifyInfo -> Track -> EditResult
 applySimplify undoRedoInfo track =
     -- Both input lists are sorted in index order.
     let
@@ -361,7 +369,11 @@ applySimplify undoRedoInfo track =
         --_ =
         --    Debug.log "APPLY" undoRedoInfo
     in
-    ( [], List.reverse retained, [] )
+    { before = []
+    , edited = List.reverse retained
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 type alias UndoFolder =
@@ -370,7 +382,7 @@ type alias UndoFolder =
     }
 
 
-undoSimplify : SimplifyInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSimplify : SimplifyInfo -> Track -> EditResult
 undoSimplify undoRedoInfo track =
     -- We have a list of the track points that were removed.
     -- We need to put them back in their respective places.
@@ -428,7 +440,11 @@ undoSimplify undoRedoInfo track =
                 |> List.reverse
                 |> List.concat
     in
-    ( [], reconstruction, [] )
+    { before = []
+    , edited = reconstruction
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 lookForSimplifications : Options -> Track -> Options

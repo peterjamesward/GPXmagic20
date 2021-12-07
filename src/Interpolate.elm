@@ -8,7 +8,7 @@ import Length exposing (inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (TrackEditType(..), UndoEntry)
+import PostUpdateActions exposing (EditResult, TrackEditType(..), UndoEntry)
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
 import SceneBuilderProfile exposing (highlightPointsProfile)
@@ -154,9 +154,12 @@ buildActions options track =
             , newEnd = 0
             }
 
-        ( _, newPoints, _ ) =
+        results =
             -- Yes, dummy run just to get the length.
             apply undoRedoInfo track
+
+        newPoints =
+            results.edited
 
         revisedUndoRedo =
             { undoRedoInfo
@@ -188,7 +191,7 @@ buildActions options track =
     }
 
 
-apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedo track =
     -- Introduce additional trackpoints in all segments **between** markers.
     -- Yes, there's some redundant track splitting. Not worth worrying about.
@@ -233,13 +236,14 @@ apply undoRedo track =
         subsequentTrackPoints =
             List.drop (undoRedo.end + 1) track.trackPoints
     in
-    ( precedingTrackPoints
-    , firstTrackPointOfInterpolatedSection ++ allNewTrackPoints
-    , subsequentTrackPoints
-    )
+    { before = precedingTrackPoints
+    , edited = firstTrackPointOfInterpolatedSection ++ allNewTrackPoints
+    , after = subsequentTrackPoints
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo : UndoRedoInfo -> Track -> EditResult
 undo undoRedo track =
     -- In Undo, we work out which are the new ones, so we can remove them.
     let
@@ -254,7 +258,11 @@ undo undoRedo track =
         subsequentTrackPoints =
             List.drop undoRedo.newEnd track.trackPoints
     in
-    ( precedingTrackPoints, undoRedo.originalPoints, subsequentTrackPoints )
+    { before = precedingTrackPoints
+    , edited = undoRedo.originalPoints
+    , after = subsequentTrackPoints
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 pointsIn referenceList testList =
@@ -303,10 +311,10 @@ getPreview3D options track =
         actions =
             buildActions options track
 
-        ( _, points, _ ) =
+        results =
             actions.editFunction track
     in
-    highlightPoints Color.white (points |> pointsNotIn originalPoints)
+    highlightPoints Color.white (results.edited |> pointsNotIn originalPoints)
 
 
 interpolateWithDefaults : Track -> List TrackPoint
@@ -316,7 +324,7 @@ interpolateWithDefaults track =
         actions =
             buildActions defaultOptions track
 
-        ( _, points, _ ) =
+        results =
             actions.editFunction track
     in
-    points |> TrackPoint.prepareTrackPoints
+    results.edited |> TrackPoint.prepareTrackPoints

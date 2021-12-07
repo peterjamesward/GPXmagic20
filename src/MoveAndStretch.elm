@@ -14,7 +14,7 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point2d
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (previewLine)
@@ -418,7 +418,7 @@ buildActions options track =
     }
 
 
-apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedoInfo track =
     let
         ( beforeEnd, suffix ) =
@@ -447,10 +447,14 @@ apply undoRedoInfo track =
                 undoRedoInfo.originalPoints
                 undoRedoInfo.revisedPoints
     in
-    ( prefix, newPoints, suffix )
+    { before = prefix
+    , edited = newPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo : UndoRedoInfo -> Track -> EditResult
 undo undoRedoInfo track =
     let
         ( beforeEnd, suffix ) =
@@ -469,7 +473,11 @@ undo undoRedoInfo track =
                 undoRedoInfo.originalPoints
                 undoRedoInfo.originalProfileXZ
     in
-    ( prefix, newPoints, suffix )
+    { before = prefix
+    , edited = newPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 movePoints : Model -> List TrackPoint -> List (Point3d.Point3d Length.Meters LocalCoords)
@@ -581,8 +589,11 @@ getPreview3D options track =
         undoEntry =
             buildActions options track
 
-        ( _, region, _ ) =
+        results =
             undoEntry.editFunction track
+
+        region =
+            results.edited
 
         stretchPoint =
             case options.stretchPointer of
@@ -609,10 +620,10 @@ getPreviewProfile display options track =
         undoEntry =
             buildActions options track
 
-        ( _, region, _ ) =
+        results =
             undoEntry.editFunction track
     in
-    previewProfileLine display Color.white region
+    previewProfileLine display Color.white results.edited
 
 
 getPreviewMap : DisplayOptions -> Model -> Track -> E.Value
@@ -628,12 +639,12 @@ getPreviewMap display options track =
         undoEntry =
             buildActions options track
 
-        ( _, region, _ ) =
+        results =
             undoEntry.editFunction track
 
         fakeTrack =
             -- Just for the JSON
-            { track | trackPoints = region }
+            { track | trackPoints = results.edited }
     in
     E.object
         [ ( "name", E.string "stretch" )

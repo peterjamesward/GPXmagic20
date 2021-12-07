@@ -7,7 +7,7 @@ import List.Extra
 import LoopedTrack exposing (Loopiness(..))
 import Maybe.Extra
 import Point3d exposing (Point3d)
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import TabCommonElements exposing (wholeTrackTextHelper)
 import Track exposing (Track)
@@ -238,10 +238,10 @@ smoothWithDefaults track =
         actions =
             buildCentroidAverageActions { loopiness = NotALoop Quantity.zero } defaultOptions track
 
-        ( _, points, _ ) =
+        results =
             actions.editFunction track
     in
-    points |> TrackPoint.prepareTrackPoints
+    results.edited |> TrackPoint.prepareTrackPoints
 
 
 buildCentroidAverageActions : { a | loopiness : Loopiness } -> Options -> Track -> UndoEntry
@@ -282,7 +282,7 @@ buildCentroidAverageActions observations options track =
     }
 
 
-applyCentroidAverage : Options -> UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyCentroidAverage : Options -> UndoRedoInfo -> Track -> EditResult
 applyCentroidAverage options undoRedo track =
     let
         points =
@@ -326,10 +326,14 @@ applyCentroidAverage options undoRedo track =
                     withinRange
                     (List.drop 1 withinRange ++ lastPoint)
     in
-    ( prefix, filteredPoints, suffix )
+    { before = prefix
+    , edited = filteredPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undoCentroidAverage : Options -> UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoCentroidAverage : Options -> UndoRedoInfo -> Track -> EditResult
 undoCentroidAverage options undoRedo track =
     let
         points =
@@ -343,7 +347,11 @@ undoCentroidAverage options undoRedo track =
             -- These possible one outs.
             theRest |> List.Extra.splitAt (undoRedo.end - undoRedo.start + 1)
     in
-    ( prefix, undoRedo.originalPoints, suffix )
+    { before = prefix
+    , edited = undoRedo.originalPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 bezierWithDefaults : Track -> List TrackPoint
@@ -357,10 +365,10 @@ bezierWithDefaults track =
                 defaultOptions
                 track
 
-        ( _, points, _ ) =
+        results =
             actions.editFunction track
     in
-    points |> TrackPoint.prepareTrackPoints
+    results.edited |> TrackPoint.prepareTrackPoints
 
 
 buildBezierActions :
@@ -410,7 +418,7 @@ buildBezierActions splineFunction observations options track =
     }
 
 
-applyBezierSpline : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyBezierSpline : UndoRedoInfo -> Track -> EditResult
 applyBezierSpline undoRedo track =
     --TODO: May need to puyt back the special code for loops.
     let
@@ -431,10 +439,14 @@ applyBezierSpline undoRedo track =
                 ( _, _ ) ->
                     undoRedo.splineFunction region
     in
-    ( prefix, splinedSection, suffix )
+    { before = prefix
+    , edited = splinedSection
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undoBezierSpline : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoBezierSpline : UndoRedoInfo -> Track -> EditResult
 undoBezierSpline undoRedo track =
     let
         points =
@@ -446,7 +458,11 @@ undoBezierSpline undoRedo track =
         ( prefix, region ) =
             theRest |> List.Extra.splitAt undoRedo.start
     in
-    ( prefix, undoRedo.originalPoints, suffix )
+    { before = prefix
+    , edited = undoRedo.originalPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 weightedAverage :

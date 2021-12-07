@@ -19,7 +19,7 @@ import Point2d exposing (Point2d)
 import Point3d exposing (Point3d, xCoordinate, yCoordinate, zCoordinate)
 import Polyline2d
 import Polyline3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry, defaultEditResult)
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (previewLine)
 import SceneBuilderProfile exposing (previewProfileLine)
@@ -146,8 +146,8 @@ buildSmoothBendActions options track =
 
         Nothing ->
             { label = "Something amiss"
-            , editFunction = \t -> ( [], t.trackPoints, [] )
-            , undoFunction = \t -> ( [], t.trackPoints, [] )
+            , editFunction = always defaultEditResult
+            , undoFunction = always defaultEditResult
             , newOrange = track.currentNode.index
             , newPurple = Maybe.map .index track.markedNode
             , oldOrange = track.currentNode.index
@@ -195,7 +195,7 @@ update msg settings track =
             )
 
 
-applySmoothBend : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySmoothBend : UndoRedoInfo -> Track -> EditResult
 applySmoothBend undoRedoInfo track =
     -- The replacement bend is a pre-computed list of Point3d,
     -- We splice them in as Trackpoints.
@@ -207,10 +207,14 @@ applySmoothBend undoRedoInfo track =
         ( _, suffix ) =
             theRest |> List.Extra.splitAt (undoRedoInfo.newBend.endIndex - undoRedoInfo.newBend.startIndex)
     in
-    ( prefix, undoRedoInfo.newBend.nodes, suffix )
+    { before = prefix
+    , edited = undoRedoInfo.newBend.nodes
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undoSmoothBend : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSmoothBend : UndoRedoInfo -> Track -> EditResult
 undoSmoothBend undoRedoInfo track =
     let
         ( prefix, theRest ) =
@@ -220,7 +224,11 @@ undoSmoothBend undoRedoInfo track =
         ( _, suffix ) =
             theRest |> List.Extra.splitAt (List.length undoRedoInfo.newBend.nodes)
     in
-    ( prefix, undoRedoInfo.oldNodes, suffix )
+    { before = prefix
+    , edited = undoRedoInfo.oldNodes
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 makeUndoMessage : BendOptions -> Track -> String
@@ -673,7 +681,7 @@ buildSmoothPointActions options track =
     }
 
 
-applySmoothPoints : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applySmoothPoints : SinglePointUndoRedo -> Track -> EditResult
 applySmoothPoints undoRefoInfo track =
     -- Best to do the multiple point case, and the single one is just the trivial case.
     -- The essence of 'apply' is to split the track into fragments at the nominated points,
@@ -716,13 +724,14 @@ applySmoothPoints undoRefoInfo track =
             -- Note that nodesToSmooth is a list of list. We can't
             List.map curveAtPoint nodesToSmooth
     in
-    ( prefix
-    , List.Extra.interweave smoothedNodes fillers |> List.concat
-    , suffix
-    )
+    { before = prefix
+    , edited = List.Extra.interweave smoothedNodes fillers |> List.concat
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undoSmoothPoints : SinglePointUndoRedo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoSmoothPoints : SinglePointUndoRedo -> Track -> EditResult
 undoSmoothPoints undoRedoInfo track =
     -- Best to do the multiple point case, and the single one is just the trivial case.
     -- The essence of 'undo' is to split the track into fragments at the nominated points,
@@ -765,10 +774,11 @@ undoSmoothPoints undoRedoInfo track =
             undoRedoInfo.xyzs
                 |> List.map (trackPointFromPoint >> List.singleton)
     in
-    ( prefix
-    , List.Extra.interweave restoredPoints fillers |> List.concat
-    , suffix
-    )
+    { before = prefix
+    , edited = List.Extra.interweave restoredPoints fillers |> List.concat
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 singlePoint3dArc : Track -> TrackPoint -> Maybe (Arc3d Meters LocalCoords)
@@ -798,10 +808,10 @@ getPreview3D options track =
         undoEntry =
             buildSmoothBendActions updatedSettings track
 
-        ( _, bend, _ ) =
+        results =
             undoEntry.editFunction track
     in
-    previewLine Color.yellow bend
+    previewLine Color.yellow results.edited
 
 
 getPreviewProfile : DisplayOptions -> BendOptions -> Track -> List (Entity LocalCoords)
@@ -814,10 +824,10 @@ getPreviewProfile display options track =
         undoEntry =
             buildSmoothBendActions updatedSettings track
 
-        ( _, bend, _ ) =
+        results =
             undoEntry.editFunction track
     in
-    previewProfileLine display Color.yellow bend
+    previewProfileLine display Color.yellow results.edited
 
 
 getPreviewMap : DisplayOptions -> BendOptions -> Track -> E.Value
@@ -837,12 +847,12 @@ getPreviewMap display options track =
         undoEntry =
             buildSmoothBendActions updatedSettings track
 
-        ( _, bend, _ ) =
+        results =
             undoEntry.editFunction track
 
         fakeTrack =
             -- Just for the JSON
-            { track | trackPoints = bend }
+            { track | trackPoints = results.edited }
     in
     E.object
         [ ( "name", E.string "bend" )

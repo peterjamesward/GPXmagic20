@@ -1,68 +1,70 @@
 
-# **BUGS**
+# BUGS
 
 ---
 
-# TO-DO
+# Backlog
 
-Tools to be changed to new Undo/Review/Preview style:
+## Tools to be changed to new Undo/Review/Preview style:
 
-- RotateRoute (this does not conform with the 3-part form because of earth issues)
-> May need editFunctions that returns Track, but that messes up the previews!
-> Should I make them Track -> Track and have "special" ones for the Previews?
-> Perhaps neater is a previewFunction in UndoEntry that returns 
-> only the centre section as List TrackPoint.
-> **OR** (_less remedial work_) -- put some wrapper functions in PostUpdateActions
-> that call the editFunction and return the appropriate elements.
+- **RotateRoute** (this does not conform with the 3-part form because of earth issues)
+
+> Need to be able to return Track, but must escape the trap of putting "track" into 
+> a closure, as that would effectively put it back on the Undo stack, which all of 
+> this work set out to remove!
+
+Use this more incremental approach, adding what we lack:
+```
+type alias EditResult =
+  { prefix : List TrackPoint
+  , edited : List TrackPoint
+  , suffix : List TrackPoint
+  , earthReferenceCoordinates : (Float, Float, Float)
+  }
+```
 
 - TrackSplitter
 - Graph
 - StravaTools
 - Drag on Map
 
-**Samir**
+## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
 as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.
 > Involves direction changes v. distance changes across whole track (window calc).
 > Maybe, rather than a radius slider, have distance and length sliders and display the
 > equivalent radius. This will allow people to look only for hairpins, say.
 
-**Dan**
+## Dan
 Show gradient over distance. 
-> Perhaps optionally underneath the profile?
-> Might be better with SVG, with info overlay. Maybe use a library.
+> Perhaps optionally underneath the profile?  
+> Might be better with SVG, with info overlay. Maybe use a library.  
 > https://terezka.github.io/line-charts/
 
-**Feature** Use elevation from second route, starting at marker.
-> This should be a neat two-way merge sort of track points based on distance from start.
-> We have interpolation code in Flythrough (and Curve Former), so it's a doddle.
-> Applies elevation relative to start elevation, of course.
-> Option to have "cross-fade" at the end (possibly hundred of metres).
+## Use elevation from second route, starting at marker.
+> This should be a neat two-way merge sort of track points based on distance from start.  
+> We have interpolation code in Flythrough (and Curve Former), so it's a doddle.  
+> Applies elevation relative to start elevation, of course.  
+> Option to have "cross-fade" at the end (possibly hundred of metres).  
 
-**Improve** start/end coincidence testing in Intersections.
+## Improve start/end coincidence testing in Intersections.
 > Uses the TP.index here to see if they are adjacent on the route rather than just by chance.  
 > Better, still too many now. Need closer look at Dan's test file.
 
-**DEBT**: At least three similar forms of new Track creation.
+## TECH DEBT
 
-**DEBT**: Don't copy information into ViewContext that doesn't belong there. 
-> Only Flythrough?
+At least three similar forms of new Track creation.
+
+Don't copy information into ViewContext that doesn't belong there. 
+> Only Flythrough?  
 > Safer & easier to pass through the data needed.  
 > Now I know how to write type signatures that don't require the whole Main.Model!
 
-**DEBT**: Factor the PortMessage handling out of main::update. PortController.update?
+Factor the PortMessage handling out of main::update. PortController.update?
 
-**DEBT**: Switch currentPoint to : Int, avoid stale state worries.
+Switch currentPoint to : Int, avoid stale state worries.
 
-**DEBT**: Factor out the common pattern of min, max for the pointers.
-
-**Terrain** on empty squares; make it related to context of neighbours.
-
-Allow Tools to place a control on the view pane. When selected, drag messages are
-forwarded to the Tool. Would, for example, allow direct dragging on the view.
-
-In similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
-then Main.update becomes nice dispatch system.
+Factor out the common pattern of min, max for the pointers.
 
 ---
 
@@ -85,6 +87,14 @@ then Main.update becomes nice dispatch system.
 > We edit in the '2' level, and only fall back to 1 for output (apart from Map actions)
 > Anything in '3', '4', '5' is for info, and derived after each edit.
 > N.B. minor optimisation is to only re-derive from start edit forwards.
+
+Allow Tools to place a control on the view pane. When selected, drag messages are
+forwarded to the Tool. Would, for example, allow direct dragging on the view.
+
+In similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
+then Main.update becomes nice dispatch system. (Unlikely.)
+
+**Terrain** on empty squares; make it related to context of neighbours.
 
 ---
 

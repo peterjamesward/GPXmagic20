@@ -6,7 +6,7 @@ import Element.Input exposing (button)
 import Graph exposing (applyNodePreservingEditsToGraph)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
-import PostUpdateActions exposing (PostUpdateAction, UndoEntry)
+import PostUpdateActions exposing (EditResult, PostUpdateAction, UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
@@ -158,7 +158,7 @@ buildActions imperial track =
     }
 
 
-apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedo track =
     let
         pointsToDelete =
@@ -170,16 +170,24 @@ apply undoRedo track =
         ( toDelete, suffix ) =
             theRest |> List.Extra.splitAt pointsToDelete
     in
-    ( prefix, [], suffix )
+    { before = prefix
+    , edited = []
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo : UndoRedoInfo -> Track -> EditResult
 undo undoRedo track =
     let
         ( prefix, suffix ) =
             track.trackPoints |> List.Extra.splitAt undoRedo.start
     in
-    ( prefix, undoRedo.originalPoints, suffix )
+    { before = prefix
+    , edited = undoRedo.originalPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 getPreview3D : Track -> List (Entity LocalCoords)
@@ -188,7 +196,7 @@ getPreview3D track =
         actions =
             buildActions False track
 
-        ( _, toDelete, _ ) =
+        results =
             actions.undoFunction track
     in
-    highlightPoints Color.lightRed toDelete
+    highlightPoints Color.lightRed results.edited

@@ -1,4 +1,4 @@
-module OneClickQuickFix exposing (oneClickQuickFix, oneClickQuickFixTrack )
+module OneClickQuickFix exposing (oneClickQuickFix, oneClickQuickFixTrack, undoOneClickQuickFix)
 
 import BezierSplines
 import BoundingBox3d
@@ -9,6 +9,7 @@ import Length
 import Loop
 import LoopedTrack
 import Point3d
+import PostUpdateActions exposing (EditResult)
 import Quantity
 import Straightener
 import Track exposing (Track)
@@ -31,13 +32,13 @@ import TrackPoint exposing (TrackPoint)
 oneClickQuickFixTrack : Track -> Track
 oneClickQuickFixTrack track =
     let
-        ( _, newPoints, _ ) =
+        results =
             oneClickQuickFix track
     in
-    { track | trackPoints = newPoints }
+    { track | trackPoints = results.edited }
 
 
-oneClickQuickFix : Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+oneClickQuickFix : Track -> EditResult
 oneClickQuickFix originalTrack =
     let
         simplifyTrack =
@@ -72,4 +73,17 @@ oneClickQuickFix originalTrack =
                 |> bezierApprox
                 |> Loop.for 3 smoothTrack
     in
-    ( [], finalTrack.trackPoints, [] )
+    { before = []
+    , edited = finalTrack.trackPoints
+    , after = []
+    , earthReferenceCoordinates = finalTrack.earthReferenceCoordinates
+    }
+
+
+undoOneClickQuickFix : Track -> EditResult
+undoOneClickQuickFix track =
+    { before = []
+    , edited = track.trackPoints
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }

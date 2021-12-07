@@ -27,7 +27,7 @@ import Point2d
 import Point3d
 import Polyline2d
 import Polyline3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry, defaultEditResult)
 import Quantity
 import Scene3d exposing (Entity)
 import Scene3d.Material as Material
@@ -327,8 +327,8 @@ buildEditUndoActions options track =
 
         Nothing ->
             { label = "Something amiss"
-            , editFunction = \t -> ( [], t.trackPoints, [] )
-            , undoFunction = \t -> ( [], t.trackPoints, [] )
+            , editFunction = always defaultEditResult
+            , undoFunction = always defaultEditResult
             , newOrange = track.currentNode.index
             , newPurple = Maybe.map .index track.markedNode
             , oldOrange = track.currentNode.index
@@ -499,7 +499,7 @@ Reducing spacing gives a smoother curve by adding more new trackpoints.
 """
 
 
-apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedo track =
     case undoRedo.attachmentPoints of
         Just ( from, to ) ->
@@ -510,16 +510,21 @@ apply undoRedo track =
                 ( replacedTrack, suffix ) =
                     List.Extra.splitAt (to - from - 1) theRest
             in
-            ( prefix
-            , List.map trackPointFromPoint undoRedo.newNodes
-            , suffix
-            )
+            { before = prefix
+            , edited = List.map trackPointFromPoint undoRedo.newNodes
+            , after = suffix
+            , earthReferenceCoordinates = track.earthReferenceCoordinates
+            }
 
         Nothing ->
-            ( [], track.trackPoints, [] )
+            { before = []
+            , edited = track.trackPoints
+            , after = []
+            , earthReferenceCoordinates = track.earthReferenceCoordinates
+            }
 
 
-undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo : UndoRedoInfo -> Track -> EditResult
 undo undoRedo track =
     case undoRedo.attachmentPoints of
         Just ( from, to ) ->
@@ -530,13 +535,18 @@ undo undoRedo track =
                 ( replacedTrack, suffix ) =
                     List.Extra.splitAt (List.length undoRedo.newNodes) theRest
             in
-            ( prefix
-            , List.map trackPointFromPoint undoRedo.oldNodes
-            , suffix
-            )
+            { before = prefix
+            , edited = List.map trackPointFromPoint undoRedo.oldNodes
+            , after = suffix
+            , earthReferenceCoordinates = track.earthReferenceCoordinates
+            }
 
         Nothing ->
-            ( [], track.trackPoints, [] )
+            { before = []
+            , edited = track.trackPoints
+            , after = []
+            , earthReferenceCoordinates = track.earthReferenceCoordinates
+            }
 
 
 getCircle : Model -> TrackPoint -> Circle3d.Circle3d Length.Meters LocalCoords

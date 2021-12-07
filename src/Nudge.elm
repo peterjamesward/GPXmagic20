@@ -13,7 +13,7 @@ import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Maybe.Extra
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (previewLine)
@@ -107,10 +107,10 @@ getPreview3D settings track =
         undoEntry =
             buildActions False settings track
 
-        ( _, nudged, _ ) =
+        results =
             undoEntry.editFunction track
     in
-    previewLine Color.yellow nudged
+    previewLine Color.yellow results.edited
 
 
 getPreviewProfile : DisplayOptions -> NudgeSettings -> Track -> List (Entity LocalCoords)
@@ -119,10 +119,10 @@ getPreviewProfile options settings track =
         undoEntry =
             buildActions False settings track
 
-        ( _, nudged, _ ) =
+        results =
             undoEntry.editFunction track
     in
-    previewProfileLine options Color.yellow nudged
+    previewProfileLine options Color.yellow results.edited
 
 
 getPreviewMap : DisplayOptions -> NudgeSettings -> Track -> E.Value
@@ -138,12 +138,12 @@ getPreviewMap options settings track =
         undoEntry =
             buildActions False settings track
 
-        ( _, nudged, _ ) =
+        results =
             undoEntry.editFunction track
 
         fakeTrack =
             -- Just for the JSON
-            { track | trackPoints = nudged }
+            { track | trackPoints = results.edited }
     in
     E.object
         [ ( "name", E.string "nudge" )
@@ -237,10 +237,7 @@ splitTheTrackAllowingForFade undoRedoInfo track =
     ( prefixLessOne, effectiveRegion, suffixLessOne )
 
 
-editFunction :
-    UndoRedoInfo
-    -> Track
-    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+editFunction : UndoRedoInfo -> Track -> EditResult
 editFunction undoRedoInfo track =
     -- This is when the Nudge actually takes effect.
     -- It can be called to create preview or for the real McCoy.
@@ -295,17 +292,14 @@ editFunction undoRedoInfo track =
             in
             nudgeTrackPoint undoRedoInfo fadeValue point
     in
-    ( prefix
-    , List.map nudge actualNudgeRegionIncludingFades
-    , suffix
-    )
+    { before = prefix
+    , edited = List.map nudge actualNudgeRegionIncludingFades
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undoFunction :
-    UndoRedoInfo
-    -> List TrackPoint
-    -> Track
-    -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undoFunction : UndoRedoInfo -> List TrackPoint -> Track -> EditResult
 undoFunction undoRedoInfo savedPoints track =
     -- Construct the closure for undo-ing.
     -- No need to save the whole track, only the bit we've Nudged.
@@ -316,7 +310,11 @@ undoFunction undoRedoInfo savedPoints track =
         ( middle, suffix ) =
             theRest |> List.Extra.splitAt (undoRedoInfo.endAffected - undoRedoInfo.startAffected)
     in
-    ( prefix, savedPoints, suffix )
+    { before = prefix
+    , edited = savedPoints
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 buildActions : Bool -> NudgeSettings -> Track -> UndoEntry

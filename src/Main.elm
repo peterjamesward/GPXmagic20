@@ -45,7 +45,7 @@ import MyIP
 import Nudge exposing (NudgeSettings, defaultNudgeSettings, viewNudgeTools)
 import OAuthPorts exposing (randomBytes)
 import OAuthTypes as O exposing (..)
-import OneClickQuickFix exposing (oneClickQuickFix)
+import OneClickQuickFix exposing (oneClickQuickFix, undoOneClickQuickFix)
 import Point3d
 import PortController exposing (..)
 import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..), UndoEntry)
@@ -777,7 +777,7 @@ update msg (Model model) =
                         undoEntry =
                             { label = "One-click Quick-Fix"
                             , editFunction = oneClickQuickFix
-                            , undoFunction = always ( [], track.trackPoints, [] )
+                            , undoFunction = always (undoOneClickQuickFix track)
                             , newOrange = 0
                             , newPurple = Nothing
                             , oldOrange = 0
@@ -964,8 +964,11 @@ processPostUpdateAction model action =
     case ( model.track, action ) of
         ( Just track, ActionTrackChanged editType undoEntry ) ->
             let
-                ( prefix, changed, suffix ) =
+                results =
                     undoEntry.editFunction track
+
+                ( prefix, changed, suffix ) =
+                    ( results.before, results.edited, results.after )
 
                 newPoints =
                     (prefix ++ changed ++ suffix) |> prepareTrackPoints
@@ -984,6 +987,7 @@ processPostUpdateAction model action =
 
                                 Nothing ->
                                     Nothing
+                        , earthReferenceCoordinates = results.earthReferenceCoordinates
                     }
 
                 newModel =
@@ -2257,11 +2261,14 @@ undo model =
     case ( model.track, model.undoStack ) of
         ( Just track, entry :: undos ) ->
             let
-                ( prefix, middle, suffix ) =
+                results =
                     entry.undoFunction track
 
+                ( prefix, changed, suffix ) =
+                    ( results.before, results.edited, results.after )
+
                 points =
-                    (prefix ++ middle ++ suffix) |> prepareTrackPoints
+                    (prefix ++ changed ++ suffix) |> prepareTrackPoints
 
                 oldTrack =
                     { track
@@ -2297,8 +2304,11 @@ redo model =
     case ( model.track, model.redoStack ) of
         ( Just track, entry :: redos ) ->
             let
-                ( prefix, middle, suffix ) =
+                results =
                     entry.editFunction track
+
+                ( prefix, middle, suffix ) =
+                    ( results.before, results.edited, results.after )
 
                 points =
                     (prefix ++ middle ++ suffix) |> prepareTrackPoints

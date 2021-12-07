@@ -5,7 +5,7 @@ import Element.Input as Input exposing (button)
 import Length exposing (Meters, meters)
 import List.Extra
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -225,7 +225,7 @@ buildActions settings track =
     }
 
 
-apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedoInfo track =
     let
         _ =
@@ -255,10 +255,14 @@ apply undoRedoInfo track =
                 region
                 undoRedoInfo.revisedAltitudes
     in
-    ( prefix, adjusted, suffix )
+    { before = prefix
+    , edited = adjusted
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo : UndoRedoInfo -> Track -> EditResult
 undo undoRedoInfo track =
     let
         ( prefix, theRest ) =
@@ -285,7 +289,11 @@ undo undoRedoInfo track =
                 region
                 undoRedoInfo.originalAltitudes
     in
-    ( prefix, adjusted, suffix )
+    { before = prefix
+    , edited = adjusted
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 viewGradientLimitPane : Options -> (Msg -> msg) -> Track -> Element msg

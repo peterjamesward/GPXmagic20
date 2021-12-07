@@ -10,7 +10,7 @@ import LineSegment3d exposing (LineSegment3d)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import SketchPlane3d
 import Track exposing (Track)
@@ -177,7 +177,7 @@ buildActions options track =
     }
 
 
-apply : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedoInfo track =
     let
         _ =
@@ -207,10 +207,14 @@ apply undoRedoInfo track =
                 region
                 undoRedoInfo.revisedAltitudes
     in
-    ( prefix, adjusted, suffix )
+    { before = prefix
+    , edited = adjusted
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-undo : UndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+undo : UndoRedoInfo -> Track -> EditResult
 undo undoRedoInfo track =
     let
         ( prefix, theRest ) =
@@ -237,7 +241,11 @@ undo undoRedoInfo track =
                 region
                 undoRedoInfo.originalAltitudes
     in
-    ( prefix, adjusted, suffix )
+    { before = prefix
+    , edited = adjusted
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 viewGradientFixerPane : Options -> (Msg -> msg) -> Track -> Element msg

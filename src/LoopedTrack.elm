@@ -7,7 +7,7 @@ import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity exposing (Quantity)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -241,7 +241,7 @@ saveContextForReverse track =
             }
 
 
-applyReverse : ReverseUndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyReverse : ReverseUndoRedoInfo -> Track -> EditResult
 applyReverse context track =
     let
         ( prefix, theRest ) =
@@ -252,10 +252,14 @@ applyReverse context track =
             theRest
                 |> List.Extra.splitAt (context.endOfReversedSection - context.startOfReversedSection + 1)
     in
-    ( prefix, List.reverse middle, suffix )
+    { before = prefix
+    , edited = List.reverse middle
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-revertReverse : ReverseUndoRedoInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+revertReverse : ReverseUndoRedoInfo -> Track -> EditResult
 revertReverse context track =
     let
         ( startInReverse, endInReverse ) =
@@ -271,7 +275,11 @@ revertReverse context track =
             theRest
                 |> List.Extra.splitAt (endInReverse - startInReverse + 1)
     in
-    ( prefix, List.reverse middle, suffix )
+    { before = prefix
+    , edited = List.reverse middle
+    , after = suffix
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
 type alias ClosingInfo =
@@ -315,7 +323,7 @@ saveContextForClosingLoop track loopiness =
             }
 
 
-applyCloseLoop : ClosingInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyCloseLoop : ClosingInfo -> Track -> EditResult
 applyCloseLoop editInfo track =
     let
         backOneMeter : TrackPoint -> TrackPoint
@@ -354,10 +362,14 @@ applyCloseLoop editInfo track =
                 ( False, _ ) ->
                     track.trackPoints
     in
-    ( [], outcome, [] )
+    { before = []
+    , edited = outcome
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-revertCloseLoop : ClosingInfo -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+revertCloseLoop : ClosingInfo -> Track -> EditResult
 revertCloseLoop editInfo track =
     let
         outcome =
@@ -375,10 +387,14 @@ revertCloseLoop editInfo track =
                 ( False, _ ) ->
                     track.trackPoints
     in
-    ( [], outcome, [] )
+    { before = []
+    , edited = outcome
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-applyChangeLoopStart : Int -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+applyChangeLoopStart : Int -> Track -> EditResult
 applyChangeLoopStart n track =
     let
         ( startToCurrent, currentToEnd ) =
@@ -387,9 +403,13 @@ applyChangeLoopStart n track =
         newStart =
             List.take 1 currentToEnd
     in
-    ( [], currentToEnd ++ startToCurrent ++ newStart, [] )
+    { before = []
+    , edited = currentToEnd ++ startToCurrent ++ newStart
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
 
 
-revertChangeLoopStart : Int -> Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+revertChangeLoopStart : Int -> Track -> EditResult
 revertChangeLoopStart n track =
     applyChangeLoopStart (List.length track.trackPoints - n - 1) track

@@ -27,8 +27,25 @@ type TrackEditType
     | EditNoOp -- only for Undo/Redo use
 
 
+type alias EditResult =
+    { before : List TrackPoint
+    , edited : List TrackPoint
+    , after : List TrackPoint
+    , earthReferenceCoordinates : ( Float, Float, Float )
+    }
+
+
 type alias EditFunction =
-    Track -> ( List TrackPoint, List TrackPoint, List TrackPoint )
+    Track -> EditResult
+
+
+defaultEditResult : EditResult
+defaultEditResult =
+    { before = []
+    , edited = []
+    , after = []
+    , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
+    }
 
 
 type alias UndoEntry =
@@ -51,8 +68,8 @@ type alias UndoEntry =
 defaultUndoEntry : UndoEntry
 defaultUndoEntry =
     { label = "You should not see this text"
-    , editFunction = always ( [], [], [] )
-    , undoFunction = always ( [], [], [] )
+    , editFunction = always defaultEditResult
+    , undoFunction = always defaultEditResult
     , newOrange = 0
     , newPurple = Nothing
     , oldOrange = 0
@@ -63,16 +80,22 @@ defaultUndoEntry =
 editAsTrack : EditFunction -> Track -> Track
 editAsTrack f t =
     let
-        ( a, b, c ) =
+        result =
             f t
     in
-    { t | trackPoints = TrackPoint.prepareTrackPoints <| a ++ b ++ c }
+    { t
+        | trackPoints =
+            TrackPoint.prepareTrackPoints <|
+                result.before
+                    ++ result.edited
+                    ++ result.after
+    }
 
 
 editAsPreview : EditFunction -> Track -> List TrackPoint
 editAsPreview f t =
     let
-        ( a, b, c ) =
+        result =
             f t
     in
-    b
+    result.edited
