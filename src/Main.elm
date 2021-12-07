@@ -478,7 +478,13 @@ update msg (Model model) =
                                     )
 
                                 Nothing ->
-                                    ( Model model, Cmd.none )
+                                    ( Model
+                                        { model
+                                            | lastMapClick = ( lon1, lat1 )
+                                            , mapClickDebounce = True
+                                        }
+                                    , after 100 ClearMapClickDebounce
+                                    )
 
                         _ ->
                             ( Model model, Cmd.none )

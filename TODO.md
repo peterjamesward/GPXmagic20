@@ -11,12 +11,6 @@
 - Not resetting bounding box.
 - Undo recentre not working.
 > likely interaction with lastClick location (should this be cleared?)
-- 
-- Preview is called A LOT when click on map
-> Twice when moving controls, but click on map is bad!
-  Possibly shit load of messages from map to be filtered.
-
-Use spatial index in `searchTrackPointFromLonLat` !!
 
 Avoid infinite loop in 1CQF.
 
