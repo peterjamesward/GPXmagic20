@@ -5,11 +5,7 @@
 
 # Backlog
 
-Centroid is pulling in the start and end?
-
-Undo Bezier (both) is still wrong.
-
-**Map not painting after load**
+**Map not painting after load** (this may be commented atm)
 
 ## Tools to be changed to new Undo/Review/Preview style:
  

@@ -295,19 +295,18 @@ applyCentroidAverage options undoRedo track =
             List.length points
 
         ( prefix, theRest ) =
-            -- These possible one outs.
-            points |> List.Extra.splitAt undoRedo.start
+            -- Always preserve the extremities.
+            points |> List.Extra.splitAt (undoRedo.start + 1)
 
         ( withinRange, suffix ) =
-            -- These possible one outs.
-            theRest |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
+            theRest |> List.Extra.splitAt (trackLength - undoRedo.fromEnd - 1)
 
         ( firstPoint, lastPoint ) =
             -- These are points outside the range so are not affected but are needed
             -- for the filters on each end of the region.
             if undoRedo.isLoop && track.markedNode == Nothing then
                 -- This is used for wrap-around on loop, in which case use second point
-                ( withinRange |> List.Extra.getAt 2 |> Maybe.Extra.toList
+                ( withinRange |> List.Extra.getAt 1 |> Maybe.Extra.toList
                 , withinRange |> List.Extra.getAt (List.length withinRange - 2) |> Maybe.Extra.toList
                 )
 
@@ -321,9 +320,10 @@ applyCentroidAverage options undoRedo track =
                 -- Whole track, wraps around for a loop.
                 List.map3
                     (weightedAverage options)
-                    (lastPoint ++ points)
-                    points
-                    (List.drop 1 points ++ firstPoint)
+                    (lastPoint ++ firstPoint ++ withinRange)
+                    withinRange
+                    (List.drop 1 withinRange ++ lastPoint ++ firstPoint)
+                    |> List.drop 1
 
             else
                 List.map3
