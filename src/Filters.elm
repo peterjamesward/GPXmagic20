@@ -74,7 +74,7 @@ defaultOptions =
 
 type alias UndoRedoInfo =
     { start : Int
-    , end : Int
+    , fromEnd : Int
     , originalPoints : List TrackPoint
     , isLoop : Bool
     , splineFunction : List TrackPoint -> List TrackPoint
@@ -250,9 +250,12 @@ buildCentroidAverageActions observations options track =
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
+        trackLength =
+            List.length track.trackPoints
+
         ( startPoint, endPoint ) =
             if track.markedNode == Nothing then
-                ( 0, List.length track.trackPoints - 1 )
+                ( 0, trackLength - 1 )
 
             else if track.currentNode.index <= marker.index then
                 ( track.currentNode.index, marker.index )
@@ -263,7 +266,7 @@ buildCentroidAverageActions observations options track =
         undoRedoInfo : UndoRedoInfo
         undoRedoInfo =
             { start = startPoint
-            , end = endPoint
+            , fromEnd = trackLength - endPoint
             , originalPoints =
                 track.trackPoints
                     |> List.take (endPoint + 1)
@@ -288,13 +291,16 @@ applyCentroidAverage options undoRedo track =
         points =
             track.trackPoints
 
+        trackLength =
+            List.length points
+
         ( prefix, theRest ) =
             -- These possible one outs.
             points |> List.Extra.splitAt undoRedo.start
 
         ( withinRange, suffix ) =
             -- These possible one outs.
-            theRest |> List.Extra.splitAt (undoRedo.end - undoRedo.start + 1)
+            theRest |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
 
         ( firstPoint, lastPoint ) =
             -- These are points outside the range so are not affected but are needed
@@ -339,13 +345,16 @@ undoCentroidAverage options undoRedo track =
         points =
             track.trackPoints
 
+        trackLength =
+            List.length points
+
         ( prefix, theRest ) =
             -- These possible one outs.
             points |> List.Extra.splitAt undoRedo.start
 
         ( withinRange, suffix ) =
             -- These possible one outs.
-            theRest |> List.Extra.splitAt (undoRedo.end - undoRedo.start + 1)
+            theRest |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
     in
     { before = prefix
     , edited = undoRedo.originalPoints
@@ -382,9 +391,12 @@ buildBezierActions splineFunction observations options track =
         marker =
             Maybe.withDefault track.currentNode track.markedNode
 
+        trackLength =
+            List.length track.trackPoints
+
         ( startPoint, endPoint ) =
             if track.markedNode == Nothing then
-                ( 0, List.length track.trackPoints - 1 )
+                ( 0, trackLength - 1 )
 
             else if track.currentNode.index <= marker.index then
                 ( track.currentNode.index, marker.index )
@@ -395,11 +407,11 @@ buildBezierActions splineFunction observations options track =
         undoRedoInfo : UndoRedoInfo
         undoRedoInfo =
             { start = startPoint
-            , end = endPoint
+            , fromEnd = trackLength - endPoint
             , originalPoints =
                 track.trackPoints
-                    |> List.take (endPoint + 1)
-                    |> List.drop startPoint
+                    |> List.take endPoint
+                    |> List.drop (startPoint - 1)
             , isLoop = observations.loopiness == IsALoop
             , splineFunction =
                 splineFunction
@@ -425,11 +437,13 @@ applyBezierSpline undoRedo track =
         points =
             track.trackPoints
 
+        trackLength = List.length points
+
         ( theRest, suffix ) =
-            points |> List.Extra.splitAt (undoRedo.end + 1)
+            points |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
 
         ( prefix, region ) =
-            theRest |> List.Extra.splitAt undoRedo.start
+            theRest |> List.Extra.splitAt (undoRedo.start - 1)
 
         splinedSection =
             case ( undoRedo.isLoop, track.markedNode ) of
@@ -452,11 +466,13 @@ undoBezierSpline undoRedo track =
         points =
             track.trackPoints
 
+        trackLength = List.length points
+
         ( theRest, suffix ) =
-            points |> List.Extra.splitAt (undoRedo.end + 1)
+            points |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
 
         ( prefix, region ) =
-            theRest |> List.Extra.splitAt undoRedo.start
+            theRest |> List.Extra.splitAt (undoRedo.start - 1)
     in
     { before = prefix
     , edited = undoRedo.originalPoints

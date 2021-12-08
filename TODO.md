@@ -5,14 +5,18 @@
 
 # Backlog
 
+Centroid is pulling in the start and end?
+
+Undo Bezier (both) is still wrong.
+
 **Map not painting after load**
 
 ## Tools to be changed to new Undo/Review/Preview style:
  
 - Fetch Elevation from Map (Lift & Shift)
-- TrackSplitter
+- Track Splitter
 - Graph
-- StravaTools
+- Strava Tools
 - Drag on Map
 - Any remaining commented-out code!
 
