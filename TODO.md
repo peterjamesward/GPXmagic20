@@ -5,8 +5,6 @@
 
 # Backlog
 
-**Stop infinite loop in 1CQF.**
-
 **Map not painting after load**
 
 ## Tools to be changed to new Undo/Review/Preview style:

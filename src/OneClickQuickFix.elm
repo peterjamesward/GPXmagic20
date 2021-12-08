@@ -41,35 +41,38 @@ oneClickQuickFixTrack track =
 oneClickQuickFix : Track -> EditResult
 oneClickQuickFix originalTrack =
     let
-        simplifyTrack =
-            --TODO: Beware infinite loop!!
+        simplifyTrack : Track -> Track
+        simplifyTrack t =
             let
-                isCloselySpaced t =
-                    let
-                        obs =
-                            TrackObservations.deriveProblems t TrackObservations.defaultOptions
-                    in
-                    obs.meanSpacing < 25.0
+                meanSpacing =
+                    TrackObservations.deriveProblems t TrackObservations.defaultOptions
+                        |> .meanSpacing
 
-                removeSomePoints t =
-                    { t | trackPoints = t |> Straightener.simplifyWithDefaults }
+                somePointsRemoved =
+                    Straightener.simplifyWithDefaults t
+
+                pointsRemoved =
+                    List.length somePointsRemoved - List.length t.trackPoints
             in
-            Loop.while (isCloselySpaced) removeSomePoints
+            if meanSpacing < 25.0 && pointsRemoved > 0 then
+                simplifyTrack { t | trackPoints = somePointsRemoved }
 
+            else
+                { t | trackPoints = somePointsRemoved }
+
+        interpolateTrack : Track -> Track
         interpolateTrack track =
             { track | trackPoints = track |> Interpolate.interpolateWithDefaults }
 
+        smoothTrack : Track -> Track
         smoothTrack track =
             { track | trackPoints = track |> Filters.smoothWithDefaults }
 
+        bezierApprox : Track -> Track
         bezierApprox track =
             { track | trackPoints = track |> Filters.bezierWithDefaults }
 
-        finalTrack =
-            { originalTrack
-                | currentNode = List.head originalTrack.trackPoints |> Maybe.withDefault originalTrack.currentNode
-                , markedNode = Nothing
-            }
+        finalTrack = originalTrack
                 |> simplifyTrack
                 |> bezierApprox
                 |> Loop.for 3 smoothTrack
