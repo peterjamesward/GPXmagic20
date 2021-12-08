@@ -14,6 +14,7 @@ import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import SketchPlane3d
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showDecimal2)
 import ViewPureStyles exposing (commonShortHorizontalSliderStyles, prettyButtonStyles)
@@ -75,7 +76,7 @@ update msg settings track =
         SmoothGradient bumpiness ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildActions settings track)
             )
 
@@ -211,6 +212,7 @@ apply undoRedoInfo track =
     , edited = adjusted
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -245,6 +247,7 @@ undo undoRedoInfo track =
     , edited = adjusted
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

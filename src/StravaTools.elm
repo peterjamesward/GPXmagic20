@@ -219,7 +219,7 @@ update msg settings authentication wrap track =
                         , externalSegment = SegmentNone
                       }
                     , PostUpdateActions.ActionTrackChanged
-                        PostUpdateActions.EditPreservesIndex
+                        TrackEditType.EditPreservesIndex
                         { isTrack | trackPoints = pasteStreams isTrack segment streams }
                         "Paste Strava segment"
                     )

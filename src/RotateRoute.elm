@@ -18,6 +18,7 @@ import Quantity
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint, prepareTrackPoints, trackPointFromPoint)
 import Utils exposing (showDecimal0, showDecimal2, showLongMeasure)
 import Vector3d
@@ -84,14 +85,14 @@ update msg settings lastMapClick track =
         RotateAndScale ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildRotateAndScale settings track)
             )
 
         Recentre ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildRecentre settings lastMapClick track)
             )
 
@@ -143,6 +144,7 @@ applyMapElevations elevations track =
     , edited = newPoints
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -187,6 +189,7 @@ recentre ( lon, lat ) track =
     , edited = shiftedTrackPoints
     , after = []
     , earthReferenceCoordinates = ( lon, lat, 0.0 )
+    , graph = track.graph
     }
 
 
@@ -219,6 +222,7 @@ undoRecentre ( lon, lat, alt ) track =
     , edited = shiftedTrackPoints
     , after = []
     , earthReferenceCoordinates = ( lon, lat, alt )
+    , graph = track.graph
     }
 
 
@@ -275,6 +279,7 @@ rotateAndScale settings track =
     , edited = transformedPoints
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

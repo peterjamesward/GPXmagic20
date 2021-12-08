@@ -24,6 +24,7 @@ import Scene3d exposing (Entity)
 import SceneBuilder exposing (previewLine)
 import SceneBuilderProfile exposing (previewProfileLine)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
@@ -183,14 +184,14 @@ update msg settings track =
         SmoothBend ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildSmoothBendActions settings track)
             )
 
         SmoothPoint ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildSmoothPointActions settings track)
             )
 
@@ -211,6 +212,7 @@ applySmoothBend undoRedoInfo track =
     , edited = undoRedoInfo.newBend.nodes
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -228,6 +230,7 @@ undoSmoothBend undoRedoInfo track =
     , edited = undoRedoInfo.oldNodes
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -728,6 +731,7 @@ applySmoothPoints undoRefoInfo track =
     , edited = List.Extra.interweave smoothedNodes fillers |> List.concat
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -778,6 +782,7 @@ undoSmoothPoints undoRedoInfo track =
     , edited = List.Extra.interweave restoredPoints fillers |> List.concat
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -878,7 +883,7 @@ multiplePointSmoothing trackPoints numSegments track =
             }
     in
     PostUpdateActions.ActionTrackChanged
-        PostUpdateActions.EditPreservesIndex
+        TrackEditType.EditPreservesIndex
         { label = "Smooth " ++ (String.fromInt <| List.length trackPoints) ++ " points"
         , editFunction = applySmoothPoints undoRedoInfo
         , undoFunction = undoSmoothPoints undoRedoInfo

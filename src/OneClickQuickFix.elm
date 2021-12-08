@@ -72,7 +72,8 @@ oneClickQuickFix originalTrack =
         bezierApprox track =
             { track | trackPoints = track |> Filters.bezierWithDefaults }
 
-        finalTrack = originalTrack
+        finalTrack =
+            originalTrack
                 |> simplifyTrack
                 |> bezierApprox
                 |> Loop.for 3 smoothTrack
@@ -81,6 +82,7 @@ oneClickQuickFix originalTrack =
     , edited = finalTrack.trackPoints
     , after = []
     , earthReferenceCoordinates = finalTrack.earthReferenceCoordinates
+    , graph = originalTrack.graph
     }
 
 
@@ -90,4 +92,5 @@ undoOneClickQuickFix track =
     , edited = track.trackPoints
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }

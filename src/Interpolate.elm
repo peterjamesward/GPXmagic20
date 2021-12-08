@@ -8,11 +8,12 @@ import Length exposing (inMeters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Point3d
-import PostUpdateActions exposing (EditResult, TrackEditType(..), UndoEntry)
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
 import SceneBuilderProfile exposing (highlightPointsProfile)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
@@ -76,7 +77,7 @@ update msg settings track =
         InsertPoints ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                EditPreservesNodePosition
+                TrackEditType.EditPreservesNodePosition
                 (buildActions settings track)
             )
 
@@ -240,6 +241,7 @@ apply undoRedo track =
     , edited = firstTrackPointOfInterpolatedSection ++ allNewTrackPoints
     , after = subsequentTrackPoints
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -262,6 +264,7 @@ undo undoRedo track =
     , edited = undoRedo.originalPoints
     , after = subsequentTrackPoints
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

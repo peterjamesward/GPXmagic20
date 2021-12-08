@@ -135,7 +135,7 @@ update msg settings observations mTrack msgWrapper =
                     in
                     ( settings
                     , PostUpdateActions.ActionTrackChanged
-                        PostUpdateActions.EditPreservesNodePosition
+                        TrackEditType.EditPreservesNodePosition
                         { label = "Append file"
                         , editFunction = applyAppend undoRedo
                         , undoFunction = undoAppend undoRedo
@@ -363,6 +363,7 @@ applyAppend undoRedo track =
     , edited = combined
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -372,4 +373,5 @@ undoAppend undoRedo track =
     , edited = List.take undoRedo.originalTrackLength track.trackPoints
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }

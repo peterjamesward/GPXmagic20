@@ -1,7 +1,9 @@
 module PostUpdateActions exposing (..)
 
 import GpxSource exposing (GpxSource)
+import Graph exposing (Graph)
 import Track exposing (Track)
+import TrackEditType exposing (TrackEditType)
 import TrackPoint exposing (TrackPoint)
 
 
@@ -21,17 +23,13 @@ type PostUpdateAction trck cmd
     | ActionFetchMapElevations
 
 
-type TrackEditType
-    = EditPreservesIndex
-    | EditPreservesNodePosition
-    | EditNoOp -- only for Undo/Redo use
-
 
 type alias EditResult =
     { before : List TrackPoint
     , edited : List TrackPoint
     , after : List TrackPoint
     , earthReferenceCoordinates : ( Float, Float, Float )
+    , graph : Maybe Graph
     }
 
 
@@ -45,6 +43,7 @@ defaultEditResult =
     , edited = []
     , after = []
     , earthReferenceCoordinates = ( 0.0, 0.0, 0.0 )
+    , graph = Nothing
     }
 
 

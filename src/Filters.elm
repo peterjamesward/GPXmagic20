@@ -11,6 +11,7 @@ import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity
 import TabCommonElements exposing (wholeTrackTextHelper)
 import Track exposing (Track)
+import TrackEditType
 import TrackObservations exposing (TrackObservations)
 import TrackPoint exposing (TrackPoint, temporaryIndices, trackPointFromPoint)
 import Triangle3d exposing (Triangle3d)
@@ -117,21 +118,21 @@ update msg settings observations track =
         FilterWeightedAverage ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildCentroidAverageActions observations settings track)
             )
 
         BezierSplines ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildBezierActions BezierSplines.bezierSplines observations settings track)
             )
 
         BezierApproximation ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildBezierActions BezierSplines.bezierApproximation observations settings track)
             )
 
@@ -336,6 +337,7 @@ applyCentroidAverage options undoRedo track =
     , edited = filteredPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -360,6 +362,7 @@ undoCentroidAverage options undoRedo track =
     , edited = undoRedo.originalPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -437,7 +440,8 @@ applyBezierSpline undoRedo track =
         points =
             track.trackPoints
 
-        trackLength = List.length points
+        trackLength =
+            List.length points
 
         ( theRest, suffix ) =
             points |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
@@ -457,6 +461,7 @@ applyBezierSpline undoRedo track =
     , edited = splinedSection
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -466,7 +471,8 @@ undoBezierSpline undoRedo track =
         points =
             track.trackPoints
 
-        trackLength = List.length points
+        trackLength =
+            List.length points
 
         ( theRest, suffix ) =
             points |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
@@ -478,6 +484,7 @@ undoBezierSpline undoRedo track =
     , edited = undoRedo.originalPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

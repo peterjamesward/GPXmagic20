@@ -9,7 +9,6 @@
 
 ## Tools to be changed to new Undo/Review/Preview style:
 
-- Drag on Map
 - Graph
 - Strava Tools
 - Any remaining commented-out code!

@@ -30,7 +30,7 @@ import Polyline3d
 import Quantity exposing (Quantity, zero)
 import Set exposing (Set)
 import SketchPlane3d
-import TrackEditType exposing (..)
+import TrackEditType exposing (TrackEditType(..))
 import TrackPoint exposing (..)
 import Triangle3d
 import Utils exposing (showDecimal2)

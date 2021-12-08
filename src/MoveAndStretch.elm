@@ -23,6 +23,7 @@ import Svg
 import Svg.Attributes as SA
 import TabCommonElements exposing (markerTextHelper)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showShortMeasure)
 import Vector2d
@@ -230,7 +231,7 @@ update message model wrapper track =
         DraggerApply ->
             ( { model | preview = [] }
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildActions model track)
             )
 
@@ -451,6 +452,7 @@ apply undoRedoInfo track =
     , edited = newPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -477,6 +479,7 @@ undo undoRedoInfo track =
     , edited = newPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

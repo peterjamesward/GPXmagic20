@@ -39,6 +39,7 @@ import Svg
 import Svg.Attributes as SA
 import SweptAngle
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint, trackPointFromPoint)
 import Utils exposing (flatBox, showShortMeasure, useIcon)
 import Vector2d
@@ -270,7 +271,7 @@ update message model wrapper track =
         DraggerApply ->
             ( defaultModel
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
+                TrackEditType.EditPreservesNodePosition
                 (buildEditUndoActions model track)
             )
 
@@ -514,6 +515,7 @@ apply undoRedo track =
             , edited = List.map trackPointFromPoint undoRedo.newNodes
             , after = suffix
             , earthReferenceCoordinates = track.earthReferenceCoordinates
+            , graph = track.graph
             }
 
         Nothing ->
@@ -521,6 +523,7 @@ apply undoRedo track =
             , edited = track.trackPoints
             , after = []
             , earthReferenceCoordinates = track.earthReferenceCoordinates
+            , graph = track.graph
             }
 
 
@@ -539,6 +542,7 @@ undo undoRedo track =
             , edited = List.map trackPointFromPoint undoRedo.oldNodes
             , after = suffix
             , earthReferenceCoordinates = track.earthReferenceCoordinates
+            , graph = track.graph
             }
 
         Nothing ->
@@ -546,6 +550,7 @@ undo undoRedo track =
             , edited = track.trackPoints
             , after = []
             , earthReferenceCoordinates = track.earthReferenceCoordinates
+            , graph = track.graph
             }
 
 

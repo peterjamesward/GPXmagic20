@@ -11,6 +11,7 @@ import Quantity
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showLongMeasure)
 import ViewPureStyles exposing (defaultColumnLayout, prettyButtonStyles)
@@ -96,7 +97,7 @@ update imperial msg track =
     case msg of
         DeleteTrackPoints ->
             PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
+                TrackEditType.EditPreservesNodePosition
                 (buildActions imperial track)
 
 
@@ -174,6 +175,7 @@ apply undoRedo track =
     , edited = []
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -187,6 +189,7 @@ undo undoRedo track =
     , edited = undoRedo.originalPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

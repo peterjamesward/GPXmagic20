@@ -19,6 +19,7 @@ import Scene3d exposing (Entity)
 import SceneBuilder exposing (previewLine)
 import SceneBuilderProfile exposing (previewProfileLine)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showShortMeasure)
 import Vector3d
@@ -296,6 +297,7 @@ editFunction undoRedoInfo track =
     , edited = List.map nudge actualNudgeRegionIncludingFades
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -314,6 +316,7 @@ undoFunction undoRedoInfo savedPoints track =
     , edited = savedPoints
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -527,6 +530,6 @@ update msg imperial settings track =
         NudgeNode _ ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildActions imperial settings track)
             )

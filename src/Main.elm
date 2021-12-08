@@ -47,7 +47,7 @@ import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix, undoOneClickQuickFix)
 import Point3d
 import PortController exposing (..)
-import PostUpdateActions exposing (EditFunction, EditResult, PostUpdateAction(..), TrackEditType(..), UndoEntry)
+import PostUpdateActions exposing (EditFunction, EditResult, PostUpdateAction(..), UndoEntry)
 import Quantity
 import RotateRoute
 import Scene exposing (Scene)
@@ -59,6 +59,7 @@ import SvgPathExtractor
 import Task
 import Time
 import Track exposing (Track, searchTrackPointFromLonLat, summaryData, updateTrackPointLonLat)
+import TrackEditType exposing (TrackEditType)
 import TrackObservations exposing (TrackObservations, deriveProblems)
 import TrackPoint exposing (TrackPoint, applyGhanianTransform, prepareTrackPoints)
 import TrackSplitter
@@ -619,7 +620,7 @@ update msg (Model model) =
                             processPostUpdateAction
                                 model
                                 (PostUpdateActions.ActionTrackChanged
-                                    PostUpdateActions.EditPreservesNodePosition
+                                    TrackEditType.EditPreservesNodePosition
                                     undoEntry
                                 )
                     in
@@ -774,6 +775,7 @@ draggedOnMap json track =
                                     , edited = [ updateTrackPointLonLat ( endLon, endLat ) t tp ]
                                     , after = List.drop (tp.index + 1) t.trackPoints
                                     , earthReferenceCoordinates = track.earthReferenceCoordinates
+                                    , graph = t.graph
                                     }
 
                             undoFunction : EditFunction
@@ -783,6 +785,7 @@ draggedOnMap json track =
                                     , edited = [ tp ]
                                     , after = List.drop (tp.index + 1) t.trackPoints
                                     , earthReferenceCoordinates = track.earthReferenceCoordinates
+                                    , graph = t.graph
                                     }
                         in
                         Just
@@ -850,7 +853,7 @@ processPostUpdateAction model action =
             let
                 polishedModel =
                     model
-                        |> reflectNewTrackViaGraph track EditNoOp
+                        |> reflectNewTrackViaGraph track TrackEditType.EditNoOp
                         |> repeatTrackDerivations
                         |> refreshSceneSearchers
                         |> refreshAccordion
@@ -1114,156 +1117,191 @@ processGraphMessage :
     -> Track
     -> ( ModelRecord, PostUpdateActions.PostUpdateAction trck msg )
 processGraphMessage innerMsg model isTrack =
-    ( model, ActionNoOp )
+    let
+        ( newGraph, action ) =
+            Graph.update innerMsg
+                isTrack.trackPoints
+                isTrack.currentNode
+                isTrack.markedNode
+                isTrack.graph
 
+        newTrack =
+            { isTrack | graph = newGraph }
 
+        undoEntryNewGraph : Maybe Graph -> UndoEntry
+        undoEntryNewGraph g =
+            { label = "Make Graph"
+            , editFunction =
+                \t ->
+                    { before = []
+                    , edited = t.trackPoints
+                    , after = []
+                    , earthReferenceCoordinates = t.earthReferenceCoordinates
+                    , graph = newGraph
+                    }
+            , undoFunction =
+                \t ->
+                    { before = []
+                    , edited = isTrack.trackPoints
+                    , after = []
+                    , earthReferenceCoordinates = t.earthReferenceCoordinates
+                    , graph = isTrack.graph
+                    }
+            , newOrange = isTrack.currentNode.index
+            , newPurple = Maybe.map .index isTrack.markedNode
+            , oldOrange = isTrack.currentNode.index
+            , oldPurple = Maybe.map .index isTrack.markedNode
+            }
 
---let
---    ( newGraph, action ) =
---        Graph.update innerMsg
---            isTrack.trackPoints
---            isTrack.currentNode
---            isTrack.markedNode
---            isTrack.graph
---
---    newTrack =
---        { isTrack | graph = newGraph }
---
---    modelWithUpdatedGraph =
---        { model | track = Just newTrack }
---in
---case action of
---    GraphCreated ->
---        ( model
---        , PostUpdateActions.ActionTrackChanged
---            EditNoOp
---            newTrack
---            "Create Graph"
---        )
---
---    GraphOffsetChange ->
---        ( modelWithUpdatedGraph
---        , PostUpdateActions.ActionNoOp
---        )
---
---    GraphRouteChanged ->
---        -- Note we must not walk the route as that would remove track points
---        -- that we will want to use for alternative routes.
---        -- SO we MUST NOT walk the route until we exit graph mode.
---        -- That implies that setting the offset should also not walk the route.
---        ( modelWithUpdatedGraph
---        , PostUpdateActions.ActionPreview
---        )
---
---    GraphNoAction ->
---        ( model, ActionNoOp )
---
---    GraphRemoved ->
---        -- Now we can walk the route safely, applying offset.
---        let
---            trackFromGraph =
---                { isTrack
---                    | trackPoints =
---                        Maybe.map Graph.publishUserRoute newGraph
---                            |> Maybe.withDefault []
---                    , graph = Nothing
---                }
---
---            modelFromGraph =
---                { model | track = Just trackFromGraph }
---        in
---        ( model
---        , PostUpdateActions.ActionTrackChanged
---            EditNoOp
---            trackFromGraph
---            "Leave Graph mode"
---        )
---
---    GraphShowTraversal ->
---        ( modelWithUpdatedGraph
---        , PostUpdateActions.ActionPreview
---        )
+        undoEntryWalkGraph : Maybe Graph -> UndoEntry
+        undoEntryWalkGraph g =
+            { label = "Apply Graph"
+            , editFunction =
+                \t ->
+                    case g of
+                        Just graph ->
+                            { before = []
+                            , edited = Graph.publishUserRoute graph
+                            , after = []
+                            , earthReferenceCoordinates = t.earthReferenceCoordinates
+                            , graph = Nothing
+                            }
+
+                        Nothing ->
+                            { before = []
+                            , edited = isTrack.trackPoints
+                            , after = []
+                            , earthReferenceCoordinates = t.earthReferenceCoordinates
+                            , graph = Nothing
+                            }
+            , undoFunction =
+                \t ->
+                    { before = []
+                    , edited = isTrack.trackPoints
+                    , after = []
+                    , earthReferenceCoordinates = t.earthReferenceCoordinates
+                    , graph = isTrack.graph
+                    }
+            , newOrange = isTrack.currentNode.index
+            , newPurple = Maybe.map .index isTrack.markedNode
+            , oldOrange = isTrack.currentNode.index
+            , oldPurple = Maybe.map .index isTrack.markedNode
+            }
+    in
+    case action of
+        GraphCreated ->
+            ( model
+            , PostUpdateActions.ActionTrackChanged
+                TrackEditType.EditNoOp
+                (undoEntryNewGraph newGraph)
+            )
+
+        GraphOffsetChange ->
+            ( model
+            , PostUpdateActions.ActionPreview
+            )
+
+        GraphRouteChanged ->
+            -- Note we must not walk the route as that would remove track points
+            -- that we will want to use for alternative routes.
+            -- SO we MUST NOT walk the route until we exit graph mode.
+            -- That implies that setting the offset should also not walk the route.
+            ( { model | track = Just newTrack }
+            , PostUpdateActions.ActionNoOp
+            )
+
+        GraphNoAction ->
+            ( model, ActionNoOp )
+
+        GraphRemoved ->
+            -- Now we can walk the route safely, applying offset.
+            ( model
+            , PostUpdateActions.ActionTrackChanged
+                TrackEditType.EditNoOp
+                (undoEntryWalkGraph newGraph)
+            )
+
+        GraphShowTraversal ->
+            ( { model | track = Just newTrack }
+            , PostUpdateActions.ActionPreview
+            )
 
 
 reflectNewTrackViaGraph : Track -> TrackEditType -> ModelRecord -> ModelRecord
 reflectNewTrackViaGraph newTrack editType model =
-    model
+    -- We need this in case we have a Graph in effect, and the edits need to be
+    -- reflected in the graph and the final new route dervied from the graph again.
+    -- If there's no graph, it's basically a noop.
+    case model.track of
+        Just oldTrack ->
+            let
+                orange =
+                    oldTrack.currentNode
 
+                purple =
+                    Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
 
+                editRegion =
+                    ( min orange.index purple.index
+                    , max orange.index purple.index
+                    )
 
--- We need this in case we have a Graph in effect, and the edits need to be
--- reflected in the graph and the final new route dervied from the graph again.
--- If there's no graph, it's basically a noop.
---case model.track of
---    Just oldTrack ->
---        let
---            orange =
---                oldTrack.currentNode
---
---            purple =
---                Maybe.withDefault oldTrack.currentNode oldTrack.markedNode
---
---            editRegion =
---                ( min orange.index purple.index
---                , max orange.index purple.index
---                )
---
---            changeInLength =
---                List.length newTrack.trackPoints - List.length oldTrack.trackPoints
---
---            newOrange =
---                Maybe.withDefault orange <|
---                    if orange.index <= purple.index then
---                        List.Extra.getAt orange.index newTrack.trackPoints
---
---                    else
---                        List.Extra.getAt (orange.index + changeInLength) newTrack.trackPoints
---
---            newPurple =
---                case oldTrack.markedNode of
---                    Just mark ->
---                        if mark.index <= orange.index then
---                            List.Extra.getAt mark.index newTrack.trackPoints
---
---                        else
---                            List.Extra.getAt (mark.index + changeInLength) newTrack.trackPoints
---
---                    Nothing ->
---                        Nothing
---
---            newGraph =
---                Graph.updateWithNewTrack
---                    newTrack.graph
---                    oldTrack.trackPoints
---                    -- Pre-edit baseline points.
---                    editRegion
---                    -- Where the markers were.
---                    newTrack.trackPoints
---                    -- Post-edit track points.
---                    editType
---
---            newPointsFromGraph =
---                Maybe.map Graph.walkTheRoute newGraph
---                    |> Maybe.withDefault newTrack.trackPoints
---
---            trackWithNewRoute =
---                case newTrack.graph of
---                    Just graph ->
---                        { newTrack
---                            | trackPoints = newPointsFromGraph
---                            , currentNode = newOrange
---                            , markedNode = newPurple
---                            , graph = newGraph
---                        }
---
---                    Nothing ->
---                        newTrack
---        in
---        { model | track = Just trackWithNewRoute }
---            |> repeatTrackDerivations
---
---    Nothing ->
---        model
+                changeInLength =
+                    List.length newTrack.trackPoints - List.length oldTrack.trackPoints
+
+                newOrange =
+                    Maybe.withDefault orange <|
+                        if orange.index <= purple.index then
+                            List.Extra.getAt orange.index newTrack.trackPoints
+
+                        else
+                            List.Extra.getAt (orange.index + changeInLength) newTrack.trackPoints
+
+                newPurple =
+                    case oldTrack.markedNode of
+                        Just mark ->
+                            if mark.index <= orange.index then
+                                List.Extra.getAt mark.index newTrack.trackPoints
+
+                            else
+                                List.Extra.getAt (mark.index + changeInLength) newTrack.trackPoints
+
+                        Nothing ->
+                            Nothing
+
+                newGraph =
+                    Graph.updateWithNewTrack
+                        newTrack.graph
+                        oldTrack.trackPoints
+                        -- Pre-edit baseline points.
+                        editRegion
+                        -- Where the markers were.
+                        newTrack.trackPoints
+                        -- Post-edit track points.
+                        editType
+
+                newPointsFromGraph =
+                    Maybe.map Graph.walkTheRoute newGraph
+                        |> Maybe.withDefault newTrack.trackPoints
+
+                trackWithNewRoute =
+                    case newTrack.graph of
+                        Just graph ->
+                            { newTrack
+                                | trackPoints = newPointsFromGraph
+                                , currentNode = newOrange
+                                , markedNode = newPurple
+                                , graph = newGraph
+                            }
+
+                        Nothing ->
+                            newTrack
+            in
+            { model | track = Just trackWithNewRoute }
+                |> repeatTrackDerivations
+
+        Nothing ->
+            model
 
 
 repeatTrackDerivations : ModelRecord -> ModelRecord
@@ -1973,19 +2011,22 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
-
-    --, { label = Graph.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        model.track
-    --            |> Maybe.map .graph
-    --            |> Maybe.andThen
-    --                (Just << viewGraphControls GraphMessage)
-    --            |> Maybe.withDefault none
-    --  , info = Graph.info
-    --  , video = Just "https://youtu.be/KSuR8PcAZYc"
-    --  , isFavourite = False
-    --  }
+    , { label = Graph.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                m.track
+                    |> Maybe.map .graph
+                    |> Maybe.andThen
+                        (Just << viewGraphControls GraphMessage)
+                    |> Maybe.withDefault none
+      , info = Graph.info
+      , video = Just "https://youtu.be/KSuR8PcAZYc"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
     , { label = TrackObservations.toolLabel
       , state = Contracted
       , content =
@@ -2398,7 +2439,7 @@ processPortMessage model json =
                 Just undoEntry ->
                     processPostUpdateAction
                         model
-                        (PostUpdateActions.ActionTrackChanged EditPreservesIndex undoEntry)
+                        (PostUpdateActions.ActionTrackChanged TrackEditType.EditPreservesIndex undoEntry)
 
                 Nothing ->
                     ( Model model, Cmd.none )
@@ -2408,7 +2449,7 @@ processPortMessage model json =
                 Ok mapElevations ->
                     processPostUpdateAction model
                         (PostUpdateActions.ActionTrackChanged
-                            EditPreservesIndex
+                            TrackEditType.EditPreservesIndex
                             (RotateRoute.buildMapElevations mapElevations track)
                         )
 

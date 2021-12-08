@@ -12,6 +12,7 @@ import PostUpdateActions exposing (EditResult, UndoEntry)
 import Scene3d exposing (Entity)
 import SceneBuilder exposing (highlightPoints)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0)
 import ViewPureStyles exposing (prettyButtonStyles)
@@ -78,14 +79,14 @@ update msg settings track =
         StraightenStraight ->
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildStraightenActions settings track)
             )
 
         SimplifyTrack ->
             ( { settings | metricFilteredPoints = [] }
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesIndex
+                TrackEditType.EditPreservesIndex
                 (buildSimplifyActions settings track)
             )
 
@@ -242,6 +243,7 @@ applyStraighten undoRedoInfo track =
     , edited = adjusted
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -267,6 +269,7 @@ undoStraighten undoRedoInfo track =
     , edited = adjusted
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -373,6 +376,7 @@ applySimplify undoRedoInfo track =
     , edited = List.reverse retained
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -444,6 +448,7 @@ undoSimplify undoRedoInfo track =
     , edited = reconstruction
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 

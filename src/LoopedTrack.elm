@@ -10,6 +10,7 @@ import Point3d
 import PostUpdateActions exposing (EditResult, UndoEntry)
 import Quantity exposing (Quantity)
 import Track exposing (Track)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Utils exposing (showDecimal0, showShortMeasure)
 import Vector3d
@@ -158,7 +159,7 @@ update msg settings track =
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
+                TrackEditType.EditPreservesNodePosition
                 actionEntry
             )
 
@@ -180,7 +181,7 @@ update msg settings track =
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
+                TrackEditType.EditPreservesNodePosition
                 actionEntry
             )
 
@@ -202,7 +203,7 @@ update msg settings track =
             in
             ( settings
             , PostUpdateActions.ActionTrackChanged
-                PostUpdateActions.EditPreservesNodePosition
+                TrackEditType.EditPreservesNodePosition
                 actionEntry
             )
 
@@ -256,6 +257,7 @@ applyReverse context track =
     , edited = List.reverse middle
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -279,6 +281,7 @@ revertReverse context track =
     , edited = List.reverse middle
     , after = suffix
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -366,6 +369,7 @@ applyCloseLoop editInfo track =
     , edited = outcome
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -391,6 +395,7 @@ revertCloseLoop editInfo track =
     , edited = outcome
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
@@ -407,6 +412,7 @@ applyChangeLoopStart n track =
     , edited = currentToEnd ++ startToCurrent ++ newStart
     , after = []
     , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
     }
 
 
