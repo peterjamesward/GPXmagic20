@@ -106,7 +106,23 @@ update msg settings lastMapClick track =
             )
 
 
-applyMapElevations : List Float -> Track -> Track
+buildMapElevations : List Float -> Track -> UndoEntry
+buildMapElevations elevations track =
+    let
+        altitude tp =
+            tp |> .xyz |> Point3d.zCoordinate |> Length.inMeters
+    in
+    { label = "Elevations from map"
+    , editFunction = applyMapElevations elevations
+    , undoFunction = applyMapElevations (List.map altitude track.trackPoints)
+    , newOrange = track.currentNode.index
+    , newPurple = Maybe.map .index track.markedNode
+    , oldOrange = track.currentNode.index
+    , oldPurple = Maybe.map .index track.markedNode
+    }
+
+
+applyMapElevations : List Float -> Track -> EditResult
 applyMapElevations elevations track =
     let
         useNewElevation tp ele =
@@ -123,11 +139,10 @@ applyMapElevations elevations track =
                 elevations
                 |> TrackPoint.prepareTrackPoints
     in
-    { track
-        | trackPoints = newPoints
-        , box =
-            BoundingBox3d.hullOfN .xyz newPoints
-                |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
+    { before = []
+    , edited = newPoints
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
     }
 
 

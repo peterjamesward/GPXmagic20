@@ -434,200 +434,7 @@ update msg (Model model) =
             )
 
         PortMessage json ->
-            -- So we don't need to keep going to the PortController.
-            -- These will be Model-domain messages.
-            let
-                jsonMsg =
-                    D.decodeValue msgDecoder json
-
-                ( lat, lon ) =
-                    ( D.decodeValue (D.field "lat" D.float) json
-                    , D.decodeValue (D.field "lon" D.float) json
-                    )
-
-                elevations =
-                    D.decodeValue (D.field "elevations" (D.list D.float)) json
-
-                longitudes =
-                    D.decodeValue (D.field "longitudes" (D.list D.float)) json
-
-                latitudes =
-                    D.decodeValue (D.field "latitudes" (D.list D.float)) json
-            in
-            case ( jsonMsg, model.track ) of
-                ( Ok "click", Just track ) ->
-                    --{ 'msg' : 'click'
-                    --, 'lat' : e.lat()
-                    --, 'lon' : e.lon()
-                    --} );
-                    case ( model.mapClickDebounce, lat, lon ) of
-                        ( False, Ok lat1, Ok lon1 ) ->
-                            case searchTrackPointFromLonLat ( lon1, lat1 ) track of
-                                Just point ->
-                                    let
-                                        ( outcome, cmds ) =
-                                            processPostUpdateAction
-                                                { model
-                                                    | lastMapClick = ( lon1, lat1 )
-                                                    , mapClickDebounce = True
-                                                }
-                                                (PostUpdateActions.ActionFocusMove point)
-                                    in
-                                    ( outcome
-                                    , Cmd.batch [ cmds, after 100 ClearMapClickDebounce ]
-                                    )
-
-                                Nothing ->
-                                    ( Model
-                                        { model
-                                            | lastMapClick = ( lon1, lat1 )
-                                            , mapClickDebounce = True
-                                        }
-                                    , after 100 ClearMapClickDebounce
-                                    )
-
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                --( Ok "drag", Just track ) ->
-                --    case draggedOnMap json track of
-                --        Just newTrack ->
-                --            processPostUpdateAction
-                --                model
-                --                (PostUpdateActions.ActionTrackChanged
-                --                    EditPreservesIndex
-                --                    newTrack
-                --                    "Dragged on map"
-                --                )
-                --Nothing ->
-                --    ( model, Cmd.none )
-                --( Ok "elevations", Just track ) ->
-                --    case elevations of
-                --        Ok mapElevations ->
-                --            let
-                --                newTrack =
-                --                    RotateRoute.applyMapElevations mapElevations track
-                --
-                --                newModel =
-                --                    -- TODO: Avoid clunk!
-                --                    model
-                --                        |> addToUndoStack "Use map elevations"
-                --                        |> (\m ->
-                --                                { m
-                --                                    | track = Just newTrack
-                --                                    , observations = deriveProblems newTrack m.problemOptions
-                --                                }
-                --                           )
-                --                        |> repeatTrackDerivations
-                --                        |> renderTrackSceneElements
-                --            in
-                --            ( newModel
-                --            , Cmd.none
-                --            )
-                --_ ->
-                --( model, Cmd.none )
-                ( Ok "sketch", _ ) ->
-                    case ( longitudes, latitudes, elevations ) of
-                        ( Ok mapLongitudes, Ok mapLatitudes, Ok mapElevations ) ->
-                            let
-                                newTrack =
-                                    List.map3
-                                        (\x y z -> ( x, y, z ))
-                                        mapLongitudes
-                                        mapLatitudes
-                                        mapElevations
-                                        |> Track.trackFromMap
-                            in
-                            case newTrack of
-                                Just track ->
-                                    applyTrack (Model model) track
-
-                                Nothing ->
-                                    ( Model model
-                                    , Cmd.none
-                                    )
-
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                ( Ok "no node", _ ) ->
-                    ( Model model
-                    , Cmd.none
-                    )
-
-                ( Ok "storage.got", _ ) ->
-                    --TODO: Please factor this out of here.
-                    let
-                        key =
-                            D.decodeValue (D.field "key" D.string) json
-
-                        value =
-                            D.decodeValue (D.field "value" D.value) json
-                    in
-                    case ( key, value ) of
-                        ( Ok "accordion", Ok saved ) ->
-                            let
-                                ( restoreAccordionState, restoreAccordion ) =
-                                    Accordion.recoverStoredState
-                                        saved
-                                        model.toolsAccordion
-                            in
-                            ( Model
-                                { model
-                                    | accordionState = restoreAccordionState
-                                    , toolsAccordion = restoreAccordion
-                                }
-                            , Cmd.none
-                            )
-
-                        ( Ok "splitter", Ok splitter ) ->
-                            let
-                                p =
-                                    D.decodeValue D.int splitter
-                            in
-                            case p of
-                                Ok pixels ->
-                                    ( Model
-                                        { model
-                                            | splitInPixels = pixels
-                                            , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
-                                        }
-                                    , Cmd.none
-                                    )
-
-                                _ ->
-                                    ( Model model, Cmd.none )
-
-                        ( Ok "panes", Ok saved ) ->
-                            let
-                                newPanes =
-                                    ViewPane.restorePaneState saved model.viewPanes
-
-                                newModel =
-                                    { model
-                                        | viewPanes =
-                                            ViewPane.mapOverPanes
-                                                (setViewPaneSize model.splitInPixels)
-                                                newPanes
-                                    }
-                            in
-                            processPostUpdateAction newModel ActionRerender
-
-                        ( Ok "display", Ok saved ) ->
-                            ( Model { model | displayOptions = DisplayOptions.decodeOptions saved }
-                            , Cmd.none
-                            )
-
-                        _ ->
-                            ( Model model, Cmd.none )
-
-                ( Ok "storage.keys", _ ) ->
-                    ( Model model
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( Model model, Cmd.none )
+            processPortMessage model json
 
         DisplayOptionsMessage dispMsg ->
             let
@@ -2495,3 +2302,188 @@ outputGPX model =
                     "NOFILENAME"
     in
     Download.string outputFilename "text/gpx" gpxString
+
+
+processPortMessage : ModelRecord -> Encode.Value -> ( Model, Cmd Msg )
+processPortMessage model json =
+    -- So we don't need to keep going to the PortController.
+    -- These will be Model-domain messages.
+    let
+        jsonMsg =
+            D.decodeValue msgDecoder json
+
+        ( lat, lon ) =
+            ( D.decodeValue (D.field "lat" D.float) json
+            , D.decodeValue (D.field "lon" D.float) json
+            )
+
+        elevations =
+            D.decodeValue (D.field "elevations" (D.list D.float)) json
+
+        longitudes =
+            D.decodeValue (D.field "longitudes" (D.list D.float)) json
+
+        latitudes =
+            D.decodeValue (D.field "latitudes" (D.list D.float)) json
+    in
+    case ( jsonMsg, model.track ) of
+        ( Ok "click", Just track ) ->
+            --{ 'msg' : 'click'
+            --, 'lat' : e.lat()
+            --, 'lon' : e.lon()
+            --} );
+            case ( model.mapClickDebounce, lat, lon ) of
+                ( False, Ok lat1, Ok lon1 ) ->
+                    case searchTrackPointFromLonLat ( lon1, lat1 ) track of
+                        Just point ->
+                            let
+                                ( outcome, cmds ) =
+                                    processPostUpdateAction
+                                        { model
+                                            | lastMapClick = ( lon1, lat1 )
+                                            , mapClickDebounce = True
+                                        }
+                                        (PostUpdateActions.ActionFocusMove point)
+                            in
+                            ( outcome
+                            , Cmd.batch [ cmds, after 100 ClearMapClickDebounce ]
+                            )
+
+                        Nothing ->
+                            ( Model
+                                { model
+                                    | lastMapClick = ( lon1, lat1 )
+                                    , mapClickDebounce = True
+                                }
+                            , after 100 ClearMapClickDebounce
+                            )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        --( Ok "drag", Just track ) ->
+        --    case draggedOnMap json track of
+        --        Just newTrack ->
+        --            processPostUpdateAction
+        --                model
+        --                (PostUpdateActions.ActionTrackChanged
+        --                    EditPreservesIndex
+        --                    newTrack
+        --                    "Dragged on map"
+        --                )
+        --Nothing ->
+        --    ( model, Cmd.none )
+        ( Ok "elevations", Just track ) ->
+            case elevations of
+                Ok mapElevations ->
+                    processPostUpdateAction model
+                        (PostUpdateActions.ActionTrackChanged
+                            EditPreservesIndex
+                            (RotateRoute.buildMapElevations mapElevations track)
+                        )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "sketch", _ ) ->
+            case ( longitudes, latitudes, elevations ) of
+                ( Ok mapLongitudes, Ok mapLatitudes, Ok mapElevations ) ->
+                    let
+                        newTrack =
+                            List.map3
+                                (\x y z -> ( x, y, z ))
+                                mapLongitudes
+                                mapLatitudes
+                                mapElevations
+                                |> Track.trackFromMap
+                    in
+                    case newTrack of
+                        Just track ->
+                            applyTrack (Model model) track
+
+                        Nothing ->
+                            ( Model model
+                            , Cmd.none
+                            )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "no node", _ ) ->
+            ( Model model
+            , Cmd.none
+            )
+
+        ( Ok "storage.got", _ ) ->
+            --TODO: Please factor this out of here.
+            let
+                key =
+                    D.decodeValue (D.field "key" D.string) json
+
+                value =
+                    D.decodeValue (D.field "value" D.value) json
+            in
+            case ( key, value ) of
+                ( Ok "accordion", Ok saved ) ->
+                    let
+                        ( restoreAccordionState, restoreAccordion ) =
+                            Accordion.recoverStoredState
+                                saved
+                                model.toolsAccordion
+                    in
+                    ( Model
+                        { model
+                            | accordionState = restoreAccordionState
+                            , toolsAccordion = restoreAccordion
+                        }
+                    , Cmd.none
+                    )
+
+                ( Ok "splitter", Ok splitter ) ->
+                    let
+                        p =
+                            D.decodeValue D.int splitter
+                    in
+                    case p of
+                        Ok pixels ->
+                            ( Model
+                                { model
+                                    | splitInPixels = pixels
+                                    , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
+                                }
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( Model model, Cmd.none )
+
+                ( Ok "panes", Ok saved ) ->
+                    let
+                        newPanes =
+                            ViewPane.restorePaneState saved model.viewPanes
+
+                        newModel =
+                            { model
+                                | viewPanes =
+                                    ViewPane.mapOverPanes
+                                        (setViewPaneSize model.splitInPixels)
+                                        newPanes
+                            }
+                    in
+                    processPostUpdateAction newModel ActionRerender
+
+                ( Ok "display", Ok saved ) ->
+                    ( Model { model | displayOptions = DisplayOptions.decodeOptions saved }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "storage.keys", _ ) ->
+            ( Model model
+            , Cmd.none
+            )
+
+        _ ->
+            ( Model model, Cmd.none )

@@ -9,7 +9,6 @@
 
 ## Tools to be changed to new Undo/Review/Preview style:
  
-- Fetch Elevation from Map (Lift & Shift)
 - Track Splitter
 - Graph
 - Strava Tools
