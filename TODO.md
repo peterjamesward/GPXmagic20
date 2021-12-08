@@ -7,16 +7,16 @@
 
 **Stop infinite loop in 1CQF.**
 
-When tab closed, remove any map preview. 
-> There is no mechanism for this, it's an omission not a bug.
+**Map not painting after load**
 
 ## Tools to be changed to new Undo/Review/Preview style:
  
-- Fetch Elevation from Map
+- Fetch Elevation from Map (Lift & Shift)
 - TrackSplitter
 - Graph
 - StravaTools
 - Drag on Map
+- Any remaining commented-out code!
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 

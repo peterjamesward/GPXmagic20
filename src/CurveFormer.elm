@@ -1244,9 +1244,13 @@ getPreviewMap _ model track =
        }
     -}
     let
+        refreshModel =
+            -- Becasue tab may be opened or closed.
+            seekNewCurve track model
+
         fakeTrack =
             -- Just for the JSON
-            { track | trackPoints = List.map trackPointFromPoint model.newTrackPoints }
+            { track | trackPoints = List.map trackPointFromPoint refreshModel.newTrackPoints }
     in
     E.object
         [ ( "name", E.string "curve" )

@@ -492,3 +492,16 @@ openTabs tabs =
                     _ ->
                         False
             )
+
+closedTabs : List (AccordionEntry model msg) -> List (AccordionEntry model msg)
+closedTabs tabs =
+    tabs
+        |> List.filter
+            (\tab ->
+                case tab.state of
+                    Expanded _ ->
+                        False
+
+                    _ ->
+                        True
+            )

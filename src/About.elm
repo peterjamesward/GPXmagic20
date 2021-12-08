@@ -14,9 +14,9 @@ aboutText ipInfo =
 
 ## 2.8.0 update 2021-12-02
 
-- Internal improvements to reduce memory usage.
+- Internal improvements to reduce memory usage. May improve speed in some cases, not always.
 
-- Previews in 3D for Interpolate and Simplify.
+- Previews in 3D for Interpolate, Delete, Lift & Shift and Simplify.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

@@ -1135,18 +1135,43 @@ getMapPreviews model =
             []
 
         Just track ->
-            model.toolsAccordion
-                |> Accordion.openTabs
-                |> List.map
-                    (\tab ->
-                        case tab.previewMap of
-                            Just fn ->
-                                Just (fn track)
+            let
+                emptyTrack =
+                    { track
+                        | trackPoints = [ track.currentNode ]
+                        , markedNode = Nothing
+                    }
 
-                            Nothing ->
-                                Nothing
-                    )
-                |> List.filterMap identity
+                previews =
+                    model.toolsAccordion
+                        |> Accordion.openTabs
+                        |> List.map
+                            (\tab ->
+                                case tab.previewMap of
+                                    Just fn ->
+                                        Just (fn track)
+
+                                    Nothing ->
+                                        Nothing
+                            )
+                        |> List.filterMap identity
+
+                noPreviews =
+                    -- !!
+                    model.toolsAccordion
+                        |> Accordion.closedTabs
+                        |> List.map
+                            (\tab ->
+                                case tab.previewMap of
+                                    Just fn ->
+                                        Just (fn emptyTrack)
+
+                                    Nothing ->
+                                        Nothing
+                            )
+                        |> List.filterMap identity
+            in
+            previews ++ noPreviews
 
 
 processGpxLoaded : String -> Model -> ( Model, Cmd Msg )

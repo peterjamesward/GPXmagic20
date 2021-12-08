@@ -147,7 +147,7 @@ getPreviewMap options settings track =
     in
     E.object
         [ ( "name", E.string "nudge" )
-        , ( "colour", E.string "#FFFFFF" )
+        , ( "colour", E.string "#FFA500" )
         , ( "points", Track.trackToJSON fakeTrack )
         ]
 
