@@ -11,7 +11,7 @@ import Length
 import List.Extra
 import OneClickQuickFix exposing (oneClickQuickFix)
 import Point3d
-import PostUpdateActions exposing (PostUpdateAction(..))
+import PostUpdateActions exposing (EditResult, PostUpdateAction(..))
 import Quantity
 import Task
 import Track exposing (Track)
@@ -69,11 +69,18 @@ defaultOptions =
     }
 
 
+type alias UndoRedoInfo =
+    -- For appending track, really just need to know how long the track was.
+    { originalTrackLength : Int
+    , addendum : Track
+    }
+
+
 update :
     Msg
     -> Options
     -> TrackObservations.TrackObservations
-    -> Maybe Track
+    -> Track
     -> (Msg -> msg)
     -> ( Options, PostUpdateActions.PostUpdateAction trck (Cmd msg) )
 update msg settings observations mTrack msgWrapper =
@@ -117,69 +124,46 @@ update msg settings observations mTrack msgWrapper =
             let
                 track2 =
                     Track.trackFromGpx content
-
-                newTrack =
-                    case ( mTrack, track2 ) of
-                        ( Just originalTrack, Just extension ) ->
-                            let
-                                -- No need to be efficient.
-                                originalInGPS =
-                                    Track.removeGhanianTransform originalTrack
-
-                                extensionInGPS =
-                                    Track.removeGhanianTransform extension
-
-                                combinedInGPS =
-                                    originalInGPS ++ extensionInGPS
-
-                                combined =
-                                    TrackPoint.applyGhanianTransform
-                                        originalTrack.earthReferenceCoordinates
-                                        combinedInGPS
-                            in
-                            Just
-                                { originalTrack
-                                    | trackPoints = combined |> TrackPoint.prepareTrackPoints
-                                    , box =
-                                        BoundingBox3d.hullOfN .xyz combined
-                                            |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
-                                }
-
-                        _ ->
-                            Nothing
             in
-            case newTrack of
+            case track2 of
                 Just isNewTrack ->
+                    let
+                        undoRedo =
+                            { originalTrackLength = List.length mTrack.trackPoints
+                            , addendum = isNewTrack
+                            }
+                    in
                     ( settings
-                    ,             PostUpdateActions.ActionNoOp
---ActionTrackChanged EditPreservesIndex isNewTrack "Append file"
+                    , PostUpdateActions.ActionTrackChanged
+                        PostUpdateActions.EditPreservesNodePosition
+                        { label = "Append file"
+                        , editFunction = applyAppend undoRedo
+                        , undoFunction = undoAppend undoRedo
+                        , newOrange = mTrack.currentNode.index
+                        , newPurple = Maybe.map .index mTrack.markedNode
+                        , oldOrange = mTrack.currentNode.index
+                        , oldPurple = Maybe.map .index mTrack.markedNode
+                        }
                     )
 
                 Nothing ->
                     ( settings, ActionNoOp )
 
         SplitTrack ->
-            case mTrack of
-                Just track ->
-                    ( settings
-                    , ActionCommand <|
-                        Delay.after 100 <|
-                            msgWrapper <|
-                                WriteSection <|
-                                    writeSections
-                                        track
-                                        (Length.meters observations.trackLength)
-                                        settings
-                    )
-
-                Nothing ->
-                    ( settings
-                    , ActionNoOp
-                    )
+            ( settings
+            , ActionCommand <|
+                Delay.after 100 <|
+                    msgWrapper <|
+                        WriteSection <|
+                            writeSections
+                                mTrack
+                                (Length.meters observations.trackLength)
+                                settings
+            )
 
         WriteSection sections ->
-            case ( mTrack, sections ) of
-                ( Just track, ( index, start, end ) :: rest ) ->
+            case sections of
+                ( index, start, end ) :: rest ->
                     let
                         ( metricStart, metricEnd ) =
                             if settings.addBuffers then
@@ -193,7 +177,7 @@ update msg settings observations mTrack msgWrapper =
                                 )
 
                         trackName =
-                            track.trackName |> Maybe.withDefault "track"
+                            mTrack.trackName |> Maybe.withDefault "track"
 
                         filename =
                             trackName
@@ -202,9 +186,9 @@ update msg settings observations mTrack msgWrapper =
                                 ++ ".gpx"
 
                         trackExtract =
-                            { track
+                            { mTrack
                                 | trackPoints =
-                                    track.trackPoints
+                                    mTrack.trackPoints
                                         |> List.Extra.dropWhile
                                             (.distanceFromStart >> Quantity.lessThan metricStart)
                                         |> List.Extra.takeWhile
@@ -355,3 +339,37 @@ view imperial options observations wrapper track =
             [ text "Files will be written to Downloads folder at two second intervals." ]
         , appendFileButton
         ]
+
+
+applyAppend : UndoRedoInfo -> Track -> EditResult
+applyAppend undoRedo track =
+    let
+        -- No need to be efficient.
+        originalInGPS =
+            Track.removeGhanianTransform track
+
+        extensionInGPS =
+            Track.removeGhanianTransform undoRedo.addendum
+
+        combinedInGPS =
+            originalInGPS ++ extensionInGPS
+
+        combined =
+            TrackPoint.applyGhanianTransform
+                track.earthReferenceCoordinates
+                combinedInGPS
+    in
+    { before = []
+    , edited = combined
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }
+
+
+undoAppend : UndoRedoInfo -> Track -> EditResult
+undoAppend undoRedo track =
+    { before = []
+    , edited = List.take undoRedo.originalTrackLength track.trackPoints
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    }

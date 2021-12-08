@@ -8,11 +8,10 @@
 **Map not painting after load** (this may be commented atm)
 
 ## Tools to be changed to new Undo/Review/Preview style:
- 
-- Track Splitter
+
+- Drag on Map
 - Graph
 - Strava Tools
-- Drag on Map
 - Any remaining commented-out code!
 
 ## Samir

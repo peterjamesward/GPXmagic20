@@ -47,7 +47,7 @@ import OAuthTypes as O exposing (..)
 import OneClickQuickFix exposing (oneClickQuickFix, undoOneClickQuickFix)
 import Point3d
 import PortController exposing (..)
-import PostUpdateActions exposing (PostUpdateAction(..), TrackEditType(..), UndoEntry)
+import PostUpdateActions exposing (EditFunction, EditResult, PostUpdateAction(..), TrackEditType(..), UndoEntry)
 import Quantity
 import RotateRoute
 import Scene exposing (Scene)
@@ -163,8 +163,7 @@ type alias ModelRecord =
     , gradientLimiter : GradientLimiter.Options
     , rotateOptions : RotateRoute.Options
     , lastMapClick : ( Float, Float )
-
-    --, splitterOptions : TrackSplitter.Options
+    , splitterOptions : TrackSplitter.Options
     , svgData : SvgPathExtractor.Options
     , mapElevations : List Float
     , mapSketchMode : Bool
@@ -215,8 +214,7 @@ init mflags origin navigationKey =
       , gradientLimiter = GradientLimiter.defaultOptions
       , rotateOptions = RotateRoute.defaultOptions
       , lastMapClick = ( 0.0, 0.0 )
-
-      --, splitterOptions = TrackSplitter.defaultOptions
+      , splitterOptions = TrackSplitter.defaultOptions
       , svgData = SvgPathExtractor.empty
       , mapElevations = []
       , mapSketchMode = False
@@ -554,23 +552,28 @@ update msg (Model model) =
                 { model | rotateOptions = newOptions }
                 action
 
-        --SplitterMessage splitter ->
-        --    let
-        --        ( newOptions, action ) =
-        --            TrackSplitter.update
-        --                splitter
-        --                model.splitterOptions
-        --                model.observations
-        --                model.track
-        --                SplitterMessage
-        --
-        --        newModel =
-        --            { model
-        --                | splitterOptions = newOptions
-        --            }
-        --    in
-        --    processPostUpdateAction newModel action
-        --
+        SplitterMessage splitter ->
+            case model.track of
+                Just isTrack ->
+                    let
+                        ( newOptions, action ) =
+                            TrackSplitter.update
+                                splitter
+                                model.splitterOptions
+                                model.observations
+                                isTrack
+                                SplitterMessage
+
+                        newModel =
+                            { model
+                                | splitterOptions = newOptions
+                            }
+                    in
+                    processPostUpdateAction newModel action
+
+                Nothing ->
+                    ( Model model, Cmd.none )
+
         ProblemMessage probMsg ->
             let
                 ( newOptions, action ) =
@@ -733,11 +736,8 @@ update msg (Model model) =
                 { model | curveFormer = newOptions }
                 action
 
-        _ ->
-            ( Model model, Cmd.none )
 
-
-draggedOnMap : Encode.Value -> Track -> Maybe Track
+draggedOnMap : Encode.Value -> Track -> Maybe UndoEntry
 draggedOnMap json track =
     -- Map has told us the old and new coordinates of a trackpoint.
     -- Return Nothing if drag did not change track.
@@ -766,12 +766,33 @@ draggedOnMap json track =
                 in
                 case maybetp of
                     Just tp ->
+                        let
+                            editFunction : EditFunction
+                            editFunction =
+                                \t ->
+                                    { before = List.take tp.index t.trackPoints
+                                    , edited = [ updateTrackPointLonLat ( endLon, endLat ) t tp ]
+                                    , after = List.drop (tp.index + 1) t.trackPoints
+                                    , earthReferenceCoordinates = track.earthReferenceCoordinates
+                                    }
+
+                            undoFunction : EditFunction
+                            undoFunction =
+                                \t ->
+                                    { before = List.take tp.index t.trackPoints
+                                    , edited = [ tp ]
+                                    , after = List.drop (tp.index + 1) t.trackPoints
+                                    , earthReferenceCoordinates = track.earthReferenceCoordinates
+                                    }
+                        in
                         Just
-                            { track
-                                | trackPoints =
-                                    List.Extra.updateAt tp.index
-                                        (updateTrackPointLonLat ( endLon, endLat ) track)
-                                        track.trackPoints
+                            { label = "Drag on map"
+                            , editFunction = editFunction
+                            , undoFunction = undoFunction
+                            , newOrange = track.currentNode.index
+                            , newPurple = Maybe.map .index track.markedNode
+                            , oldOrange = track.currentNode.index
+                            , oldPurple = Maybe.map .index track.markedNode
                             }
 
                     Nothing ->
@@ -1965,16 +1986,20 @@ toolsAccordion (Model model) =
     --  , video = Just "https://youtu.be/KSuR8PcAZYc"
     --  , isFavourite = False
     --  }
-    --, { label = TrackObservations.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        TrackObservations.overviewSummary
-    --            model.displayOptions.imperialMeasure
-    --            model.observations
-    --  , info = "Data about the route."
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
+    , { label = TrackObservations.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                TrackObservations.overviewSummary
+                    m.displayOptions.imperialMeasure
+                    m.observations
+      , info = "Data about the route."
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
     , { label = "Road segment"
       , state = Contracted
       , content =
@@ -2038,19 +2063,23 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
+    , { label = "Intersections"
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                TrackObservations.viewIntersections
+                    m.displayOptions.imperialMeasure
+                    m.problemOptions
+                    m.observations
+                    ProblemMessage
+      , info = TrackObservations.info
+      , video = Just "https://youtu.be/w5rfsmTF08o"
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
 
-    --, { label = "Intersections"
-    --  , state = Contracted
-    --  , content =
-    --        TrackObservations.viewIntersections
-    --            model.displayOptions.imperialMeasure
-    --            model.problemOptions
-    --            model.observations
-    --            ProblemMessage
-    --  , info = TrackObservations.info
-    --  , video = Just "https://youtu.be/w5rfsmTF08o"
-    --  , isFavourite = False
-    --  }
     --, { label = StravaTools.toolLabel
     --  , state = Contracted
     --  , content =
@@ -2082,23 +2111,26 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Just <| RotateRoute.getPreviewMap model.rotateOptions
       }
-
-    --, { label = TrackSplitter.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (TrackSplitter.view
-    --                model.displayOptions.imperialMeasure
-    --                model.splitterOptions
-    --                model.observations
-    --                SplitterMessage
-    --            )
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = TrackSplitter.info
-    --  , video = Nothing
-    --  , isFavourite = False
-    --  }
+    , { label = TrackSplitter.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (TrackSplitter.view
+                        m.displayOptions.imperialMeasure
+                        m.splitterOptions
+                        m.observations
+                        SplitterMessage
+                    )
+                    model.track
+                    |> Maybe.withDefault none
+      , info = TrackSplitter.info
+      , video = Nothing
+      , isFavourite = False
+      , preview3D = Nothing
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
     ]
 
 
@@ -2361,18 +2393,16 @@ processPortMessage model json =
                 _ ->
                     ( Model model, Cmd.none )
 
-        --( Ok "drag", Just track ) ->
-        --    case draggedOnMap json track of
-        --        Just newTrack ->
-        --            processPostUpdateAction
-        --                model
-        --                (PostUpdateActions.ActionTrackChanged
-        --                    EditPreservesIndex
-        --                    newTrack
-        --                    "Dragged on map"
-        --                )
-        --Nothing ->
-        --    ( model, Cmd.none )
+        ( Ok "drag", Just track ) ->
+            case draggedOnMap json track of
+                Just undoEntry ->
+                    processPostUpdateAction
+                        model
+                        (PostUpdateActions.ActionTrackChanged EditPreservesIndex undoEntry)
+
+                Nothing ->
+                    ( Model model, Cmd.none )
+
         ( Ok "elevations", Just track ) ->
             case elevations of
                 Ok mapElevations ->
@@ -2415,7 +2445,6 @@ processPortMessage model json =
             )
 
         ( Ok "storage.got", _ ) ->
-            --TODO: Please factor this out of here.
             let
                 key =
                     D.decodeValue (D.field "key" D.string) json
