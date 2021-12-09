@@ -1369,22 +1369,23 @@ composeScene model =
                     Quantity.max xSize ySize
                         |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
 
-                interiorBox =
-                    BoundingBox2d.withDimensions
-                        ( threshold, threshold )
-                        (track.currentNode.xyz |> Point3d.projectInto SketchPlane3d.xy)
+                reducedTrack =
+                    if model.displayOptions.levelOfDetailThreshold > 0.0 then
+                        Track.makeReducedTrack track threshold
+
+                    else
+                        track
             in
             { model
                 | completeScene =
                     combineLists
-                        [ renderVarying3dSceneElements model track
-                        , renderTrack3dSceneElements model track interiorBox
+                        [ renderVarying3dSceneElements model reducedTrack
+                        , renderTrack3dSceneElements model reducedTrack
                         ]
                 , completeProfile =
-                    -- Need to do something different with the bounding box, but hey.
                     combineLists
-                        [ renderVaryingProfileSceneElements model track
-                        , renderTrackProfileSceneElements model track interiorBox
+                        [ renderVaryingProfileSceneElements model reducedTrack
+                        , renderTrackProfileSceneElements model reducedTrack
                         ]
             }
 
@@ -1442,8 +1443,8 @@ renderVarying3dSceneElements model isTrack =
         |> Utils.combineLists
 
 
-renderTrackProfileSceneElements : ModelRecord -> Track -> BoundingBox2d Length.Meters LocalCoords -> Scene
-renderTrackProfileSceneElements model isTrack _ =
+renderTrackProfileSceneElements : ModelRecord -> Track -> Scene
+renderTrackProfileSceneElements model isTrack =
     if isProfileVisible model.viewPanes then
         SceneBuilderProfile.renderTrack model.displayOptions isTrack
 
@@ -1451,29 +1452,16 @@ renderTrackProfileSceneElements model isTrack _ =
         []
 
 
-renderTrack3dSceneElements : ModelRecord -> Track -> BoundingBox2d Length.Meters LocalCoords -> Scene
-renderTrack3dSceneElements model track box =
+renderTrack3dSceneElements : ModelRecord -> Track -> Scene
+renderTrack3dSceneElements model isTrack =
     let
-        interiorPoints =
-            SpatialIndex.queryWithFilter track.spatialIndex box (\pt -> (pt.index |> modBy 3) /= 0)
-                |> List.map .content
-
-        subsetPoints =
-            track.trackPoints |> List.filter (\pt -> (pt.index |> modBy 3) == 0)
-
-        pointsToRender =
-            interiorPoints |> Utils.reversingCons subsetPoints
-
-        reducedTrack =
-            { track | trackPoints = pointsToRender }
-
         updatedScene =
             if is3dVisible model.viewPanes then
                 if model.displayOptions.terrainOn then
-                    SceneBuilder.renderTerrain model.displayOptions reducedTrack
+                    SceneBuilder.renderTerrain model.displayOptions isTrack
 
                 else
-                    SceneBuilder.renderTrack model.displayOptions reducedTrack
+                    SceneBuilder.renderTrack model.displayOptions isTrack
 
             else
                 []
