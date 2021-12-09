@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
 import BendSmoother
+import BoundingBox2d exposing (BoundingBox2d)
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
@@ -9,6 +10,7 @@ import Color
 import CurveFormer
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
+import Dict.Extra
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
 import Element.Background as Background
@@ -35,6 +37,7 @@ import Json.Decode as D
 import Json.Encode as Encode
 import Length
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
@@ -52,6 +55,8 @@ import RotateRoute
 import Scene exposing (Scene)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
+import SketchPlane3d
+import SpatialIndex
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
@@ -1364,23 +1369,22 @@ composeScene model =
                     Quantity.max xSize ySize
                         |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
 
-                reducedTrack =
-                    if model.displayOptions.levelOfDetailThreshold > 0.0 then
-                        Track.makeReducedTrack track threshold
-
-                    else
-                        track
+                interiorBox =
+                    BoundingBox2d.withDimensions
+                        ( threshold, threshold )
+                        (track.currentNode.xyz |> Point3d.projectInto SketchPlane3d.xy)
             in
             { model
                 | completeScene =
                     combineLists
-                        [ renderVarying3dSceneElements model reducedTrack
-                        , renderTrack3dSceneElements model reducedTrack
+                        [ renderVarying3dSceneElements model track
+                        , renderTrack3dSceneElements model track interiorBox
                         ]
                 , completeProfile =
+                    -- Need to do something different with the bounding box, but hey.
                     combineLists
-                        [ renderVaryingProfileSceneElements model reducedTrack
-                        , renderTrackProfileSceneElements model reducedTrack
+                        [ renderVaryingProfileSceneElements model track
+                        , renderTrackProfileSceneElements model track interiorBox
                         ]
             }
 
@@ -1438,8 +1442,8 @@ renderVarying3dSceneElements model isTrack =
         |> Utils.combineLists
 
 
-renderTrackProfileSceneElements : ModelRecord -> Track -> Scene
-renderTrackProfileSceneElements model isTrack =
+renderTrackProfileSceneElements : ModelRecord -> Track -> BoundingBox2d Length.Meters LocalCoords -> Scene
+renderTrackProfileSceneElements model isTrack _ =
     if isProfileVisible model.viewPanes then
         SceneBuilderProfile.renderTrack model.displayOptions isTrack
 
@@ -1447,16 +1451,29 @@ renderTrackProfileSceneElements model isTrack =
         []
 
 
-renderTrack3dSceneElements : ModelRecord -> Track -> Scene
-renderTrack3dSceneElements model isTrack =
+renderTrack3dSceneElements : ModelRecord -> Track -> BoundingBox2d Length.Meters LocalCoords -> Scene
+renderTrack3dSceneElements model track box =
     let
+        interiorPoints =
+            SpatialIndex.queryWithFilter track.spatialIndex box (\pt -> (pt.index |> modBy 3) /= 0)
+                |> List.map .content
+
+        subsetPoints =
+            track.trackPoints |> List.filter (\pt -> (pt.index |> modBy 3) == 0)
+
+        pointsToRender =
+            interiorPoints |> Utils.reversingCons subsetPoints
+
+        reducedTrack =
+            { track | trackPoints = pointsToRender }
+
         updatedScene =
             if is3dVisible model.viewPanes then
                 if model.displayOptions.terrainOn then
-                    SceneBuilder.renderTerrain model.displayOptions isTrack
+                    SceneBuilder.renderTerrain model.displayOptions reducedTrack
 
                 else
-                    SceneBuilder.renderTrack model.displayOptions isTrack
+                    SceneBuilder.renderTrack model.displayOptions reducedTrack
 
             else
                 []

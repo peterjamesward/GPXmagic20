@@ -5,11 +5,9 @@
 
 # Backlog
 
+TEST 2.8.0
+
 **Map not painting after load** (this may be commented atm)
-
-## Tools to be changed to new Undo/Review/Preview style:
-
-- Any remaining commented-out code!
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
