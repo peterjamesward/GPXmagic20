@@ -1504,11 +1504,10 @@ topLoadingBar model =
 
           else
             E.text "Save your work before\nconnecting to Strava"
-
-        --, stravaRouteOption
-        --    model.stravaAuthentication
-        --    model.stravaOptions
-        --    StravaMessage
+        , stravaRouteOption
+            model.stravaAuthentication
+            model.stravaOptions
+            StravaMessage
         , viewAndEditFilename model
         , case model.track of
             Just _ ->
