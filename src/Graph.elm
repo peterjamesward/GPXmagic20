@@ -181,7 +181,7 @@ viewGraphControls wrapper graph =
                                    )
                 , min = -5.0
                 , max = 5.0
-                , step = Just 1.0
+                , step = Just 0.25
                 , value = offset
                 , thumb = I.defaultThumb
                 }

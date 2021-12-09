@@ -1146,7 +1146,7 @@ processGraphMessage innerMsg model isTrack =
                     , edited = isTrack.trackPoints
                     , after = []
                     , earthReferenceCoordinates = t.earthReferenceCoordinates
-                    , graph = isTrack.graph
+                    , graph = Nothing
                     }
             , newOrange = isTrack.currentNode.index
             , newPurple = Maybe.map .index isTrack.markedNode
@@ -2167,6 +2167,7 @@ undo model =
                                 Nothing ->
                                     Nothing
                         , earthReferenceCoordinates = results.earthReferenceCoordinates
+                        , graph = results.graph
                     }
             in
             { model
@@ -2195,7 +2196,11 @@ redo model =
                     (prefix ++ middle ++ suffix) |> prepareTrackPoints
 
                 newTrack =
-                    { track | trackPoints = points }
+                    { track
+                        | trackPoints = points
+                        , graph = results.graph
+                        , earthReferenceCoordinates = results.earthReferenceCoordinates
+                    }
             in
             { model
                 | redoStack = redos
