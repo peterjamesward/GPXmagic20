@@ -1373,13 +1373,6 @@ composeScene model =
                     BoundingBox2d.withDimensions
                         ( threshold, threshold )
                         (track.currentNode.xyz |> Point3d.projectInto SketchPlane3d.xy)
-
-                --reducedTrack =
-                --    if model.displayOptions.levelOfDetailThreshold > 0.0 then
-                --        Track.makeReducedTrack track threshold
-                --
-                --    else
-                --        track
             in
             { model
                 | completeScene =
@@ -1391,7 +1384,7 @@ composeScene model =
                     -- Need to do something different with the bounding box, but hey.
                     combineLists
                         [ renderVaryingProfileSceneElements model track
-                        , renderTrackProfileSceneElements model track --interiorBox
+                        , renderTrackProfileSceneElements model track interiorBox
                         ]
             }
 
@@ -1449,8 +1442,8 @@ renderVarying3dSceneElements model isTrack =
         |> Utils.combineLists
 
 
-renderTrackProfileSceneElements : ModelRecord -> Track -> Scene
-renderTrackProfileSceneElements model isTrack =
+renderTrackProfileSceneElements : ModelRecord -> Track -> BoundingBox2d Length.Meters LocalCoords -> Scene
+renderTrackProfileSceneElements model isTrack _ =
     if isProfileVisible model.viewPanes then
         SceneBuilderProfile.renderTrack model.displayOptions isTrack
 
@@ -1462,9 +1455,8 @@ renderTrack3dSceneElements : ModelRecord -> Track -> BoundingBox2d Length.Meters
 renderTrack3dSceneElements model track box =
     let
         interiorPoints =
-            SpatialIndex.query track.spatialIndex box
+            SpatialIndex.queryWithFilter track.spatialIndex box (\pt -> (pt.index |> modBy 3) /= 0)
                 |> List.map .content
-                |> List.filter (\pt -> (pt.index |> modBy 3) /= 0)
 
         subsetPoints =
             track.trackPoints |> List.filter (\pt -> (pt.index |> modBy 3) == 0)

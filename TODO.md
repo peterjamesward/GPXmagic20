@@ -9,11 +9,6 @@ TEST 2.8.0
 
 **Map not painting after load** (this may be commented atm)
 
-## Progressive rendering
-If I can paint a road segment from one point, and I can, then I can do this:
-1. Paint all points divisible by (say) 3 or 4
-2. Within the smaller region, paint the missing points.
-
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
 as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.
