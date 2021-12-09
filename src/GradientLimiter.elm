@@ -229,9 +229,6 @@ buildActions settings track =
 apply : UndoRedoInfo -> Track -> EditResult
 apply undoRedoInfo track =
     let
-        _ =
-            Debug.log "info" undoRedoInfo
-
         ( prefix, theRest ) =
             track.trackPoints
                 |> List.Extra.splitAt undoRedoInfo.regionStart

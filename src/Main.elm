@@ -840,6 +840,7 @@ processPostUpdateAction model action =
                                 Nothing ->
                                     Nothing
                         , earthReferenceCoordinates = results.earthReferenceCoordinates
+                        , graph = results.graph
                     }
 
                 newModel =
@@ -1197,7 +1198,7 @@ processGraphMessage innerMsg model isTrack =
             )
 
         GraphOffsetChange ->
-            ( model
+            ( { model | track = Just newTrack }
             , PostUpdateActions.ActionPreview
             )
 
@@ -1434,70 +1435,6 @@ renderVarying3dSceneElements model isTrack =
       else
         []
     , previews
-
-    --updatedMoveAndStretchSettings =
-    --    let
-    --        settings =
-    --            latestModel.moveAndStretch
-    --    in
-    --    if
-    --        Accordion.tabIsOpen MoveAndStretch.toolLabel latestModel.toolsAccordion
-    --            && MoveAndStretch.settingNotZero latestModel.moveAndStretch
-    --    then
-    --            let
-    --                whiteMarker =
-    --                    SceneBuilder.renderMarkers
-    --Nothing isTrack
-    --        Maybe.map (MoveAndStretch.preview latestModel.moveAndStretch) latestModel.track
-    --            |> Maybe.withDefault latestModel.moveAndStretch
-    --
-    --    else
-    --        { settings | preview = [] }
-    --updatedBendOptions =
-    --    if Accordion.tabIsOpen BendSmoother.toolLabel latestModel.toolsAccordion then
-    --        Maybe.map (tryBendSmoother latestModel.bendOptions) latestModel.track
-    --            |> Maybe.withDefault latestModel.bendOptions
-    --
-    --    else
-    --        BendSmoother.defaultOptions
-    --updatedStravaOptions =
-    --    -- TODO: ?? Move pointers to discovered paste start and end ??
-    --    let
-    --        options =
-    --            latestModel.stravaOptions
-    --    in
-    --    if Accordion.tabIsOpen StravaTools.toolLabel latestModel.toolsAccordion then
-    --        { options
-    --            | preview =
-    --                Maybe.map (StravaTools.preview options) latestModel.track
-    --                    |> Maybe.withDefault []
-    --        }
-    --
-    --    else
-    --        { options | preview = [] }
-    --updatedStraightenOptions =
-    --    let
-    --        options =
-    --            latestModel.straightenOptions
-    --    in
-    --    if Accordion.tabIsOpen Straightener.toolLabel latestModel.toolsAccordion then
-    --        Maybe.map (Straightener.lookForSimplifications options) latestModel.track
-    --            |> Maybe.withDefault options
-    --
-    --    else
-    --        options
-    --graphEdge =
-    --    case latestModel.track of
-    --        Just isTrack ->
-    --            if Accordion.tabIsOpen Graph.toolLabel latestModel.toolsAccordion then
-    --                Maybe.map Graph.previewTraversal isTrack.graph
-    --                    |> Maybe.withDefault []
-    --
-    --            else
-    --                []
-    --
-    --        Nothing ->
-    --            []
     ]
         |> Utils.combineLists
 
@@ -2023,7 +1960,15 @@ toolsAccordion (Model model) =
       , info = Graph.info
       , video = Just "https://youtu.be/KSuR8PcAZYc"
       , isFavourite = False
-      , preview3D = Nothing
+      , preview3D =
+            Just <|
+                \track ->
+                    case track.graph of
+                        Just graph ->
+                            graph |> Graph.previewTraversal |> SceneBuilder.showGraphEdge
+
+                        Nothing ->
+                            []
       , previewProfile = Nothing
       , previewMap = Nothing
       }

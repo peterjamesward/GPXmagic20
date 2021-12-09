@@ -9,7 +9,6 @@
 
 ## Tools to be changed to new Undo/Review/Preview style:
 
-- Graph
 - Strava Tools
 - Any remaining commented-out code!
 
