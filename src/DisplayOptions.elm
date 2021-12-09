@@ -181,8 +181,8 @@ viewDisplayOptions options wrap =
                             "Reduce graphics "
                                 ++ showDecimal0 options.levelOfDetailThreshold
                 , min = 0.0
-                , max = 4.0
-                , step = Just 1.0
+                , max = 5.0
+                , step = Just 0.5
                 , value = options.levelOfDetailThreshold
                 , thumb = Input.defaultThumb
                 }
@@ -363,8 +363,9 @@ adjustDetail options trackLength =
     -- Auto reduce graphics for large tracks
     { options
         | levelOfDetailThreshold =
+            -- Empirical!
             clamp 0.0 4.0 <|
-                toFloat <|
-                    ceiling <|
-                        logBase 10 (toFloat trackLength / 1000.0)
+                --toFloat <|
+                --    ceiling <|
+                logBase 2.5 (toFloat trackLength / 1000.0)
     }

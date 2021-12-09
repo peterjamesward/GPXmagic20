@@ -12,11 +12,15 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.8.0 update 2021-12-02
+## 2.8.0 update 2021-12-09
 
 - Internal improvements to reduce memory usage. May improve speed in some cases, not always.
 
 - Previews in 3D for Interpolate, Delete, Lift & Shift and Simplify.
+
+- Undo & Redo available for Graph, Strava segment paste.
+
+I expect some teething problems, this is a significant change.
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")
