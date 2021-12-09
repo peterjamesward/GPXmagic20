@@ -4,23 +4,27 @@ import ColourPalette exposing (stravaOrange)
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input exposing (button)
+import GpxSource exposing (GpxSource(..))
 import Http
 import List.Extra
-import GpxSource exposing (GpxSource(..))
 import OAuthTypes as O exposing (Flow(..))
-import PostUpdateActions
+import PostUpdateActions exposing (EditResult, UndoEntry)
 import StravaAuth exposing (getStravaToken)
 import StravaDataLoad exposing (..)
 import StravaPasteStreams exposing (pasteStreams)
 import StravaTypes exposing (..)
-import Track exposing (Track, trackBoundingBox)
-import TrackEditType as PostUpdateActions
+import Track exposing (Track, searchTrackPointFromLonLat, trackBoundingBox)
+import TrackEditType
 import TrackPoint exposing (TrackPoint)
 import Url
 import Url.Builder as Builder
 import ViewPureStyles exposing (displayName, prettyButtonStyles)
 
-toolLabel = "Strava"
+
+toolLabel =
+    "Strava"
+
+
 info =
     """## Strava
 
@@ -78,7 +82,7 @@ update :
     -> O.Model
     -> (Msg -> msg)
     -> Maybe Track
-    -> ( Options, PostUpdateActions.PostUpdateAction (Cmd msg) )
+    -> ( Options, PostUpdateActions.PostUpdateAction trck (Cmd msg) )
 update msg settings authentication wrap track =
     case msg of
         UserChangedRouteId url ->
@@ -218,10 +222,14 @@ update msg settings authentication wrap track =
                         | stravaStreams = Nothing
                         , externalSegment = SegmentNone
                       }
-                    , PostUpdateActions.ActionTrackChanged
-                        TrackEditType.EditPreservesIndex
-                        { isTrack | trackPoints = pasteStreams isTrack segment streams }
-                        "Paste Strava segment"
+                    , case buildActions settings isTrack segment streams of
+                        Just action ->
+                            PostUpdateActions.ActionTrackChanged
+                                TrackEditType.EditPreservesIndex
+                                action
+
+                        Nothing ->
+                            PostUpdateActions.ActionNoOp
                     )
 
                 _ ->
@@ -231,6 +239,83 @@ update msg settings authentication wrap track =
             ( { settings | stravaStreams = Nothing, externalSegment = SegmentNone }
             , PostUpdateActions.ActionPreview
             )
+
+
+type alias UndoRedoInfo =
+    { start : Int
+    , end : Int
+    , lengthOfTail : Int
+    , originalPoints : List TrackPoint
+    , streams : StravaSegmentStreams
+    }
+
+
+buildActions : Options -> Track -> StravaSegment -> StravaSegmentStreams -> Maybe UndoEntry
+buildActions options track segment streams =
+    let
+        pStartingTrackPoint =
+            -- Our first track point will be replaced with the first stream point
+            searchTrackPointFromLonLat
+                ( segment.start_longitude, segment.start_latitude )
+                track
+
+        pEndingTrackPoint =
+            -- Our last track point will be replaced with the last stream point
+            searchTrackPointFromLonLat
+                ( segment.end_longitude, segment.end_latitude )
+                track
+
+        maybeUndoRedo =
+            case ( pStartingTrackPoint, pEndingTrackPoint ) of
+                ( Just start, Just end ) ->
+                    Just
+                        { start = start.index
+                        , end = end.index
+                        , originalPoints =
+                            track.trackPoints
+                                |> List.take (end.index + 1)
+                                |> List.drop start.index
+                        , lengthOfTail = List.length track.trackPoints - end.index - 1
+                        , streams = streams
+                        }
+
+                _ ->
+                    Nothing
+    in
+    case maybeUndoRedo of
+        Just undoRedo ->
+            Just
+                { label = "Strava segment"
+                , editFunction = editFunction undoRedo
+                , undoFunction = undoFunction undoRedo
+                , newOrange = track.currentNode.index
+                , newPurple = Maybe.map .index track.markedNode
+                , oldOrange = track.currentNode.index
+                , oldPurple = Maybe.map .index track.markedNode
+                }
+
+        Nothing ->
+            Nothing
+
+
+editFunction : UndoRedoInfo -> Track -> EditResult
+editFunction undoRedo track =
+    { before = track.trackPoints |> List.take undoRedo.start
+    , edited = pasteStreams track undoRedo.start undoRedo.end undoRedo.streams
+    , after = track.trackPoints |> List.drop (undoRedo.end + 1)
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
+    }
+
+
+undoFunction : UndoRedoInfo -> Track -> EditResult
+undoFunction undoRedo track =
+    { before = track.trackPoints |> List.take undoRedo.start
+    , edited = undoRedo.originalPoints
+    , after = track.trackPoints |> List.drop (List.length track.trackPoints - undoRedo.lengthOfTail)
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
+    }
 
 
 stravaRouteOption : O.Model -> Options -> (Msg -> msg) -> Element msg

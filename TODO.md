@@ -9,7 +9,10 @@
 
 ## Tools to be changed to new Undo/Review/Preview style:
 
-- Strava Tools
+- Strava Tools (just needs preview).
+
+- Preview points for Bend/Gradient problems (light blue).
+
 - Any remaining commented-out code!
 
 ## Samir

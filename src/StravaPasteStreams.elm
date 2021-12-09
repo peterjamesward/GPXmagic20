@@ -15,52 +15,13 @@ pointsFromStreams streams track =
         |> applyGhanianTransform track.earthReferenceCoordinates
 
 
-pasteStreams : Track -> StravaSegment -> StravaSegmentStreams -> List TrackPoint
-pasteStreams track segment streams =
-    let
-        pStartingTrackPoint =
-            -- Our first track point will be replaced with the first stream point
-            searchTrackPointFromLonLat
-                ( segment.start_longitude, segment.start_latitude )
-                track
+pasteStreams : Track -> Int -> Int -> StravaSegmentStreams -> List TrackPoint
+pasteStreams track start finish streams =
+    if start == finish then
+        pointsFromStreams streams track
 
-        pEndingTrackPoint =
-            -- Our last track point will be replaced with the last stream point
-            searchTrackPointFromLonLat
-                ( segment.end_longitude, segment.end_latitude )
-                track
+    else if start < finish then
+        pointsFromStreams streams track
 
-        newRoute =
-            case ( pStartingTrackPoint, pEndingTrackPoint ) of
-                ( Just startingTrackPoint, Just endingTrackPoint ) ->
-                    let
-                        start =
-                            startingTrackPoint.index
-
-                        finish =
-                            endingTrackPoint.index
-
-                        orientedSegment =
-                            if start == finish then
-                                pointsFromStreams streams track
-
-                            else if start < finish then
-                                pointsFromStreams streams track
-
-                            else
-                                List.reverse <| pointsFromStreams streams track
-
-                        precedingPoints =
-                            List.take (min start finish) track.trackPoints
-
-                        remainingPoints =
-                            List.drop (max start finish + 1) track.trackPoints
-                    in
-                    precedingPoints
-                        ++ orientedSegment
-                        ++ remainingPoints
-
-                _ ->
-                    track.trackPoints
-    in
-    newRoute
+    else
+        List.reverse <| pointsFromStreams streams track

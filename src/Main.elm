@@ -1,12 +1,11 @@
 module Main exposing (main)
 
---import StravaTools exposing (stravaRouteOption)
-
 import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
 import BendSmoother
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
+import Color
 import CurveFormer
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
@@ -55,6 +54,7 @@ import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
+import StravaTools exposing (stravaRouteOption)
 import SvgPathExtractor
 import Task
 import Time
@@ -100,7 +100,7 @@ type Msg
     | SplitterMessage TrackSplitter.Msg
     | UserChangedFilename String
     | OutputGPX
-      --| StravaMessage StravaTools.Msg
+    | StravaMessage StravaTools.Msg
     | AdjustTimeZone Time.Zone
     | ReceivedIpDetails (Result Http.Error IpInfo)
     | IpInfoAcknowledged (Result Http.Error ())
@@ -157,8 +157,7 @@ type alias ModelRecord =
     , filterOptions : Filters.Options
     , problemOptions : TrackObservations.Options
     , insertOptions : Interpolate.Options
-
-    --, stravaOptions : StravaTools.Options
+    , stravaOptions : StravaTools.Options
     , stravaAuthentication : O.Model
     , ipInfo : Maybe IpInfo
     , gradientLimiter : GradientLimiter.Options
@@ -208,8 +207,7 @@ init mflags origin navigationKey =
       , filterOptions = Filters.defaultOptions
       , problemOptions = TrackObservations.defaultOptions
       , insertOptions = Interpolate.defaultOptions
-
-      --, stravaOptions = StravaTools.defaultOptions
+      , stravaOptions = StravaTools.defaultOptions
       , stravaAuthentication = authData
       , ipInfo = Nothing
       , gradientLimiter = GradientLimiter.defaultOptions
@@ -634,19 +632,20 @@ update msg (Model model) =
                 Nothing ->
                     ( Model model, Cmd.none )
 
-        --StravaMessage stravaMsg ->
-        --    let
-        --        ( newOptions, action ) =
-        --            StravaTools.update
-        --                stravaMsg
-        --                model.stravaOptions
-        --                model.stravaAuthentication
-        --                StravaMessage
-        --                model.track
-        --    in
-        --    processPostUpdateAction
-        --        { model | stravaOptions = newOptions }
-        --        action
+        StravaMessage stravaMsg ->
+            let
+                ( newOptions, action ) =
+                    StravaTools.update
+                        stravaMsg
+                        model.stravaOptions
+                        model.stravaAuthentication
+                        StravaMessage
+                        model.track
+            in
+            processPostUpdateAction
+                { model | stravaOptions = newOptions }
+                action
+
         SvgMessage svgMsg ->
             let
                 ( newData, cmd ) =
@@ -2065,18 +2064,25 @@ toolsAccordion (Model model) =
       , previewProfile = Nothing
       , previewMap = Nothing
       }
-
-    --, { label = StravaTools.toolLabel
-    --  , state = Contracted
-    --  , content =
-    --        Maybe.map
-    --            (StravaTools.viewStravaTab model.stravaOptions StravaMessage)
-    --            model.track
-    --            |> Maybe.withDefault none
-    --  , info = StravaTools.info
-    --  , video = Just "https://youtu.be/31qVuc3klUE"
-    --  , isFavourite = False
-    --  }
+    , { label = StravaTools.toolLabel
+      , state = Contracted
+      , content =
+            \(Model m) ->
+                Maybe.map
+                    (StravaTools.viewStravaTab m.stravaOptions StravaMessage)
+                    m.track
+                    |> Maybe.withDefault none
+      , info = StravaTools.info
+      , video = Just "https://youtu.be/31qVuc3klUE"
+      , isFavourite = False
+      , preview3D =
+            Just <|
+                \track ->
+                    StravaTools.preview model.stravaOptions track
+                        |> SceneBuilder.highlightPoints Color.lightBlue
+      , previewProfile = Nothing
+      , previewMap = Nothing
+      }
     , { label = RotateRoute.toolLabel
       , state = Contracted
       , content =
