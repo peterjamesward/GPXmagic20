@@ -432,7 +432,7 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                             (pane.activeContext == ViewNewProfile)
                             (getActiveContext pane)
                             displayOptions
-                            (Maybe.map .trackPoints track |> Maybe.withDefault [])
+                            track
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewMap ->
