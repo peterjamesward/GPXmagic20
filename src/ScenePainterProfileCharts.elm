@@ -96,6 +96,7 @@ showCharts w h trackPoints =
         --, C.bars [] [ C.bar gradientFromPoint [] ] trackPoints
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated (.xyz >> Point3d.zCoordinate >> Length.inMeters) [] []
+            , C.interpolated gradientFromPoint [ CA.stepped ] []
             ]
             trackPoints
         ]
