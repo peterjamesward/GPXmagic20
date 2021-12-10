@@ -50,11 +50,13 @@ viewScene visible context options mtrack wrapper =
 
         useHeight =
             Pixels.inPixels viewHeight // 2
+
     in
     case mtrack of
         Just track ->
             let
                 effectiveTrack =
+                    --TODO: Do this in update not view!!
                     downSelect track.currentNode context.zoomLevel track.trackPoints
             in
             column
@@ -79,25 +81,24 @@ viewScene visible context options mtrack wrapper =
 
 downSelect : TrackPoint -> Float -> List TrackPoint -> List TrackPoint
 downSelect current zoom points =
-    -- Let's start with a crude linear "zoom" effect.
-    -- zoom is [0..22] but default is 12.
-    -- Position slider (tp.index) goes from 0 to max index. e.g Hillingdon about 0..99
-    -- At 'zoom', we could show 1 / (1 + zoom) fraction of track, 'centred' on current.
-    -- At any level, we want to limit # points to (say) 1000 by discarding some points.
+    -- Zoom is logarithmic. In MapBox, zoom 0 => 78km per pixel at equator.
+    -- That's tiny. We probably want zoom 0 to mean we can show (say) 500km of track.
+    -- Enough for Mark Beaumont.
+    -- At zoom 22, we should show maybe 5m.
+    -- So that's 22 steps for 10^8 down to 10^0.
+    -- Let's keep it simple.
     let
-        actualNumberOfPoints =
-            List.length points
+        metersToShow = 10 ^ (8 - zoom / 3)
 
-        trackFractionToShow =
-            actualNumberOfPoints // (1 + round zoom)
+        startDistance = Length.inMeters current.distanceFromStart
 
         regionToShow =
             points
-                |> List.drop (min current.index (actualNumberOfPoints - trackFractionToShow))
-                |> List.take trackFractionToShow
+                |> List.Extra.dropWhile (\pt -> (Length.inMeters pt.distanceFromStart) < startDistance - metersToShow)
+                |> List.Extra.takeWhile (\pt -> (Length.inMeters pt.distanceFromStart) < startDistance + metersToShow)
 
         excessRatio =
-            List.length regionToShow // 1000 + 1
+            1 + List.length regionToShow // 500
     in
     regionToShow
         |> List.filter (\pt -> (pt.index |> modBy excessRatio) == 0)

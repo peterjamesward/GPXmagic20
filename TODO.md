@@ -9,10 +9,7 @@
 
 ## Dan (WIP)
 Show gradient over distance.
-> Combine with profile using svg charting.
-> Use Zoom and Slide controls to select data region.
-> Sample data to keep to reasonable number of points (1000?).
-> Figure out how to lay out two charts.
+> Pass zoom messages into new profile.
 > Add popup with segment details.
 
 ## Samir
