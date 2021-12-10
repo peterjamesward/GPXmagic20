@@ -18,6 +18,7 @@ import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
+import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (elmuiColour, showDecimal0, showDecimal1, useIcon)
 import ViewingContext exposing (ViewingContext)
@@ -150,9 +151,9 @@ zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
     ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )
 
 
-changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
-changeFocusTo tp context =
+changeFocusTo : Track -> ViewingContext -> ViewingContext
+changeFocusTo track context =
     { context
-        | focalPoint = tp.xyz
-        , currentPoint = Just tp
+        | focalPoint = track.currentNode.xyz
+        , currentPoint = Just track.currentNode
     }

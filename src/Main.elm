@@ -904,7 +904,10 @@ processPostUpdateAction model action =
                 newModel =
                     { model
                         | track = Just updatedTrack
-                        , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
+                        , viewPanes =
+                            ViewPane.mapOverPanes
+                                (updatePointerInLinkedPanes updatedTrack)
+                                model.viewPanes
                     }
 
                 ( finalModel, cmd ) =

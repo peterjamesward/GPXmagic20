@@ -316,9 +316,9 @@ profilePointNearestRay track ray =
             )
 
 
-changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
-changeFocusTo tp context =
+changeFocusTo : Track -> ViewingContext -> ViewingContext
+changeFocusTo track context =
     { context
-        | focalPoint = tp.xyz
-        , currentPoint = Just tp
+        | focalPoint = track.currentNode.profileXZ
+        , currentPoint = Just track.currentNode
     }

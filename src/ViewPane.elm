@@ -673,16 +673,16 @@ update msg options panes wrap track =
             )
 
 
-updatePointerInLinkedPanes : TrackPoint -> ViewPane -> ViewPane
-updatePointerInLinkedPanes tp pane =
+updatePointerInLinkedPanes : Track -> ViewPane -> ViewPane
+updatePointerInLinkedPanes track pane =
     if pane.paneLinked then
         { pane
-            | thirdPersonContext = ScenePainterCommon.changeFocusTo tp pane.thirdPersonContext
-            , firstPersonContext = ScenePainterCommon.changeFocusTo tp pane.firstPersonContext
-            , planContext = ScenePainterCommon.changeFocusTo tp pane.planContext
-            , profileContext = ScenePainterProfile.changeFocusTo tp pane.profileContext
-            , mapContext = ScenePainterCommon.changeFocusTo tp pane.mapContext
-            , newProfileContext = ScenePainterProfileCharts.changeFocusTo tp pane.newProfileContext
+            | thirdPersonContext = ScenePainterCommon.changeFocusTo track pane.thirdPersonContext
+            , firstPersonContext = ScenePainterCommon.changeFocusTo track pane.firstPersonContext
+            , planContext = ScenePainterCommon.changeFocusTo track pane.planContext
+            , profileContext = ScenePainterProfile.changeFocusTo track pane.profileContext
+            , mapContext = ScenePainterCommon.changeFocusTo track pane.mapContext
+            , newProfileContext = ScenePainterProfileCharts.changeFocusTo track pane.newProfileContext
         }
 
     else

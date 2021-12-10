@@ -203,9 +203,10 @@ update msg view options wrap track =
             ( view, ActionNoOp )
 
 
-changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
-changeFocusTo tp context =
+changeFocusTo : Track -> ViewingContext -> ViewingContext
+changeFocusTo track context =
     { context
-        | focalPoint = tp.xyz
-        , currentPoint = Just tp
+        | focalPoint = track.currentNode.xyz
+        , currentPoint = Just track.currentNode
+        , chartPoints = downSelect track.currentNode context.zoomLevel track.trackPoints
     }
