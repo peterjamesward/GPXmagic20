@@ -8,3 +8,4 @@ type ViewingMode
     | ViewPlan
     | ViewMap
     | ViewAbout
+    | ViewNewProfile

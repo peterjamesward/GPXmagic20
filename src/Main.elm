@@ -1691,7 +1691,7 @@ contentArea model =
 
 viewAllPanes :
     List ViewPane
-    -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
+    -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo, track : Maybe Track }
     -> ( Scene, Scene, Scene )
     -> (ViewPaneMessage -> Msg)
     -> Element Msg

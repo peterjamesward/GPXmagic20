@@ -5,22 +5,19 @@
 
 # Backlog
 
-TEST 2.8.0
-
-**Map not painting after load** (this may be commented atm)
+**Map not resizing properly after initial load** (this may be commented atm)
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
-as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.
-> Involves direction changes v. distance changes across whole track (window calc).
-> Maybe, rather than a radius slider, have distance and length sliders and display the
-> equivalent radius. This will allow people to look only for hairpins, say.
+as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.  
+> Involves direction changes v. distance changes across whole track (window calc).  
+> Have radius and angle change sliders. This will allow people to look only for hairpins, say.  
 
 ## Dan
 Show gradient over distance. 
 > Perhaps optionally underneath the profile?  
 > Might be better with SVG, with info overlay. Maybe use a library.  
-> https://terezka.github.io/line-charts/
+> https://github.com/terezka/elm-charts
 
 ## Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.  
@@ -41,15 +38,15 @@ Don't copy information into ViewContext that doesn't belong there.
 > Safer & easier to pass through the data needed.  
 > Now I know how to write type signatures that don't require the whole Main.Model!
 
-Factor the PortMessage handling out of main::update. PortController.update?
-
 Switch currentPoint to : Int, avoid stale state worries.
-
-Factor out the common pattern of min, max for the pointers.
 
 ---
 
 # v3 candidates
+
+Haskell native app!
+> https://www.hgamer3d.org/Entities.html
+> https://speakerdeck.com/mchakravarty/playing-with-graphics-and-animations-in-haskell
 
 **Stratified** data structures instead of heavy-weight TrackPoint.
 1. Track points as read from GPX;

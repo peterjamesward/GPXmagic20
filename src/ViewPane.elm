@@ -19,6 +19,7 @@ import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
 import ScenePainterProfile
+import ScenePainterProfileCharts
 import ScenePainterThird
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -151,6 +152,7 @@ isMapVisible panes =
 isProfileVisible panes =
     -- Helper
     isViewingModeVisible ViewProfile panes
+        || isViewingModeVisible ViewNewProfile panes
 
 
 is3dVisible panes =
@@ -275,6 +277,9 @@ refreshSceneSearcher track context =
         ViewAbout ->
             context
 
+        ViewNewProfile ->
+            context
+
 
 getActiveContext : ViewPane -> ViewingContext
 getActiveContext pane =
@@ -297,6 +302,9 @@ getActiveContext pane =
         ViewAbout ->
             pane.thirdPersonContext
 
+        ViewNewProfile ->
+            pane.profileContext
+
 
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
 imageMessageWrapper paneId m =
@@ -315,6 +323,7 @@ viewModeChoices pane wrapper =
                 , Input.optionWith ViewFirstPerson <| radioButton "1st"
                 , Input.optionWith ViewPlan <| radioButton "Plan"
                 , Input.optionWith ViewProfile <| radioButton "Prof."
+                , Input.optionWith ViewNewProfile <| radioButton "Prof2"
                 , Input.optionWith ViewMap <| radioButton "Map"
                 , Input.optionWith ViewAbout <| radioButton "?"
                 ]
@@ -324,6 +333,7 @@ viewModeChoices pane wrapper =
                 , Input.optionWith ViewFirstPerson <| radioButton "First person"
                 , Input.optionWith ViewPlan <| radioButton "Plan"
                 , Input.optionWith ViewProfile <| radioButton "Profile"
+                , Input.optionWith ViewNewProfile <| radioButton "Profile2"
                 , Input.optionWith ViewMap <| radioButton "Map"
                 , Input.optionWith ViewAbout <| radioButton "About"
                 ]
@@ -345,11 +355,16 @@ viewModeChoices pane wrapper =
 
 view :
     ( Scene, Scene, Scene )
-    -> { model | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
+    ->
+        { model
+            | displayOptions : DisplayOptions
+            , ipInfo : Maybe IpInfo
+            , track : Maybe Track
+        }
     -> (ViewPaneMessage -> msg)
     -> ViewPane
     -> Element msg
-view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
+view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
@@ -408,7 +423,20 @@ view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
                             profile
                             (imageMessageWrapper pane.paneId >> wrapper)
 
-                    _ ->
+                    ViewNewProfile ->
+                        ScenePainterProfileCharts.viewScene
+                            (pane.activeContext == ViewNewProfile)
+                            (getActiveContext pane)
+                            displayOptions
+                            (Maybe.map .trackPoints track |> Maybe.withDefault [])
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewMap ->
+                        About.viewAboutText
+                            pane.thirdPersonContext
+                            ipInfo
+
+                    ViewAbout ->
                         About.viewAboutText
                             pane.thirdPersonContext
                             ipInfo
@@ -558,6 +586,19 @@ update msg options panes wrap =
                             , ImageAction action
                             )
 
+                        ViewNewProfile ->
+                            let
+                                ( newContext, action ) =
+                                    ScenePainterProfileCharts.update
+                                        imageMsg
+                                        pane.profileContext
+                                        options
+                                        (wrap << imageMessageWrapper pane.paneId)
+                            in
+                            ( Just { pane | profileContext = newContext }
+                            , ImageAction action
+                            )
+
                         ViewMap ->
                             let
                                 ( newContext, action ) =
@@ -662,6 +703,9 @@ storePaneLayout panes =
 
                 ViewProfile ->
                     "profile"
+
+                ViewNewProfile ->
+                    "charts"
 
                 ViewPlan ->
                     "plan"
