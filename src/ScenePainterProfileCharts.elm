@@ -28,8 +28,10 @@ initialiseView :
 initialiseView viewSize track oldContext =
     -- This is just a simple default so we can see something!
     { oldContext
-        | focalPoint = track.currentNode.profileXZ
-        , viewingMode = ViewNewProfile
+        | viewingMode = ViewNewProfile
+        , zoomLevel = 12.0
+        , chartPoints = downSelect track.currentNode 12.0 track.trackPoints
+        , focalPoint = track.currentNode.xyz
     }
 
 
@@ -37,10 +39,9 @@ viewScene :
     Bool
     -> ViewingContext
     -> DisplayOptions
-    -> Maybe Track
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context options mtrack wrapper =
+viewScene visible context options wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size
@@ -50,33 +51,20 @@ viewScene visible context options mtrack wrapper =
 
         useHeight =
             Pixels.inPixels viewHeight // 2
-
     in
-    case mtrack of
-        Just track ->
-            let
-                effectiveTrack =
-                    --TODO: Do this in update not view!!
-                    downSelect track.currentNode context.zoomLevel track.trackPoints
-            in
-            column
-                ((inFront <| zoomButtons wrapper)
-                    :: withMouseCapture wrapper
-                )
-                [ wrapChart useWidth useHeight <|
-                    altitudeChart
-                        (toFloat useWidth)
-                        (toFloat <| useHeight)
-                        effectiveTrack
-                , wrapChart useWidth useHeight <|
-                    gradientChart
-                        (toFloat useWidth)
-                        (toFloat <| useHeight)
-                        effectiveTrack
-                ]
-
-        Nothing ->
-            el [ centerX, centerY ] <| text "Ideally, we'd have a track to show here."
+    column
+        [ inFront <| zoomButtons wrapper ]
+        [ wrapChart useWidth useHeight <|
+            altitudeChart
+                (toFloat useWidth)
+                (toFloat <| useHeight)
+                context.chartPoints
+        , wrapChart useWidth useHeight <|
+            gradientChart
+                (toFloat useWidth)
+                (toFloat <| useHeight)
+                context.chartPoints
+        ]
 
 
 downSelect : TrackPoint -> Float -> List TrackPoint -> List TrackPoint
@@ -88,14 +76,16 @@ downSelect current zoom points =
     -- So that's 22 steps for 10^8 down to 10^0.
     -- Let's keep it simple.
     let
-        metersToShow = 10 ^ (8 - zoom / 3)
+        metersToShow =
+            10 ^ (8 - zoom / 3)
 
-        startDistance = Length.inMeters current.distanceFromStart
+        startDistance =
+            Length.inMeters current.distanceFromStart
 
         regionToShow =
             points
-                |> List.Extra.dropWhile (\pt -> (Length.inMeters pt.distanceFromStart) < startDistance - metersToShow)
-                |> List.Extra.takeWhile (\pt -> (Length.inMeters pt.distanceFromStart) < startDistance + metersToShow)
+                |> List.Extra.dropWhile (\pt -> Length.inMeters pt.distanceFromStart < startDistance - metersToShow)
+                |> List.Extra.takeWhile (\pt -> Length.inMeters pt.distanceFromStart < startDistance + metersToShow)
 
         excessRatio =
             1 + List.length regionToShow // 500
@@ -173,9 +163,49 @@ update :
     -> ViewingContext
     -> DisplayOptions
     -> (ImageMsg -> msg)
+    -> Track
     -> ( ViewingContext, PostUpdateAction trck (Cmd msg) )
-update msg view options wrap =
+update msg view options wrap track =
     -- Second return value indicates whether selection needs to change.
+    let
+        zoom =
+            clamp 0.0 22.0 <| view.zoomLevel + 1.0
+
+        _ =
+            Debug.log "update" msg
+    in
     case msg of
+        ImageZoomIn ->
+            ( { view
+                | zoomLevel = zoom
+                , chartPoints = downSelect track.currentNode zoom track.trackPoints
+              }
+            , ActionPreview
+            )
+
+        ImageZoomOut ->
+            ( { view
+                | zoomLevel = zoom
+                , chartPoints = downSelect track.currentNode zoom track.trackPoints
+              }
+            , ActionPreview
+            )
+
+        ImageReset ->
+            ( { view
+                | zoomLevel = view.defaultZoomLevel
+                , chartPoints = downSelect track.currentNode zoom track.trackPoints
+              }
+            , ActionPreview
+            )
+
         _ ->
             ( view, ActionNoOp )
+
+
+changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
+changeFocusTo tp context =
+    { context
+        | focalPoint = tp.xyz
+        , currentPoint = Just tp
+    }

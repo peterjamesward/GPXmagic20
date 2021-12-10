@@ -31,6 +31,7 @@ type alias ViewingContext =
     , waitingForClickDelay : Bool
     , mapClickToDrag : Bool
     , currentPoint : Maybe TrackPoint
+    , chartPoints : List TrackPoint
     }
 
 
@@ -61,6 +62,7 @@ defaultViewingContext =
     , waitingForClickDelay = False
     , mapClickToDrag = True
     , currentPoint = Nothing
+    , chartPoints = []
     }
 
 

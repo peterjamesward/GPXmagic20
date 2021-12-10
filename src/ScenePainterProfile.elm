@@ -272,7 +272,7 @@ update msg view options wrap =
             ( view, ActionNoOp )
 
 
-detectHit : ViewingContext -> DisplayOptions ->Mouse.Event -> Maybe TrackPoint
+detectHit : ViewingContext -> DisplayOptions -> Mouse.Event -> Maybe TrackPoint
 detectHit context options event =
     let
         ( x, y ) =
@@ -318,4 +318,7 @@ profilePointNearestRay track ray =
 
 changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
 changeFocusTo tp context =
-    { context | focalPoint = tp.profileXZ }
+    { context
+        | focalPoint = tp.xyz
+        , currentPoint = Just tp
+    }

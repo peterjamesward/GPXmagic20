@@ -428,12 +428,16 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewNewProfile ->
-                        ScenePainterProfileCharts.viewScene
-                            (pane.activeContext == ViewNewProfile)
-                            (getActiveContext pane)
-                            displayOptions
-                            track
-                            (imageMessageWrapper pane.paneId >> wrapper)
+                        case track of
+                            Just aTrack ->
+                                ScenePainterProfileCharts.viewScene
+                                    (pane.activeContext == ViewNewProfile)
+                                    (getActiveContext pane)
+                                    displayOptions
+                                    (imageMessageWrapper pane.paneId >> wrapper)
+
+                            Nothing ->
+                                text "Where's the track gone?"
 
                     ViewMap ->
                         About.viewAboutText
@@ -516,8 +520,9 @@ update :
     -> DisplayOptions
     -> List ViewPane
     -> (ViewPaneMessage -> msg)
+    -> Track
     -> ( Maybe ViewPane, ViewPaneAction trck (Cmd msg) )
-update msg options panes wrap =
+update msg options panes wrap track =
     case msg of
         ChooseViewMode paneId mode ->
             let
@@ -598,6 +603,7 @@ update msg options panes wrap =
                                         pane.profileContext
                                         options
                                         (wrap << imageMessageWrapper pane.paneId)
+                                        track
                             in
                             ( Just { pane | profileContext = newContext }
                             , ImageAction action
@@ -676,7 +682,7 @@ updatePointerInLinkedPanes tp pane =
             , planContext = ScenePainterCommon.changeFocusTo tp pane.planContext
             , profileContext = ScenePainterProfile.changeFocusTo tp pane.profileContext
             , mapContext = ScenePainterCommon.changeFocusTo tp pane.mapContext
-            , newProfileContext = ScenePainterProfile.changeFocusTo tp pane.newProfileContext
+            , newProfileContext = ScenePainterProfileCharts.changeFocusTo tp pane.newProfileContext
         }
 
     else
