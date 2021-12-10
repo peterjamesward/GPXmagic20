@@ -7,17 +7,19 @@
 
 **Map not resizing properly after initial load** (this may be commented atm)
 
+## Dan (WIP)
+Show gradient over distance.
+> Combine with profile using svg charting.
+> Use Zoom and Slide controls to select data region.
+> Sample data to keep to reasonable number of points (1000?).
+> Figure out how to lay out two charts.
+> Add popup with segment details.
+
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
 as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.  
 > Involves direction changes v. distance changes across whole track (window calc).  
 > Have radius and angle change sliders. This will allow people to look only for hairpins, say.  
-
-## Dan
-Show gradient over distance. 
-> Perhaps optionally underneath the profile?  
-> Might be better with SVG, with info overlay. Maybe use a library.  
-> https://github.com/terezka/elm-charts
 
 ## Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.  

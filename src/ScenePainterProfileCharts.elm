@@ -2,37 +2,22 @@ module ScenePainterProfileCharts exposing (..)
 
 -- This is our SVG charting profile view screen painter.
 
-import Axis3d exposing (Axis3d)
-import Camera3d exposing (Camera3d)
 import Chart as C
 import Chart.Attributes as CA
-import Color
-import Delay
-import Direction3d exposing (positiveZ)
 import DisplayOptions exposing (DisplayOptions)
-import EarthConstants exposing (metresPerPixel, metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
 import Html exposing (Html)
-import Html.Events.Extra.Mouse as Mouse exposing (Button(..))
-import Length exposing (Meters, inMeters, meters)
+import Length exposing (Meters)
 import List.Extra
-import LocalCoords exposing (LocalCoords)
-import Pixels exposing (Pixels, inPixels)
-import Point2d
-import Point3d exposing (Point3d, distanceFromAxis)
+import Pixels exposing (Pixels)
+import Point3d exposing (Point3d)
 import PostUpdateActions exposing (PostUpdateAction(..))
-import Quantity exposing (Quantity, toFloatQuantity)
-import Rectangle2d
-import Scene exposing (Scene)
-import Scene3d exposing (Entity)
+import Quantity exposing (Quantity)
 import ScenePainterCommon exposing (..)
-import Time
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
-import Vector3d
-import ViewingContext exposing (DragAction(..), ViewingContext, defaultViewingContext)
+import ViewingContext exposing (DragAction(..), ViewingContext)
 import ViewingMode exposing (ViewingMode(..))
-import Viewpoint3d exposing (Viewpoint3d)
 
 
 initialiseView :
@@ -64,23 +49,68 @@ viewScene visible context options track wrapper =
             Pixels.inPixels viewWidth
 
         useHeight =
-            Pixels.inPixels viewHeight
+            Pixels.inPixels viewHeight // 2
     in
+    column
+        ((inFront <| zoomButtons wrapper)
+            :: withMouseCapture wrapper
+        )
+        [ wrapChart useWidth useHeight <|
+            altitudeChart
+                (toFloat useWidth)
+                (toFloat <| useHeight)
+                track
+        , wrapChart useWidth useHeight <|
+            gradientChart
+                (toFloat useWidth)
+                (toFloat <| useHeight)
+                track
+        ]
+
+
+wrapChart useWidth useHeight =
     el
         [ width <| px useWidth
         , height <| px useHeight
         , padding 5
         ]
-    <|
-        html <|
-            showCharts
-                (toFloat useWidth - 20)
-                (toFloat useHeight - 20)
-                track
+        << html
 
 
-showCharts : Float -> Float -> List TrackPoint -> Html msg
-showCharts w h trackPoints =
+altitudeChart : Float -> Float -> List TrackPoint -> Html msg
+altitudeChart w h trackPoints =
+    let
+        minY =
+            List.Extra.minimumBy
+                (.xyz >> Point3d.zCoordinate >> Length.inMeters)
+                trackPoints
+                |> Maybe.map (.xyz >> Point3d.zCoordinate >> Length.inMeters)
+                |> Maybe.withDefault 0.0
+    in
+    C.chart
+        [ CA.height h
+        , CA.width w
+        , CA.margin { top = 20, bottom = 20, left = 20, right = 20 }
+        ]
+        [ C.xTicks []
+        , C.yTicks []
+        , C.xLabels []
+        , C.yLabels []
+        , C.xAxis [ CA.noArrow ]
+        , C.yAxis
+            [ CA.noArrow ]
+        , C.series (.distanceFromStart >> Length.inMeters)
+            [ C.interpolated (.xyz >> Point3d.zCoordinate >> Length.inMeters) [] [] ]
+            trackPoints
+
+        --, C.each model.hovering <|
+        --    \p item ->
+        --        [ C.tooltip item [] [] [] ]
+        ]
+
+
+gradientChart : Float -> Float -> List TrackPoint -> Html msg
+gradientChart w h trackPoints =
     C.chart
         [ CA.height h
         , CA.width w
@@ -92,13 +122,13 @@ showCharts w h trackPoints =
         , C.yLabels []
         , C.xAxis [ CA.noArrow ]
         , C.yAxis [ CA.noArrow ]
-
-        --, C.bars [] [ C.bar gradientFromPoint [] ] trackPoints
         , C.series (.distanceFromStart >> Length.inMeters)
-            [ C.interpolated (.xyz >> Point3d.zCoordinate >> Length.inMeters) [] []
-            , C.interpolated gradientFromPoint [ CA.stepped ] []
-            ]
+            [ C.interpolated gradientFromPoint [ CA.stepped ] [] ]
             trackPoints
+
+        --, C.each model.hovering <|
+        --    \p item ->
+        --        [ C.tooltip item [] [] [] ]
         ]
 
 
