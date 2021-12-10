@@ -53,7 +53,7 @@ type alias ViewPane =
     , firstPersonContext : ViewingContext
     , planContext : ViewingContext
     , profileContext : ViewingContext
-    , newProfileContext : ViewingContext
+    , profileChartContext : ViewingContext
     , mapContext : ViewingContext
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
     , paneLinked : Bool
@@ -77,7 +77,7 @@ defaultViewPane =
     , firstPersonContext = newViewingContext ViewFirstPerson
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
-    , newProfileContext = newViewingContext ViewNewProfile
+    , profileChartContext = newViewingContext ViewNewProfile
     , mapContext = newViewingContext ViewMap
     , viewPixels = ( pixels 800, pixels 500 )
     , paneLinked = True
@@ -187,7 +187,7 @@ mapOverPaneContexts f pane =
         , planContext = f pane.planContext
         , profileContext = f pane.profileContext
         , mapContext = f pane.mapContext
-        , newProfileContext = f pane.newProfileContext
+        , profileChartContext = f pane.profileChartContext
     }
 
 
@@ -229,7 +229,7 @@ resetAllViews track pane =
         , planContext = ScenePainterPlan.initialiseView pane.viewPixels track pane.planContext
         , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track pane.profileContext
         , mapContext = ScenePainterMap.initialiseView pane.viewPixels track pane.mapContext
-        , newProfileContext = ScenePainterProfileCharts.initialiseView pane.viewPixels track pane.newProfileContext
+        , profileChartContext = ScenePainterProfileCharts.initialiseView pane.viewPixels track pane.profileChartContext
     }
 
 
@@ -307,7 +307,7 @@ getActiveContext pane =
             pane.thirdPersonContext
 
         ViewNewProfile ->
-            pane.newProfileContext
+            pane.profileChartContext
 
 
 imageMessageWrapper : Int -> ImageMsg -> ViewPaneMessage
@@ -600,12 +600,12 @@ update msg options panes wrap track =
                                 ( newContext, action ) =
                                     ScenePainterProfileCharts.update
                                         imageMsg
-                                        pane.profileContext
+                                        pane.profileChartContext
                                         options
                                         (wrap << imageMessageWrapper pane.paneId)
                                         track
                             in
-                            ( Just { pane | profileContext = newContext }
+                            ( Just { pane | profileChartContext = newContext }
                             , ImageAction action
                             )
 
@@ -682,7 +682,12 @@ updatePointerInLinkedPanes track pane =
             , planContext = ScenePainterCommon.changeFocusTo track pane.planContext
             , profileContext = ScenePainterProfile.changeFocusTo track pane.profileContext
             , mapContext = ScenePainterCommon.changeFocusTo track pane.mapContext
-            , newProfileContext = ScenePainterProfileCharts.changeFocusTo track pane.newProfileContext
+            , profileChartContext =
+                if pane.visible then
+                    ScenePainterProfileCharts.changeFocusTo track pane.profileChartContext
+
+                else
+                    pane.profileChartContext
         }
 
     else

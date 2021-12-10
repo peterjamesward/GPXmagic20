@@ -30,6 +30,7 @@ initialiseView viewSize track oldContext =
     { oldContext
         | viewingMode = ViewNewProfile
         , zoomLevel = 12.0
+        , defaultZoomLevel = 12.0
         , chartPoints = downSelect track.currentNode 12.0 track.trackPoints
         , focalPoint = track.currentNode.xyz
     }
@@ -70,14 +71,15 @@ viewScene visible context options wrapper =
 downSelect : TrackPoint -> Float -> List TrackPoint -> List TrackPoint
 downSelect current zoom points =
     -- Zoom is logarithmic. In MapBox, zoom 0 => 78km per pixel at equator.
-    -- That's tiny. We probably want zoom 0 to mean we can show (say) 500km of track.
-    -- Enough for Mark Beaumont.
     -- At zoom 22, we should show maybe 5m.
     -- So that's 22 steps for 10^8 down to 10^0.
     -- Let's keep it simple.
     let
         metersToShow =
             10 ^ (8 - zoom / 3)
+
+        _ =
+            Debug.log "extent" metersToShow
 
         startDistance =
             Length.inMeters current.distanceFromStart
@@ -167,16 +169,13 @@ update :
     -> ( ViewingContext, PostUpdateAction trck (Cmd msg) )
 update msg view options wrap track =
     -- Second return value indicates whether selection needs to change.
-    let
-        zoom =
-            clamp 0.0 22.0 <| view.zoomLevel + 1.0
-
-        _ =
-            Debug.log "update" msg
-    in
     case msg of
         ImageZoomIn ->
-            ( { view
+            ( let
+                zoom =
+                    clamp 0.0 22.0 <| view.zoomLevel + 1.0
+              in
+              { view
                 | zoomLevel = zoom
                 , chartPoints = downSelect track.currentNode zoom track.trackPoints
               }
@@ -184,7 +183,11 @@ update msg view options wrap track =
             )
 
         ImageZoomOut ->
-            ( { view
+            ( let
+                zoom =
+                    clamp 0.0 22.0 <| view.zoomLevel - 1.0
+              in
+              { view
                 | zoomLevel = zoom
                 , chartPoints = downSelect track.currentNode zoom track.trackPoints
               }
@@ -194,7 +197,7 @@ update msg view options wrap track =
         ImageReset ->
             ( { view
                 | zoomLevel = view.defaultZoomLevel
-                , chartPoints = downSelect track.currentNode zoom track.trackPoints
+                , chartPoints = downSelect track.currentNode view.defaultZoomLevel track.trackPoints
               }
             , ActionPreview
             )
@@ -206,7 +209,7 @@ update msg view options wrap track =
 changeFocusTo : Track -> ViewingContext -> ViewingContext
 changeFocusTo track context =
     { context
-        | focalPoint = track.currentNode.xyz
+        | focalPoint = track.currentNode.profileXZ
         , currentPoint = Just track.currentNode
         , chartPoints = downSelect track.currentNode context.zoomLevel track.trackPoints
     }
