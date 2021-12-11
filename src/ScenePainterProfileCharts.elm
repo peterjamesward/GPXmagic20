@@ -56,21 +56,25 @@ viewScene visible context options wrapper =
         useHeight =
             Pixels.inPixels viewHeight // 2
     in
-    column
-        [ inFront <| zoomButtons wrapper, spacing 10 ]
-        [ wrapChart useWidth useHeight <|
-            altitudeChart
-                (toFloat useWidth)
-                (toFloat <| useHeight)
-                context
-                wrapper
-        , wrapChart useWidth useHeight <|
-            gradientChart
-                (toFloat useWidth)
-                (toFloat <| useHeight)
-                context
-                wrapper
-        ]
+    if visible then
+        column
+            [ inFront <| zoomButtons wrapper, spacing 10 ]
+            [ wrapChart useWidth useHeight <|
+                altitudeChart
+                    (toFloat useWidth)
+                    (toFloat useHeight)
+                    context
+                    wrapper
+            , wrapChart useWidth useHeight <|
+                gradientChart
+                    (toFloat useWidth)
+                    (toFloat useHeight)
+                    context
+                    wrapper
+            ]
+
+    else
+        none
 
 
 downSelect : TrackPoint -> Float -> List TrackPoint -> List TrackPoint
@@ -82,9 +86,6 @@ downSelect current zoom points =
     let
         metersToShow =
             10 ^ (8 - zoom / 3)
-
-        _ =
-            Debug.log "extent" metersToShow
 
         startDistance =
             Length.inMeters current.distanceFromStart
@@ -129,8 +130,8 @@ altitudeChart w h context wrapper =
         [ CA.height h
         , CA.width w
         , CA.margin { top = 20, bottom = 20, left = 20, right = 20 }
-        , CE.onMouseMove (wrapper << OnHover) (CE.getNearest CI.dots)
-        , CE.onMouseLeave ((wrapper << OnHover) [])
+        --, CE.onMouseMove (wrapper << OnHover) (CE.getNearest CI.dots)
+        --, CE.onMouseLeave ((wrapper << OnHover) [])
         ]
         [ C.xTicks []
         , C.yTicks []
@@ -142,24 +143,24 @@ altitudeChart w h context wrapper =
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated (.xyz >> Point3d.zCoordinate >> Length.inMeters) [] [] ]
             context.chartPoints
-        , C.each context.chartHover <|
-            \p dot ->
-                let
-                    x =
-                        CI.getX dot
-
-                    y =
-                        CI.getY dot
-                in
-                [ C.tooltip dot
-                    []
-                    []
-                    [ H.text "Distance: "
-                    , H.text (showDecimal0 x)
-                    , H.text " Altitude: "
-                    , H.text (showDecimal2 y)
-                    ]
-                ]
+        --, C.each context.chartHover <|
+        --    \p dot ->
+        --        let
+        --            x =
+        --                CI.getX dot
+        --
+        --            y =
+        --                CI.getY dot
+        --        in
+        --        [ C.tooltip dot
+        --            []
+        --            []
+        --            [ H.text "Distance: "
+        --            , H.text (showDecimal0 x)
+        --            , H.text " Altitude: "
+        --            , H.text (showDecimal2 y)
+        --            ]
+        --        ]
         ]
 
 
@@ -174,8 +175,8 @@ gradientChart w h context wrapper =
         [ CA.height h
         , CA.width w
         , CA.margin { top = 20, bottom = 20, left = 20, right = 20 }
-        , CE.onMouseMove (wrapper << OnHover) (CE.getNearest CI.dots)
-        , CE.onMouseLeave ((wrapper << OnHover) [])
+        --, CE.onMouseMove (wrapper << OnHover) (CE.getNearest CI.dots)
+        --, CE.onMouseLeave ((wrapper << OnHover) [])
         ]
         [ C.xTicks []
         , C.yTicks []
@@ -186,24 +187,24 @@ gradientChart w h context wrapper =
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated gradientFromPoint [ CA.stepped ] [] ]
             context.chartPoints
-        , C.each context.chartHover <|
-            \p dot ->
-                let
-                    x =
-                        CI.getX dot
-
-                    y =
-                        CI.getY dot
-                in
-                [ C.tooltip dot
-                    []
-                    []
-                    [ H.text "Distance: "
-                    , H.text (showDecimal0 x)
-                    , H.text " Gradient: "
-                    , H.text (showDecimal2 y)
-                    ]
-                ]
+        --, C.each context.chartHover <|
+        --    \p dot ->
+        --        let
+        --            x =
+        --                CI.getX dot
+        --
+        --            y =
+        --                CI.getY dot
+        --        in
+        --        [ C.tooltip dot
+        --            []
+        --            []
+        --            [ H.text "Distance: "
+        --            , H.text (showDecimal0 x)
+        --            , H.text " Gradient: "
+        --            , H.text (showDecimal2 y)
+        --            ]
+        --        ]
         ]
 
 

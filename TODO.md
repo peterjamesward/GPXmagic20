@@ -9,10 +9,9 @@
 
 ## Dan (WIP)
 Show gradient over distance.
-> Add popup with segment details. 
-> Requires careful thinking about OnHover (ViewPane has the datum). ImageMsg OnHover datum.
+> MUST NOT BUILD UNLESS OPEN. Memory hog.
 
-Info popups on 3D views
+## Info popups on 3D views
 > Seems easy now we have spatial index, SVG charts, OnHover.
 > https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
