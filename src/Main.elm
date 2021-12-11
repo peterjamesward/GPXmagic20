@@ -1381,15 +1381,23 @@ composeScene model =
             in
             { model
                 | completeScene =
-                    combineLists
-                        [ renderVarying3dSceneElements model reducedTrack
-                        , renderTrack3dSceneElements model reducedTrack
-                        ]
+                    if ViewPane.is3dVisible model.viewPanes then
+                        combineLists
+                            [ renderVarying3dSceneElements model reducedTrack
+                            , renderTrack3dSceneElements model reducedTrack
+                            ]
+
+                    else
+                        []
                 , completeProfile =
-                    combineLists
-                        [ renderVaryingProfileSceneElements model reducedTrack
-                        , renderTrackProfileSceneElements model reducedTrack
-                        ]
+                    if ViewPane.isProfileVisible model.viewPanes then
+                        combineLists
+                            [ renderVaryingProfileSceneElements model reducedTrack
+                            , renderTrackProfileSceneElements model reducedTrack
+                            ]
+
+                    else
+                        []
             }
 
 
@@ -1427,13 +1435,11 @@ renderVarying3dSceneElements model isTrack =
                     (\tab ->
                         case tab.preview3D of
                             Just fn ->
-                                Just (fn isTrack)
+                                fn isTrack
 
                             Nothing ->
-                                Nothing
+                                []
                     )
-                |> List.filterMap identity
-                |> Utils.combineLists
     in
     [ SceneBuilder.renderMarkers isTrack
     , if model.displayOptions.showRenderingLimit then
@@ -1441,8 +1447,8 @@ renderVarying3dSceneElements model isTrack =
 
       else
         []
-    , previews
     ]
+        ++ previews
         |> Utils.combineLists
 
 

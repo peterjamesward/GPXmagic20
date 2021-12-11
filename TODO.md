@@ -1,15 +1,23 @@
 
 # BUGS
 
+Bend smoother completely wrong on Nufenen-Furka-Tremola !!
+
+Curve Former editing consumes memory. Not released. Holding state somewhere?
+> Nothing obvious in the UndoRedoInfo.
+> It's Preview !!
+> Seems like any Preview.
+> Suspect MAP. Now, go to map removes other view options. Broked.
+> Storage panes = 	{"twocolumns":false,"views":["map"]}
+> Deffo, putting live preview lines on map is bad idea.
+> I think I don't get back the space used by JSON. (??)
+> So, no live prevew on Map.
+
 ---
 
 # Backlog
 
 **Map not resizing properly after initial load** (this may be commented atm)
-
-## Dan (WIP)
-Show gradient over distance.
-> MUST NOT BUILD UNLESS OPEN. Memory hog.
 
 ## Info popups on 3D views
 > Seems easy now we have spatial index, SVG charts, OnHover.

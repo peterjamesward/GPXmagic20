@@ -424,7 +424,9 @@ function addOptionals(msg) {
     };
 
 //    console.log(msg.previews);
-    msg.previews.forEach(addPreview);
+//    if (msg.previews != 'undefined' && typeof(msg.previews) != 'undefined') {
+//      msg.previews.forEach(addPreview);
+//    };
 };
 
 function addPreview(preview) {
