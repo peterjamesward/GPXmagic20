@@ -11,6 +11,7 @@ import Element.Input exposing (button)
 import FeatherIcons
 import Html.Attributes exposing (id)
 import Json.Encode as E
+import MapBox
 import MoveAndStretch
 import Pixels exposing (Pixels, inPixels)
 import PortController
@@ -128,5 +129,5 @@ viewScene context scene wrapper =
             , alignTop
             , htmlAttribute (id "map")
             ]
-            none
+            <| html <| MapBox.view ()
         ]

@@ -36,6 +36,7 @@
             "feathericons/elm-feather": "1.5.0",
             "folkertdev/elm-sha2": "1.0.0",
             "folkertdev/svg-path-lowlevel": "4.0.1",
+            "gampleman/elm-mapbox": "4.1.0",
             "ianmackenzie/elm-1d-parameter": "1.0.1",
             "ianmackenzie/elm-3d-camera": "3.1.0",
             "ianmackenzie/elm-3d-scene": "1.0.1",

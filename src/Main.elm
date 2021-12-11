@@ -232,15 +232,16 @@ init mflags origin navigationKey =
         -- Just make sure the Accordion reflects all the other state.
         |> (\record -> { record | toolsAccordion = toolsAccordion (Model record) })
         |> Model
-    , Cmd.batch
-        [ authCmd
-        , Task.perform AdjustTimeZone Time.here
-        , Task.perform Tick Time.now
-        , PortController.storageGetItem "accordion"
-        , PortController.storageGetItem "display"
-
-        --, PortController.storageGetItem "panes"
-        ]
+    , Cmd.none
+    --Cmd.batch
+    --    [ authCmd
+    --    , Task.perform AdjustTimeZone Time.here
+    --    , Task.perform Tick Time.now
+    --    --, PortController.storageGetItem "accordion"
+    --    --, PortController.storageGetItem "display"
+    --
+    --    --, PortController.storageGetItem "panes"
+    --    ]
     )
 
 

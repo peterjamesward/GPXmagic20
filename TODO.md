@@ -2,8 +2,10 @@
 # BUGS
 
 Bend smoother completely wrong on Nufenen-Furka-Tremola !!
-**Zooming** can break Chrome !!
+Generally finds no bends, or bizarre ones at angle to track.
+**Zooming** on this track can break Chrome !!
 
+Can also break on NC250 stage 4 with curve former. Unless you try.
 
 ---
 
