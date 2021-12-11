@@ -2,26 +2,15 @@
 # BUGS
 
 Bend smoother completely wrong on Nufenen-Furka-Tremola !!
+**Zooming** can break Chrome !!
 
-Curve Former editing consumes memory. Not released. Holding state somewhere?
-> Nothing obvious in the UndoRedoInfo.
-> It's Preview !!
-> Seems like any Preview.
-> Suspect MAP. Now, go to map removes other view options. Broked.
-> Storage panes = 	{"twocolumns":false,"views":["map"]}
-> Deffo, putting live preview lines on map is bad idea.
-> I think I don't get back the space used by JSON. (??)
-> So, no live prevew on Map.
+**Limit** Curve Former recursion along track in seek.
 
 ---
 
 # Backlog
 
 **Map not resizing properly after initial load** (this may be commented atm)
-
-## Info popups on 3D views
-> Seems easy now we have spatial index, SVG charts, OnHover.
-> https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
@@ -57,6 +46,10 @@ Switch currentPoint to : Int, avoid stale state worries.
 Haskell native app!
 > https://www.hgamer3d.org/Entities.html
 > https://speakerdeck.com/mchakravarty/playing-with-graphics-and-animations-in-haskell
+
+## Info popups on 3D views (V3)
+> Seems easy now we have spatial index, SVG charts, OnHover.
+> https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
 **Stratified** data structures instead of heavy-weight TrackPoint.
 1. Track points as read from GPX;

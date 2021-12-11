@@ -34,18 +34,18 @@ initialiseView viewSize track oldContext =
         | viewingMode = ViewProfileCharts
         , zoomLevel = 12.0
         , defaultZoomLevel = 12.0
+
         --, chartPoints = downSelect track.currentNode 12.0 track.trackPoints
         , focalPoint = track.currentNode.xyz
     }
 
 
 viewScene :
-    Bool
-    -> ViewingContext
+    ViewingContext
     -> DisplayOptions
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context options wrapper =
+viewScene context options wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size
@@ -56,25 +56,21 @@ viewScene visible context options wrapper =
         useHeight =
             Pixels.inPixels viewHeight // 2
     in
-    if visible then
-        column
-            [ inFront <| zoomButtons wrapper, spacing 10 ]
-            [ wrapChart useWidth useHeight <|
-                altitudeChart
-                    (toFloat useWidth)
-                    (toFloat useHeight)
-                    context
-                    wrapper
-            , wrapChart useWidth useHeight <|
-                gradientChart
-                    (toFloat useWidth)
-                    (toFloat useHeight)
-                    context
-                    wrapper
-            ]
-
-    else
-        none
+    column
+        [ inFront <| zoomButtons wrapper, spacing 10 ]
+        [ wrapChart useWidth useHeight <|
+            altitudeChart
+                (toFloat useWidth)
+                (toFloat useHeight)
+                context
+                wrapper
+        , wrapChart useWidth useHeight <|
+            gradientChart
+                (toFloat useWidth)
+                (toFloat useHeight)
+                context
+                wrapper
+        ]
 
 
 downSelect : TrackPoint -> Float -> List TrackPoint -> List TrackPoint

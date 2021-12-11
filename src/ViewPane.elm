@@ -398,7 +398,6 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                 case pane.activeContext of
                     ViewThirdPerson ->
                         ScenePainterThird.viewScene
-                            (pane.activeContext == ViewThirdPerson)
                             (getActiveContext pane)
                             displayOptions
                             scene
@@ -406,7 +405,6 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
 
                     ViewFirstPerson ->
                         ScenePainterFirst.viewScene
-                            (pane.activeContext == ViewFirstPerson)
                             (getActiveContext pane)
                             displayOptions
                             scene
@@ -414,14 +412,12 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
 
                     ViewPlan ->
                         ScenePainterPlan.viewScene
-                            (pane.activeContext == ViewPlan)
                             (getActiveContext pane)
                             plan
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewProfile ->
                         ScenePainterProfile.viewScene
-                            (pane.activeContext == ViewProfile)
                             (getActiveContext pane)
                             displayOptions
                             profile
@@ -431,7 +427,6 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                         case track of
                             Just aTrack ->
                                 ScenePainterProfileCharts.viewScene
-                                    (pane.activeContext == ViewProfileCharts)
                                     (getActiveContext pane)
                                     displayOptions
                                     (imageMessageWrapper pane.paneId >> wrapper)
@@ -452,7 +447,6 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
             -- We leave the Map DIV intact, as destroying and creating is APITA.
             , conditionallyVisible (pane.activeContext == ViewMap) <|
                 ScenePainterMap.viewScene
-                    (pane.activeContext == ViewMap)
                     (getActiveContext pane)
                     []
                     (imageMessageWrapper pane.paneId >> wrapper)

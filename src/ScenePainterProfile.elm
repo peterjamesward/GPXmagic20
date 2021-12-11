@@ -91,30 +91,25 @@ profileZoomLevelFromBoundingBox ( viewWidth, viewHeight ) points =
 
 
 viewScene :
-    Bool
-    -> ViewingContext
+    ViewingContext
     -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context options scene wrapper =
-    if visible then
-        el
-            ((inFront <| zoomButtons wrapper)
-                :: withMouseCapture wrapper
-            )
-        <|
-            html <|
-                Scene3d.unlit
-                    { camera = deriveViewPointAndCamera context options
-                    , dimensions = context.size
-                    , background = Scene3d.backgroundColor Color.lightCharcoal
-                    , clipDepth = Length.meters 1
-                    , entities = scene
-                    }
-
-    else
-        none
+viewScene context options scene wrapper =
+    el
+        ((inFront <| zoomButtons wrapper)
+            :: withMouseCapture wrapper
+        )
+    <|
+        html <|
+            Scene3d.unlit
+                { camera = deriveViewPointAndCamera context options
+                , dimensions = context.size
+                , background = Scene3d.backgroundColor Color.lightCharcoal
+                , clipDepth = Length.meters 1
+                , entities = scene
+                }
 
 
 deriveViewPointAndCamera : ViewingContext -> DisplayOptions -> Camera3d Length.Meters LocalCoords
