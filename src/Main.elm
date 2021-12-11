@@ -1097,20 +1097,20 @@ processViewPaneMessage innerMsg (Model model) track =
 
         ViewPane.PaneLayoutChange f ->
             let
-                updatedPanes =
+                panesAfterDistribution =
                     ViewPane.mapOverPanes
                         (f >> ViewPane.setViewPaneSize model.splitInPixels)
                         updatedModel.viewPanes
 
                 modelWithNewPanes =
-                    { updatedModel | viewPanes = updatedPanes }
+                    { updatedModel | viewPanes = panesAfterDistribution }
 
                 ( finalModel, commands ) =
                     processPostUpdateAction modelWithNewPanes ActionRerender
             in
             ( finalModel
             , Cmd.batch
-                [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout updatedPanes)
+                [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout panesAfterDistribution)
                 , commands
                 ]
             )

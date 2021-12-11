@@ -375,7 +375,7 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
     -- Further complicated by Map sketch mode.
     if pane.visible then
         column []
-            [ if List.length scene > 0 then
+            [ if track /= Nothing then
                 row [ width fill, spacingXY 10 0 ]
                     [ if pane.paneId == 0 then
                         viewPaneTools wrapper
@@ -428,17 +428,16 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewProfileCharts ->
-                            none
-                        --case track of
-                        --    Just aTrack ->
-                        --        ScenePainterProfileCharts.viewScene
-                        --            (pane.activeContext == ViewProfileCharts)
-                        --            (getActiveContext pane)
-                        --            displayOptions
-                        --            (imageMessageWrapper pane.paneId >> wrapper)
-                        --
-                        --    Nothing ->
-                        --        text "Where's the track gone?"
+                        case track of
+                            Just aTrack ->
+                                ScenePainterProfileCharts.viewScene
+                                    (pane.activeContext == ViewProfileCharts)
+                                    (getActiveContext pane)
+                                    displayOptions
+                                    (imageMessageWrapper pane.paneId >> wrapper)
+
+                            Nothing ->
+                                text "Where's the track gone?"
 
                     ViewMap ->
                         About.viewAboutText
