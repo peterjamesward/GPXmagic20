@@ -424,15 +424,10 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewProfileCharts ->
-                        case track of
-                            Just aTrack ->
-                                ScenePainterProfileCharts.viewScene
-                                    (getActiveContext pane)
-                                    displayOptions
-                                    (imageMessageWrapper pane.paneId >> wrapper)
-
-                            Nothing ->
-                                text "Where's the track gone?"
+                        ScenePainterProfileCharts.viewScene
+                            (getActiveContext pane)
+                            displayOptions
+                            (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewMap ->
                         About.viewAboutText

@@ -936,7 +936,7 @@ seekNewCurve track model =
                             Just transition
 
                         Nothing ->
-                            if index > 1 then
+                            if index > 1 && index > tp1.index - 5 then
                                 entryCurveSeeker (index - 1)
 
                             else
@@ -961,7 +961,7 @@ seekNewCurve track model =
                             Just transition
 
                         Nothing ->
-                            if index < routeLength - 2 then
+                            if index < routeLength - 2 && index < tp2.index + 5 then
                                 exitCurveSeeker routeLength (index + 1)
 
                             else

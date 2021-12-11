@@ -4,7 +4,6 @@
 Bend smoother completely wrong on Nufenen-Furka-Tremola !!
 **Zooming** can break Chrome !!
 
-**Limit** Curve Former recursion along track in seek.
 
 ---
 
