@@ -4,9 +4,11 @@ module ScenePainterProfileCharts exposing (..)
 
 import Chart as C
 import Chart.Attributes as CA
+import Chart.Events as CE
+import Chart.Item as CI
 import DisplayOptions exposing (DisplayOptions)
 import Element exposing (..)
-import Html exposing (Html)
+import Html as H exposing (Html)
 import Length exposing (Meters)
 import List.Extra
 import Pixels exposing (Pixels)
@@ -16,6 +18,7 @@ import Quantity exposing (Quantity)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
+import Utils exposing (showDecimal0, showDecimal2, showLongMeasure, showShortMeasure)
 import ViewingContext exposing (DragAction(..), ViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -28,7 +31,7 @@ initialiseView :
 initialiseView viewSize track oldContext =
     -- This is just a simple default so we can see something!
     { oldContext
-        | viewingMode = ViewNewProfile
+        | viewingMode = ViewProfileCharts
         , zoomLevel = 12.0
         , defaultZoomLevel = 12.0
         , chartPoints = downSelect track.currentNode 12.0 track.trackPoints
@@ -54,17 +57,19 @@ viewScene visible context options wrapper =
             Pixels.inPixels viewHeight // 2
     in
     column
-        [ inFront <| zoomButtons wrapper ]
+        [ inFront <| zoomButtons wrapper, spacing 10 ]
         [ wrapChart useWidth useHeight <|
             altitudeChart
                 (toFloat useWidth)
                 (toFloat <| useHeight)
-                context.chartPoints
+                context
+                wrapper
         , wrapChart useWidth useHeight <|
             gradientChart
                 (toFloat useWidth)
                 (toFloat <| useHeight)
-                context.chartPoints
+                context
+                wrapper
         ]
 
 
@@ -105,13 +110,18 @@ wrapChart useWidth useHeight =
         << html
 
 
-altitudeChart : Float -> Float -> List TrackPoint -> Html msg
-altitudeChart w h trackPoints =
+altitudeChart :
+    Float
+    -> Float
+    -> { a | chartPoints : List TrackPoint, chartHover : List (CI.One TrackPoint CI.Dot) }
+    -> (ImageMsg -> msg)
+    -> Html msg
+altitudeChart w h context wrapper =
     let
         minY =
             List.Extra.minimumBy
                 (.xyz >> Point3d.zCoordinate >> Length.inMeters)
-                trackPoints
+                context.chartPoints
                 |> Maybe.map (.xyz >> Point3d.zCoordinate >> Length.inMeters)
                 |> Maybe.withDefault 0.0
     in
@@ -119,6 +129,8 @@ altitudeChart w h trackPoints =
         [ CA.height h
         , CA.width w
         , CA.margin { top = 20, bottom = 20, left = 20, right = 20 }
+        , CE.onMouseMove (wrapper << OnHover) (CE.getNearest CI.dots)
+        , CE.onMouseLeave ((wrapper << OnHover) [])
         ]
         [ C.xTicks []
         , C.yTicks []
@@ -129,20 +141,41 @@ altitudeChart w h trackPoints =
             [ CA.noArrow ]
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated (.xyz >> Point3d.zCoordinate >> Length.inMeters) [] [] ]
-            trackPoints
+            context.chartPoints
+        , C.each context.chartHover <|
+            \p dot ->
+                let
+                    x =
+                        CI.getX dot
 
-        --, C.each model.hovering <|
-        --    \p item ->
-        --        [ C.tooltip item [] [] [] ]
+                    y =
+                        CI.getY dot
+                in
+                [ C.tooltip dot
+                    []
+                    []
+                    [ H.text "Distance: "
+                    , H.text (showDecimal0 x)
+                    , H.text " Altitude: "
+                    , H.text (showDecimal2 y)
+                    ]
+                ]
         ]
 
 
-gradientChart : Float -> Float -> List TrackPoint -> Html msg
-gradientChart w h trackPoints =
+gradientChart :
+    Float
+    -> Float
+    -> { a | chartPoints : List TrackPoint, chartHover : List (CI.One TrackPoint CI.Dot) }
+    -> (ImageMsg -> msg)
+    -> Html msg
+gradientChart w h context wrapper =
     C.chart
         [ CA.height h
         , CA.width w
         , CA.margin { top = 20, bottom = 20, left = 20, right = 20 }
+        , CE.onMouseMove (wrapper << OnHover) (CE.getNearest CI.dots)
+        , CE.onMouseLeave ((wrapper << OnHover) [])
         ]
         [ C.xTicks []
         , C.yTicks []
@@ -152,11 +185,25 @@ gradientChart w h trackPoints =
         , C.yAxis [ CA.noArrow ]
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated gradientFromPoint [ CA.stepped ] [] ]
-            trackPoints
+            context.chartPoints
+        , C.each context.chartHover <|
+            \p dot ->
+                let
+                    x =
+                        CI.getX dot
 
-        --, C.each model.hovering <|
-        --    \p item ->
-        --        [ C.tooltip item [] [] [] ]
+                    y =
+                        CI.getY dot
+                in
+                [ C.tooltip dot
+                    []
+                    []
+                    [ H.text "Distance: "
+                    , H.text (showDecimal0 x)
+                    , H.text " Gradient: "
+                    , H.text (showDecimal2 y)
+                    ]
+                ]
         ]
 
 
@@ -199,6 +246,11 @@ update msg view options wrap track =
                 | zoomLevel = view.defaultZoomLevel
                 , chartPoints = downSelect track.currentNode view.defaultZoomLevel track.trackPoints
               }
+            , ActionPreview
+            )
+
+        OnHover datum ->
+            ( { view | chartHover = datum }
             , ActionPreview
             )
 

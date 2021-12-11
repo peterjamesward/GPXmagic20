@@ -1,6 +1,7 @@
 module ScenePainterCommon exposing (..)
 
 import BoundingBox3d
+import Chart.Item as CI
 import ColourPalette exposing (white)
 import EarthConstants exposing (metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
@@ -37,6 +38,7 @@ type ImageMsg
     | ImageReset
     | ClickDelayExpired
     | ImageToggleClickToDragOnMap
+    | OnHover (List (CI.One TrackPoint CI.Dot))
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)

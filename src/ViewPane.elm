@@ -14,7 +14,7 @@ import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg)
+import ScenePainterCommon exposing (ImageMsg(..))
 import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
@@ -77,7 +77,7 @@ defaultViewPane =
     , firstPersonContext = newViewingContext ViewFirstPerson
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
-    , profileChartContext = newViewingContext ViewNewProfile
+    , profileChartContext = newViewingContext ViewProfileCharts
     , mapContext = newViewingContext ViewMap
     , viewPixels = ( pixels 800, pixels 500 )
     , paneLinked = True
@@ -154,7 +154,7 @@ isMapVisible panes =
 isProfileVisible panes =
     -- Helper
     isViewingModeVisible ViewProfile panes
-        || isViewingModeVisible ViewNewProfile panes
+        || isViewingModeVisible ViewProfileCharts panes
 
 
 is3dVisible panes =
@@ -281,7 +281,7 @@ refreshSceneSearcher track context =
         ViewAbout ->
             context
 
-        ViewNewProfile ->
+        ViewProfileCharts ->
             context
 
 
@@ -306,7 +306,7 @@ getActiveContext pane =
         ViewAbout ->
             pane.thirdPersonContext
 
-        ViewNewProfile ->
+        ViewProfileCharts ->
             pane.profileChartContext
 
 
@@ -327,7 +327,7 @@ viewModeChoices pane wrapper =
                 , Input.optionWith ViewFirstPerson <| radioButton "1st"
                 , Input.optionWith ViewPlan <| radioButton "Plan"
                 , Input.optionWith ViewProfile <| radioButton "Prof."
-                , Input.optionWith ViewNewProfile <| radioButton "Prof2"
+                , Input.optionWith ViewProfileCharts <| radioButton "Chart"
                 , Input.optionWith ViewMap <| radioButton "Map"
                 , Input.optionWith ViewAbout <| radioButton "?"
                 ]
@@ -337,7 +337,7 @@ viewModeChoices pane wrapper =
                 , Input.optionWith ViewFirstPerson <| radioButton "First person"
                 , Input.optionWith ViewPlan <| radioButton "Plan"
                 , Input.optionWith ViewProfile <| radioButton "Profile"
-                , Input.optionWith ViewNewProfile <| radioButton "Profile2"
+                , Input.optionWith ViewProfileCharts <| radioButton "Charts"
                 , Input.optionWith ViewMap <| radioButton "Map"
                 , Input.optionWith ViewAbout <| radioButton "About"
                 ]
@@ -353,7 +353,7 @@ viewModeChoices pane wrapper =
                 fullOptionList
 
             else
-                List.take 4 fullOptionList
+                List.take 5 fullOptionList
         }
 
 
@@ -427,11 +427,11 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                             profile
                             (imageMessageWrapper pane.paneId >> wrapper)
 
-                    ViewNewProfile ->
+                    ViewProfileCharts ->
                         case track of
                             Just aTrack ->
                                 ScenePainterProfileCharts.viewScene
-                                    (pane.activeContext == ViewNewProfile)
+                                    (pane.activeContext == ViewProfileCharts)
                                     (getActiveContext pane)
                                     displayOptions
                                     (imageMessageWrapper pane.paneId >> wrapper)
@@ -595,7 +595,7 @@ update msg options panes wrap track =
                             , ImageAction action
                             )
 
-                        ViewNewProfile ->
+                        ViewProfileCharts ->
                             let
                                 ( newContext, action ) =
                                     ScenePainterProfileCharts.update
@@ -720,7 +720,7 @@ storePaneLayout panes =
                 ViewProfile ->
                     "profile"
 
-                ViewNewProfile ->
+                ViewProfileCharts ->
                     "charts"
 
                 ViewPlan ->
@@ -756,7 +756,7 @@ restorePaneState saved viewPanes =
                     ViewProfile
 
                 "charts" ->
-                    ViewNewProfile
+                    ViewProfileCharts
 
                 "plan" ->
                     ViewPlan

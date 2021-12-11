@@ -2,6 +2,7 @@ module ViewingContext exposing (..)
 
 import Angle exposing (Angle)
 import Axis3d exposing (Axis3d)
+import Chart.Item as CI
 import Flythrough exposing (Flythrough)
 import Length
 import LocalCoords exposing (LocalCoords)
@@ -32,6 +33,7 @@ type alias ViewingContext =
     , mapClickToDrag : Bool
     , currentPoint : Maybe TrackPoint
     , chartPoints : List TrackPoint
+    , chartHover : (List (CI.One TrackPoint CI.Dot))
     }
 
 
@@ -63,6 +65,7 @@ defaultViewingContext =
     , mapClickToDrag = True
     , currentPoint = Nothing
     , chartPoints = []
+    , chartHover = []
     }
 
 

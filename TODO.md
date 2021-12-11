@@ -9,8 +9,12 @@
 
 ## Dan (WIP)
 Show gradient over distance.
-> Pass zoom messages into new profile.
-> Add popup with segment details.
+> Add popup with segment details. 
+> Requires careful thinking about OnHover (ViewPane has the datum). ImageMsg OnHover datum.
+
+Info popups on 3D views
+> Seems easy now we have spatial index, SVG charts, OnHover.
+> https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
