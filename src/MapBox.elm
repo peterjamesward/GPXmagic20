@@ -100,7 +100,7 @@ view context track =
                     (Style
                         { base
                             | sources = trackSource :: base.sources
-                            , layers = trackLayer :: base.layers
+                            , layers = base.layers ++ [trackLayer]
                             , misc = trackCentre :: trackZoom :: base.misc
                         }
                     )
