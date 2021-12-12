@@ -7,6 +7,7 @@ import Json.Encode as E
 import Length
 import List.Extra
 import LocalCoords exposing (LocalCoords)
+import MapCommands
 import MapboxKey exposing (mapboxKey)
 import MoveAndStretch
 import Nudge
@@ -78,13 +79,17 @@ centreMap context track =
             context.focalPoint
                 |> withoutGhanianTransform track
     in
-    commandPort <|
-        E.object
-            [ ( "Cmd", E.string "Centre" )
-            , ( "token", E.string mapboxKey )
-            , ( "lon", E.float lon )
-            , ( "lat", E.float lat )
-            ]
+    MapCommands.jumpTo []
+
+
+
+--commandPort <|
+--    E.object
+--        [ ( "Cmd", E.string "Centre" )
+--        , ( "token", E.string mapboxKey )
+--        , ( "lon", E.float lon )
+--        , ( "lat", E.float lat )
+--        ]
 
 
 zoomMap : ViewingContext -> Cmd msg
@@ -104,13 +109,17 @@ centreMapOnCurrent track =
             track.currentNode.xyz
                 |> withoutGhanianTransform track
     in
-    commandPort <|
-        E.object
-            [ ( "Cmd", E.string "Centre" )
-            , ( "token", E.string mapboxKey )
-            , ( "lon", E.float lon )
-            , ( "lat", E.float lat )
-            ]
+    MapCommands.jumpTo []
+
+
+
+--commandPort <|
+--    E.object
+--        [ ( "Cmd", E.string "Centre" )
+--        , ( "token", E.string mapboxKey )
+--        , ( "lon", E.float lon )
+--        , ( "lat", E.float lat )
+--        ]
 
 
 prepareSketchMap : ( Float, Float ) -> Cmd msg
@@ -198,6 +207,7 @@ addMarkersToMap track previews =
 
                 Nothing ->
                     ( "ignore", E.null )
+
             --, ( "previews", E.list identity previews )
             ]
 

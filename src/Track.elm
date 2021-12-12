@@ -262,6 +262,24 @@ trackToJSON track =
         , ( "geometry", geometry )
         ]
 
+mapboxJSON : Track -> E.Value
+mapboxJSON track =
+    -- JSON suitable for Mapbox API to add polyline for route.
+    let
+        geometry =
+            E.object
+                [ ( "type", E.string "LineString" )
+                , ( "coordinates", E.list identity coordinates )
+                ]
+
+        coordinates =
+            List.map latLonPair (removeGhanianTransform track)
+    in
+    E.object
+        [ ( "type", E.string "Feature" )
+        , ( "geometry", geometry )
+        ]
+
 
 nextPointOn : Track -> TrackPoint -> TrackPoint
 nextPointOn track from =

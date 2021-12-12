@@ -10,12 +10,41 @@ import Mapbox.Element exposing (..)
 import Mapbox.Expression as E exposing (false, float, int, str, true)
 import Mapbox.Layer as Layer
 import Mapbox.Source as Source
-import Mapbox.Style as Style exposing (Style(..))
+import Mapbox.Style as Style exposing (Style(..), defaultCenter, defaultZoomLevel)
 import MapboxKey
 import Pixels
 import Styles.Outdoors
 import Track exposing (Track)
 import ViewingContext exposing (ViewingContext)
+
+
+testgeojson =
+    Json.Decode.decodeString Json.Decode.value """
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "properties": {
+        "name": "Bermuda Triangle",
+        "area": 1150180
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-64.73, 32.31],
+            [-80.19, 25.76],
+            [-66.09, 18.43],
+            [-64.73, 32.31]
+          ]
+        ]
+      }
+    }
+  ]
+}
+""" |> Result.withDefault (Json.Encode.object [])
 
 
 view : ViewingContext -> Track -> Html msg
@@ -33,16 +62,27 @@ view context track =
             Styles.Outdoors.style
 
         geojson =
-            track |> Track.trackToJSON
+            Track.mapboxJSON track
 
         trackSource =
+            --Source.geoJSONFromValue "changes" [] testgeojson
             Source.geoJSONFromValue "track" [] geojson
 
         trackLayer =
-            Layer.line "track"
-                "track"
-                [
-                ]
+            --Layer.fill "changes"
+            --    "changes"
+            --    [ Layer.fillOpacity (E.ifElse (E.toBool (E.featureState (str "hover"))) (float 0.9) (float 0.1))
+            --    ]
+            Layer.circle "track" "track" []
+
+        ( lon, lat, _ ) =
+            track.earthReferenceCoordinates
+
+        trackCentre =
+            defaultCenter { lng = lon, lat = lat }
+
+        trackZoom =
+            defaultZoomLevel context.zoomLevel
     in
     case baseStyle of
         Style base ->
@@ -54,13 +94,14 @@ view context track =
 
                     --, onMouseMove Hover
                     --, onClick Click
-                    , id ("my-map" ++ String.fromInt context.contextId)
+                    , id "my-map"
                     , eventFeaturesLayers []
                     ]
                     (Style
                         { base
                             | sources = trackSource :: base.sources
                             , layers = trackLayer :: base.layers
+                            , misc = trackCentre :: trackZoom :: base.misc
                         }
                     )
                 ]

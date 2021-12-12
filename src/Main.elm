@@ -74,6 +74,7 @@ import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMess
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
+import MapCommands exposing (..)
 
 
 type Msg
@@ -1547,16 +1548,16 @@ footer model =
             [ SvgPathExtractor.view SvgMessage
             , mapSketchEnable model
             ]
-        , conditionallyVisible model.mapSketchMode <|
-            el
-                [ width <| px <| model.splitInPixels - 20
-                , height <| px <| model.splitInPixels - 20
-                , alignLeft
-                , alignTop
-                , Border.width 1
-                , htmlAttribute (id "sketchMap")
-                ]
-                none
+        --, conditionallyVisible model.mapSketchMode <|
+        --    el
+        --        [ width <| px <| model.splitInPixels - 20
+        --        , height <| px <| model.splitInPixels - 20
+        --        , alignLeft
+        --        , alignTop
+        --        , Border.width 1
+        --        , htmlAttribute (id "sketchMap")
+        --        ]
+        --        none
         ]
 
 

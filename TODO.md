@@ -9,9 +9,18 @@ Can also break on NC250 stage 4 with curve former. Unless you try.
 
 ---
 
-# Backlog
+# WIP
 
-**Map not resizing properly after initial load** (this may be commented atm)
+Plod on with gampleman/elm-mapbox. Trying to see a track. Is centering and sets initial zoom,
+so not entirely useless. Need more examples?
+
+Can drag on map work in this model?
+
+Build the Style in update, not in the view.
+
+---
+
+# Backlog
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
