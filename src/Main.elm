@@ -872,10 +872,7 @@ processPostUpdateAction model action =
                         |> composeScene
             in
             ( Model polishedModel
-            , Cmd.batch
-                [ ViewPane.makeMapCommands track polishedModel.viewPanes (getMapPreviews polishedModel)
-                , Delay.after 100 RepaintMap
-                ]
+            , Cmd.none
             )
 
         ( Just track, ActionWalkGraph ) ->
@@ -976,6 +973,7 @@ processPostUpdateAction model action =
 
 
 getMapPreviews model =
+    -- Might not be practical.
     case model.track of
         Nothing ->
             []
