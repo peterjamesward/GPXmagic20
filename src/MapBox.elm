@@ -69,11 +69,10 @@ view context track =
             Source.geoJSONFromValue "track" [] geojson
 
         trackLayer =
-            --Layer.fill "changes"
-            --    "changes"
-            --    [ Layer.fillOpacity (E.ifElse (E.toBool (E.featureState (str "hover"))) (float 0.9) (float 0.1))
-            --    ]
-            Layer.circle "track" "track" []
+            Layer.line "track" "track" []
+
+        pointsLayer =
+            Layer.circle "points" "track" []
 
         ( lon, lat, _ ) =
             track.earthReferenceCoordinates
@@ -100,7 +99,7 @@ view context track =
                     (Style
                         { base
                             | sources = trackSource :: base.sources
-                            , layers = base.layers ++ [trackLayer]
+                            , layers = base.layers ++ [ trackLayer, pointsLayer ]
                             , misc = trackCentre :: trackZoom :: base.misc
                         }
                     )
