@@ -93,4 +93,9 @@ centreMapOn ( lon, lat ) =
         lngLat =
             { lng = lon, lat = lat }
     in
-    MapCommands.jumpTo [ Opt.center lngLat ]
+    MapCommands.flyTo [ Opt.center lngLat ]
+
+
+resizeMap : Cmd msg
+resizeMap =
+    MapCommands.resize

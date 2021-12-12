@@ -120,7 +120,6 @@ type Msg
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
     | CurveFormerMsg CurveFormer.Msg
-    | ClearMapClickDebounce
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -180,7 +179,6 @@ type alias ModelRecord =
     , markerOptions : MarkerControls.Options
     , moveAndStretch : MoveAndStretch.Model
     , curveFormer : CurveFormer.Model
-    , mapClickDebounce : Bool
     , mapboxStyle : Style.Style
     }
 
@@ -231,7 +229,6 @@ init mflags origin navigationKey =
       , markerOptions = MarkerControls.defaultOptions
       , moveAndStretch = MoveAndStretch.defaultModel
       , curveFormer = CurveFormer.defaultModel
-      , mapClickDebounce = False
       , mapboxStyle = Style.satelliteStreets
       }
         -- Just make sure the Accordion reflects all the other state.
@@ -417,11 +414,6 @@ update msg (Model model) =
             in
             ( Model { model | stravaAuthentication = newAuthData }
             , Cmd.map OAuthMessage authCmd
-            )
-
-        ClearMapClickDebounce ->
-            ( Model { model | mapClickDebounce = False }
-            , Cmd.none
             )
 
         PortMessage json ->
@@ -685,7 +677,9 @@ update msg (Model model) =
                     , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
                 }
             , Cmd.batch
-                [ PortController.storageSetItem "splitter" (Encode.int model.splitInPixels) ]
+                [ MapBox.resizeMap
+                , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
+                ]
             )
 
         StoreSplitterPosition ->
@@ -2367,30 +2361,24 @@ processPortMessage model json =
             --, 'lat' : e.lat()
             --, 'lon' : e.lon()
             --} );
-            case ( model.mapClickDebounce, lat, lon ) of
-                ( False, Ok lat1, Ok lon1 ) ->
+            case ( lat, lon ) of
+                ( Ok lat1, Ok lon1 ) ->
                     case searchTrackPointFromLonLat ( lon1, lat1 ) track of
                         Just point ->
                             let
                                 ( outcome, cmds ) =
                                     processPostUpdateAction
-                                        { model
-                                            | lastMapClick = ( lon1, lat1 )
-                                            , mapClickDebounce = True
-                                        }
+                                        { model | lastMapClick = ( lon1, lat1 ) }
                                         (PostUpdateActions.ActionFocusMove point)
                             in
                             ( outcome
-                            , Cmd.batch [ cmds, after 100 ClearMapClickDebounce ]
+                            , Cmd.none
                             )
 
                         Nothing ->
                             ( Model
-                                { model
-                                    | lastMapClick = ( lon1, lat1 )
-                                    , mapClickDebounce = True
-                                }
-                            , after 100 ClearMapClickDebounce
+                                { model | lastMapClick = ( lon1, lat1 ) }
+                            , Cmd.none
                             )
 
                 _ ->
