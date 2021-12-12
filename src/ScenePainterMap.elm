@@ -12,6 +12,7 @@ import FeatherIcons
 import Html.Attributes exposing (id)
 import Json.Encode as E
 import MapBox
+import Mapbox.Style as Style
 import MoveAndStretch
 import Pixels exposing (Pixels, inPixels)
 import PortController
@@ -90,10 +91,10 @@ update msg view wrap =
 
 viewScene :
     ViewingContext
-    -> Track
+    -> Style.Style
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context track wrapper =
+viewScene context style wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size
@@ -129,5 +130,5 @@ viewScene context track wrapper =
             , alignTop
             , htmlAttribute (id "map")
             ]
-            <| html <| MapBox.view context track
+            <| html <| MapBox.view context style
         ]

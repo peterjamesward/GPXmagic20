@@ -18,49 +18,9 @@ import Track exposing (Track)
 import ViewingContext exposing (ViewingContext)
 
 
-testgeojson =
-    Json.Decode.decodeString Json.Decode.value """
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "id": 1,
-      "properties": {
-        "name": "Bermuda Triangle",
-        "area": 1150180
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [-64.73, 32.31],
-            [-80.19, 25.76],
-            [-66.09, 18.43],
-            [-64.73, 32.31]
-          ]
-        ]
-      }
-    }
-  ]
-}
-""" |> Result.withDefault (Json.Encode.object [])
-
-
-view : ViewingContext -> Track -> Html msg
-view context track =
+buildMap : Track -> Style
+buildMap track =
     let
-        ( width, height ) =
-            context.size
-
-        ( w, h ) =
-            ( (width |> Pixels.inPixels |> String.fromInt) ++ "px"
-            , (height |> Pixels.inPixels |> String.fromInt) ++ "px"
-            )
-
-        baseStyle =
-            Styles.Outdoors.style
-
         geojson =
             Track.mapboxJSON track
 
@@ -74,6 +34,9 @@ view context track =
         pointsLayer =
             Layer.circle "points" "track" []
 
+        baseStyle =
+            Styles.Outdoors.style
+
         ( lon, lat, _ ) =
             track.earthReferenceCoordinates
 
@@ -81,29 +44,42 @@ view context track =
             defaultCenter { lng = lon, lat = lat }
 
         trackZoom =
-            defaultZoomLevel context.zoomLevel
+            defaultZoomLevel 12
     in
     case baseStyle of
         Style base ->
-            div [ style "width" w, style "height" h ]
-                [ map
-                    [ maxZoom 16
-                    , minZoom 1
-                    , token MapboxKey.mapboxKey
-
-                    --, onMouseMove Hover
-                    --, onClick Click
-                    , id "my-map"
-                    , eventFeaturesLayers []
-                    ]
-                    (Style
-                        { base
-                            | sources = trackSource :: base.sources
-                            , layers = base.layers ++ [ trackLayer, pointsLayer ]
-                            , misc = trackCentre :: trackZoom :: base.misc
-                        }
-                    )
-                ]
+            Style
+                { base
+                    | sources = trackSource :: base.sources
+                    , layers = base.layers ++ [ trackLayer, pointsLayer ]
+                    , misc = trackCentre :: trackZoom :: base.misc
+                }
 
         FromUrl string ->
-            text "Something wrong with the Map style"
+            baseStyle
+
+
+view : ViewingContext -> Style -> Html msg
+view context trackStyle =
+    let
+        ( width, height ) =
+            context.size
+
+        ( w, h ) =
+            ( (width |> Pixels.inPixels |> String.fromInt) ++ "px"
+            , (height |> Pixels.inPixels |> String.fromInt) ++ "px"
+            )
+    in
+    div [ style "width" w, style "height" h ]
+        [ map
+            [ maxZoom 16
+            , minZoom 1
+            , token MapboxKey.mapboxKey
+
+            --, onMouseMove Hover
+            --, onClick Click
+            , id "my-map"
+            , eventFeaturesLayers []
+            ]
+            trackStyle
+        ]

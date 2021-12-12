@@ -39,6 +39,9 @@ import Length
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import LoopedTrack
+import MapBox
+import MapCommands exposing (..)
+import Mapbox.Style as Style exposing (Style)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
 import MoveAndStretch
@@ -53,6 +56,7 @@ import PostUpdateActions exposing (EditFunction, EditResult, PostUpdateAction(..
 import Quantity
 import RotateRoute
 import Scene exposing (Scene)
+import Scene3d exposing (Entity)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
 import SketchPlane3d
@@ -74,7 +78,6 @@ import ViewPane as ViewPane exposing (ViewPane, ViewPaneAction(..), ViewPaneMess
 import ViewPureStyles exposing (..)
 import ViewingContext exposing (ViewingContext)
 import WriteGPX exposing (writeGPX)
-import MapCommands exposing (..)
 
 
 type Msg
@@ -179,6 +182,7 @@ type alias ModelRecord =
     , moveAndStretch : MoveAndStretch.Model
     , curveFormer : CurveFormer.Model
     , mapClickDebounce : Bool
+    , mapboxStyle : Style.Style
     }
 
 
@@ -229,6 +233,7 @@ init mflags origin navigationKey =
       , moveAndStretch = MoveAndStretch.defaultModel
       , curveFormer = CurveFormer.defaultModel
       , mapClickDebounce = False
+      , mapboxStyle = Style.satelliteStreets
       }
         -- Just make sure the Accordion reflects all the other state.
         |> (\record -> { record | toolsAccordion = toolsAccordion (Model record) })
@@ -1400,6 +1405,12 @@ composeScene model =
 
                     else
                         []
+                , mapboxStyle =
+                    if isMapVisible model.viewPanes then
+                        MapBox.buildMap reducedTrack
+
+                    else
+                        model.mapboxStyle
             }
 
 
@@ -1548,6 +1559,7 @@ footer model =
             [ SvgPathExtractor.view SvgMessage
             , mapSketchEnable model
             ]
+
         --, conditionallyVisible model.mapSketchMode <|
         --    el
         --        [ width <| px <| model.splitInPixels - 20
@@ -1607,7 +1619,6 @@ contentArea model =
                 [ viewAllPanes
                     model.viewPanes
                     model
-                    ( model.completeScene, model.completeProfile, model.completeScene )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
                 ]
@@ -1702,14 +1713,21 @@ contentArea model =
 
 viewAllPanes :
     List ViewPane
-    -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo, track : Maybe Track }
-    -> ( Scene, Scene, Scene )
+    ->
+        { m
+            | displayOptions : DisplayOptions
+            , ipInfo : Maybe IpInfo
+            , track : Maybe Track
+            , mapboxStyle : Style
+            , completeScene : List (Entity LocalCoords)
+            , completeProfile : List (Entity LocalCoords)
+        }
     -> (ViewPaneMessage -> Msg)
     -> Element Msg
-viewAllPanes panes model ( scene, profile, plan ) wrapper =
+viewAllPanes panes model  wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
-            (ViewPane.view ( scene, profile, plan ) model wrapper)
+            (ViewPane.view  model wrapper)
         <|
             List.filter (\pane -> pane.visible) panes
 

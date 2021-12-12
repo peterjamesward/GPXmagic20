@@ -10,10 +10,13 @@ import GeoCodeDecoders exposing (IpInfo)
 import Json.Decode as D
 import Json.Encode as E
 import List.Extra
+import LocalCoords exposing (LocalCoords)
+import Mapbox.Style exposing (Style)
 import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
+import Scene3d exposing (Entity)
 import ScenePainterCommon exposing (ImageMsg(..))
 import ScenePainterFirst
 import ScenePainterMap
@@ -358,22 +361,23 @@ viewModeChoices pane wrapper =
 
 
 view :
-    ( Scene, Scene, Scene )
-    ->
-        { model
-            | displayOptions : DisplayOptions
-            , ipInfo : Maybe IpInfo
-            , track : Maybe Track
-        }
+    { m
+        | displayOptions : DisplayOptions
+        , ipInfo : Maybe IpInfo
+        , track : Maybe Track
+        , mapboxStyle : Style
+        , completeScene : List (Entity LocalCoords)
+        , completeProfile : List (Entity LocalCoords)
+    }
     -> (ViewPaneMessage -> msg)
     -> ViewPane
     -> Element msg
-view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
+view model  wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
     -- Further complicated by Map sketch mode.
-    case track of
+    case model.track of
         Just isTrack ->
             column []
                 [ row [ width fill, spacingXY 10 0 ]
@@ -389,46 +393,46 @@ view ( scene, profile, plan ) { displayOptions, ipInfo, track } wrapper pane =
                     ViewThirdPerson ->
                         ScenePainterThird.viewScene
                             (getActiveContext pane)
-                            displayOptions
-                            scene
+                            model.displayOptions
+                            model.completeScene
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewFirstPerson ->
                         ScenePainterFirst.viewScene
                             (getActiveContext pane)
-                            displayOptions
-                            scene
+                            model.displayOptions
+                            model.completeScene
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewPlan ->
                         ScenePainterPlan.viewScene
                             (getActiveContext pane)
-                            plan
+                            model.completeScene
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewProfile ->
                         ScenePainterProfile.viewScene
                             (getActiveContext pane)
-                            displayOptions
-                            profile
+                            model.displayOptions
+                            model.completeProfile
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewProfileCharts ->
                         ScenePainterProfileCharts.viewScene
                             (getActiveContext pane)
-                            displayOptions
+                            model.displayOptions
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewMap ->
                         ScenePainterMap.viewScene
                             (getActiveContext pane)
-                            isTrack
+                            model.mapboxStyle
                             (imageMessageWrapper pane.paneId >> wrapper)
 
                     ViewAbout ->
                         About.viewAboutText
                             pane.thirdPersonContext
-                            ipInfo
+                            model.ipInfo
                 ]
 
         Nothing ->

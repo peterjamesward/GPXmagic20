@@ -11,8 +11,6 @@ Can also break on NC250 stage 4 with curve former. Unless you try.
 
 # WIP = elm-mapbox
 
-Build the Style in update, not in the view.
-
 Can drag on map work in this model? (We get mouse events, so, probably, sort of.)
 
 ---
