@@ -1709,7 +1709,8 @@ viewAllPanes panes model ( scene, profile, plan ) wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
             (ViewPane.view ( scene, profile, plan ) model wrapper)
-            panes
+        <|
+            List.filter (\pane -> pane.visible) panes
 
 
 refreshAccordion : ModelRecord -> ModelRecord

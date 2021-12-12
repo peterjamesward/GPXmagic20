@@ -90,10 +90,10 @@ update msg view wrap =
 
 viewScene :
     ViewingContext
-    -> Scene
+    -> Track
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context scene wrapper =
+viewScene context track wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size
@@ -129,5 +129,5 @@ viewScene context scene wrapper =
             , alignTop
             , htmlAttribute (id "map")
             ]
-            <| html <| MapBox.view ()
+            <| html <| MapBox.view context track
         ]

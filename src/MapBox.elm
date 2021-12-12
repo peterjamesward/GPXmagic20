@@ -1,6 +1,6 @@
 module MapBox exposing (..)
 
-import Html exposing (div, text)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
 import Json.Decode
 import Json.Encode
@@ -11,54 +11,59 @@ import Mapbox.Expression as E exposing (false, float, int, str, true)
 import Mapbox.Layer as Layer
 import Mapbox.Source as Source
 import Mapbox.Style as Style exposing (Style(..))
+import MapboxKey
+import Pixels
 import Styles.Outdoors
+import Track exposing (Track)
+import ViewingContext exposing (ViewingContext)
 
 
-geojson =
-    Json.Decode.decodeString Json.Decode.value """
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "id": 1,
-      "properties": {
-        "name": "Bermuda Triangle",
-        "area": 1150180
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [-64.73, 32.31],
-            [-80.19, 25.76],
-            [-66.09, 18.43],
-            [-64.73, 32.31]
-          ]
-        ]
-      }
-    }
-  ]
-}
-""" |> Result.withDefault (Json.Encode.object [])
+view : ViewingContext -> Track -> Html msg
+view context track =
+    let
+        ( width, height ) =
+            context.size
 
+        ( w, h ) =
+            ( (width |> Pixels.inPixels |> String.fromInt) ++ "px"
+            , (height |> Pixels.inPixels |> String.fromInt) ++ "px"
+            )
 
-hoveredFeatures : List Json.Encode.Value -> MapboxAttr msg
-hoveredFeatures =
-    List.map (\feat -> ( feat, [ ( "hover", Json.Encode.bool True ) ] ))
-        >> featureState
-
-
-view _ =
-    div [ style "width" "100vw", style "height" "100vh" ]
-        [ map
-            [ maxZoom 20
-
-            --, onMouseMove Hover
-            --, onClick Click
-            , id "my-map"
-            , eventFeaturesLayers [ "changes" ]
-            , hoveredFeatures []
-            ]
+        baseStyle =
             Styles.Outdoors.style
-        ]
+
+        geojson =
+            track |> Track.trackToJSON
+
+        trackSource =
+            Source.geoJSONFromValue "track" [] geojson
+
+        trackLayer =
+            Layer.line "track"
+                "track"
+                [
+                ]
+    in
+    case baseStyle of
+        Style base ->
+            div [ style "width" w, style "height" h ]
+                [ map
+                    [ maxZoom 16
+                    , minZoom 1
+                    , token MapboxKey.mapboxKey
+
+                    --, onMouseMove Hover
+                    --, onClick Click
+                    , id ("my-map" ++ String.fromInt context.contextId)
+                    , eventFeaturesLayers []
+                    ]
+                    (Style
+                        { base
+                            | sources = trackSource :: base.sources
+                            , layers = trackLayer :: base.layers
+                        }
+                    )
+                ]
+
+        FromUrl string ->
+            text "Something wrong with the Map style"
