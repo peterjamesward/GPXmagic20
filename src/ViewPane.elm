@@ -237,16 +237,6 @@ resetAllViews track pane =
 
 
 
-initialiseMap : Track -> List ViewPane -> Cmd msg
-initialiseMap track viewPanes =
-    case List.head viewPanes of
-        Just pane ->
-            ScenePainterMap.initialiseMap pane.mapContext track
-
-        Nothing ->
-            Cmd.none
-
-
 refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
 refreshSceneSearcher track context =
     -- We refresh this if the track changes; the closure makes

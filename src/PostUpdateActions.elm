@@ -14,7 +14,6 @@ type PostUpdateAction trck cmd
     | ActionPointerMove TrackPoint
     | ActionMarkerMove (Maybe TrackPoint)
     | ActionFocusMove TrackPoint
-    | ActionRepaintMap
     | ActionNoOp
     | ActionCommand cmd
     | ActionNewRoute String GpxSource

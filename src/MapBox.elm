@@ -1,10 +1,12 @@
 module MapBox exposing (..)
 
+import Angle exposing (Angle)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
 import Json.Decode
 import Json.Encode
 import LngLat exposing (LngLat)
+import MapCommands
 import Mapbox.Cmd.Option as Opt
 import Mapbox.Element exposing (..)
 import Mapbox.Expression as E exposing (false, float, int, str, true)
@@ -83,3 +85,12 @@ view context trackStyle =
             ]
             trackStyle
         ]
+
+
+centreMapOn : ( Float, Float ) -> Cmd msg
+centreMapOn ( lon, lat ) =
+    let
+        lngLat =
+            { lng = lon, lat = lat }
+    in
+    MapCommands.jumpTo [ Opt.center lngLat ]

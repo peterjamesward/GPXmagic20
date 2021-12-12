@@ -95,7 +95,6 @@ type Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
     | PortMessage Encode.Value
-    | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg LoopedTrack.Msg
@@ -268,24 +267,10 @@ update msg (Model model) =
             let
                 ipInfo =
                     MyIP.processIpInfo response
-
-                mapInfoWithLocation =
-                    case ipInfo of
-                        Just ip ->
-                            { defaultMapInfo
-                                | centreLon = ip.longitude
-                                , centreLat = ip.latitude
-                                , mapZoom = 10.0
-                            }
-
-                        Nothing ->
-                            defaultMapInfo
             in
             ( Model { model | ipInfo = ipInfo }
             , Cmd.batch
-                [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
-                , PortController.createMap mapInfoWithLocation
-                ]
+                [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo ]
             )
 
         IpInfoAcknowledged _ ->
@@ -335,9 +320,6 @@ update msg (Model model) =
         ViewPaneMessage innerMsg ->
             Maybe.map (processViewPaneMessage innerMsg (Model model)) model.track
                 |> Maybe.withDefault ( Model model, Cmd.none )
-
-        RepaintMap ->
-            ( Model model, refreshMap )
 
         GraphMessage innerMsg ->
             let
@@ -688,15 +670,12 @@ update msg (Model model) =
             case model.mapSketchMode of
                 False ->
                     ( Model { model | mapSketchMode = True }
-                    , Cmd.batch
-                        [ PortController.prepareSketchMap ( lon, lat )
-                        , Delay.after 500 RepaintMap
-                        ]
+                    , Cmd.none
                     )
 
                 True ->
                     ( Model { model | mapSketchMode = False }
-                    , PortController.exitSketchMode
+                    , Cmd.none
                     )
 
         ResizeViews newPosition ->
@@ -706,9 +685,7 @@ update msg (Model model) =
                     , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
                 }
             , Cmd.batch
-                [ Delay.after 50 RepaintMap
-                , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
-                ]
+                [ PortController.storageSetItem "splitter" (Encode.int model.splitInPixels) ]
             )
 
         StoreSplitterPosition ->
@@ -919,7 +896,11 @@ processPostUpdateAction model action =
 
                 refocusMapCmd =
                     if ViewPane.mapPaneIsLinked model.viewPanes then
-                        PortController.centreMapOnCurrent track
+                        let
+                            ( lon, lat, ele ) =
+                                Track.withoutGhanianTransform track track.currentNode.xyz
+                        in
+                        MapBox.centreMapOn ( lon, lat )
 
                     else
                         Cmd.none
@@ -938,19 +919,14 @@ processPostUpdateAction model action =
             in
             processPostUpdateAction newModel ActionRerender
 
-        ( Just track, ActionRepaintMap ) ->
-            ( Model model
-            , Delay.after 50 RepaintMap
-            )
-
         ( Just track, ActionToggleMapDragging isDragging ) ->
             ( Model model
-            , PortController.toggleDragging isDragging track
+            , Cmd.none
             )
 
         ( Just track, ActionFetchMapElevations ) ->
             ( Model model
-            , PortController.requestElevations
+            , Cmd.none
             )
 
         ( Just track, ActionPreview ) ->
@@ -1046,10 +1022,8 @@ applyTrack (Model model) track =
         ( newViewPanes, mapCommands ) =
             ( ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
             , Cmd.batch
-                [ ViewPane.initialiseMap track model.viewPanes
-                , PortController.storageGetItem "panes"
+                [ PortController.storageGetItem "panes"
                 , PortController.storageGetItem "splitter"
-                , Delay.after 100 RepaintMap
                 ]
             )
     in
@@ -1722,10 +1696,10 @@ viewAllPanes :
         }
     -> (ViewPaneMessage -> Msg)
     -> Element Msg
-viewAllPanes panes model  wrapper =
+viewAllPanes panes model wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
-            (ViewPane.view  model wrapper)
+            (ViewPane.view model wrapper)
         <|
             List.filter (\pane -> pane.visible) panes
 

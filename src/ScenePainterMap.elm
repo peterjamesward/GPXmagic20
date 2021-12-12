@@ -51,22 +51,6 @@ emptyPreviewCopy track =
     { track | trackPoints = [] }
 
 
-initialiseMap : ViewingContext -> Track -> Cmd msg
-initialiseMap context track =
-    Cmd.batch
-        [ PortController.addTrackToMap context track
-        , PortController.addMarkersToMap track []
-        , PortController.centreMap context track
-        , PortController.zoomMap context
-        ]
-
-
-mapTrackHasChanged : ViewingContext -> Track -> List E.Value -> List (Cmd msg)
-mapTrackHasChanged context track previews =
-    [ PortController.addTrackToMap context track
-    , PortController.addMarkersToMap track previews
-    ]
-
 
 update :
     ImageMsg
