@@ -70,10 +70,13 @@ update msg view wrap =
             )
 
         ImageZoomIn ->
-            ( view, ActionCommand MapBox.zoomIn)
+            ( view, ActionCommand MapBox.zoomIn )
 
         ImageZoomOut ->
-            ( view, ActionCommand MapBox.zoomOut)
+            ( view, ActionCommand MapBox.zoomOut )
+
+        ImageReset ->
+            ( view, ActionCommand <| MapBox.zoomReset view.defaultZoomLevel )
 
         _ ->
             ( view, ActionNoOp )
@@ -93,8 +96,8 @@ viewScene context style wrapper =
             column
                 [ alignTop
                 , alignRight
-                , moveDown 100
-                , moveLeft 10
+                , moveDown 90
+                , moveLeft 5
                 , Background.color white
                 , Font.size 40
                 , padding 6

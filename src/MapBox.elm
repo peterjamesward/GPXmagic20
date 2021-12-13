@@ -109,3 +109,8 @@ zoomIn =
 zoomOut : Cmd msg
 zoomOut =
     MapCommands.zoomOut []
+
+
+zoomReset : Float -> Cmd msg
+zoomReset level =
+    MapCommands.zoomTo [] level
