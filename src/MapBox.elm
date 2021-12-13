@@ -99,3 +99,13 @@ centreMapOn ( lon, lat ) =
 resizeMap : Cmd msg
 resizeMap =
     MapCommands.resize
+
+
+zoomIn : Cmd msg
+zoomIn =
+    MapCommands.zoomIn []
+
+
+zoomOut : Cmd msg
+zoomOut =
+    MapCommands.zoomOut []

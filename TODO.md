@@ -11,9 +11,11 @@ Can also break on NC250 stage 4 with curve former. Unless you try.
 
 # WIP = elm-mapbox
 
-Resize. Colours. Markers.
+Resize. Colours. Markers (at worst, larger circles on their own layers.)
 
-Can drag on map work in this model? (We get mouse events, so, probably, sort of.)
+Can drag on map work in this model? 
+I.E. can we create draggable features, can we get the drag messages?
+(We get mouse events, so, probably, sort of.)
 
 ---
 

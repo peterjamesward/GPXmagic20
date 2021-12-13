@@ -12,6 +12,7 @@ import FeatherIcons
 import Html.Attributes exposing (id)
 import Json.Encode as E
 import MapBox
+import MapCommands
 import Mapbox.Style as Style
 import MoveAndStretch
 import Pixels exposing (Pixels, inPixels)
@@ -51,7 +52,6 @@ emptyPreviewCopy track =
     { track | trackPoints = [] }
 
 
-
 update :
     ImageMsg
     -> ViewingContext
@@ -68,6 +68,12 @@ update msg view wrap =
             ( { view | mapClickToDrag = newState }
             , ActionToggleMapDragging newState
             )
+
+        ImageZoomIn ->
+            ( view, ActionCommand MapBox.zoomIn)
+
+        ImageZoomOut ->
+            ( view, ActionCommand MapBox.zoomOut)
 
         _ ->
             ( view, ActionNoOp )
@@ -106,13 +112,20 @@ viewScene context style wrapper =
                     }
                 ]
     in
-    row [ spacing 0, padding 0, inFront handyMapControls ]
-        [ el
+    el
+        [ spacing 0
+        , padding 0
+        , inFront handyMapControls
+        , inFront <| zoomButtons wrapper
+        ]
+    <|
+        el
             [ width <| px <| inPixels viewWidth
             , height <| px <| inPixels viewHeight
             , alignLeft
             , alignTop
             , htmlAttribute (id "map")
             ]
-            <| html <| MapBox.view context style
-        ]
+        <|
+            html <|
+                MapBox.view context style
