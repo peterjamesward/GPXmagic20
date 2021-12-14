@@ -122,6 +122,7 @@ buildMap context track =
                 { base
                     | sources = orangeSource :: trackSource :: optionalSources ++ base.sources
                     , layers =
+                        -- Note: they are drawn in this order.
                         base.layers
                             ++ [ trackLayer, pointsLayer, orangeMarkerLayer ]
                             ++ optionalLayers
@@ -148,10 +149,12 @@ view context trackStyle wrap =
             [ maxZoom 20
             , minZoom 1
             , token MapboxKey.mapboxKey
+
             --, onMouseDown (wrap << MapMouseDown)
             , onClick (wrap << MapClick)
             , onMouseMove (wrap << MapMouseMove)
             , onDblClick (wrap << MapDoubleClick)
+
             --, onMouseUp (wrap << MapMouseUp)
             , id "my-map"
             , eventFeaturesLayers [ "points" ]
