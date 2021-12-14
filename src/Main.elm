@@ -1373,7 +1373,17 @@ composeScene model =
                         []
                 , mapboxStyle =
                     if isMapVisible model.viewPanes then
-                        MapBox.buildMap reducedTrack
+                        -- Argh, the ugly, getting view context for dragging on map.
+                        let
+                            mapContext =
+                                ViewPane.getMapContext model.viewPanes
+                        in
+                        case mapContext of
+                            Just vc ->
+                                MapBox.buildMap vc reducedTrack
+
+                            Nothing ->
+                                model.mapboxStyle
 
                     else
                         model.mapboxStyle

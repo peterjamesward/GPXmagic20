@@ -15,6 +15,7 @@ import Mapbox.Source as Source
 import Mapbox.Style as Style exposing (Style(..), defaultCenter, defaultZoomLevel)
 import MapboxKey
 import Pixels
+import ScenePainterCommon exposing (ImageMsg(..))
 import Styles.Outdoors
 import Track exposing (Track, mapboxMarkerJSON)
 import ViewingContext exposing (ViewingContext)
@@ -32,14 +33,13 @@ mapPurple =
     E.makeRGBColor (E.float 128) (E.float 0) (E.float 128)
 
 
-buildMap : Track -> Style
-buildMap track =
+buildMap : ViewingContext -> Track -> Style
+buildMap context track =
     let
         geojson =
             Track.mapboxJSON track
 
         trackSource =
-            --Source.geoJSONFromValue "changes" [] testgeojson
             Source.geoJSONFromValue "track" [] geojson
 
         orangeSource =
@@ -49,6 +49,14 @@ buildMap track =
             case track.markedNode of
                 Just marker ->
                     Just <| Source.geoJSONFromValue "purple" [] <| mapboxMarkerJSON track marker
+
+                Nothing ->
+                    Nothing
+
+        draggingSource =
+            case context.mapDrag of
+                Just drag ->
+                    Just <| Source.geoJSONFromValue "drag" [] <| mapboxMarkerJSON track drag
 
                 Nothing ->
                     Nothing
@@ -79,6 +87,23 @@ buildMap track =
                 Nothing ->
                     Nothing
 
+        draggingLayer =
+            case context.mapDrag of
+                Just drag ->
+                    Just <|
+                        Layer.circle "drag"
+                            "drag"
+                            [ Layer.circleRadius <| E.float 8 ]
+
+                Nothing ->
+                    Nothing
+
+        optionalSources =
+            [ purpleSource, draggingSource ] |> List.filterMap identity
+
+        optionalLayers =
+            [ purpleMarkerLayer, draggingLayer ] |> List.filterMap identity
+
         baseStyle =
             Styles.Outdoors.style
 
@@ -93,29 +118,22 @@ buildMap track =
     in
     case baseStyle of
         Style base ->
-            case (purpleSource, purpleMarkerLayer) of
-                (Just purple, Just purpleLayer) ->
-                    Style
-                        { base
-                            | sources = purple :: orangeSource  :: trackSource   :: base.sources
-                            , layers = base.layers ++ [ trackLayer, pointsLayer, orangeMarkerLayer, purpleLayer ]
-                            , misc = trackCentre :: trackZoom :: base.misc
-                        }
-
-                _ ->
-                    Style
-                        { base
-                            | sources =  orangeSource  :: trackSource   :: base.sources
-                            , layers = base.layers ++ [ trackLayer, pointsLayer, orangeMarkerLayer ]
-                            , misc = trackCentre :: trackZoom :: base.misc
-                        }
+            Style
+                { base
+                    | sources = orangeSource :: trackSource :: optionalSources ++ base.sources
+                    , layers =
+                        base.layers
+                            ++ [ trackLayer, pointsLayer, orangeMarkerLayer ]
+                            ++ optionalLayers
+                    , misc = trackCentre :: trackZoom :: base.misc
+                }
 
         FromUrl string ->
             baseStyle
 
 
-view : ViewingContext -> Style -> Html msg
-view context trackStyle =
+view : ViewingContext -> Style -> (ImageMsg -> msg) -> Html msg
+view context trackStyle wrap =
     let
         ( width, height ) =
             context.size
@@ -130,11 +148,12 @@ view context trackStyle =
             [ maxZoom 20
             , minZoom 1
             , token MapboxKey.mapboxKey
-
-            --, onMouseMove Hover
-            --, onClick Click
+            --, onMouseDown (wrap << MapMouseDown)
+            , onClick (wrap << MapClick)
+            , onMouseMove (wrap << MapMouseMove)
+            --, onMouseUp (wrap << MapMouseUp)
             , id "my-map"
-            , eventFeaturesLayers []
+            , eventFeaturesLayers [ "points" ]
             ]
             trackStyle
         ]

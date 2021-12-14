@@ -6,15 +6,13 @@ Generally finds no bends, or bizarre ones at angle to track.
 **Zooming** on this track can break Chrome !!
 Can also break on NC250 stage 4 with curve former. Unless you try.
 
-Map flyTo is lagging one message state.
 
 ---
 
 # WIP = elm-mapbox
 
-Can drag on map work in this model? 
-I.E. can we create draggable features, can we get the drag messages?
-(We get mouse events, so, probably, sort of.)
+Dragging: in drag state, stop map following the hand!
+Dragging: drop new point and update track.
 
 ---
 

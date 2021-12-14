@@ -92,6 +92,18 @@ applyGhanianTransform ( baseLon, baseLat, _ ) points =
         points
 
 
+xyFromLngLat :
+    ( Float, Float, Float )
+    -> ( Float, Float )
+    -> Point3d.Point3d Length.Meters LocalCoords
+xyFromLngLat ( baseLon, baseLat, altitude ) ( lon, lat ) =
+    ( metresPerDegree * (lon - baseLon) * cos (degrees baseLat)
+    , metresPerDegree * (lat - baseLat)
+    , altitude
+    )
+        |> Point3d.fromTuple meters
+
+
 gradientFromPoint : TrackPoint -> Float
 gradientFromPoint pt =
     if pt.length == Quantity.zero then

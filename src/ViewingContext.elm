@@ -34,6 +34,7 @@ type alias ViewingContext =
     , currentPoint : Maybe TrackPoint
     , chartPoints : List TrackPoint
     , chartHover : (List (CI.One TrackPoint CI.Dot))
+    , mapDrag : Maybe TrackPoint
     }
 
 
@@ -66,6 +67,7 @@ defaultViewingContext =
     , currentPoint = Nothing
     , chartPoints = []
     , chartHover = []
+    , mapDrag = Nothing
     }
 
 

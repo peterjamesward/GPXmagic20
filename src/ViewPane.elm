@@ -153,6 +153,10 @@ isMapVisible panes =
     -- Helper
     isViewingModeVisible ViewMap panes
 
+getMapContext panes =
+    -- Horrible. Shamed.
+    List.head panes |> Maybe.map .mapContext
+
 
 isProfileVisible panes =
     -- Helper
@@ -575,6 +579,7 @@ update msg options panes wrap track =
                                     ScenePainterMap.update
                                         imageMsg
                                         pane.mapContext
+                                        track
                                         (wrap << imageMessageWrapper pane.paneId)
                             in
                             ( Just { pane | mapContext = newContext }

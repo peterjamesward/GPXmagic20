@@ -16,6 +16,7 @@ import Html.Events.Extra.Wheel as Wheel
 import Json.Decode as D
 import Length exposing (Meters, inMeters)
 import LocalCoords exposing (LocalCoords)
+import Mapbox.Element exposing (EventData)
 import Pixels exposing (Pixels, inPixels)
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
@@ -39,6 +40,10 @@ type ImageMsg
     | ClickDelayExpired
     | ImageToggleClickToDragOnMap
     | OnHover (List (CI.One TrackPoint CI.Dot))
+    | MapMouseDown EventData
+    | MapMouseMove EventData
+    | MapMouseUp EventData
+    | MapClick EventData
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
@@ -150,7 +155,7 @@ zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
         zoom = 1 +
             logBase 2 (cos (degrees medianLatitude) * metresPerPixelAtEquatorZoomZero / desiredMetresPerPixel)
     in
-    ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )
+    ( clamp 1.0 21.0 zoom, BoundingBox3d.centerPoint box )
 
 
 changeFocusTo : Track -> ViewingContext -> ViewingContext
