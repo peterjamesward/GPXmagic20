@@ -9,10 +9,13 @@ Can also break on NC250 stage 4 with curve former. Unless you try.
 
 ---
 
-# WIP = elm-mapbox
+# WIP
 
-Dragging: in drag state, stop map following the hand!
-Dragging: drop new point and update track.
+Need to toggle click-to-drag on Map, and maybe this should not be the default now.
+
+Fix initial redraw on track load.
+
+TEST (esp. wrt bugs above)
 
 ---
 

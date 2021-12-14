@@ -52,6 +52,7 @@ initialiseView viewSize track oldContext =
         , zoomLevel = zoom
         , defaultZoomLevel = zoom
         , viewingMode = ViewMap
+        , mapClickToDrag = False
     }
 
 
@@ -91,15 +92,16 @@ update msg view track wrap =
             case
                 ( view.mapDrag
                 , Track.searchTrackPointFromLonLat ( lngLat.lng, lngLat.lat ) track
+                , view.mapClickToDrag
                 )
             of
-                ( Nothing, Just pointFound ) ->
+                ( Nothing, Just pointFound, True ) ->
                     -- First click starts drag
                     ( { view | mapDrag = Just pointFound }
                     , ActionNoOp
                     )
 
-                ( Just drag, _ ) ->
+                ( Just drag, _, True ) ->
                     -- Second click is end of drag.
                     ( { view | mapDrag = Nothing }
                     , ActionTrackChanged
