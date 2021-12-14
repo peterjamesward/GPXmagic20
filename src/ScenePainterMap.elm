@@ -95,6 +95,9 @@ update msg view track wrap =
                 , view.mapClickToDrag
                 )
             of
+                ( _, Just pointFound, False ) ->
+                    ( view, ActionPointerMove pointFound )
+
                 ( Nothing, Just pointFound, True ) ->
                     -- First click starts drag
                     ( { view | mapDrag = Just pointFound }
@@ -108,6 +111,19 @@ update msg view track wrap =
                         TrackEditType.EditPreservesIndex
                         (buildActions track drag)
                     )
+
+                _ ->
+                    ( view, ActionNoOp )
+
+        MapDoubleClick { lngLat, renderedFeatures } ->
+            case
+                ( view.mapDrag
+                , Track.searchTrackPointFromLonLat ( lngLat.lng, lngLat.lat ) track
+                , view.mapClickToDrag
+                )
+            of
+                ( _, Just pointFound, False ) ->
+                    ( view, ActionFocusMove pointFound )
 
                 _ ->
                     ( view, ActionNoOp )

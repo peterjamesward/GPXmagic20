@@ -11,8 +11,6 @@ Can also break on NC250 stage 4 with curve former. Unless you try.
 
 # WIP
 
-Need to toggle click-to-drag on Map, and maybe this should not be the default now.
-
 Fix initial redraw on track load.
 
 TEST (esp. wrt bugs above)

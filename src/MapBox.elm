@@ -151,6 +151,7 @@ view context trackStyle wrap =
             --, onMouseDown (wrap << MapMouseDown)
             , onClick (wrap << MapClick)
             , onMouseMove (wrap << MapMouseMove)
+            , onDblClick (wrap << MapDoubleClick)
             --, onMouseUp (wrap << MapMouseUp)
             , id "my-map"
             , eventFeaturesLayers [ "points" ]

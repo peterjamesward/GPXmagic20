@@ -44,6 +44,7 @@ type ImageMsg
     | MapMouseMove EventData
     | MapMouseUp EventData
     | MapClick EventData
+    | MapDoubleClick EventData
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
