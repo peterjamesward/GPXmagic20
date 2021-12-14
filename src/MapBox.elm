@@ -20,6 +20,10 @@ import Track exposing (Track)
 import ViewingContext exposing (ViewingContext)
 
 
+mapGrey =
+    E.makeRGBColor (E.float 150) (E.float 150) (E.float 150)
+
+
 buildMap : Track -> Style
 buildMap track =
     let
@@ -31,10 +35,14 @@ buildMap track =
             Source.geoJSONFromValue "track" [] geojson
 
         trackLayer =
-            Layer.line "track" "track" []
+            Layer.line "track"
+                "track"
+                [ Layer.lineColor mapGrey, Layer.lineWidth <| E.float 2 ]
 
         pointsLayer =
-            Layer.circle "points" "track" []
+            Layer.circle "points"
+                "track"
+                [ Layer.circleColor mapGrey, Layer.circleRadius <| E.float 4 ]
 
         baseStyle =
             Styles.Outdoors.style
@@ -74,7 +82,7 @@ view context trackStyle =
     in
     div [ style "width" w, style "height" h ]
         [ map
-            [ maxZoom 16
+            [ maxZoom 20
             , minZoom 1
             , token MapboxKey.mapboxKey
 
