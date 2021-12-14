@@ -23,8 +23,13 @@ import ViewingContext exposing (ViewingContext)
 mapGrey =
     E.makeRGBColor (E.float 150) (E.float 150) (E.float 150)
 
+
 mapOrange =
     E.makeRGBColor (E.float 255) (E.float 150) (E.float 0)
+
+
+mapPurple =
+    E.makeRGBColor (E.float 128) (E.float 0) (E.float 128)
 
 
 buildMap : Track -> Style
@@ -38,7 +43,15 @@ buildMap track =
             Source.geoJSONFromValue "track" [] geojson
 
         orangeSource =
-            Source.geoJSONFromValue "orange" [] <| mapboxMarkerJSON track
+            Source.geoJSONFromValue "orange" [] <| mapboxMarkerJSON track track.currentNode
+
+        purpleSource =
+            case track.markedNode of
+                Just marker ->
+                    Just <| Source.geoJSONFromValue "purple" [] <| mapboxMarkerJSON track marker
+
+                Nothing ->
+                    Nothing
 
         trackLayer =
             Layer.line "track"
@@ -55,6 +68,17 @@ buildMap track =
                 "orange"
                 [ Layer.circleColor mapOrange, Layer.circleRadius <| E.float 8 ]
 
+        purpleMarkerLayer =
+            case purpleSource of
+                Just purple ->
+                    Just <|
+                        Layer.circle "purple"
+                            "purple"
+                            [ Layer.circleColor mapPurple, Layer.circleRadius <| E.float 6 ]
+
+                Nothing ->
+                    Nothing
+
         baseStyle =
             Styles.Outdoors.style
 
@@ -69,12 +93,22 @@ buildMap track =
     in
     case baseStyle of
         Style base ->
-            Style
-                { base
-                    | sources = orangeSource :: trackSource :: base.sources
-                    , layers = base.layers ++ [ trackLayer, pointsLayer, orangeMarkerLayer ]
-                    , misc = trackCentre :: trackZoom :: base.misc
-                }
+            case (purpleSource, purpleMarkerLayer) of
+                (Just purple, Just purpleLayer) ->
+                    Style
+                        { base
+                            | sources = purple :: orangeSource  :: trackSource   :: base.sources
+                            , layers = base.layers ++ [ trackLayer, pointsLayer, orangeMarkerLayer, purpleLayer ]
+                            , misc = trackCentre :: trackZoom :: base.misc
+                        }
+
+                _ ->
+                    Style
+                        { base
+                            | sources =  orangeSource  :: trackSource   :: base.sources
+                            , layers = base.layers ++ [ trackLayer, pointsLayer, orangeMarkerLayer ]
+                            , misc = trackCentre :: trackZoom :: base.misc
+                        }
 
         FromUrl string ->
             baseStyle

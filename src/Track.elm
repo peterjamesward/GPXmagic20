@@ -282,8 +282,8 @@ mapboxJSON track =
         ]
 
 
-mapboxMarkerJSON : Track -> E.Value
-mapboxMarkerJSON track =
+mapboxMarkerJSON : Track -> TrackPoint -> E.Value
+mapboxMarkerJSON track point =
     -- JSON suitable for Mapbox component to add source and layer for pointer.
     {- {
          "type": "Feature",
@@ -304,7 +304,7 @@ mapboxMarkerJSON track =
                 ]
 
         coordinates =
-            latLonPair <| withoutGhanianTransform track track.currentNode.xyz
+            latLonPair <| withoutGhanianTransform track point.xyz
     in
     E.object
         [ ( "type", E.string "Feature" )

@@ -12,8 +12,6 @@ Map flyTo is lagging one message state.
 
 # WIP = elm-mapbox
 
-Markers (at worst, larger circles on their own layers.)
-
 Can drag on map work in this model? 
 I.E. can we create draggable features, can we get the drag messages?
 (We get mouse events, so, probably, sort of.)
