@@ -262,6 +262,7 @@ trackToJSON track =
         , ( "geometry", geometry )
         ]
 
+
 mapboxJSON : Track -> E.Value
 mapboxJSON track =
     -- JSON suitable for Mapbox API to add polyline for route.
@@ -274,6 +275,36 @@ mapboxJSON track =
 
         coordinates =
             List.map latLonPair (removeGhanianTransform track)
+    in
+    E.object
+        [ ( "type", E.string "Feature" )
+        , ( "geometry", geometry )
+        ]
+
+
+mapboxMarkerJSON : Track -> E.Value
+mapboxMarkerJSON track =
+    -- JSON suitable for Mapbox component to add source and layer for pointer.
+    {- {
+         "type": "Feature",
+         "geometry": {
+           "type": "Point",
+           "coordinates": [125.6, 10.1]
+         },
+         "properties": {
+           "name": "Dinagat Islands"
+         }
+       }
+    -}
+    let
+        geometry =
+            E.object
+                [ ( "type", E.string "Point" )
+                , ( "coordinates", coordinates )
+                ]
+
+        coordinates =
+            latLonPair <| withoutGhanianTransform track track.currentNode.xyz
     in
     E.object
         [ ( "type", E.string "Feature" )

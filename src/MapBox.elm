@@ -16,12 +16,15 @@ import Mapbox.Style as Style exposing (Style(..), defaultCenter, defaultZoomLeve
 import MapboxKey
 import Pixels
 import Styles.Outdoors
-import Track exposing (Track)
+import Track exposing (Track, mapboxMarkerJSON)
 import ViewingContext exposing (ViewingContext)
 
 
 mapGrey =
     E.makeRGBColor (E.float 150) (E.float 150) (E.float 150)
+
+mapOrange =
+    E.makeRGBColor (E.float 255) (E.float 150) (E.float 0)
 
 
 buildMap : Track -> Style
@@ -34,6 +37,9 @@ buildMap track =
             --Source.geoJSONFromValue "changes" [] testgeojson
             Source.geoJSONFromValue "track" [] geojson
 
+        orangeSource =
+            Source.geoJSONFromValue "orange" [] <| mapboxMarkerJSON track
+
         trackLayer =
             Layer.line "track"
                 "track"
@@ -43,6 +49,11 @@ buildMap track =
             Layer.circle "points"
                 "track"
                 [ Layer.circleColor mapGrey, Layer.circleRadius <| E.float 4 ]
+
+        orangeMarkerLayer =
+            Layer.circle "orange"
+                "orange"
+                [ Layer.circleColor mapOrange, Layer.circleRadius <| E.float 8 ]
 
         baseStyle =
             Styles.Outdoors.style
@@ -60,8 +71,8 @@ buildMap track =
         Style base ->
             Style
                 { base
-                    | sources = trackSource :: base.sources
-                    , layers = base.layers ++ [ trackLayer, pointsLayer ]
+                    | sources = orangeSource :: trackSource :: base.sources
+                    , layers = base.layers ++ [ trackLayer, pointsLayer, orangeMarkerLayer ]
                     , misc = trackCentre :: trackZoom :: base.misc
                 }
 

@@ -4,14 +4,15 @@
 Bend smoother completely wrong on Nufenen-Furka-Tremola !!
 Generally finds no bends, or bizarre ones at angle to track.
 **Zooming** on this track can break Chrome !!
-
 Can also break on NC250 stage 4 with curve former. Unless you try.
+
+Map flyTo is lagging one message state.
 
 ---
 
 # WIP = elm-mapbox
 
-Resize. Colours. Markers (at worst, larger circles on their own layers.)
+Markers (at worst, larger circles on their own layers.)
 
 Can drag on map work in this model? 
 I.E. can we create draggable features, can we get the drag messages?
