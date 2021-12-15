@@ -10,6 +10,7 @@ import Pixels exposing (Pixels, pixels)
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import TrackPoint exposing (TrackPoint)
+import Utils exposing (DownSelected)
 import ViewingMode exposing (ViewingMode(..))
 
 
@@ -32,7 +33,7 @@ type alias ViewingContext =
     , waitingForClickDelay : Bool
     , mapClickToDrag : Bool
     , currentPoint : Maybe TrackPoint
-    , chartPoints : List TrackPoint
+    , chartPoints : DownSelected TrackPoint
     , chartHover : (List (CI.One TrackPoint CI.Dot))
     }
 
@@ -64,7 +65,7 @@ defaultViewingContext =
     , waitingForClickDelay = False
     , mapClickToDrag = True
     , currentPoint = Nothing
-    , chartPoints = []
+    , chartPoints = Utils.defaultDownSelected
     , chartHover = []
     }
 

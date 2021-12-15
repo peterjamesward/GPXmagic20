@@ -33,6 +33,19 @@ minmax a b =
     )
 
 
+type alias DownSelected a =
+    { selected : List a
+    , countInView : Int
+    , countSelected : Int
+    }
+
+defaultDownSelected =
+    { selected = []
+    , countInView = 0
+    , countSelected = 0
+    }
+
+
 lollipop pt colour =
     let
         lollipopAt =
