@@ -120,6 +120,7 @@ type Msg
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
     | CurveFormerMsg CurveFormer.Msg
+    | RepaintMap
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -255,6 +256,9 @@ passFlythroughToContext flight context =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
+        RepaintMap ->
+            ( Model model, MapBox.resizeMap )
+
         AdjustTimeZone newZone ->
             ( Model { model | zone = newZone }
             , MyIP.requestIpInformation ReceivedIpDetails
@@ -1097,6 +1101,7 @@ processViewPaneMessage innerMsg (Model model) track =
             , Cmd.batch
                 [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout panesAfterDistribution)
                 , commands
+                , after 100 RepaintMap
                 ]
             )
 

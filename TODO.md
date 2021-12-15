@@ -1,7 +1,6 @@
 
 # BUGS
 
-Map not resizing properly when switching two column mode.
 
 # WIP
 
