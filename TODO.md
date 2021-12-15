@@ -1,16 +1,11 @@
 
 # BUGS
 
-**FlyTo** on map is sometimes wrong, noticeable on F-N-T.
-
-**Selective rendering** seems to have stopped working, also FNT.
-(this is what's breaking bend smoother)
-
-# WIP
-
 Map not resizing properly when switching two column mode.
 
-Pane layout not being saved/restored.
+Chart not rendering on page load.
+
+# WIP
 
 Try **previews** on Map. Maybe switchable.
 

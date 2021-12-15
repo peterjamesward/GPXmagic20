@@ -36,6 +36,8 @@ mapPurple =
 buildMap : ViewingContext -> Track -> Style
 buildMap context track =
     let
+        _ = Debug.log "I think the size is" context.size
+
         geojson =
             Track.mapboxJSON track
 
@@ -149,13 +151,9 @@ view context trackStyle wrap =
             [ maxZoom 20
             , minZoom 1
             , token MapboxKey.mapboxKey
-
-            --, onMouseDown (wrap << MapMouseDown)
             , onClick (wrap << MapClick)
             , onMouseMove (wrap << MapMouseMove)
             , onDblClick (wrap << MapDoubleClick)
-
-            --, onMouseUp (wrap << MapMouseUp)
             , id "my-map"
             , eventFeaturesLayers [ "points" ]
             ]

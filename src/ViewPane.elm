@@ -153,6 +153,7 @@ isMapVisible panes =
     -- Helper
     isViewingModeVisible ViewMap panes
 
+
 getMapContext panes =
     -- Horrible. Shamed.
     List.head panes |> Maybe.map .mapContext
@@ -238,7 +239,6 @@ resetAllViews track pane =
         , mapContext = ScenePainterMap.initialiseView pane.viewPixels track pane.mapContext
         , profileChartContext = ScenePainterProfileCharts.initialiseView pane.viewPixels track pane.profileChartContext
     }
-
 
 
 refreshSceneSearcher : Track -> ViewingContext -> ViewingContext
@@ -353,7 +353,7 @@ view :
     -> (ViewPaneMessage -> msg)
     -> ViewPane
     -> Element msg
-view model  wrapper pane =
+view model wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
@@ -417,13 +417,18 @@ view model  wrapper pane =
                 ]
 
         Nothing ->
-            Input.radioRow
-                [ Border.rounded 6 ]
-                { onChange = ChooseViewMode pane.paneId >> wrapper
-                , selected = Just ViewAbout
-                , label = Input.labelHidden "Choose view"
-                , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
-                }
+            column []
+                [ Input.radioRow
+                    [ Border.rounded 6 ]
+                    { onChange = ChooseViewMode pane.paneId >> wrapper
+                    , selected = Just ViewAbout
+                    , label = Input.labelHidden "Choose view"
+                    , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
+                    }
+                , About.viewAboutText
+                    pane.thirdPersonContext
+                    model.ipInfo
+                ]
 
 
 viewPaneTools : (ViewPaneMessage -> msg) -> Element msg
