@@ -1,13 +1,7 @@
 port module PortController exposing (..)
 
-import BoundingBox3d exposing (BoundingBox3d)
 import Json.Decode exposing (Decoder, field, string)
 import Json.Encode as E
-import Length
-import LocalCoords exposing (LocalCoords)
-import Point3d
-import TrackPoint exposing (TrackPoint)
-
 
 
 port commandPort : E.Value -> Cmd msg

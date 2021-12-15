@@ -8,7 +8,9 @@
 
 # WIP
 
-Fix **initial redraw** on track load.
+Map not resizing properly when switching two column mode.
+
+Pane layout not being saved/restored.
 
 Try **previews** on Map. Maybe switchable.
 

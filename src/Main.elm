@@ -1013,27 +1013,39 @@ processGpxLoaded content (Model model) =
 applyTrack : Model -> Track -> ( Model, Cmd Msg )
 applyTrack (Model model) track =
     let
-        ( newViewPanes, mapCommands ) =
-            ( ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
-            , Cmd.batch
+        newViewPanes =
+            ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
+
+        storageCommands =
+            Cmd.batch
                 [ PortController.storageGetItem "panes"
                 , PortController.storageGetItem "splitter"
                 ]
-            )
+
+        modelWithNewTrack =
+            { model
+                | track = Just track
+                , renderingContext = Just defaultRenderingContext
+                , viewPanes = newViewPanes
+                , gpxSource = GpxLocalFile
+                , undoStack = []
+                , redoStack = []
+                , changeCounter = 0
+                , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
+            }
+
+        mapCmd =
+            let
+                ( lon, lat, ele ) =
+                    Track.withoutGhanianTransform track track.currentNode.xyz
+            in
+            MapBox.centreMapOn ( lon, lat )
+
+        ( rerenderedModel, renderCmds ) =
+            processPostUpdateAction modelWithNewTrack ActionRerender
     in
-    ( { model
-        | track = Just track
-        , renderingContext = Just defaultRenderingContext
-        , viewPanes = newViewPanes
-        , gpxSource = GpxLocalFile
-        , undoStack = []
-        , redoStack = []
-        , changeCounter = 0
-        , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
-      }
-        |> repeatTrackDerivations
-        |> Model
-    , mapCommands
+    ( rerenderedModel
+    , Cmd.batch [ renderCmds, storageCommands, mapCmd ]
     )
 
 
@@ -2366,85 +2378,6 @@ processPortMessage model json =
             D.decodeValue (D.field "latitudes" (D.list D.float)) json
     in
     case ( jsonMsg, model.track ) of
-        ( Ok "click", Just track ) ->
-            --{ 'msg' : 'click'
-            --, 'lat' : e.lat()
-            --, 'lon' : e.lon()
-            --} );
-            case ( lat, lon ) of
-                ( Ok lat1, Ok lon1 ) ->
-                    case searchTrackPointFromLonLat ( lon1, lat1 ) track of
-                        Just point ->
-                            let
-                                ( outcome, cmds ) =
-                                    processPostUpdateAction
-                                        { model | lastMapClick = ( lon1, lat1 ) }
-                                        (PostUpdateActions.ActionFocusMove point)
-                            in
-                            ( outcome
-                            , Cmd.none
-                            )
-
-                        Nothing ->
-                            ( Model
-                                { model | lastMapClick = ( lon1, lat1 ) }
-                            , Cmd.none
-                            )
-
-                _ ->
-                    ( Model model, Cmd.none )
-
-        ( Ok "drag", Just track ) ->
-            case draggedOnMap json track of
-                Just undoEntry ->
-                    processPostUpdateAction
-                        model
-                        (PostUpdateActions.ActionTrackChanged TrackEditType.EditPreservesIndex undoEntry)
-
-                Nothing ->
-                    ( Model model, Cmd.none )
-
-        ( Ok "elevations", Just track ) ->
-            case elevations of
-                Ok mapElevations ->
-                    processPostUpdateAction model
-                        (PostUpdateActions.ActionTrackChanged
-                            TrackEditType.EditPreservesIndex
-                            (RotateRoute.buildMapElevations mapElevations track)
-                        )
-
-                _ ->
-                    ( Model model, Cmd.none )
-
-        ( Ok "sketch", _ ) ->
-            case ( longitudes, latitudes, elevations ) of
-                ( Ok mapLongitudes, Ok mapLatitudes, Ok mapElevations ) ->
-                    let
-                        newTrack =
-                            List.map3
-                                (\x y z -> ( x, y, z ))
-                                mapLongitudes
-                                mapLatitudes
-                                mapElevations
-                                |> Track.trackFromMap
-                    in
-                    case newTrack of
-                        Just track ->
-                            applyTrack (Model model) track
-
-                        Nothing ->
-                            ( Model model
-                            , Cmd.none
-                            )
-
-                _ ->
-                    ( Model model, Cmd.none )
-
-        ( Ok "no node", _ ) ->
-            ( Model model
-            , Cmd.none
-            )
-
         ( Ok "storage.got", _ ) ->
             let
                 key =
@@ -2476,13 +2409,14 @@ processPortMessage model json =
                     in
                     case p of
                         Ok pixels ->
-                            ( Model
-                                { model
-                                    | splitInPixels = pixels
-                                    , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
-                                }
-                            , Cmd.none
-                            )
+                            let
+                                newModel =
+                                    { model
+                                        | splitInPixels = pixels
+                                        , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
+                                    }
+                            in
+                            processPostUpdateAction newModel ActionRerender
 
                         _ ->
                             ( Model model, Cmd.none )

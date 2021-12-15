@@ -46,6 +46,43 @@ app.ports.genRandomBytes.subscribe(n => {
     app.ports.randomBytes.send(bytes);
 });
 
+// Elm uses local storage via this port.
+app.ports.commandPort.subscribe(incomingMessageHandler);
+
+function incomingMessageHandler(msg) {
+    switch (msg.Cmd) {
+        case 'storage.set':
+            //console.log(msg.key); console.log(msg.value);
+            localStorage.setItem(msg.key, JSON.stringify( msg.value ) );
+            break;
+
+        case 'storage.get':
+            var val = null;
+            try {
+              val = JSON.parse(localStorage.getItem(msg.key))
+            } catch (e) {
+            };
+            app.ports.messageReceiver.send({ 'msg' : 'storage.got', 'key' : msg.key, 'value' : val });
+            break;
+
+        case 'storage.list':
+            var keys = [];
+            var cnt = localStorage.length;
+            for (var i = 0; i < cnt; i++) {
+                var key = localStorage.key(i);
+                keys.push(key);
+            };
+            //console.log(keys);
+            app.ports.messageReceiver.send({ 'msg' : 'storage.keys', 'keys' : keys });
+            break;
+
+        case 'storage.clear':
+            localStorage.clear();
+            break;
+    }
+};
+
+
 </script>
 
 </body>
