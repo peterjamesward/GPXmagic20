@@ -240,10 +240,9 @@ init mflags origin navigationKey =
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
         , Task.perform Tick Time.now
-
-        --, PortController.storageGetItem "accordion"
-        --, PortController.storageGetItem "display"
-        --, PortController.storageGetItem "panes"
+        , PortController.storageGetItem "accordion"
+        , PortController.storageGetItem "display"
+        , PortController.storageGetItem "panes"
         ]
     )
 
@@ -2372,20 +2371,6 @@ processPortMessage model json =
     let
         jsonMsg =
             D.decodeValue msgDecoder json
-
-        ( lat, lon ) =
-            ( D.decodeValue (D.field "lat" D.float) json
-            , D.decodeValue (D.field "lon" D.float) json
-            )
-
-        elevations =
-            D.decodeValue (D.field "elevations" (D.list D.float)) json
-
-        longitudes =
-            D.decodeValue (D.field "longitudes" (D.list D.float)) json
-
-        latitudes =
-            D.decodeValue (D.field "latitudes" (D.list D.float)) json
     in
     case ( jsonMsg, model.track ) of
         ( Ok "storage.got", _ ) ->
@@ -2447,9 +2432,11 @@ processPortMessage model json =
                     processPostUpdateAction newModel ActionRerender
 
                 ( Ok "display", Ok saved ) ->
-                    ( Model { model | displayOptions = DisplayOptions.decodeOptions saved }
-                    , Cmd.none
-                    )
+                    let
+                        newModel =
+                            { model | displayOptions = DisplayOptions.decodeOptions saved }
+                    in
+                    processPostUpdateAction newModel ActionRerender
 
                 _ ->
                     ( Model model, Cmd.none )

@@ -1,16 +1,22 @@
 
 # BUGS
 
+**Call stack exceeded** on Ben Nevis.
+
+---
 
 # WIP
 
-Try **previews** on Map. Maybe switchable.
-
-**TEST** (esp. wrt bugs above)
+Is it just too slow now to navigate on a big route, with full redraw on PointerMove/FocusMove?
+> Selective rendering needs to do fewer rebuilds based on distance.
 
 ---
 
 # Backlog
+
+Nice if Map had terrain again.
+
+Try **previews** on Map. Maybe switchable.
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
