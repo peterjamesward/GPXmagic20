@@ -6,8 +6,6 @@
 
 Try **previews** on Map. Maybe switchable.
 
-**Chart** -- number of points ~ pixels available, and show message.
-
 **TEST** (esp. wrt bugs above)
 
 ---

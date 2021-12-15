@@ -18,7 +18,7 @@ import Quantity exposing (Quantity)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, gradientFromPoint)
-import Utils exposing (showDecimal0, showDecimal2, showLongMeasure, showShortMeasure)
+import Utils exposing (DownSelected, showDecimal0, showDecimal2, showLongMeasure, showShortMeasure)
 import ViewingContext exposing (DragAction(..), ViewingContext)
 import ViewingMode exposing (ViewingMode(..))
 
@@ -63,6 +63,12 @@ viewScene context options wrapper =
                 (toFloat useHeight)
                 context
                 wrapper
+        , el [ centerX ] <|
+            text <|
+                "Showing "
+                    ++ String.fromInt context.chartPoints.countSelected
+                    ++ " from "
+                    ++ String.fromInt context.chartPoints.countInView
         , wrapChart useWidth useHeight <|
             gradientChart
                 (toFloat useWidth)
@@ -72,7 +78,7 @@ viewScene context options wrapper =
         ]
 
 
-downSelect : TrackPoint -> Float -> List TrackPoint -> List TrackPoint
+downSelect : TrackPoint -> Float -> List TrackPoint -> DownSelected TrackPoint
 downSelect current zoom points =
     -- Zoom is logarithmic. In MapBox, zoom 0 => 78km per pixel at equator.
     -- At zoom 22, we should show maybe 5m.
@@ -92,9 +98,14 @@ downSelect current zoom points =
 
         excessRatio =
             1 + List.length regionToShow // 500
+
+        selectedPoints =
+            List.filter (\pt -> (pt.index |> modBy excessRatio) == 0) regionToShow
     in
-    regionToShow
-        |> List.filter (\pt -> (pt.index |> modBy excessRatio) == 0)
+    { selected = selectedPoints
+    , countInView = List.length regionToShow
+    , countSelected = List.length selectedPoints
+    }
 
 
 wrapChart useWidth useHeight =
@@ -109,7 +120,7 @@ wrapChart useWidth useHeight =
 altitudeChart :
     Float
     -> Float
-    -> { a | chartPoints : List TrackPoint, chartHover : List (CI.One TrackPoint CI.Dot) }
+    -> { a | chartPoints : DownSelected TrackPoint, chartHover : List (CI.One TrackPoint CI.Dot) }
     -> (ImageMsg -> msg)
     -> Html msg
 altitudeChart w h context wrapper =
@@ -117,7 +128,7 @@ altitudeChart w h context wrapper =
         minY =
             List.Extra.minimumBy
                 (.xyz >> Point3d.zCoordinate >> Length.inMeters)
-                context.chartPoints
+                context.chartPoints.selected
                 |> Maybe.map (.xyz >> Point3d.zCoordinate >> Length.inMeters)
                 |> Maybe.withDefault 0.0
     in
@@ -137,7 +148,7 @@ altitudeChart w h context wrapper =
             [ CA.noArrow ]
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated (.xyz >> Point3d.zCoordinate >> Length.inMeters) [] [] ]
-            context.chartPoints
+            context.chartPoints.selected
         , C.each context.chartHover <|
             \p dot ->
                 let
@@ -163,7 +174,7 @@ altitudeChart w h context wrapper =
 gradientChart :
     Float
     -> Float
-    -> { a | chartPoints : List TrackPoint, chartHover : List (CI.One TrackPoint CI.Dot) }
+    -> { a | chartPoints : DownSelected TrackPoint, chartHover : List (CI.One TrackPoint CI.Dot) }
     -> (ImageMsg -> msg)
     -> Html msg
 gradientChart w h context wrapper =
@@ -182,7 +193,7 @@ gradientChart w h context wrapper =
         , C.yAxis [ CA.noArrow ]
         , C.series (.distanceFromStart >> Length.inMeters)
             [ C.interpolated gradientFromPoint [ CA.stepped ] [] ]
-            context.chartPoints
+            context.chartPoints.selected
         , C.each context.chartHover <|
             \p dot ->
                 let
