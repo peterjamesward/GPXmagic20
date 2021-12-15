@@ -2,7 +2,7 @@ module DisplayOptions exposing (..)
 
 import Element exposing (..)
 import Element.Input as Input exposing (button)
-import Json.Decode as Decode exposing (Decoder, bool, decodeValue, field, float, int)
+import Json.Decode as Decode exposing (Decoder, bool, decodeValue, field, float, int, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as E
 import Length exposing (Meters)
@@ -46,6 +46,12 @@ type Msg
     | Terrain Bool
     | TerrainFineness Int
     | ToggleRenderingLimit Bool
+    | SetMapStyle MapStyle
+
+
+type MapStyle
+    = MapSatellite
+    | MapOutdoors
 
 
 type Measurements
@@ -68,6 +74,7 @@ type alias DisplayOptions =
     , imperialMeasure : Bool
     , levelOfDetailThreshold : Float
     , showRenderingLimit : Bool
+    , mapStyle : MapStyle
     }
 
 
@@ -87,6 +94,7 @@ defaultDisplayOptions =
     , imperialMeasure = False
     , levelOfDetailThreshold = 0.0
     , showRenderingLimit = False
+    , mapStyle = MapOutdoors
     }
 
 
@@ -200,6 +208,17 @@ viewDisplayOptions options wrap =
                 , Input.optionWith RainbowCurtain <| radioButton "Vivid"
                 ]
             }
+        , Input.radioRow
+            [ spaceEvenly, padding 10 ]
+            { onChange = wrap << SetMapStyle
+            , selected = Just options.mapStyle
+            , label =
+                Input.labelLeft [] <| text "Map:"
+            , options =
+                [ Input.optionWith MapOutdoors <| radioButton "Outdoors"
+                , Input.optionWith MapSatellite <| radioButton "Satellite"
+                ]
+            }
         ]
 
 
@@ -245,6 +264,9 @@ update options dispMsg wrap =
         ToggleRenderingLimit newState ->
             { options | showRenderingLimit = newState }
 
+        SetMapStyle style ->
+            { options | mapStyle = style }
+
 
 encodeCurtain c =
     case c of
@@ -259,6 +281,15 @@ encodeCurtain c =
 
         PastelCurtain ->
             3
+
+
+encodeMapStyle style =
+    case style of
+        MapSatellite ->
+            "satellite"
+
+        MapOutdoors ->
+            "outdoors"
 
 
 encodeOptions : DisplayOptions -> E.Value
@@ -278,6 +309,7 @@ encodeOptions options =
         , ( "curtainStyle", E.int (encodeCurtain options.curtainStyle) )
         , ( "LOD", E.float options.levelOfDetailThreshold )
         , ( "MRlimit", E.bool options.showRenderingLimit )
+        , ( "mapstyle", E.string <| encodeMapStyle options.mapStyle )
         ]
 
 
@@ -315,6 +347,13 @@ decodeOptions json =
                             NoCurtain
                 , levelOfDetailThreshold = restore.lod
                 , showRenderingLimit = restore.showRenderingLimit
+                , mapStyle =
+                    case restore.mapStyle of
+                        "satellite" ->
+                            MapSatellite
+
+                        _ ->
+                            MapOutdoors
             }
 
         _ ->
@@ -336,6 +375,7 @@ type alias DecodeTemporary =
     , curtainStyle : Int
     , lod : Float
     , showRenderingLimit : Bool
+    , mapStyle : String
     }
 
 
@@ -356,6 +396,7 @@ temporaryDecoder =
         |> optional "curtainStyle" int (encodeCurtain defaultDisplayOptions.curtainStyle)
         |> optional "LOC" float defaultDisplayOptions.levelOfDetailThreshold
         |> optional "MRlimit" bool defaultDisplayOptions.showRenderingLimit
+        |> optional "mapstyle" string "outdoors"
 
 
 adjustDetail : DisplayOptions -> Int -> DisplayOptions

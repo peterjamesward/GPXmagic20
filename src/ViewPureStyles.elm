@@ -137,8 +137,10 @@ radioButton label state =
     el
         [ padding 10
         , spacing 2
-        , Border.widthEach { left = 2, right = 2, top = 2, bottom = 0 }
-        , Border.roundEach { topLeft = 10, bottomLeft = 0, topRight = 10, bottomRight = 0 }
+        --, Border.widthEach { left = 2, right = 2, top = 2, bottom = 0 }
+        --, Border.roundEach { topLeft = 10, bottomLeft = 0, topRight = 10, bottomRight = 0 }
+        , Border.width 2
+        , Border.rounded 10
         , Background.color <|
             if state == Input.Selected then
                 radioButtonSelected

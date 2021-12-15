@@ -1397,7 +1397,7 @@ composeScene model =
                         in
                         case mapContext of
                             Just vc ->
-                                MapBox.buildMap vc reducedTrack
+                                MapBox.buildMap vc reducedTrack model.displayOptions.mapStyle
 
                             Nothing ->
                                 model.mapboxStyle

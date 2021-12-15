@@ -1,6 +1,7 @@
 module MapBox exposing (..)
 
 import Angle exposing (Angle)
+import DisplayOptions
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
 import Json.Decode
@@ -17,6 +18,7 @@ import MapboxKey
 import Pixels
 import ScenePainterCommon exposing (ImageMsg(..))
 import Styles.Outdoors
+import Styles.Satellite
 import Track exposing (Track, mapboxMarkerJSON)
 import ViewingContext exposing (ViewingContext)
 
@@ -33,10 +35,11 @@ mapPurple =
     E.makeRGBColor (E.float 128) (E.float 0) (E.float 128)
 
 
-buildMap : ViewingContext -> Track -> Style
-buildMap context track =
+buildMap : ViewingContext -> Track -> DisplayOptions.MapStyle -> Style
+buildMap context track mapStyle =
     let
-        _ = Debug.log "I think the size is" context.size
+        _ =
+            Debug.log "I think the size is" context.size
 
         geojson =
             Track.mapboxJSON track
@@ -107,7 +110,12 @@ buildMap context track =
             [ purpleMarkerLayer, draggingLayer ] |> List.filterMap identity
 
         baseStyle =
-            Styles.Outdoors.style
+            case mapStyle of
+                DisplayOptions.MapSatellite ->
+                    Styles.Satellite.style
+
+                _ ->
+                    Styles.Outdoors.style
 
         ( lon, lat, _ ) =
             track.earthReferenceCoordinates
