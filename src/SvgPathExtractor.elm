@@ -243,6 +243,9 @@ processXML model content =
                             in
                             { trackName = Just model.svgFilename
                             , trackPoints = trackPoints
+                            , reducedPoints = []
+                            , reductionLevel = 0
+                            , centreOfReduction = Nothing
                             , currentNode =
                                 List.head trackPoints
                                     |> Maybe.withDefault (TrackPoint.trackPointFromPoint Point3d.origin)

@@ -1362,18 +1362,45 @@ composeScene model =
                         |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
 
                 reducedTrack =
-                    if model.displayOptions.levelOfDetailThreshold > 0.0 then
-                        Track.makeReducedTrack track threshold
+                    case
+                        ( model.displayOptions.levelOfDetailThreshold > 0.0
+                        , track.centreOfReduction
+                        )
+                    of
+                        ( False, Nothing ) ->
+                            track
+
+                        ( False, Just wasReduced ) ->
+                            { track | centreOfReduction = Nothing }
+
+                        ( True, Nothing ) ->
+                            Track.makeReducedTrack track threshold
+
+                        ( True, Just lastCentre ) ->
+                            if
+                                (Point3d.distanceFrom track.currentNode.xyz lastCentre.xyz
+                                    |> Quantity.greaterThan (Quantity.half threshold)
+                                )
+                                    || ((Length.inMeters threshold) /= track.reductionLevel)
+                            then
+                                Track.makeReducedTrack track threshold
+
+                            else
+                                track
+
+                effectiveTrack =
+                    if track.centreOfReduction == Nothing then
+                        track
 
                     else
-                        track
+                        { track | trackPoints = reducedTrack.reducedPoints }
             in
             { model
                 | completeScene =
                     if ViewPane.is3dVisible model.viewPanes then
                         combineLists
-                            [ renderVarying3dSceneElements model reducedTrack
-                            , renderTrack3dSceneElements model reducedTrack
+                            [ renderVarying3dSceneElements model effectiveTrack
+                            , renderTrack3dSceneElements model effectiveTrack
                             ]
 
                     else
@@ -1381,8 +1408,8 @@ composeScene model =
                 , completeProfile =
                     if ViewPane.isProfileVisible model.viewPanes then
                         combineLists
-                            [ renderVaryingProfileSceneElements model reducedTrack
-                            , renderTrackProfileSceneElements model reducedTrack
+                            [ renderVaryingProfileSceneElements model effectiveTrack
+                            , renderTrackProfileSceneElements model effectiveTrack
                             ]
 
                     else
@@ -1400,7 +1427,7 @@ composeScene model =
                                 MapBox.buildMap
                                     model.toolsAccordion
                                     context
-                                    reducedTrack
+                                    effectiveTrack
                                     model.displayOptions.mapStyle
 
                             Nothing ->
@@ -1408,6 +1435,7 @@ composeScene model =
 
                     else
                         model.mapboxStyle
+                , track = Just reducedTrack
             }
 
 

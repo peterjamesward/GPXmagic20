@@ -1,14 +1,13 @@
 
 # BUGS
 
-**Call stack exceeded** on Ben Nevis.
-
 ---
 
 # WIP
 
 Is it just too slow now to navigate on a big route, with full redraw on PointerMove/FocusMove?
 > Selective rendering needs to do fewer rebuilds based on distance.
+> Think of a more elegant way of dealing with this; it's worthwhile.
 
 ---
 
