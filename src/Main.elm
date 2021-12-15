@@ -1389,6 +1389,7 @@ composeScene model =
                     else
                         []
                 , mapboxStyle =
+                    -- What we call "mapboxStyle" is in fact the Map.
                     if isMapVisible model.viewPanes then
                         -- Argh, the ugly, getting view context for dragging on map.
                         let
@@ -1396,8 +1397,12 @@ composeScene model =
                                 ViewPane.getMapContext model.viewPanes
                         in
                         case mapContext of
-                            Just vc ->
-                                MapBox.buildMap vc reducedTrack model.displayOptions.mapStyle
+                            Just context ->
+                                MapBox.buildMap
+                                    model.toolsAccordion
+                                    context
+                                    reducedTrack
+                                    model.displayOptions.mapStyle
 
                             Nothing ->
                                 model.mapboxStyle

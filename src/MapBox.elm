@@ -1,11 +1,9 @@
 module MapBox exposing (..)
 
-import Angle exposing (Angle)
+import Accordion exposing (AccordionEntry)
 import DisplayOptions
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
-import Json.Decode
-import Json.Encode
 import LngLat exposing (LngLat)
 import MapCommands
 import Mapbox.Cmd.Option as Opt
@@ -35,12 +33,9 @@ mapPurple =
     E.makeRGBColor (E.float 128) (E.float 0) (E.float 128)
 
 
-buildMap : ViewingContext -> Track -> DisplayOptions.MapStyle -> Style
-buildMap context track mapStyle =
+buildMap : List (AccordionEntry model msg) -> ViewingContext -> Track -> DisplayOptions.MapStyle -> Style
+buildMap accordion context track mapStyle =
     let
-        _ =
-            Debug.log "I think the size is" context.size
-
         geojson =
             Track.mapboxJSON track
 
