@@ -26,6 +26,9 @@ import Utils exposing (bearingToDisplayDegrees, clickTolerance, elide, flatBox, 
 
 type alias Track =
     { trackPoints : List TrackPoint
+    , reducedPoints : List TrackPoint
+    , centreOfReduction : Maybe TrackPoint
+    , reductionLevel : Float
     , trackName : Maybe String
     , currentNode : TrackPoint
     , markedNode : Maybe TrackPoint
@@ -87,6 +90,9 @@ trackFromGpx content =
             Just
                 { trackName = GpxParser.parseTrackName content
                 , trackPoints = points
+                , reducedPoints = []
+                , reductionLevel = 0
+                , centreOfReduction = Nothing
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
@@ -151,6 +157,9 @@ trackFromMap trackPoints =
             Just
                 { trackName = Just "from-sketch"
                 , trackPoints = points
+                , reducedPoints = []
+                , reductionLevel = 0
+                , centreOfReduction = Nothing
                 , currentNode = n1
                 , markedNode = Nothing
                 , graph = Nothing
@@ -409,13 +418,16 @@ makeReducedTrack track threshold =
                 Nothing ->
                     -- No outside found, source is all inside, and we're done.
                     source :: accum
-
-        reducedPoints =
+    in
+    { track
+        | reducedPoints =
             takeOutside track.trackPoints []
                 |> List.reverse
                 |> List.concat
-    in
-    { track | trackPoints = prepareTrackPoints <| reducedPoints }
+                |> prepareTrackPoints
+        , centreOfReduction = Just track.currentNode
+        , reductionLevel = Length.inMeters threshold
+    }
 
 
 getSection : Track -> ( Int, Int, List TrackPoint )
