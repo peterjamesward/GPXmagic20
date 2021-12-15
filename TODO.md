@@ -1,17 +1,10 @@
 
 # BUGS
 
-Bend smoother completely wrong on Nufenen-Furka-Tremola !!
-Generally finds no bends, or bizarre ones at angle to track.
-**Zooming** on this track can break Chrome !!
-Can also break on NC250 stage 4 with curve former. Unless you try.
+**FlyTo** on map is sometimes wrong, noticeable on F-N-T.
 
-FlyTo on map is sometimes wrong, noticeable on F-N-T.
-
-Selective rendering seems to have stopped working, also FNT.
+**Selective rendering** seems to have stopped working, also FNT.
 (this is what's breaking bend smoother)
-
----
 
 # WIP
 
@@ -20,6 +13,8 @@ Fix **initial redraw** on track load.
 Try **previews** on Map. Maybe switchable.
 
 Option for **Satellite** map.
+
+**Chart** -- number of points ~ pixels available, and show message.
 
 **TEST** (esp. wrt bugs above)
 

@@ -885,14 +885,14 @@ processPostUpdateAction model action =
                                 model.viewPanes
                     }
 
-                ( finalModel, cmd ) =
+                ( finalModel, _ ) =
                     processPostUpdateAction newModel ActionRerender
 
                 refocusMapCmd =
                     if ViewPane.mapPaneIsLinked model.viewPanes then
                         let
                             ( lon, lat, ele ) =
-                                Track.withoutGhanianTransform track track.currentNode.xyz
+                                Track.withoutGhanianTransform track tp.xyz
                         in
                         MapBox.centreMapOn ( lon, lat )
 
@@ -900,7 +900,7 @@ processPostUpdateAction model action =
                         Cmd.none
             in
             ( finalModel
-            , Cmd.batch [ refocusMapCmd, cmd ]
+            , refocusMapCmd
             )
 
         ( Just track, ActionMarkerMove maybeTp ) ->

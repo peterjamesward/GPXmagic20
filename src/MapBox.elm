@@ -169,7 +169,7 @@ centreMapOn ( lon, lat ) =
         lngLat =
             { lng = lon, lat = lat }
     in
-    MapCommands.flyTo [ Opt.center lngLat ]
+    MapCommands.jumpTo [ Opt.center lngLat ]
 
 
 resizeMap : Cmd msg
