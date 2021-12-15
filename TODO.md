@@ -3,8 +3,6 @@
 
 Map not resizing properly when switching two column mode.
 
-Chart not rendering on page load.
-
 # WIP
 
 Try **previews** on Map. Maybe switchable.
