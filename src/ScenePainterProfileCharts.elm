@@ -34,8 +34,7 @@ initialiseView viewSize track oldContext =
         | viewingMode = ViewProfileCharts
         , zoomLevel = 12.0
         , defaultZoomLevel = 12.0
-
-        --, chartPoints = downSelect track.currentNode 12.0 track.trackPoints
+        , chartPoints = downSelect track.currentNode 12.0 track.trackPoints
         , focalPoint = track.currentNode.xyz
     }
 

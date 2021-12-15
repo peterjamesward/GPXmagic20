@@ -1,25 +1,21 @@
 
 # BUGS
 
-Bend smoother completely wrong on Nufenen-Furka-Tremola !!
-> This is something to do with reduced track.
-> It's OK in 2.7.13.
-
----
+Map not resizing properly when switching two column mode.
 
 # WIP
 
-Bring back good things from gampleman branch:
-- Smarter reduced track rerendering (see bug above).
-- Prompt text for edlided charts.
-- Map choice.
-- See c4a450a6 for possible map problem.
+Try **previews** on Map. Maybe switchable.
+
+Option for **Satellite** map.
+
+**Chart** -- number of points ~ pixels available, and show message.
+
+**TEST** (esp. wrt bugs above)
 
 ---
 
 # Backlog
-
-**Map not resizing properly after initial load** (this may be commented atm)
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
