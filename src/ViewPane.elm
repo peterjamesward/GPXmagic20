@@ -429,12 +429,16 @@ view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
                             ipInfo
 
             -- We leave the Map DIV intact, as destroying and creating is APITA.
-            , conditionallyVisible (pane.activeContext == ViewMap) <|
+            , conditionallyVisible (pane.activeContext == ViewMap && List.length scene > 0) <|
                 ScenePainterMap.viewScene
                     (pane.activeContext == ViewMap)
                     (getActiveContext pane)
                     []
                     (imageMessageWrapper pane.paneId >> wrapper)
+            , conditionallyVisible (pane.activeContext == ViewMap && List.length scene == 0) <|
+                About.viewAboutText
+                    pane.thirdPersonContext
+                    ipInfo
             ]
 
     else

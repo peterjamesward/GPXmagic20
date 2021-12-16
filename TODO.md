@@ -1,10 +1,11 @@
 
 # BUGS
 
-Using reduced track on map confuses the pointer location.
-Also, is there risk that purple is not shown if outside the region?
+Something wrong with the derivation of the detailed track area, see `Furka...` screenshot in `Reference`
 
 No profile chart.
+
+---
 
 # WIP
 
