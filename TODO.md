@@ -1,11 +1,6 @@
 
 # BUGS
 
-Something wrong with the derivation of the detailed track area,  
-see `Furka...` screenshot in `Reference`.
-
-Bend smoother confused because of above?
-
 No profile chart.
 
 ---

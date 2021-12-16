@@ -1337,12 +1337,16 @@ repeatTrackDerivations model =
                         |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
 
                 newTrack =
+                    -- Force refresh of reduced track after any edit.
                     { isTrack
                         | trackPoints = earthTrack
                         , currentNode = newOrange
                         , markedNode = newPurple
                         , box = newBox
                         , spatialIndex = Track.buildSpatialIndex earthTrack newBox
+                        , reducedPoints = []
+                        , reductionLevel = 0
+                        , centreOfReduction = Nothing
                     }
             in
             { model
@@ -1375,12 +1379,12 @@ composeScene model =
             { model
                 | completeScene =
                     combineLists
-                        [ renderVarying3dSceneElements model effectiveTrack
+                        [ renderVarying3dSceneElements model trackWithOptionalReduction
                         , renderTrack3dSceneElements model effectiveTrack
                         ]
                 , completeProfile =
                     combineLists
-                        [ renderVaryingProfileSceneElements model effectiveTrack
+                        [ renderVaryingProfileSceneElements model trackWithOptionalReduction
                         , renderTrackProfileSceneElements model effectiveTrack
                         ]
                 , track = Just trackWithOptionalReduction

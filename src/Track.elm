@@ -387,12 +387,6 @@ makeReducedTrack track detailLevel =
                 ( threshold, threshold )
                 (track.currentNode.xyz |> Point3d.projectInto SketchPlane3d.xy)
 
-        --interiorPoints0 =
-        --    -- Put these in a dict as we need access by index
-        --    SpatialIndex.query track.spatialIndex interiorBox
-        --        |> List.map .content
-        --        |> Dict.Extra.fromListBy .index
-
         interiorPoints =
             -- Put these in a dict as we need access by index
             SpatialIndex.queryWithFold track.spatialIndex interiorBox
