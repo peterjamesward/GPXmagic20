@@ -1,7 +1,10 @@
 
 # BUGS
 
-Something wrong with the derivation of the detailed track area, see `Furka...` screenshot in `Reference`
+Something wrong with the derivation of the detailed track area,  
+see `Furka...` screenshot in `Reference`.
+
+Bend smoother confused because of above?
 
 No profile chart.
 
@@ -9,15 +12,13 @@ No profile chart.
 
 # WIP
 
-Option for **Satellite** map.
-
 **Chart** -- number of points ~ pixels available, and show message.
-
-**TEST** (esp. wrt bugs above)
 
 ---
 
 # Backlog
+
+Satellite map option.
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
