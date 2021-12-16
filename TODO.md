@@ -1,9 +1,9 @@
 
 # BUGS
 
-Initial About text not showing.
-
 Reduced track not working.
+
+Use reduced track on Map.
 
 No profile chart.
 

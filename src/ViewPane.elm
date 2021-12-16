@@ -76,7 +76,7 @@ defaultViewPane =
     , firstPersonContext = newViewingContext ViewFirstPerson
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
-    ,profileChartContext = newViewingContext ViewProfileCharts
+    , profileChartContext = newViewingContext ViewProfileCharts
     , mapContext = newViewingContext ViewMap
     , viewPixels = ( pixels 800, pixels 500 )
     , paneLinked = True
@@ -384,39 +384,46 @@ view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
                     , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
                     }
             , conditionallyVisible (pane.activeContext /= ViewMap) <|
-                case pane.activeContext of
-                    ViewThirdPerson ->
-                        ScenePainterThird.viewScene
-                            (pane.activeContext == ViewThirdPerson)
-                            (getActiveContext pane)
-                            displayOptions
-                            scene
-                            (imageMessageWrapper pane.paneId >> wrapper)
+                el [] <|
+                    if List.length scene > 0 then
+                        case pane.activeContext of
+                            ViewThirdPerson ->
+                                ScenePainterThird.viewScene
+                                    (pane.activeContext == ViewThirdPerson)
+                                    (getActiveContext pane)
+                                    displayOptions
+                                    scene
+                                    (imageMessageWrapper pane.paneId >> wrapper)
 
-                    ViewFirstPerson ->
-                        ScenePainterFirst.viewScene
-                            (pane.activeContext == ViewFirstPerson)
-                            (getActiveContext pane)
-                            displayOptions
-                            scene
-                            (imageMessageWrapper pane.paneId >> wrapper)
+                            ViewFirstPerson ->
+                                ScenePainterFirst.viewScene
+                                    (pane.activeContext == ViewFirstPerson)
+                                    (getActiveContext pane)
+                                    displayOptions
+                                    scene
+                                    (imageMessageWrapper pane.paneId >> wrapper)
 
-                    ViewPlan ->
-                        ScenePainterPlan.viewScene
-                            (pane.activeContext == ViewPlan)
-                            (getActiveContext pane)
-                            plan
-                            (imageMessageWrapper pane.paneId >> wrapper)
+                            ViewPlan ->
+                                ScenePainterPlan.viewScene
+                                    (pane.activeContext == ViewPlan)
+                                    (getActiveContext pane)
+                                    plan
+                                    (imageMessageWrapper pane.paneId >> wrapper)
 
-                    ViewProfile ->
-                        ScenePainterProfile.viewScene
-                            (pane.activeContext == ViewProfile)
-                            (getActiveContext pane)
-                            displayOptions
-                            profile
-                            (imageMessageWrapper pane.paneId >> wrapper)
+                            ViewProfile ->
+                                ScenePainterProfile.viewScene
+                                    (pane.activeContext == ViewProfile)
+                                    (getActiveContext pane)
+                                    displayOptions
+                                    profile
+                                    (imageMessageWrapper pane.paneId >> wrapper)
 
-                    _ ->
+                            _ ->
+                                About.viewAboutText
+                                    pane.thirdPersonContext
+                                    ipInfo
+
+                    else
                         About.viewAboutText
                             pane.thirdPersonContext
                             ipInfo
