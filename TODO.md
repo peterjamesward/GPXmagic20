@@ -2,15 +2,17 @@
 # BUGS
 
 Bend smoother completely wrong on Nufenen-Furka-Tremola !!
+> This is something to do with reduced track.
+> It's OK in 2.7.13.
 
 ---
 
 # WIP
 
 Bring back good things from gampleman branch:
-- Smarter reduced track rerendering.
-- Prompt text for charts.
-- Map choice
+- Smarter reduced track rerendering (see bug above).
+- Prompt text for edlided charts.
+- Map choice.
 - See c4a450a6 for possible map problem.
 
 ---
