@@ -2,8 +2,16 @@
 # BUGS
 
 Bend smoother completely wrong on Nufenen-Furka-Tremola !!
-**Zooming** can break Chrome !!
 
+---
+
+# WIP
+
+Bring back good things from gampleman branch:
+- Smarter reduced track rerendering.
+- Prompt text for charts.
+- Map choice
+- See c4a450a6 for possible map problem.
 
 ---
 
