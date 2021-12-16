@@ -1,9 +1,8 @@
 
 # BUGS
 
-Reduced track not working.
-
-Use reduced track on Map.
+Using reduced track on map confuses the pointer location.
+Also, is there risk that purple is not shown if outside the region?
 
 No profile chart.
 

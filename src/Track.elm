@@ -371,10 +371,17 @@ trackBoundingBox track =
         |> Maybe.withDefault (BoundingBox3d.singleton Point3d.origin)
 
 
-makeReducedTrack : Track -> Quantity Float Meters -> Track
-makeReducedTrack track threshold =
+makeReducedTrack : Track -> Float -> Track
+makeReducedTrack track detailLevel =
     -- Elide trackpoint outside of a box of given size centred on current point
     let
+        ( xSize, ySize, _ ) =
+            BoundingBox3d.dimensions track.box
+
+        threshold =
+            Quantity.max xSize ySize
+                |> Quantity.multiplyBy (0.5 ^ (1 + detailLevel))
+
         interiorBox =
             BoundingBox2d.withDimensions
                 ( threshold, threshold )
@@ -418,16 +425,46 @@ makeReducedTrack track threshold =
                 Nothing ->
                     -- No outside found, source is all inside, and we're done.
                     source :: accum
+
+        trackWithReduction =
+            { track
+                | reducedPoints =
+                    takeOutside track.trackPoints []
+                        |> List.reverse
+                        |> List.concat
+                        |> prepareTrackPoints
+                , centreOfReduction = Just track.currentNode
+                , reductionLevel = detailLevel
+            }
     in
-    { track
-        | reducedPoints =
-            takeOutside track.trackPoints []
-                |> List.reverse
-                |> List.concat
-                |> prepareTrackPoints
-        , centreOfReduction = Just track.currentNode
-        , reductionLevel = Length.inMeters threshold
-    }
+    -- Only expend effort if something has changed.
+    case ( track.centreOfReduction, detailLevel > 0, detailLevel /= track.reductionLevel ) of
+        ( Nothing, True, _ ) ->
+            -- Not been done, needed, do it.
+            trackWithReduction
+
+        ( Nothing, False, _ ) ->
+            -- Not been done, not asked for, make sure is cleaned up.
+            { track | reducedPoints = [], centreOfReduction = Nothing, reductionLevel = 0 }
+
+        ( Just wasReducedAt, True, False ) ->
+            -- Was done, may need to do again do to movement.
+            if
+                Point3d.distanceFrom wasReducedAt.xyz track.currentNode.xyz
+                    |> Quantity.greaterThan (Quantity.half threshold)
+            then
+                trackWithReduction
+
+            else
+                track
+
+        ( Just wasReducedAt, True, True ) ->
+            -- Was done, must do again because level of detail changed.
+            trackWithReduction
+
+        ( Just wasReducedAt, False, _ ) ->
+            -- Was done, not needed, clean up.
+            { track | reducedPoints = [], centreOfReduction = Nothing, reductionLevel = 0 }
 
 
 getSection : Track -> ( Int, Int, List TrackPoint )

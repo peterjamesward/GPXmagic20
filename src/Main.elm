@@ -857,10 +857,13 @@ processPostUpdateAction model action =
                         |> refreshSceneSearchers
                         |> refreshAccordion
                         |> composeScene
+
+                useTrack =
+                    polishedModel.track |> Maybe.withDefault track
             in
             ( Model polishedModel
             , Cmd.batch
-                [ ViewPane.makeMapCommands track polishedModel.viewPanes (getMapPreviews polishedModel)
+                [ ViewPane.makeMapCommands useTrack polishedModel.viewPanes (getMapPreviews polishedModel)
                 , Delay.after 100 RepaintMap
                 ]
             )
@@ -1029,28 +1032,31 @@ processGpxLoaded content (Model model) =
 applyTrack : Model -> Track -> ( Model, Cmd Msg )
 applyTrack (Model model) track =
     let
-        ( newViewPanes, mapCommands ) =
-            ( ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
-            , Cmd.batch
+        newViewPanes =
+            ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
+
+        modelWithNewTrack =
+            { model
+                | track = Just track
+                , renderingContext = Just defaultRenderingContext
+                , viewPanes = newViewPanes
+                , gpxSource = GpxLocalFile
+                , undoStack = []
+                , redoStack = []
+                , changeCounter = 0
+                , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
+            }
+                |> repeatTrackDerivations
+
+        mapCommands =
+            Cmd.batch
                 [ ViewPane.initialiseMap track model.viewPanes
                 , PortController.storageGetItem "panes"
                 , PortController.storageGetItem "splitter"
                 , Delay.after 100 RepaintMap
                 ]
-            )
     in
-    ( { model
-        | track = Just track
-        , renderingContext = Just defaultRenderingContext
-        , viewPanes = newViewPanes
-        , gpxSource = GpxLocalFile
-        , undoStack = []
-        , redoStack = []
-        , changeCounter = 0
-        , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
-      }
-        |> repeatTrackDerivations
-        |> Model
+    ( Model modelWithNewTrack
     , mapCommands
     )
 
@@ -1356,31 +1362,28 @@ composeScene model =
 
         Just track ->
             let
-                ( xSize, ySize, _ ) =
-                    BoundingBox3d.dimensions track.box
+                trackWithOptionalReduction =
+                    Track.makeReducedTrack track model.displayOptions.levelOfDetailThreshold
 
-                threshold =
-                    Quantity.max xSize ySize
-                        |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
-
-                reducedTrack =
-                    if model.displayOptions.levelOfDetailThreshold > 0.0 then
-                        Track.makeReducedTrack track threshold
+                effectiveTrack =
+                    if trackWithOptionalReduction.reducedPoints /= [] then
+                        { trackWithOptionalReduction | trackPoints = trackWithOptionalReduction.reducedPoints }
 
                     else
-                        track
+                        trackWithOptionalReduction
             in
             { model
                 | completeScene =
                     combineLists
-                        [ renderVarying3dSceneElements model reducedTrack
-                        , renderTrack3dSceneElements model reducedTrack
+                        [ renderVarying3dSceneElements model effectiveTrack
+                        , renderTrack3dSceneElements model effectiveTrack
                         ]
                 , completeProfile =
                     combineLists
-                        [ renderVaryingProfileSceneElements model reducedTrack
-                        , renderTrackProfileSceneElements model reducedTrack
+                        [ renderVaryingProfileSceneElements model effectiveTrack
+                        , renderTrackProfileSceneElements model effectiveTrack
                         ]
+                , track = Just trackWithOptionalReduction
             }
 
 
