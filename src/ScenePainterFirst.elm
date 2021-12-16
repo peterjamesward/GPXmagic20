@@ -56,6 +56,7 @@ initialiseView viewSize track oldContext =
             oldContext
 
 
+
 update :
     ImageMsg
     -> ViewingContext
@@ -206,12 +207,13 @@ update msg view wrap =
 
 
 viewScene :
-    ViewingContext
+    Bool
+    -> ViewingContext
     -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context options scene wrapper =
+viewScene visible context options scene wrapper =
     let
         flythroughHUD =
             case context.flythrough of
@@ -221,33 +223,37 @@ viewScene context options scene wrapper =
                 Nothing ->
                     inFront none
     in
-    el
-        ((inFront <| zoomButtons wrapper)
-            :: flythroughHUD
-            :: withMouseCapture wrapper
-        )
-    <|
-        html <|
-            if options.withLighting then
-                Scene3d.sunny
-                    { camera = deriveViewPointAndCamera context
-                    , dimensions = context.size
-                    , background = backgroundColor Color.lightBlue
-                    , clipDepth = Length.meters 1
-                    , entities = scene
-                    , upDirection = positiveZ
-                    , sunlightDirection = negativeZ
-                    , shadows = False
-                    }
+    if visible then
+        el
+            ((inFront <| zoomButtons wrapper)
+                :: flythroughHUD
+                :: withMouseCapture wrapper
+            )
+        <|
+            html <|
+                if options.withLighting then
+                    Scene3d.sunny
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        , upDirection = positiveZ
+                        , sunlightDirection = negativeZ
+                        , shadows = False
+                        }
 
-            else
-                Scene3d.unlit
-                    { camera = deriveViewPointAndCamera context
-                    , dimensions = context.size
-                    , background = backgroundColor Color.lightBlue
-                    , clipDepth = Length.meters 1
-                    , entities = scene
-                    }
+                else
+                    Scene3d.unlit
+                        { camera = deriveViewPointAndCamera context
+                        , dimensions = context.size
+                        , background = backgroundColor Color.lightBlue
+                        , clipDepth = Length.meters 1
+                        , entities = scene
+                        }
+
+    else
+        none
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords

@@ -91,25 +91,30 @@ profileZoomLevelFromBoundingBox ( viewWidth, viewHeight ) points =
 
 
 viewScene :
-    ViewingContext
+    Bool
+    -> ViewingContext
     -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene context options scene wrapper =
-    el
-        ((inFront <| zoomButtons wrapper)
-            :: withMouseCapture wrapper
-        )
-    <|
-        html <|
-            Scene3d.unlit
-                { camera = deriveViewPointAndCamera context options
-                , dimensions = context.size
-                , background = Scene3d.backgroundColor Color.lightCharcoal
-                , clipDepth = Length.meters 1
-                , entities = scene
-                }
+viewScene visible context options scene wrapper =
+    if visible then
+        el
+            ((inFront <| zoomButtons wrapper)
+                :: withMouseCapture wrapper
+            )
+        <|
+            html <|
+                Scene3d.unlit
+                    { camera = deriveViewPointAndCamera context options
+                    , dimensions = context.size
+                    , background = Scene3d.backgroundColor Color.lightCharcoal
+                    , clipDepth = Length.meters 1
+                    , entities = scene
+                    }
+
+    else
+        none
 
 
 deriveViewPointAndCamera : ViewingContext -> DisplayOptions -> Camera3d Length.Meters LocalCoords
@@ -267,7 +272,7 @@ update msg view options wrap =
             ( view, ActionNoOp )
 
 
-detectHit : ViewingContext -> DisplayOptions -> Mouse.Event -> Maybe TrackPoint
+detectHit : ViewingContext -> DisplayOptions ->Mouse.Event -> Maybe TrackPoint
 detectHit context options event =
     let
         ( x, y ) =
@@ -311,9 +316,6 @@ profilePointNearestRay track ray =
             )
 
 
-changeFocusTo : Track -> ViewingContext -> ViewingContext
-changeFocusTo track context =
-    { context
-        | focalPoint = track.currentNode.profileXZ
-        , currentPoint = Just track.currentNode
-    }
+changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
+changeFocusTo tp context =
+    { context | focalPoint = tp.profileXZ }

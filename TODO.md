@@ -1,11 +1,13 @@
 
 # BUGS
 
-Map not resizing properly when switching two column mode.
+Initial About text not showing.
+
+Reduced track not working.
+
+No profile chart.
 
 # WIP
-
-Try **previews** on Map. Maybe switchable.
 
 Option for **Satellite** map.
 

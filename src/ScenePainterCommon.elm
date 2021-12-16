@@ -1,7 +1,6 @@
 module ScenePainterCommon exposing (..)
 
 import BoundingBox3d
-import Chart.Item as CI
 import ColourPalette exposing (white)
 import EarthConstants exposing (metresPerPixelAtEquatorZoomZero)
 import Element exposing (..)
@@ -19,7 +18,6 @@ import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, inPixels)
 import Point3d exposing (Point3d, distanceFromAxis)
 import Quantity exposing (Quantity)
-import Track exposing (Track)
 import TrackPoint exposing (TrackPoint, pointInEarthCoordinates)
 import Utils exposing (elmuiColour, showDecimal0, showDecimal1, useIcon)
 import ViewingContext exposing (ViewingContext)
@@ -38,7 +36,6 @@ type ImageMsg
     | ImageReset
     | ClickDelayExpired
     | ImageToggleClickToDragOnMap
-    | OnHover (List (CI.One TrackPoint CI.Dot))
 
 
 withMouseCapture : (ImageMsg -> msg) -> List (Attribute msg)
@@ -153,9 +150,9 @@ zoomLevelFromBoundingBox ( view3dWidth, view3dHeight ) points =
     ( clamp 0.0 22.0 zoom, BoundingBox3d.centerPoint box )
 
 
-changeFocusTo : Track -> ViewingContext -> ViewingContext
-changeFocusTo track context =
+changeFocusTo : TrackPoint -> ViewingContext -> ViewingContext
+changeFocusTo tp context =
     { context
-        | focalPoint = track.currentNode.xyz
-        , currentPoint = Just track.currentNode
+        | focalPoint = tp.xyz
+        , currentPoint = Just tp
     }

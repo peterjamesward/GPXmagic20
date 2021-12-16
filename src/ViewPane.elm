@@ -53,6 +53,7 @@ type alias ViewPane =
     , planContext : ViewingContext
     , profileContext : ViewingContext
     , mapContext : ViewingContext
+    , profileChartContext : ViewingContext
     , viewPixels : ( Quantity Int Pixels, Quantity Int Pixels )
     , paneLinked : Bool
     , useTwoColumnLayout : Bool
@@ -75,6 +76,7 @@ defaultViewPane =
     , firstPersonContext = newViewingContext ViewFirstPerson
     , planContext = newViewingContext ViewPlan
     , profileContext = newViewingContext ViewProfile
+    ,profileChartContext = newViewingContext ViewProfileCharts
     , mapContext = newViewingContext ViewMap
     , viewPixels = ( pixels 800, pixels 500 )
     , paneLinked = True
@@ -269,6 +271,9 @@ refreshSceneSearcher track context =
         ViewPlan ->
             { context | sceneSearcher = trackPointNearestFromIndexForPlan track.spatialIndex }
 
+        ViewProfileCharts ->
+            context
+
         ViewMap ->
             context
 
@@ -293,6 +298,9 @@ getActiveContext pane =
 
         ViewMap ->
             pane.mapContext
+
+        ViewProfileCharts ->
+            pane.profileChartContext
 
         ViewAbout ->
             pane.thirdPersonContext
@@ -662,6 +670,9 @@ storePaneLayout panes =
 
                 ViewProfile ->
                     "profile"
+
+                ViewProfileCharts ->
+                    "charts"
 
                 ViewPlan ->
                     "plan"
