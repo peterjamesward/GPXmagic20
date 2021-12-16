@@ -2,7 +2,6 @@ module Main exposing (main)
 
 import Accordion exposing (AccordionEntry, AccordionModel, AccordionState(..), view)
 import BendSmoother
-import BoundingBox2d exposing (BoundingBox2d)
 import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
@@ -10,7 +9,6 @@ import Color
 import CurveFormer
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
-import Dict.Extra
 import DisplayOptions exposing (DisplayOptions)
 import Element as E exposing (..)
 import Element.Background as Background
@@ -37,11 +35,7 @@ import Json.Decode as D
 import Json.Encode as Encode
 import Length
 import List.Extra
-import LocalCoords exposing (LocalCoords)
 import LoopedTrack
-import MapBox
-import MapCommands exposing (..)
-import Mapbox.Style as Style exposing (Style)
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
 import MoveAndStretch
@@ -56,11 +50,8 @@ import PostUpdateActions exposing (EditFunction, EditResult, PostUpdateAction(..
 import Quantity
 import RotateRoute
 import Scene exposing (Scene)
-import Scene3d exposing (Entity)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
-import SketchPlane3d
-import SpatialIndex
 import Straightener
 import StravaAuth exposing (getStravaToken, stravaButton)
 import StravaTools exposing (stravaRouteOption)
@@ -95,6 +86,7 @@ type Msg
     | ViewPaneMessage ViewPane.ViewPaneMessage
     | OAuthMessage OAuthMsg
     | PortMessage Encode.Value
+    | RepaintMap
     | DisplayOptionsMessage DisplayOptions.Msg
     | BendSmoothMessage BendSmoother.Msg
     | LoopMsg LoopedTrack.Msg
@@ -120,7 +112,7 @@ type Msg
     | StoreSplitterPosition
     | TwoWayDragMsg MoveAndStretch.Msg
     | CurveFormerMsg CurveFormer.Msg
-    | RepaintMap
+    | ClearMapClickDebounce
 
 
 main : Program (Maybe (List Int)) Model Msg
@@ -180,7 +172,7 @@ type alias ModelRecord =
     , markerOptions : MarkerControls.Options
     , moveAndStretch : MoveAndStretch.Model
     , curveFormer : CurveFormer.Model
-    , mapboxStyle : Style.Style
+    , mapClickDebounce : Bool
     }
 
 
@@ -230,12 +222,11 @@ init mflags origin navigationKey =
       , markerOptions = MarkerControls.defaultOptions
       , moveAndStretch = MoveAndStretch.defaultModel
       , curveFormer = CurveFormer.defaultModel
-      , mapboxStyle = Style.satelliteStreets
+      , mapClickDebounce = False
       }
         -- Just make sure the Accordion reflects all the other state.
         |> (\record -> { record | toolsAccordion = toolsAccordion (Model record) })
         |> Model
-      --, Cmd.none
     , Cmd.batch
         [ authCmd
         , Task.perform AdjustTimeZone Time.here
@@ -255,9 +246,6 @@ passFlythroughToContext flight context =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
-        RepaintMap ->
-            ( Model model, MapBox.resizeMap )
-
         AdjustTimeZone newZone ->
             ( Model { model | zone = newZone }
             , MyIP.requestIpInformation ReceivedIpDetails
@@ -267,10 +255,24 @@ update msg (Model model) =
             let
                 ipInfo =
                     MyIP.processIpInfo response
+
+                mapInfoWithLocation =
+                    case ipInfo of
+                        Just ip ->
+                            { defaultMapInfo
+                                | centreLon = ip.longitude
+                                , centreLat = ip.latitude
+                                , mapZoom = 10.0
+                            }
+
+                        Nothing ->
+                            defaultMapInfo
             in
             ( Model { model | ipInfo = ipInfo }
             , Cmd.batch
-                [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo ]
+                [ MyIP.sendIpInfo model.time IpInfoAcknowledged ipInfo
+                , PortController.createMap mapInfoWithLocation
+                ]
             )
 
         IpInfoAcknowledged _ ->
@@ -320,6 +322,9 @@ update msg (Model model) =
         ViewPaneMessage innerMsg ->
             Maybe.map (processViewPaneMessage innerMsg (Model model)) model.track
                 |> Maybe.withDefault ( Model model, Cmd.none )
+
+        RepaintMap ->
+            ( Model model, refreshMap )
 
         GraphMessage innerMsg ->
             let
@@ -417,6 +422,11 @@ update msg (Model model) =
             in
             ( Model { model | stravaAuthentication = newAuthData }
             , Cmd.map OAuthMessage authCmd
+            )
+
+        ClearMapClickDebounce ->
+            ( Model { model | mapClickDebounce = False }
+            , Cmd.none
             )
 
         PortMessage json ->
@@ -665,12 +675,15 @@ update msg (Model model) =
             case model.mapSketchMode of
                 False ->
                     ( Model { model | mapSketchMode = True }
-                    , Cmd.none
+                    , Cmd.batch
+                        [ PortController.prepareSketchMap ( lon, lat )
+                        , Delay.after 500 RepaintMap
+                        ]
                     )
 
                 True ->
                     ( Model { model | mapSketchMode = False }
-                    , Cmd.none
+                    , PortController.exitSketchMode
                     )
 
         ResizeViews newPosition ->
@@ -680,7 +693,7 @@ update msg (Model model) =
                     , viewPanes = ViewPane.mapOverPanes (setViewPaneSize newPosition) model.viewPanes
                 }
             , Cmd.batch
-                [ MapBox.resizeMap
+                [ Delay.after 50 RepaintMap
                 , PortController.storageSetItem "splitter" (Encode.int model.splitInPixels)
                 ]
             )
@@ -846,7 +859,10 @@ processPostUpdateAction model action =
                         |> composeScene
             in
             ( Model polishedModel
-            , Cmd.none
+            , Cmd.batch
+                [ ViewPane.makeMapCommands track polishedModel.viewPanes (getMapPreviews polishedModel)
+                , Delay.after 100 RepaintMap
+                ]
             )
 
         ( Just track, ActionWalkGraph ) ->
@@ -882,28 +898,21 @@ processPostUpdateAction model action =
                 newModel =
                     { model
                         | track = Just updatedTrack
-                        , viewPanes =
-                            ViewPane.mapOverPanes
-                                (updatePointerInLinkedPanes updatedTrack)
-                                model.viewPanes
+                        , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
                     }
 
-                ( finalModel, _ ) =
+                ( finalModel, cmd ) =
                     processPostUpdateAction newModel ActionRerender
 
                 refocusMapCmd =
                     if ViewPane.mapPaneIsLinked model.viewPanes then
-                        let
-                            ( lon, lat, ele ) =
-                                Track.withoutGhanianTransform track tp.xyz
-                        in
-                        MapBox.centreMapOn ( lon, lat )
+                        PortController.centreMapOnCurrent track
 
                     else
                         Cmd.none
             in
             ( finalModel
-            , refocusMapCmd
+            , Cmd.batch [ refocusMapCmd, cmd ]
             )
 
         ( Just track, ActionMarkerMove maybeTp ) ->
@@ -916,14 +925,19 @@ processPostUpdateAction model action =
             in
             processPostUpdateAction newModel ActionRerender
 
+        ( Just track, ActionRepaintMap ) ->
+            ( Model model
+            , Delay.after 50 RepaintMap
+            )
+
         ( Just track, ActionToggleMapDragging isDragging ) ->
             ( Model model
-            , Cmd.none
+            , PortController.toggleDragging isDragging track
             )
 
         ( Just track, ActionFetchMapElevations ) ->
             ( Model model
-            , Cmd.none
+            , PortController.requestElevations
             )
 
         ( Just track, ActionPreview ) ->
@@ -946,7 +960,6 @@ processPostUpdateAction model action =
 
 
 getMapPreviews model =
-    -- Might not be practical.
     case model.track of
         Nothing ->
             []
@@ -1016,39 +1029,29 @@ processGpxLoaded content (Model model) =
 applyTrack : Model -> Track -> ( Model, Cmd Msg )
 applyTrack (Model model) track =
     let
-        newViewPanes =
-            ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
-
-        storageCommands =
-            Cmd.batch
-                [ PortController.storageGetItem "panes"
+        ( newViewPanes, mapCommands ) =
+            ( ViewPane.mapOverPanes (ViewPane.resetAllViews track) model.viewPanes
+            , Cmd.batch
+                [ ViewPane.initialiseMap track model.viewPanes
+                , PortController.storageGetItem "panes"
                 , PortController.storageGetItem "splitter"
+                , Delay.after 100 RepaintMap
                 ]
-
-        modelWithNewTrack =
-            { model
-                | track = Just track
-                , renderingContext = Just defaultRenderingContext
-                , viewPanes = newViewPanes
-                , gpxSource = GpxLocalFile
-                , undoStack = []
-                , redoStack = []
-                , changeCounter = 0
-                , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
-            }
-
-        mapCmd =
-            let
-                ( lon, lat, ele ) =
-                    Track.withoutGhanianTransform track track.currentNode.xyz
-            in
-            MapBox.centreMapOn ( lon, lat )
-
-        ( rerenderedModel, renderCmds ) =
-            processPostUpdateAction modelWithNewTrack ActionRerender
+            )
     in
-    ( rerenderedModel
-    , Cmd.batch [ renderCmds, storageCommands, mapCmd ]
+    ( { model
+        | track = Just track
+        , renderingContext = Just defaultRenderingContext
+        , viewPanes = newViewPanes
+        , gpxSource = GpxLocalFile
+        , undoStack = []
+        , redoStack = []
+        , changeCounter = 0
+        , displayOptions = DisplayOptions.adjustDetail model.displayOptions (List.length track.trackPoints)
+      }
+        |> repeatTrackDerivations
+        |> Model
+    , mapCommands
     )
 
 
@@ -1071,7 +1074,7 @@ processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg (Model model) track =
     let
         ( newPane, postUpdateAction ) =
-            ViewPane.update innerMsg model.displayOptions model.viewPanes ViewPaneMessage track
+            ViewPane.update innerMsg model.displayOptions model.viewPanes ViewPaneMessage
 
         updatedViewPanes =
             ViewPane.updateViewPanes newPane model.viewPanes
@@ -1085,22 +1088,21 @@ processViewPaneMessage innerMsg (Model model) track =
 
         ViewPane.PaneLayoutChange f ->
             let
-                panesAfterDistribution =
+                updatedPanes =
                     ViewPane.mapOverPanes
                         (f >> ViewPane.setViewPaneSize model.splitInPixels)
                         updatedModel.viewPanes
 
                 modelWithNewPanes =
-                    { updatedModel | viewPanes = panesAfterDistribution }
+                    { updatedModel | viewPanes = updatedPanes }
 
                 ( finalModel, commands ) =
                     processPostUpdateAction modelWithNewPanes ActionRerender
             in
             ( finalModel
             , Cmd.batch
-                [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout panesAfterDistribution)
+                [ PortController.storageSetItem "panes" (ViewPane.storePaneLayout updatedPanes)
                 , commands
-                , after 100 RepaintMap
                 ]
             )
 
@@ -1362,80 +1364,23 @@ composeScene model =
                         |> Quantity.multiplyBy (0.5 ^ (1 + model.displayOptions.levelOfDetailThreshold))
 
                 reducedTrack =
-                    case
-                        ( model.displayOptions.levelOfDetailThreshold > 0.0
-                        , track.centreOfReduction
-                        )
-                    of
-                        ( False, Nothing ) ->
-                            track
-
-                        ( False, Just wasReduced ) ->
-                            { track | centreOfReduction = Nothing }
-
-                        ( True, Nothing ) ->
-                            Track.makeReducedTrack track threshold
-
-                        ( True, Just lastCentre ) ->
-                            if
-                                (Point3d.distanceFrom track.currentNode.xyz lastCentre.xyz
-                                    |> Quantity.greaterThan (Quantity.half threshold)
-                                )
-                                    || ((Length.inMeters threshold) /= track.reductionLevel)
-                            then
-                                Track.makeReducedTrack track threshold
-
-                            else
-                                track
-
-                effectiveTrack =
-                    if track.centreOfReduction == Nothing then
-                        track
+                    if model.displayOptions.levelOfDetailThreshold > 0.0 then
+                        Track.makeReducedTrack track threshold
 
                     else
-                        { track | trackPoints = reducedTrack.reducedPoints }
+                        track
             in
             { model
                 | completeScene =
-                    if ViewPane.is3dVisible model.viewPanes then
-                        combineLists
-                            [ renderVarying3dSceneElements model effectiveTrack
-                            , renderTrack3dSceneElements model effectiveTrack
-                            ]
-
-                    else
-                        []
+                    combineLists
+                        [ renderVarying3dSceneElements model reducedTrack
+                        , renderTrack3dSceneElements model reducedTrack
+                        ]
                 , completeProfile =
-                    if ViewPane.isProfileVisible model.viewPanes then
-                        combineLists
-                            [ renderVaryingProfileSceneElements model effectiveTrack
-                            , renderTrackProfileSceneElements model effectiveTrack
-                            ]
-
-                    else
-                        []
-                , mapboxStyle =
-                    -- What we call "mapboxStyle" is in fact the Map.
-                    if isMapVisible model.viewPanes then
-                        -- Argh, the ugly, getting view context for dragging on map.
-                        let
-                            mapContext =
-                                ViewPane.getMapContext model.viewPanes
-                        in
-                        case mapContext of
-                            Just context ->
-                                MapBox.buildMap
-                                    model.toolsAccordion
-                                    context
-                                    effectiveTrack
-                                    model.displayOptions.mapStyle
-
-                            Nothing ->
-                                model.mapboxStyle
-
-                    else
-                        model.mapboxStyle
-                , track = Just reducedTrack
+                    combineLists
+                        [ renderVaryingProfileSceneElements model reducedTrack
+                        , renderTrackProfileSceneElements model reducedTrack
+                        ]
             }
 
 
@@ -1473,11 +1418,13 @@ renderVarying3dSceneElements model isTrack =
                     (\tab ->
                         case tab.preview3D of
                             Just fn ->
-                                fn isTrack
+                                Just (fn isTrack)
 
                             Nothing ->
-                                []
+                                Nothing
                     )
+                |> List.filterMap identity
+                |> Utils.combineLists
     in
     [ SceneBuilder.renderMarkers isTrack
     , if model.displayOptions.showRenderingLimit then
@@ -1485,8 +1432,8 @@ renderVarying3dSceneElements model isTrack =
 
       else
         []
+    , previews
     ]
-        ++ previews
         |> Utils.combineLists
 
 
@@ -1556,10 +1503,11 @@ topLoadingBar model =
 
           else
             E.text "Save your work before\nconnecting to Strava"
-        , stravaRouteOption
-            model.stravaAuthentication
-            model.stravaOptions
-            StravaMessage
+
+        --, stravaRouteOption
+        --    model.stravaAuthentication
+        --    model.stravaOptions
+        --    StravaMessage
         , viewAndEditFilename model
         , case model.track of
             Just _ ->
@@ -1584,17 +1532,16 @@ footer model =
             [ SvgPathExtractor.view SvgMessage
             , mapSketchEnable model
             ]
-
-        --, conditionallyVisible model.mapSketchMode <|
-        --    el
-        --        [ width <| px <| model.splitInPixels - 20
-        --        , height <| px <| model.splitInPixels - 20
-        --        , alignLeft
-        --        , alignTop
-        --        , Border.width 1
-        --        , htmlAttribute (id "sketchMap")
-        --        ]
-        --        none
+        , conditionallyVisible model.mapSketchMode <|
+            el
+                [ width <| px <| model.splitInPixels - 20
+                , height <| px <| model.splitInPixels - 20
+                , alignLeft
+                , alignTop
+                , Border.width 1
+                , htmlAttribute (id "sketchMap")
+                ]
+                none
         ]
 
 
@@ -1644,6 +1591,7 @@ contentArea model =
                 [ viewAllPanes
                     model.viewPanes
                     model
+                    ( model.completeScene, model.completeProfile, model.completeScene )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
                 ]
@@ -1738,23 +1686,15 @@ contentArea model =
 
 viewAllPanes :
     List ViewPane
-    ->
-        { m
-            | displayOptions : DisplayOptions
-            , ipInfo : Maybe IpInfo
-            , track : Maybe Track
-            , mapboxStyle : Style
-            , completeScene : List (Entity LocalCoords)
-            , completeProfile : List (Entity LocalCoords)
-        }
+    -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
+    -> ( Scene, Scene, Scene )
     -> (ViewPaneMessage -> Msg)
     -> Element Msg
-viewAllPanes panes model wrapper =
+viewAllPanes panes model ( scene, profile, plan ) wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
-            (ViewPane.view model wrapper)
-        <|
-            List.filter (\pane -> pane.visible) panes
+            (ViewPane.view ( scene, profile, plan ) model wrapper)
+            panes
 
 
 refreshAccordion : ModelRecord -> ModelRecord
@@ -2399,8 +2339,107 @@ processPortMessage model json =
     let
         jsonMsg =
             D.decodeValue msgDecoder json
+
+        ( lat, lon ) =
+            ( D.decodeValue (D.field "lat" D.float) json
+            , D.decodeValue (D.field "lon" D.float) json
+            )
+
+        elevations =
+            D.decodeValue (D.field "elevations" (D.list D.float)) json
+
+        longitudes =
+            D.decodeValue (D.field "longitudes" (D.list D.float)) json
+
+        latitudes =
+            D.decodeValue (D.field "latitudes" (D.list D.float)) json
     in
     case ( jsonMsg, model.track ) of
+        ( Ok "click", Just track ) ->
+            --{ 'msg' : 'click'
+            --, 'lat' : e.lat()
+            --, 'lon' : e.lon()
+            --} );
+            case ( model.mapClickDebounce, lat, lon ) of
+                ( False, Ok lat1, Ok lon1 ) ->
+                    case searchTrackPointFromLonLat ( lon1, lat1 ) track of
+                        Just point ->
+                            let
+                                ( outcome, cmds ) =
+                                    processPostUpdateAction
+                                        { model
+                                            | lastMapClick = ( lon1, lat1 )
+                                            , mapClickDebounce = True
+                                        }
+                                        (PostUpdateActions.ActionFocusMove point)
+                            in
+                            ( outcome
+                            , Cmd.batch [ cmds, after 100 ClearMapClickDebounce ]
+                            )
+
+                        Nothing ->
+                            ( Model
+                                { model
+                                    | lastMapClick = ( lon1, lat1 )
+                                    , mapClickDebounce = True
+                                }
+                            , after 100 ClearMapClickDebounce
+                            )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "drag", Just track ) ->
+            case draggedOnMap json track of
+                Just undoEntry ->
+                    processPostUpdateAction
+                        model
+                        (PostUpdateActions.ActionTrackChanged TrackEditType.EditPreservesIndex undoEntry)
+
+                Nothing ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "elevations", Just track ) ->
+            case elevations of
+                Ok mapElevations ->
+                    processPostUpdateAction model
+                        (PostUpdateActions.ActionTrackChanged
+                            TrackEditType.EditPreservesIndex
+                            (RotateRoute.buildMapElevations mapElevations track)
+                        )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "sketch", _ ) ->
+            case ( longitudes, latitudes, elevations ) of
+                ( Ok mapLongitudes, Ok mapLatitudes, Ok mapElevations ) ->
+                    let
+                        newTrack =
+                            List.map3
+                                (\x y z -> ( x, y, z ))
+                                mapLongitudes
+                                mapLatitudes
+                                mapElevations
+                                |> Track.trackFromMap
+                    in
+                    case newTrack of
+                        Just track ->
+                            applyTrack (Model model) track
+
+                        Nothing ->
+                            ( Model model
+                            , Cmd.none
+                            )
+
+                _ ->
+                    ( Model model, Cmd.none )
+
+        ( Ok "no node", _ ) ->
+            ( Model model
+            , Cmd.none
+            )
+
         ( Ok "storage.got", _ ) ->
             let
                 key =
@@ -2432,14 +2471,13 @@ processPortMessage model json =
                     in
                     case p of
                         Ok pixels ->
-                            let
-                                newModel =
-                                    { model
-                                        | splitInPixels = pixels
-                                        , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
-                                    }
-                            in
-                            processPostUpdateAction newModel ActionRerender
+                            ( Model
+                                { model
+                                    | splitInPixels = pixels
+                                    , viewPanes = ViewPane.mapOverPanes (setViewPaneSize pixels) model.viewPanes
+                                }
+                            , Cmd.none
+                            )
 
                         _ ->
                             ( Model model, Cmd.none )
@@ -2460,11 +2498,9 @@ processPortMessage model json =
                     processPostUpdateAction newModel ActionRerender
 
                 ( Ok "display", Ok saved ) ->
-                    let
-                        newModel =
-                            { model | displayOptions = DisplayOptions.decodeOptions saved }
-                    in
-                    processPostUpdateAction newModel ActionRerender
+                    ( Model { model | displayOptions = DisplayOptions.decodeOptions saved }
+                    , Cmd.none
+                    )
 
                 _ ->
                     ( Model model, Cmd.none )
