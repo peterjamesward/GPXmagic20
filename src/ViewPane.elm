@@ -376,26 +376,38 @@ view model wrapper pane =
     -- Further complicated by Map sketch mode.
     if pane.visible then
         column []
-            [ if model.track /= Nothing then
-                row [ width fill, spacingXY 10 0 ]
-                    [ if pane.paneId == 0 then
-                        viewPaneTools wrapper
+            [ case model.track of
+                Just isTrack ->
+                    row [ width fill, spacingXY 10 0 ]
+                        [ if pane.paneId == 0 then
+                            viewPaneTools wrapper
 
-                      else
-                        none
-                    , viewModeChoices pane wrapper
-                    , viewPaneControls pane wrapper
-                    ]
+                          else
+                            none
+                        , viewModeChoices pane wrapper
+                        , viewPaneControls pane wrapper
+                        ]
 
-              else
-                Input.radioRow
-                    [ Border.rounded 6 ]
-                    { onChange = ChooseViewMode pane.paneId >> wrapper
-                    , selected = Just ViewAbout
-                    , label = Input.labelHidden "Choose view"
-                    , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
-                    }
-            , conditionallyVisible (pane.activeContext /= ViewMap) <|
+                Nothing ->
+                    column []
+                        [ Input.radioRow
+                            [ Border.rounded 6 ]
+                            { onChange = ChooseViewMode pane.paneId >> wrapper
+                            , selected = Just ViewAbout
+                            , label = Input.labelHidden "Choose view"
+                            , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
+                            }
+                        , About.viewAboutText
+                            pane.thirdPersonContext
+                            model.ipInfo
+                        ]
+            , conditionallyVisible
+                (pane.activeContext
+                    /= ViewMap
+                    && model.track
+                    /= Nothing
+                )
+              <|
                 case pane.activeContext of
                     ViewThirdPerson ->
                         ScenePainterThird.viewScene
@@ -436,7 +448,7 @@ view model wrapper pane =
                             model.ipInfo
 
             -- We leave the Map DIV intact, as destroying and creating is APITA.
-            , conditionallyVisible (pane.activeContext == ViewMap) <|
+            , conditionallyVisible (pane.activeContext == ViewMap && model.track /= Nothing) <|
                 ScenePainterMap.viewScene
                     (getActiveContext pane)
                     (imageMessageWrapper pane.paneId >> wrapper)

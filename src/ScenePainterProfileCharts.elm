@@ -69,6 +69,12 @@ viewScene context options wrapper =
                     ++ String.fromInt context.chartPoints.countSelected
                     ++ " from "
                     ++ String.fromInt context.chartPoints.countInView
+                    ++ (if context.chartPoints.countSelected < context.chartPoints.countInView then
+                            ". Zoom in to see more."
+
+                        else
+                            "."
+                       )
         , wrapChart useWidth useHeight <|
             gradientChart
                 (toFloat useWidth)
