@@ -35,6 +35,7 @@ import Json.Decode as D
 import Json.Encode as Encode
 import Length
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import LoopedTrack
 import MarkerControls exposing (markerButton, viewTrackControls)
 import Maybe.Extra as Maybe
@@ -50,6 +51,7 @@ import PostUpdateActions exposing (EditFunction, EditResult, PostUpdateAction(..
 import Quantity
 import RotateRoute
 import Scene exposing (Scene)
+import Scene3d exposing (Entity)
 import SceneBuilder exposing (RenderingContext, defaultRenderingContext)
 import SceneBuilderProfile
 import Straightener
@@ -901,7 +903,10 @@ processPostUpdateAction model action =
                 newModel =
                     { model
                         | track = Just updatedTrack
-                        , viewPanes = ViewPane.mapOverPanes (updatePointerInLinkedPanes tp) model.viewPanes
+                        , viewPanes =
+                            ViewPane.mapOverPanes
+                                (updatePointerInLinkedPanes updatedTrack)
+                                model.viewPanes
                     }
 
                 ( finalModel, cmd ) =
@@ -1080,7 +1085,7 @@ processViewPaneMessage : ViewPaneMessage -> Model -> Track -> ( Model, Cmd Msg )
 processViewPaneMessage innerMsg (Model model) track =
     let
         ( newPane, postUpdateAction ) =
-            ViewPane.update innerMsg model.displayOptions model.viewPanes ViewPaneMessage
+            ViewPane.update innerMsg model.displayOptions model.viewPanes ViewPaneMessage track
 
         updatedViewPanes =
             ViewPane.updateViewPanes newPane model.viewPanes
@@ -1596,7 +1601,6 @@ contentArea model =
                 [ viewAllPanes
                     model.viewPanes
                     model
-                    ( model.completeScene, model.completeProfile, model.completeScene )
                     ViewPaneMessage
                 , viewTrackControls MarkerMessage model.track
                 ]
@@ -1691,15 +1695,22 @@ contentArea model =
 
 viewAllPanes :
     List ViewPane
-    -> { m | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
-    -> ( Scene, Scene, Scene )
+    ->
+        { m
+            | displayOptions : DisplayOptions
+            , ipInfo : Maybe IpInfo
+            , track : Maybe Track
+            , completeScene : List (Entity LocalCoords)
+            , completeProfile : List (Entity LocalCoords)
+        }
     -> (ViewPaneMessage -> Msg)
     -> Element Msg
-viewAllPanes panes model ( scene, profile, plan ) wrapper =
+viewAllPanes panes model wrapper =
     wrappedRow [ width fill, spacing 10 ] <|
         List.map
-            (ViewPane.view ( scene, profile, plan ) model wrapper)
-            panes
+            (ViewPane.view model wrapper)
+        <|
+            List.filter (\pane -> pane.visible) panes
 
 
 refreshAccordion : ModelRecord -> ModelRecord

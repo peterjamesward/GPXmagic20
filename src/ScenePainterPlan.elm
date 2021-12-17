@@ -47,6 +47,7 @@ initialiseView viewSize track oldContext =
     in
     { oldContext
         | focalPoint = track.currentNode.xyz
+
         --, sceneSearcher = trackPointNearestRay track.trackPoints
         , sceneSearcher = trackPointNearestFromIndexForPlan track.spatialIndex
         , zoomLevel = zoom
@@ -56,32 +57,27 @@ initialiseView viewSize track oldContext =
 
 
 viewScene :
-    Bool
-    -> ViewingContext
+    ViewingContext
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context scene wrapper =
-    if visible then
-        el
-            ((inFront <| zoomButtons wrapper)
-                :: withMouseCapture wrapper
-            )
-        <|
-            html <|
-                Scene3d.sunny
-                    { camera = deriveViewPointAndCamera context
-                    , dimensions = context.size
-                    , background = backgroundColor Color.lightBlue
-                    , clipDepth = Length.meters 1
-                    , entities = scene
-                    , upDirection = positiveZ
-                    , sunlightDirection = negativeZ
-                    , shadows = False
-                    }
-
-    else
-        none
+viewScene context scene wrapper =
+    el
+        ((inFront <| zoomButtons wrapper)
+            :: withMouseCapture wrapper
+        )
+    <|
+        html <|
+            Scene3d.sunny
+                { camera = deriveViewPointAndCamera context
+                , dimensions = context.size
+                , background = backgroundColor Color.lightBlue
+                , clipDepth = Length.meters 1
+                , entities = scene
+                , upDirection = positiveZ
+                , sunlightDirection = negativeZ
+                , shadows = False
+                }
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords

@@ -207,13 +207,12 @@ update msg view wrap =
 
 
 viewScene :
-    Bool
-    -> ViewingContext
+    ViewingContext
     -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context options scene wrapper =
+viewScene  context options scene wrapper =
     let
         flythroughHUD =
             case context.flythrough of
@@ -223,7 +222,6 @@ viewScene visible context options scene wrapper =
                 Nothing ->
                     inFront none
     in
-    if visible then
         el
             ((inFront <| zoomButtons wrapper)
                 :: flythroughHUD
@@ -252,8 +250,7 @@ viewScene visible context options scene wrapper =
                         , entities = scene
                         }
 
-    else
-        none
+
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords

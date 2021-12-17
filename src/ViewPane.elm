@@ -10,11 +10,13 @@ import GeoCodeDecoders exposing (IpInfo)
 import Json.Decode as D
 import Json.Encode as E
 import List.Extra
+import LocalCoords exposing (LocalCoords)
 import Pixels exposing (Pixels, pixels)
 import PostUpdateActions exposing (PostUpdateAction(..))
 import Quantity exposing (Quantity)
 import Scene exposing (Scene)
-import ScenePainterCommon exposing (ImageMsg)
+import Scene3d exposing (Entity)
+import ScenePainterCommon exposing (ImageMsg(..))
 import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
@@ -186,6 +188,7 @@ mapOverPaneContexts f pane =
         , planContext = f pane.planContext
         , profileContext = f pane.profileContext
         , mapContext = f pane.mapContext
+        , profileChartContext = f pane.profileChartContext
     }
 
 
@@ -227,6 +230,7 @@ resetAllViews track pane =
         , planContext = ScenePainterPlan.initialiseView pane.viewPixels track pane.planContext
         , profileContext = ScenePainterProfile.initialiseView pane.viewPixels track pane.profileContext
         , mapContext = ScenePainterMap.initialiseView pane.viewPixels track pane.mapContext
+        , profileChartContext = ScenePainterProfileCharts.initialiseView pane.viewPixels track pane.profileChartContext
     }
 
 
@@ -355,20 +359,25 @@ viewModeChoices pane wrapper =
 
 
 view :
-    ( Scene, Scene, Scene )
-    -> { model | displayOptions : DisplayOptions, ipInfo : Maybe IpInfo }
+    { m
+        | displayOptions : DisplayOptions
+        , ipInfo : Maybe IpInfo
+        , track : Maybe Track
+        , completeScene : List (Entity LocalCoords)
+        , completeProfile : List (Entity LocalCoords)
+    }
     -> (ViewPaneMessage -> msg)
     -> ViewPane
     -> Element msg
-view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
+view model wrapper pane =
     -- The layout logic is complicated as the result of much
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
     -- Further complicated by Map sketch mode.
-    if pane.visible then
-        column []
-            [ if List.length scene > 0 then
-                row [ width fill, spacingXY 10 0 ]
+    case model.track of
+        Just isTrack ->
+            column []
+                [ row [ width fill, spacingXY 10 0 ]
                     [ if pane.paneId == 0 then
                         viewPaneTools wrapper
 
@@ -377,81 +386,64 @@ view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
                     , viewModeChoices pane wrapper
                     , viewPaneControls pane wrapper
                     ]
+                , case pane.activeContext of
+                    ViewThirdPerson ->
+                        ScenePainterThird.viewScene
+                            (getActiveContext pane)
+                            model.displayOptions
+                            model.completeScene
+                            (imageMessageWrapper pane.paneId >> wrapper)
 
-              else
-                Input.radioRow
+                    ViewFirstPerson ->
+                        ScenePainterFirst.viewScene
+                            (getActiveContext pane)
+                            model.displayOptions
+                            model.completeScene
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewPlan ->
+                        ScenePainterPlan.viewScene
+                            (getActiveContext pane)
+                            model.completeScene
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewProfile ->
+                        ScenePainterProfile.viewScene
+                            (getActiveContext pane)
+                            model.displayOptions
+                            model.completeProfile
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewProfileCharts ->
+                        ScenePainterProfileCharts.viewScene
+                            (getActiveContext pane)
+                            model.displayOptions
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewMap ->
+                        ScenePainterMap.viewScene
+                            (getActiveContext pane)
+                            (imageMessageWrapper pane.paneId >> wrapper)
+
+                    ViewAbout ->
+                        About.viewAboutText
+                            pane.thirdPersonContext
+                            model.ipInfo
+                ]
+
+        Nothing ->
+            column []
+                [ Input.radioRow
                     [ Border.rounded 6 ]
                     { onChange = ChooseViewMode pane.paneId >> wrapper
                     , selected = Just ViewAbout
                     , label = Input.labelHidden "Choose view"
                     , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
                     }
-            , conditionallyVisible (pane.activeContext /= ViewMap) <|
-                el [] <|
-                    if List.length scene > 0 then
-                        case pane.activeContext of
-                            ViewThirdPerson ->
-                                ScenePainterThird.viewScene
-                                    (pane.activeContext == ViewThirdPerson)
-                                    (getActiveContext pane)
-                                    displayOptions
-                                    scene
-                                    (imageMessageWrapper pane.paneId >> wrapper)
-
-                            ViewFirstPerson ->
-                                ScenePainterFirst.viewScene
-                                    (pane.activeContext == ViewFirstPerson)
-                                    (getActiveContext pane)
-                                    displayOptions
-                                    scene
-                                    (imageMessageWrapper pane.paneId >> wrapper)
-
-                            ViewPlan ->
-                                ScenePainterPlan.viewScene
-                                    (pane.activeContext == ViewPlan)
-                                    (getActiveContext pane)
-                                    plan
-                                    (imageMessageWrapper pane.paneId >> wrapper)
-
-                            ViewProfile ->
-                                ScenePainterProfile.viewScene
-                                    (pane.activeContext == ViewProfile)
-                                    (getActiveContext pane)
-                                    displayOptions
-                                    profile
-                                    (imageMessageWrapper pane.paneId >> wrapper)
-
-                            ViewProfileCharts ->
-                                ScenePainterProfileCharts.viewScene
-                                    (getActiveContext pane)
-                                    displayOptions
-                                    (imageMessageWrapper pane.paneId >> wrapper)
-
-                            _ ->
-                                About.viewAboutText
-                                    pane.thirdPersonContext
-                                    ipInfo
-
-                    else
-                        About.viewAboutText
-                            pane.thirdPersonContext
-                            ipInfo
-
-            -- We leave the Map DIV intact, as destroying and creating is APITA.
-            , conditionallyVisible (pane.activeContext == ViewMap && List.length scene > 0) <|
-                ScenePainterMap.viewScene
-                    (pane.activeContext == ViewMap)
-                    (getActiveContext pane)
-                    []
-                    (imageMessageWrapper pane.paneId >> wrapper)
-            , conditionallyVisible (pane.activeContext == ViewMap && List.length scene == 0) <|
-                About.viewAboutText
+                , About.viewAboutText
                     pane.thirdPersonContext
-                    ipInfo
-            ]
-
-    else
-        none
+                    model.ipInfo
+                ]
 
 
 viewPaneTools : (ViewPaneMessage -> msg) -> Element msg
@@ -512,8 +504,9 @@ update :
     -> DisplayOptions
     -> List ViewPane
     -> (ViewPaneMessage -> msg)
+    -> Track
     -> ( Maybe ViewPane, ViewPaneAction trck (Cmd msg) )
-update msg options panes wrap =
+update msg options panes wrap track =
     case msg of
         ChooseViewMode paneId mode ->
             let
@@ -586,6 +579,20 @@ update msg options panes wrap =
                             , ImageAction action
                             )
 
+                        ViewProfileCharts ->
+                            let
+                                ( newContext, action ) =
+                                    ScenePainterProfileCharts.update
+                                        imageMsg
+                                        pane.profileChartContext
+                                        options
+                                        (wrap << imageMessageWrapper pane.paneId)
+                                        track
+                            in
+                            ( Just { pane | profileChartContext = newContext }
+                            , ImageAction action
+                            )
+
                         ViewMap ->
                             let
                                 ( newContext, action ) =
@@ -650,15 +657,21 @@ update msg options panes wrap =
             )
 
 
-updatePointerInLinkedPanes : TrackPoint -> ViewPane -> ViewPane
-updatePointerInLinkedPanes tp pane =
+updatePointerInLinkedPanes : Track -> ViewPane -> ViewPane
+updatePointerInLinkedPanes track pane =
     if pane.paneLinked then
         { pane
-            | thirdPersonContext = ScenePainterCommon.changeFocusTo tp pane.thirdPersonContext
-            , firstPersonContext = ScenePainterCommon.changeFocusTo tp pane.firstPersonContext
-            , planContext = ScenePainterCommon.changeFocusTo tp pane.planContext
-            , profileContext = ScenePainterProfile.changeFocusTo tp pane.profileContext
-            , mapContext = ScenePainterCommon.changeFocusTo tp pane.mapContext
+            | thirdPersonContext = ScenePainterCommon.changeFocusTo track.currentNode pane.thirdPersonContext
+            , firstPersonContext = ScenePainterCommon.changeFocusTo track.currentNode pane.firstPersonContext
+            , planContext = ScenePainterCommon.changeFocusTo track.currentNode pane.planContext
+            , profileContext = ScenePainterProfile.changeFocusTo track.currentNode pane.profileContext
+            , mapContext = ScenePainterCommon.changeFocusTo track.currentNode pane.mapContext
+            , profileChartContext =
+                if pane.visible then
+                    ScenePainterProfileCharts.changeFocusTo track pane.profileChartContext
+
+                else
+                    pane.profileChartContext
         }
 
     else
@@ -725,6 +738,9 @@ restorePaneState saved viewPanes =
 
                 "profile" ->
                     ViewProfile
+
+                "charts" ->
+                    ViewProfileCharts
 
                 "plan" ->
                     ViewPlan

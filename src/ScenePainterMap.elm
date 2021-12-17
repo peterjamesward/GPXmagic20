@@ -11,6 +11,7 @@ import Element.Input exposing (button)
 import FeatherIcons
 import Html.Attributes exposing (id)
 import Json.Encode as E
+import MoveAndStretch
 import Pixels exposing (Pixels, inPixels)
 import PortController
 import PostUpdateActions exposing (PostUpdateAction(..))
@@ -18,7 +19,6 @@ import Quantity exposing (Quantity)
 import Scene exposing (Scene)
 import ScenePainterCommon exposing (..)
 import Track exposing (Track)
-import MoveAndStretch
 import Utils exposing (useIcon)
 import ViewingContext exposing (ViewingContext, defaultViewingContext)
 import ViewingMode exposing (ViewingMode(..))
@@ -88,12 +88,10 @@ update msg view wrap =
 
 
 viewScene :
-    Bool
-    -> ViewingContext
-    -> Scene
+    ViewingContext
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context scene wrapper =
+viewScene context  wrapper =
     let
         ( viewWidth, viewHeight ) =
             context.size

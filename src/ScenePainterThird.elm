@@ -52,43 +52,38 @@ initialiseView viewSize track oldContext =
 
 
 viewScene :
-    Bool
-    -> ViewingContext
+    ViewingContext
     -> DisplayOptions
     -> Scene
     -> (ImageMsg -> msg)
     -> Element msg
-viewScene visible context options scene wrapper =
-    if visible then
-        el
-            ((inFront <| zoomButtons wrapper)
-                :: withMouseCapture wrapper
-            )
-        <|
-            html <|
-                if options.withLighting then
-                    Scene3d.sunny
-                        { camera = deriveViewPointAndCamera context
-                        , dimensions = context.size
-                        , background = backgroundColor Color.lightBlue
-                        , clipDepth = Length.meters 1
-                        , entities = scene
-                        , upDirection = positiveZ
-                        , sunlightDirection = negativeZ
-                        , shadows = False
-                        }
+viewScene context options scene wrapper =
+    el
+        ((inFront <| zoomButtons wrapper)
+            :: withMouseCapture wrapper
+        )
+    <|
+        html <|
+            if options.withLighting then
+                Scene3d.sunny
+                    { camera = deriveViewPointAndCamera context
+                    , dimensions = context.size
+                    , background = backgroundColor Color.lightBlue
+                    , clipDepth = Length.meters 1
+                    , entities = scene
+                    , upDirection = positiveZ
+                    , sunlightDirection = negativeZ
+                    , shadows = False
+                    }
 
-                else
-                    Scene3d.unlit
-                        { camera = deriveViewPointAndCamera context
-                        , dimensions = context.size
-                        , background = backgroundColor Color.lightBlue
-                        , clipDepth = Length.meters 1
-                        , entities = scene
-                        }
-
-    else
-        none
+            else
+                Scene3d.unlit
+                    { camera = deriveViewPointAndCamera context
+                    , dimensions = context.size
+                    , background = backgroundColor Color.lightBlue
+                    , clipDepth = Length.meters 1
+                    , entities = scene
+                    }
 
 
 deriveViewPointAndCamera : ViewingContext -> Camera3d Length.Meters LocalCoords
