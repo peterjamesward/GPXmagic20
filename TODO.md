@@ -1,6 +1,8 @@
 
 # BUGS
 
+Chart not resizing and no content!
+
 ---
 
 # WIP

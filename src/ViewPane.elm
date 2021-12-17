@@ -19,6 +19,7 @@ import ScenePainterFirst
 import ScenePainterMap
 import ScenePainterPlan
 import ScenePainterProfile
+import ScenePainterProfileCharts
 import ScenePainterThird
 import Track exposing (Track)
 import TrackPoint exposing (TrackPoint)
@@ -323,6 +324,7 @@ viewModeChoices pane wrapper =
                 , Input.optionWith ViewFirstPerson <| radioButton "1st"
                 , Input.optionWith ViewPlan <| radioButton "Plan"
                 , Input.optionWith ViewProfile <| radioButton "Prof."
+                , Input.optionWith ViewProfileCharts <| radioButton "Chrt."
                 , Input.optionWith ViewMap <| radioButton "Map"
                 , Input.optionWith ViewAbout <| radioButton "?"
                 ]
@@ -332,6 +334,7 @@ viewModeChoices pane wrapper =
                 , Input.optionWith ViewFirstPerson <| radioButton "First person"
                 , Input.optionWith ViewPlan <| radioButton "Plan"
                 , Input.optionWith ViewProfile <| radioButton "Profile"
+                , Input.optionWith ViewProfileCharts <| radioButton "Charts"
                 , Input.optionWith ViewMap <| radioButton "Map"
                 , Input.optionWith ViewAbout <| radioButton "About"
                 ]
@@ -347,7 +350,7 @@ viewModeChoices pane wrapper =
                 fullOptionList
 
             else
-                List.take 4 fullOptionList
+                List.take 5 fullOptionList
         }
 
 
@@ -416,6 +419,12 @@ view ( scene, profile, plan ) { displayOptions, ipInfo } wrapper pane =
                                     (getActiveContext pane)
                                     displayOptions
                                     profile
+                                    (imageMessageWrapper pane.paneId >> wrapper)
+
+                            ViewProfileCharts ->
+                                ScenePainterProfileCharts.viewScene
+                                    (getActiveContext pane)
+                                    displayOptions
                                     (imageMessageWrapper pane.paneId >> wrapper)
 
                             _ ->
