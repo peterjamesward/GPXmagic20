@@ -1,22 +1,24 @@
 
 # BUGS
 
-No profile chart.
-
 ---
 
 # WIP
 
 **Chart** -- number of points ~ pixels available, and show message.
 
-Do the Samir thing.
+Do the Samir thing below.
 
 Write up the measurements (la misura) on Medium, withg friend link to FaceBook.
 > with thoughts on v3.
+> Developer tools provide awesome timeline.
+> Make selected based on file size ~ points
 
 ---
 
 # Backlog
+
+## Start-up sound (ha ha), elm-audio.
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
