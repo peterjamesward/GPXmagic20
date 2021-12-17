@@ -374,10 +374,10 @@ view model wrapper pane =
     -- experimentation to make the map behave predictably.
     -- Essentially, do not create and destroy the map DIV.
     -- Further complicated by Map sketch mode.
-    case model.track of
-        Just isTrack ->
-            column []
-                [ row [ width fill, spacingXY 10 0 ]
+    if pane.visible then
+        column []
+            [ if model.track /= Nothing then
+                row [ width fill, spacingXY 10 0 ]
                     [ if pane.paneId == 0 then
                         viewPaneTools wrapper
 
@@ -386,7 +386,17 @@ view model wrapper pane =
                     , viewModeChoices pane wrapper
                     , viewPaneControls pane wrapper
                     ]
-                , case pane.activeContext of
+
+              else
+                Input.radioRow
+                    [ Border.rounded 6 ]
+                    { onChange = ChooseViewMode pane.paneId >> wrapper
+                    , selected = Just ViewAbout
+                    , label = Input.labelHidden "Choose view"
+                    , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
+                    }
+            , conditionallyVisible (pane.activeContext /= ViewMap) <|
+                case pane.activeContext of
                     ViewThirdPerson ->
                         ScenePainterThird.viewScene
                             (getActiveContext pane)
@@ -420,30 +430,20 @@ view model wrapper pane =
                             model.displayOptions
                             (imageMessageWrapper pane.paneId >> wrapper)
 
-                    ViewMap ->
-                        ScenePainterMap.viewScene
-                            (getActiveContext pane)
-                            (imageMessageWrapper pane.paneId >> wrapper)
-
-                    ViewAbout ->
+                    _ ->
                         About.viewAboutText
                             pane.thirdPersonContext
                             model.ipInfo
-                ]
 
-        Nothing ->
-            column []
-                [ Input.radioRow
-                    [ Border.rounded 6 ]
-                    { onChange = ChooseViewMode pane.paneId >> wrapper
-                    , selected = Just ViewAbout
-                    , label = Input.labelHidden "Choose view"
-                    , options = [ Input.optionWith ViewAbout <| radioButton "About" ]
-                    }
-                , About.viewAboutText
-                    pane.thirdPersonContext
-                    model.ipInfo
-                ]
+            -- We leave the Map DIV intact, as destroying and creating is APITA.
+            , conditionallyVisible (pane.activeContext == ViewMap) <|
+                ScenePainterMap.viewScene
+                    (getActiveContext pane)
+                    (imageMessageWrapper pane.paneId >> wrapper)
+            ]
+
+    else
+        none
 
 
 viewPaneTools : (ViewPaneMessage -> msg) -> Element msg
