@@ -9,17 +9,24 @@ No profile chart.
 
 **Chart** -- number of points ~ pixels available, and show message.
 
+Do the Samir thing.
+
+Write up the measurements (la misura) on Medium, withg friend link to FaceBook.
+> with thoughts on v3.
+
 ---
 
 # Backlog
-
-Satellite map option.
 
 ## Samir
 Is it possible to make a button/panel to find all curves with radius less then "insert number", 
 as those are the ones that I would adjust for smooth riding in RGT? Thanks in advance.  
 > Involves direction changes v. distance changes across whole track (window calc).  
 > Have radius and angle change sliders. This will allow people to look only for hairpins, say.  
+> Add the radius slider to Bend Problems tab, backwards compatible at small radius.
+> NB, can easily fast-forward "nearly straight" sections.
+
+## Satellite map option.
 
 ## Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.  

@@ -389,7 +389,8 @@ makeReducedTrack track detailLevel =
 
         interiorPoints =
             -- Put these in a dict as we need access by index
-            SpatialIndex.queryWithFold track.spatialIndex interiorBox
+            SpatialIndex.queryWithFold track.spatialIndex
+                interiorBox
                 (\entry dict -> Dict.insert entry.content.index entry.content dict)
                 Dict.empty
 
@@ -465,6 +466,15 @@ makeReducedTrack track detailLevel =
         ( Just wasReducedAt, False, _ ) ->
             -- Was done, not needed, clean up.
             { track | reducedPoints = [], centreOfReduction = Nothing, reductionLevel = 0 }
+
+
+clearReducedTrack : Track -> Track
+clearReducedTrack track =
+    { track
+        | reducedPoints = []
+        , reductionLevel = 0
+        , centreOfReduction = Nothing
+    }
 
 
 getSection : Track -> ( Int, Int, List TrackPoint )

@@ -1344,10 +1344,8 @@ repeatTrackDerivations model =
                         , markedNode = newPurple
                         , box = newBox
                         , spatialIndex = Track.buildSpatialIndex earthTrack newBox
-                        , reducedPoints = []
-                        , reductionLevel = 0
-                        , centreOfReduction = Nothing
                     }
+                        |> Track.clearReducedTrack
             in
             { model
                 | track = Just newTrack
@@ -2181,6 +2179,7 @@ undo model =
                         , earthReferenceCoordinates = results.earthReferenceCoordinates
                         , graph = results.graph
                     }
+                        |> Track.clearReducedTrack
             in
             { model
                 | undoStack = undos
@@ -2213,6 +2212,7 @@ redo model =
                         , graph = results.graph
                         , earthReferenceCoordinates = results.earthReferenceCoordinates
                     }
+                        |> Track.clearReducedTrack
             in
             { model
                 | redoStack = redos
