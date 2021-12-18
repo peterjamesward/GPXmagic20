@@ -295,12 +295,12 @@ applyCentroidAverage options undoRedo track =
         trackLength =
             List.length points
 
-        ( prefix, theRest ) =
-            -- Always preserve the extremities.
-            points |> List.Extra.splitAt (undoRedo.start + 1)
+        ( theRest, suffix ) =
+            points |> List.Extra.splitAt (trackLength - undoRedo.fromEnd - 1)
 
-        ( withinRange, suffix ) =
-            theRest |> List.Extra.splitAt (trackLength - undoRedo.fromEnd - 1)
+        ( prefix, withinRange ) =
+            -- Always preserve the extremities.
+            theRest |> List.Extra.splitAt (undoRedo.start + 1)
 
         ( firstPoint, lastPoint ) =
             -- These are points outside the range so are not affected but are needed
@@ -350,13 +350,13 @@ undoCentroidAverage options undoRedo track =
         trackLength =
             List.length points
 
-        ( prefix, theRest ) =
-            -- These possible one outs.
-            points |> List.Extra.splitAt undoRedo.start
+        ( theRest, suffix ) =
+            points |> List.Extra.splitAt (trackLength - undoRedo.fromEnd - 1)
 
-        ( withinRange, suffix ) =
-            -- These possible one outs.
-            theRest |> List.Extra.splitAt (trackLength - undoRedo.fromEnd)
+        ( prefix, withinRange ) =
+            -- Always preserve the extremities.
+            theRest |> List.Extra.splitAt (undoRedo.start + 1)
+
     in
     { before = prefix
     , edited = undoRedo.originalPoints

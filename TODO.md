@@ -1,9 +1,12 @@
 
 # BUGS
 
-Looks like centroid averaging may not be respecting markers.
-Also, possible consequence, Undo broked. Tested up Hour of Power.
-> This was fixed in gampleman, seems to have escaped the merge.
+Bend Smoother does not enable button despite preview of bend.
+
+Apply Bend smoother twice => "something amiss" (on Mt Coot-tha.).
+> Possibly due to pointer repositioning.
+
+Charts not being refreshed after Edit/Undo/Redo.
 
 ---
 
