@@ -267,7 +267,7 @@ buildCentroidAverageActions observations options track =
         undoRedoInfo : UndoRedoInfo
         undoRedoInfo =
             { start = startPoint
-            , fromEnd = trackLength - endPoint
+            , fromEnd = trackLength - endPoint - 1
             , originalPoints =
                 track.trackPoints
                     |> List.take (endPoint + 1)

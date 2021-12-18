@@ -12,13 +12,15 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.8.0 update 2021-12-09
+## 2.8.0 update 2021-12-18
 
 - Internal improvements to reduce memory usage. May improve speed in some cases, not always.
 
 - Previews in 3D for Interpolate, Delete, Lift & Shift and Simplify.
 
 - Undo & Redo available for Graph, Strava segment paste.
+
+- New Charts view shows Altitude and Gradient.
 
 I expect some teething problems, this is a significant change.
 

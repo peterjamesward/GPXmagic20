@@ -1,18 +1,13 @@
 
 # BUGS
 
+Looks like centroid averaging may not be respecting markers.
+Also, possible consequence, Undo broked. Tested up Hour of Power.
+> This was fixed in gampleman, seems to have escaped the merge.
+
 ---
 
 # WIP
-
-Do the Samir thing below.
-
-Write up the measurements (la misura) on Medium, withg friend link to FaceBook.
-> with thoughts on v3.
-> Developer tools provide awesome timeline.
-> Make selected based on file size ~ points
-
-## Start-up sound (ha ha), elm-audio.
 
 ---
 
