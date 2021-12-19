@@ -1391,6 +1391,11 @@ composeScene model =
                         , renderTrackProfileSceneElements model effectiveTrack
                         ]
                 , track = Just trackWithOptionalReduction
+                , viewPanes =
+                    -- Hack allows Charts to redraw.
+                    ViewPane.mapOverPanes
+                        (updatePointerInLinkedPanes trackWithOptionalReduction)
+                        model.viewPanes
             }
 
 

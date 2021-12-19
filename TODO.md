@@ -1,8 +1,6 @@
 
 # BUGS
 
-Charts not being refreshed after Edit/Undo/Redo.
-
 ---
 
 # WIP
