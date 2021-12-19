@@ -81,6 +81,11 @@ then Main.update becomes nice dispatch system. (Unlikely.)
 
 ## **Terrain** on empty squares; make it related to context of neighbours.
 
+## Debt
+
+Need a "buildPreview" method on tools so they can construct their data once only.
+> Currently repeated for each preview style, and (sometimes) in the View (!).
+
 ---
 
 # Not doing

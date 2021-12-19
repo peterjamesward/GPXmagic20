@@ -866,7 +866,7 @@ processPostUpdateAction model action =
             ( Model polishedModel
             , Cmd.batch
                 [ ViewPane.makeMapCommands useTrack polishedModel.viewPanes (getMapPreviews polishedModel)
-                , Delay.after 100 RepaintMap
+                , Delay.after 10 RepaintMap
                 ]
             )
 

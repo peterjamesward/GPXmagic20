@@ -198,7 +198,7 @@ addMarkersToMap track previews =
 
                 Nothing ->
                     ( "ignore", E.null )
-            --, ( "previews", E.list identity previews )
+            , ( "previews", E.list identity previews )
             ]
 
 
