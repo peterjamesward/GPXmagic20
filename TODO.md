@@ -1,6 +1,8 @@
 
 # BUGS
 
+No Strava route option.
+
 ---
 
 # WIP

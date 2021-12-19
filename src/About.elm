@@ -14,7 +14,8 @@ aboutText ipInfo =
 
 ## 2.8.0 update 2021-12-18
 
-- Internal improvements to reduce memory usage. May improve speed in some cases, not always.
+- Internal improvements to reduce memory usage.
+  May improve speed in some cases, not always.
 
 - Previews in 3D for Interpolate, Delete, Lift & Shift and Simplify.
 
