@@ -14,6 +14,8 @@ aboutText ipInfo =
 
 ## 2.8.1 update 2021-12-19
 
+**NOTE:** Previous version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
+
 - Internal improvements to reduce memory usage.
   May improve speed in some cases, not always.
 
