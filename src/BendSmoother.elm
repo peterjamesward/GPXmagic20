@@ -575,11 +575,15 @@ viewBendFixerPane imperial bendOptions mtrack wrap =
 
         Just track ->
             let
-                fixBendButton smooth =
+                updatedSettings =
+                    -- Because, say, someone moved the markers...
+                    { bendOptions | smoothBend = tryBendSmoother track bendOptions }
+
+                fixBendButton =
                     button
                         prettyButtonStyles
                     <|
-                        case bendOptions.smoothBend of
+                        case updatedSettings.smoothBend of
                             Just isSmooth ->
                                 { onPress = Just <| wrap SmoothBend
                                 , label =
@@ -602,7 +606,7 @@ viewBendFixerPane imperial bendOptions mtrack wrap =
             in
             wrappedRow [ spacing 10, padding 10 ] <|
                 [ bendSmoothnessSlider imperial bendOptions wrap
-                , fixBendButton <| bendOptions.smoothBend
+                , fixBendButton
                 , segmentSlider bendOptions wrap
                 , softenButton
                 ]

@@ -1,11 +1,6 @@
 
 # BUGS
 
-Bend Smoother does not enable button despite preview of bend.
-
-Apply Bend smoother twice => "something amiss" (on Mt Coot-tha.).
-> Possibly due to pointer repositioning.
-
 Charts not being refreshed after Edit/Undo/Redo.
 
 ---
@@ -23,8 +18,6 @@ as those are the ones that I would adjust for smooth riding in RGT? Thanks in ad
 > Have radius and angle change sliders. This will allow people to look only for hairpins, say.  
 > Add the radius slider to Bend Problems tab, backwards compatible at small radius.
 > NB, can easily fast-forward "nearly straight" sections.
-
-## Satellite map option.
 
 ## Use elevation from second route, starting at marker.
 > This should be a neat two-way merge sort of track points based on distance from start.  
@@ -51,15 +44,20 @@ Switch currentPoint to : Int, avoid stale state worries.
 
 # v3 candidates
 
-Haskell native app!
+## Racket native app!
+
+## (OR) Haskell native app!
 > https://www.hgamer3d.org/Entities.html
 > https://speakerdeck.com/mchakravarty/playing-with-graphics-and-animations-in-haskell
 
+## Rationalise tools (again)
+E.g. separate info tabs from edit tabs. Find some themes, or contexts.
+
 ## Info popups on 3D views (V3)
-> Seems easy now we have spatial index, SVG charts, OnHover.
+Seems easy now we have spatial index, SVG charts, OnHover.
 > https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
 
-**Stratified** data structures instead of heavy-weight TrackPoint.
+## **Stratified** data structures instead of heavy-weight TrackPoint.
 1. Track points as read from GPX;
 2. Track points converted to XYZ;
 3. Road segments derived from adjacent track points;
@@ -83,11 +81,13 @@ forwarded to the Tool. Would, for example, allow direct dragging on the view.
 In similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
 then Main.update becomes nice dispatch system. (Unlikely.)
 
-**Terrain** on empty squares; make it related to context of neighbours.
+## **Terrain** on empty squares; make it related to context of neighbours.
 
 ---
 
 # Not doing
+
+## Satellite map option (only if possible in v3, which may use Open Streetmap, so no.)
 
 **Lane separation** on out and back sections (?)
 > Without need for Graph. This could just be simple +/- offset withing marked region.
