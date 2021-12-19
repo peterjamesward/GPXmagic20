@@ -12,7 +12,7 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.8.0 update 2021-12-18
+## 2.8.1 update 2021-12-19
 
 - Internal improvements to reduce memory usage.
   May improve speed in some cases, not always.
