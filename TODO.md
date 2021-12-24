@@ -5,7 +5,28 @@ No Strava route option.
 
 ---
 
-# WIP
+# Optimisations?
+
+## What? Why?
+> Yes, because Elm is great compared to Racket. 
+> I can't be sure about slippy maos or equivalent of scene3d in Racket, Haskell or F#.
+> So my thoughts of native app are formally on hold, pending revelation.
+
+Quick test of X3DOM
+> (One of the examples is great terrain)
+
+Use an SVG overlay for markers, maybe previews.
+
+WHen reducing track detail, don't construct the reduced track and then render. Instead,
+skip along when rendering.
+
+Use stratified data, as started with Racket version. Less structure updating, which is
+known to be costly (according to author of optimize-2).
+
+Consider a sort of difference list or skip list. Chunk the list, and each chunk knows
+how big it is, so it's quick to get to a numbered item. Allow each edit to produce more
+chunks. Occasionally reset the chunking, or not.
+> Need equivalent of main library functions, then it's fairly seamless.
 
 ---
 
