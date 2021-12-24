@@ -5,7 +5,18 @@ No Strava route option.
 
 ---
 
-# WIP
+# Optimisations?
+
+> Yes, because Elm is great compared to Racket. 
+> I can't be sure about slippy maos or equivalent of scene3d in Racket, Haskell or F#.
+> So my thoughts of native app are formally on hold, pending revelation.
+
+WHen reducing track detail, don't construct the reduced track and then render. Instead,
+skip along when rendering.
+
+Consider a sort of difference list or skip list. Chunk the list, and each chunk knows
+how big it is, so it's quick to get to a numbered item. Allow each edit to produce more
+chunks. Occasionally reset the chunking, or not.
 
 ---
 
