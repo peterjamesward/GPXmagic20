@@ -6,6 +6,7 @@ import BoundingBox3d
 import Browser exposing (application)
 import Browser.Navigation exposing (Key)
 import Color
+import ColourPalette
 import CurveFormer
 import Delay exposing (after)
 import DeletePoints exposing (Action(..), viewDeleteTools)
@@ -22,6 +23,8 @@ import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
 import FlatColors.ChinesePalette exposing (white)
+import FlatColors.FlatUIPalette
+import FlatColors.TurkishPalette
 import Flythrough exposing (Flythrough)
 import GeoCodeDecoders exposing (IpInfo)
 import GpxSource exposing (..)
@@ -1762,6 +1765,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = LoopedTrack.toolLabel
       , state = Contracted
@@ -1778,6 +1782,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = BendSmoother.toolLabel
       , state = Contracted
@@ -1794,6 +1799,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (BendSmoother.getPreview3D model.bendOptions)
       , previewProfile = Just (BendSmoother.getPreviewProfile model.displayOptions model.bendOptions)
       , previewMap = Just (BendSmoother.getPreviewMap model.displayOptions model.bendOptions)
+      , colour = FlatColors.FlatUIPalette.sunFlower
       }
     , { label = CurveFormer.toolLabel
       , state = Contracted
@@ -1813,6 +1819,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (CurveFormer.getPreview3D model.curveFormer)
       , previewProfile = Just (CurveFormer.getPreviewProfile model.displayOptions model.curveFormer)
       , previewMap = Just (CurveFormer.getPreviewMap model.displayOptions model.curveFormer)
+      , colour = FlatColors.TurkishPalette.dornYellow
       }
     , { label = GradientLimiter.toolLabel
       , state = Contracted
@@ -1831,6 +1838,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = GradientSmoother.toolLabel
       , state = Contracted
@@ -1849,6 +1857,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = Nudge.toolLabel
       , state = Contracted
@@ -1864,6 +1873,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (Nudge.getPreview3D model.nudgeSettings)
       , previewProfile = Just (Nudge.getPreviewProfile model.displayOptions model.nudgeSettings)
       , previewMap = Just (Nudge.getPreviewMap model.displayOptions model.nudgeSettings)
+      , colour = FlatColors.TurkishPalette.mandarinSorbet
       }
     , { label = MoveAndStretch.toolLabel
       , state = Contracted
@@ -1883,6 +1893,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (MoveAndStretch.getPreview3D model.moveAndStretch)
       , previewProfile = Just (MoveAndStretch.getPreviewProfile model.displayOptions model.moveAndStretch)
       , previewMap = Just (MoveAndStretch.getPreviewMap model.displayOptions model.moveAndStretch)
+      , colour = FlatColors.TurkishPalette.lightIndigo
       }
     , { label = Straightener.toolLabel
       , state = Contracted
@@ -1901,6 +1912,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (Straightener.getPreview3D model.straightenOptions)
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = FlatColors.TurkishPalette.lightRed
       }
     , { label = Interpolate.toolLabel
       , state = Contracted
@@ -1921,6 +1933,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (Interpolate.getPreview3D model.insertOptions)
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = FlatColors.ChinesePalette.white
       }
     , { label = DeletePoints.toolLabel
       , state = Contracted
@@ -1933,6 +1946,7 @@ toolsAccordion (Model model) =
       , preview3D = Just DeletePoints.getPreview3D
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = Flythrough.toolLabel
       , state = Contracted
@@ -1948,6 +1962,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = Filters.toolLabel
       , state = Contracted
@@ -1965,6 +1980,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = Graph.toolLabel
       , state = Contracted
@@ -1989,6 +2005,7 @@ toolsAccordion (Model model) =
                             []
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = FlatColors.ChinesePalette.saturatedSky
       }
     , { label = TrackObservations.toolLabel
       , state = Contracted
@@ -2003,6 +2020,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = "Road segment"
       , state = Contracted
@@ -2016,6 +2034,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = "Steep climbs"
       , state = Contracted
@@ -2034,6 +2053,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = "Gradient problems"
       , state = Contracted
@@ -2054,6 +2074,7 @@ toolsAccordion (Model model) =
                         model.observations.abruptGradientChanges
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = FlatColors.TurkishPalette.unmellowYellow
       }
     , { label = "Bend problems"
       , state = Contracted
@@ -2074,6 +2095,7 @@ toolsAccordion (Model model) =
                         model.observations.abruptBearingChanges
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = FlatColors.TurkishPalette.dornYellow
       }
     , { label = "Intersections"
       , state = Contracted
@@ -2090,6 +2112,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     , { label = StravaTools.toolLabel
       , state = Contracted
@@ -2109,6 +2132,7 @@ toolsAccordion (Model model) =
                         |> SceneBuilder.highlightPoints Color.lightBlue
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = ColourPalette.stravaOrange
       }
     , { label = RotateRoute.toolLabel
       , state = Contracted
@@ -2129,6 +2153,7 @@ toolsAccordion (Model model) =
       , preview3D = Just <| RotateRoute.getPreview3D model.rotateOptions
       , previewProfile = Nothing
       , previewMap = Just <| RotateRoute.getPreviewMap model.rotateOptions
+      , colour = Accordion.defaultTabColour
       }
     , { label = TrackSplitter.toolLabel
       , state = Contracted
@@ -2149,6 +2174,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
+      , colour = Accordion.defaultTabColour
       }
     ]
 

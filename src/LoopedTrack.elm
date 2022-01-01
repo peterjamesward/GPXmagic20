@@ -242,6 +242,11 @@ update msg settings track =
             )
 
         OutAndBack ridePlace ->
+            --TODO: (functionality to go in Graph module?)
+            -- 1. Convert to graph
+            -- 2. Add return leg and second forward leg (for turn-around)
+            -- 3. Convert back with offset
+            -- 4. Prune the second outward leg (or dont add it somehow)
             ( settings, PostUpdateActions.ActionNoOp )
 
 

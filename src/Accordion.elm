@@ -2,6 +2,7 @@ module Accordion exposing (..)
 
 -- Seeking a better way to organise all the controls.
 
+import Color
 import ColourPalette exposing (..)
 import Element exposing (..)
 import Element.Background as Background
@@ -10,6 +11,8 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
 import FlatColors.BritishPalette
+import FlatColors.ChinesePalette
+import FlatColors.FlatUIPalette
 import Json.Decode as D exposing (Error, decodeValue, field)
 import Json.Encode as E
 import List.Extra
@@ -36,6 +39,7 @@ type alias AccordionEntry mainModel msg =
     , preview3D : Maybe (Track -> Scene)
     , previewProfile : Maybe (Track -> Scene)
     , previewMap : Maybe (Track -> E.Value)
+    , colour : Color
     }
 
 
@@ -77,7 +81,7 @@ accordionMenuStyles =
     ]
 
 
-accordionTabStyles state =
+accordionTabStyles state colour =
     [ padding 8
     , spacing 2
     , width fill
@@ -94,15 +98,28 @@ accordionTabStyles state =
     , Background.color <|
         case state of
             Expanded _ ->
-                expandedTabBackground
+                colour
 
             _ ->
                 collapsedTabBackground
-    , Font.color buttonText
+    , Font.color <|
+        case state of
+            Expanded _ ->
+                FlatColors.FlatUIPalette.midnightBlue
+
+            _ ->
+                FlatColors.FlatUIPalette.clouds
     , Font.center
     , Font.size 16
+    , case state of
+            Expanded _ ->
+                Font.bold
+
+            _ ->
+                Font.medium
     ]
 
+defaultTabColour = FlatColors.FlatUIPalette.emerald
 
 storedState : AccordionModel -> List (AccordionEntry model msg) -> E.Value
 storedState state entries =
@@ -319,7 +336,7 @@ view accordion entries msgWrap mainModel =
             row [ width fill ]
                 [ infoButton entry msgWrap
                 , column [ width fill ]
-                    [ row (accordionTabStyles entry.state)
+                    [ row (accordionTabStyles entry.state entry.colour)
                         [ favouriteButton entry
                         , button [ width fill ]
                             { onPress = Just (msgWrap <| ToggleEntry entry.label)
@@ -351,7 +368,7 @@ view accordion entries msgWrap mainModel =
 
         viewClosedEntry : AccordionEntry mainModel msg -> Element msg
         viewClosedEntry entry =
-            button (accordionTabStyles entry.state)
+            button (accordionTabStyles entry.state entry.colour)
                 { onPress = Just (msgWrap <| ToggleEntry entry.label)
                 , label = text entry.label
                 }
