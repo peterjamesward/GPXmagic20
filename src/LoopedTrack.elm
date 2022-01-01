@@ -44,10 +44,16 @@ type Loopiness
     | AlmostLoop (Quantity Float Meters) -- if, say, less than 200m back to start.
 
 
+type RideOnThe
+    = RideOnTheLeft
+    | RideOmTheRight
+
+
 type Msg
     = CloseTheLoop
     | ReverseTrack
     | ChangeLoopStart TrackPoint
+    | OutAndBack RideOnThe
 
 
 type alias ReverseUndoRedoInfo =
@@ -73,17 +79,17 @@ viewLoopTools imperial loopiness track wrap =
                         case loopiness of
                             AlmostLoop _ ->
                                 { onPress = Just <| wrap CloseTheLoop
-                                , label = text "Make the track into a loop"
+                                , label = paragraph [] [ text "Make the track into a loop" ]
                                 }
 
                             IsALoop ->
                                 { onPress = Nothing
-                                , label = text "Already a loop"
+                                , label = paragraph [] [ text "Already a loop" ]
                                 }
 
                             NotALoop _ ->
                                 { onPress = Nothing
-                                , label = text "Gap is too big"
+                                , label = paragraph [] [ text "Gap is too big" ]
                                 }
 
                 reverseButton =
@@ -91,46 +97,74 @@ viewLoopTools imperial loopiness track wrap =
                         prettyButtonStyles
                         { onPress = Just <| wrap ReverseTrack
                         , label =
-                            text <|
-                                case isTrack.markedNode of
-                                    Just _ ->
-                                        "Reverse the track\nbetween the markers"
+                            paragraph []
+                                [ text <|
+                                    case isTrack.markedNode of
+                                        Just _ ->
+                                            "Reverse the track\nbetween the markers"
 
-                                    Nothing ->
-                                        "Reverse the track"
+                                        Nothing ->
+                                            "Reverse the track"
+                                ]
                         }
 
                 changeStartButton c =
                     button
                         prettyButtonStyles
                         { onPress = Just (wrap <| ChangeLoopStart c)
-                        , label = text "Move start/finish to current point"
+                        , label = paragraph [] [ text "Move start/finish to current point" ]
+                        }
+
+                outAndBackLeft =
+                    button
+                        prettyButtonStyles
+                        { onPress = Just (wrap <| OutAndBack RideOnTheLeft)
+                        , label =
+                            paragraph [] <|
+                                [ text "Create a looped out and back course, offset 5m left of centre" ]
+                        }
+
+                outAndBackRight =
+                    button
+                        prettyButtonStyles
+                        { onPress = Just (wrap <| OutAndBack RideOmTheRight)
+                        , label =
+                            paragraph [] <|
+                                [ text "Create a looped out and back course, offset 5m right of centre" ]
                         }
             in
-            wrappedRow [ spacing 10, padding 10 ] <|
+            column [ spacing 10, padding 10, width fill ] <|
                 case loopiness of
                     IsALoop ->
-                        [ text "This track is a loop."
+                        [ paragraph [] [ text "This track is a loop." ]
                         , changeStartButton isTrack.currentNode
                         , reverseButton
                         ]
 
                     AlmostLoop gap ->
-                        [ text <|
-                            "This track is "
-                                ++ showShortMeasure imperial gap
-                                ++ " away from a loop"
+                        [ paragraph []
+                            [ text <|
+                                "This track is "
+                                    ++ showShortMeasure imperial gap
+                                    ++ " away from a loop"
+                            ]
                         , loopButton
                         , reverseButton
+                        , outAndBackLeft
+                        , outAndBackRight
                         ]
 
                     NotALoop gap ->
-                        [ text <|
-                            "This track is "
-                                ++ showDecimal0 (inMeters gap)
-                                ++ "m\naway from a loop"
+                        [ paragraph []
+                            [ text <|
+                                "This track is "
+                                    ++ showDecimal0 (inMeters gap)
+                                    ++ "m\naway from a loop"
+                            ]
                         , loopButton
                         , reverseButton
+                        , outAndBackLeft
+                        , outAndBackRight
                         ]
 
 
@@ -206,6 +240,9 @@ update msg settings track =
                 TrackEditType.EditPreservesNodePosition
                 actionEntry
             )
+
+        OutAndBack ridePlace ->
+            ( settings, PostUpdateActions.ActionNoOp )
 
 
 saveContextForReverse : Track -> ReverseUndoRedoInfo

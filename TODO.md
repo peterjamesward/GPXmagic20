@@ -5,7 +5,7 @@
 
 ## John Bytheway 2.9
 
-1. Highlight "problems" on view when tab is open.
+X. Highlight "problems" on view when tab is open.
 2. Encapsulate Graph to allow easy creation of "out and back" tracks (loops).
 3. Try varying colours in the Accordion (perhaps rainbow). Don't know if elm-ui permits.
 
