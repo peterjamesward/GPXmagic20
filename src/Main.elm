@@ -2047,7 +2047,11 @@ toolsAccordion (Model model) =
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
-      , preview3D = Nothing
+      , preview3D =
+            Just <|
+                \track ->
+                    SceneBuilder.highlightPoints Color.lightYellow
+                        model.observations.abruptGradientChanges
       , previewProfile = Nothing
       , previewMap = Nothing
       }
@@ -2063,7 +2067,11 @@ toolsAccordion (Model model) =
       , info = TrackObservations.info
       , video = Just "https://youtu.be/w5rfsmTF08o"
       , isFavourite = False
-      , preview3D = Nothing
+      , preview3D =
+            Just <|
+                \track ->
+                    SceneBuilder.highlightPoints Color.lightYellow
+                        model.observations.abruptBearingChanges
       , previewProfile = Nothing
       , previewMap = Nothing
       }
