@@ -1893,7 +1893,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (MoveAndStretch.getPreview3D model.moveAndStretch)
       , previewProfile = Just (MoveAndStretch.getPreviewProfile model.displayOptions model.moveAndStretch)
       , previewMap = Just (MoveAndStretch.getPreviewMap model.displayOptions model.moveAndStretch)
-      , colour = FlatColors.TurkishPalette.lightIndigo
+      , colour = FlatColors.TurkishPalette.spiroDiscoBall
       }
     , { label = Straightener.toolLabel
       , state = Contracted
@@ -1933,7 +1933,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (Interpolate.getPreview3D model.insertOptions)
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = FlatColors.ChinesePalette.white
+      , colour = FlatColors.ChinesePalette.antiFlashWhite
       }
     , { label = DeletePoints.toolLabel
       , state = Contracted
@@ -2005,7 +2005,7 @@ toolsAccordion (Model model) =
                             []
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = FlatColors.ChinesePalette.saturatedSky
+      , colour = FlatColors.TurkishPalette.neonBlue
       }
     , { label = TrackObservations.toolLabel
       , state = Contracted

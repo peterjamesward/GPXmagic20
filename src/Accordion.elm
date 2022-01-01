@@ -108,7 +108,7 @@ accordionTabStyles state colour =
                 FlatColors.FlatUIPalette.midnightBlue
 
             _ ->
-                FlatColors.FlatUIPalette.clouds
+                colour
     , Font.center
     , Font.size 16
     , case state of
