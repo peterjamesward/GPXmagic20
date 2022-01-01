@@ -1518,7 +1518,6 @@ topLoadingBar model =
 
           else
             E.text "Save your work before\nconnecting to Strava"
-
         , stravaRouteOption
             model.stravaAuthentication
             model.stravaOptions

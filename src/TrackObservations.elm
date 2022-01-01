@@ -313,11 +313,11 @@ viewGradientChanges imperial options obs wrap =
 
         exceedingThreshold =
             obs.abruptGradientChanges
-                |> List.filter
-                    (\pt ->
-                        Maybe.withDefault 0.0 pt.gradientChange
-                            |> exceeds options.gradientChangeThreshold
-                    )
+                --|> List.filter
+                --    (\pt ->
+                --        Maybe.withDefault 0.0 pt.gradientChange
+                --            |> exceeds options.gradientChangeThreshold
+                --    )
 
         linkButton point =
             button prettyButtonStyles
@@ -348,11 +348,11 @@ viewBearingChanges imperial options obs wrap =
     let
         exceedingThreshold =
             obs.abruptBearingChanges
-                |> List.filter
-                    (\pt ->
-                        Maybe.withDefault zero pt.directionChange
-                            |> Quantity.greaterThan options.directionChangeThreshold
-                    )
+                --|> List.filter
+                --    (\pt ->
+                --        Maybe.withDefault zero pt.directionChange
+                --            |> Quantity.greaterThan options.directionChangeThreshold
+                --    )
 
         linkButton point =
             button prettyButtonStyles
