@@ -1,8 +1,10 @@
 module LoopedTrack exposing (..)
 
+import Dict
 import Direction3d
 import Element exposing (..)
 import Element.Input exposing (button)
+import Graph exposing (Graph)
 import Length exposing (Meters, inMeters, meters)
 import List.Extra
 import LocalCoords exposing (LocalCoords)
@@ -44,16 +46,11 @@ type Loopiness
     | AlmostLoop (Quantity Float Meters) -- if, say, less than 200m back to start.
 
 
-type RideOnThe
-    = RideOnTheLeft
-    | RideOmTheRight
-
-
 type Msg
     = CloseTheLoop
     | ReverseTrack
     | ChangeLoopStart TrackPoint
-    | OutAndBack RideOnThe
+    | OutAndBack Length.Length
 
 
 type alias ReverseUndoRedoInfo =
@@ -118,7 +115,7 @@ viewLoopTools imperial loopiness track wrap =
                 outAndBackLeft =
                     button
                         prettyButtonStyles
-                        { onPress = Just (wrap <| OutAndBack RideOnTheLeft)
+                        { onPress = Just (wrap <| OutAndBack (Length.meters -5))
                         , label =
                             paragraph [] <|
                                 [ text "Create a looped out and back course, offset 5m left of centre" ]
@@ -127,7 +124,7 @@ viewLoopTools imperial loopiness track wrap =
                 outAndBackRight =
                     button
                         prettyButtonStyles
-                        { onPress = Just (wrap <| OutAndBack RideOmTheRight)
+                        { onPress = Just (wrap <| OutAndBack (Length.meters 5))
                         , label =
                             paragraph [] <|
                                 [ text "Create a looped out and back course, offset 5m right of centre" ]
@@ -241,13 +238,27 @@ update msg settings track =
                 actionEntry
             )
 
-        OutAndBack ridePlace ->
-            --TODO: (functionality to go in Graph module?)
-            -- 1. Convert to graph
-            -- 2. Add return leg and second forward leg (for turn-around)
-            -- 3. Convert back with offset
-            -- 4. Prune the second outward leg (or dont add it somehow)
-            ( settings, PostUpdateActions.ActionNoOp )
+        OutAndBack offsetSide ->
+            let
+                undoRedoInfo =
+                    ( List.length track.trackPoints, offsetSide, track.currentNode )
+
+                actionEntry : UndoEntry
+                actionEntry =
+                    { label = "Convert to out and back"
+                    , editFunction = applyOutAndBack undoRedoInfo
+                    , undoFunction = revertOutAndBack undoRedoInfo
+                    , newOrange = track.currentNode.index
+                    , newPurple = Maybe.map .index track.markedNode
+                    , oldOrange = track.currentNode.index
+                    , oldPurple = Maybe.map .index track.markedNode
+                    }
+            in
+            ( settings
+            , PostUpdateActions.ActionTrackChanged
+                TrackEditType.EditPreservesNodePosition
+                actionEntry
+            )
 
 
 saveContextForReverse : Track -> ReverseUndoRedoInfo
@@ -461,3 +472,65 @@ applyChangeLoopStart n track =
 revertChangeLoopStart : Int -> Track -> EditResult
 revertChangeLoopStart n track =
     applyChangeLoopStart (List.length track.trackPoints - n - 1) track
+
+
+applyOutAndBack : ( Int, Length.Length, TrackPoint ) -> Track -> EditResult
+applyOutAndBack ( originalLength, offset, current ) track =
+    --TODO: (functionality to go in Graph module?)
+    -- 1. Convert to graph
+    -- 2. Add return leg and second forward leg (for turn-around)
+    -- 3. Convert back with offset
+    -- 4. Prune the second outward leg (or dont add it somehow)
+    let
+        graph0 : Graph
+        graph0 =
+            Graph.deriveTrackPointGraph track.trackPoints
+
+        gWithOffset =
+            { graph0 | centreLineOffset = offset }
+
+        currentFromGraph g =
+            g.edges
+                |> Dict.values
+                |> List.head
+                |> Maybe.andThen List.head
+                |> Maybe.withDefault current
+
+        ( gWithReturnLeg, _ ) =
+            Graph.addTraversalFromCurrent gWithOffset (currentFromGraph gWithOffset)
+
+        ( gWithAnotherLeg, _ ) =
+            case gWithReturnLeg of
+                Just graph1 ->
+                    Graph.addTraversalFromCurrent graph1 (currentFromGraph graph1)
+
+                Nothing ->
+                    ( Just gWithOffset, Graph.GraphNoAction )
+
+        threelegs =
+            case gWithAnotherLeg of
+                Just graph2 ->
+                    Graph.publishUserRoute graph2
+
+                Nothing ->
+                    track.trackPoints
+
+        prunedOutAndBack =
+            threelegs |> List.take (1 + List.length threelegs - originalLength)
+    in
+    { before = []
+    , edited = prunedOutAndBack
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = track.graph
+    }
+
+
+revertOutAndBack : ( Int, Length.Length, TrackPoint ) -> Track -> EditResult
+revertOutAndBack ( originalLength, _, _ ) track =
+    { before = []
+    , edited = List.take originalLength track.trackPoints
+    , after = []
+    , earthReferenceCoordinates = track.earthReferenceCoordinates
+    , graph = Nothing
+    }
