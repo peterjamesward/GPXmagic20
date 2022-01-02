@@ -12,7 +12,7 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.9.0 update 2022-01-02
+## 2.9.1 update 2022-01-02
 
 **NOTE:** Version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
 
@@ -29,6 +29,10 @@ variations.
 - The text and the tabs have some colour variation to reduce the "sea of green" effect.
 Where possible, these should correlate with previews on the view. There's no particular
 theme, and it's subject to change.
+
+- (2.9.1): fix bug where Curve Former button incorrectly enabled, leading to failure.
+
+- (2.9.1): fix bug where One Click Quick Fix fails when Purple marker is visible.
 
 When you encounter problems, **please** try to send me instructions to recreate them.
 I spend ages putting all these bugs in, and I need your help to isolate and fix them!
