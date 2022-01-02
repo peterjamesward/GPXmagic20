@@ -1,13 +1,8 @@
 
 # BUGS
 
----
-
-## John Bytheway 2.9
-
--. Highlight "problems" on view when tab is open.
--. Encapsulate Graph to allow easy creation of "out and back" tracks (loops).
--. Try varying colours in the Accordion (perhaps rainbow). 
+Apply Curve Former at start of Athens => Something amiss!
+> There's no preview so nothing should happen, yet it tries.
 
 ---
 

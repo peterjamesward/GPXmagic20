@@ -35,12 +35,15 @@ oneClickQuickFixTrack track =
         results =
             oneClickQuickFix track
     in
-    { track | trackPoints = results.edited }
+    { track | trackPoints = TrackPoint.prepareTrackPoints results.edited }
 
 
 oneClickQuickFix : Track -> EditResult
 oneClickQuickFix originalTrack =
     let
+        trackWithNoMarkers =
+            { originalTrack | markedNode = Nothing }
+
         simplifyTrack : Track -> Track
         simplifyTrack t =
             let
@@ -73,7 +76,7 @@ oneClickQuickFix originalTrack =
             { track | trackPoints = track |> Filters.bezierWithDefaults }
 
         finalTrack =
-            originalTrack
+            trackWithNoMarkers
                 |> simplifyTrack
                 |> bezierApprox
                 |> Loop.for 3 smoothTrack
