@@ -12,20 +12,26 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.8.1 update 2021-12-19
+## 2.9.0 update 2022-01-02
 
-**NOTE:** Previous version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
+**NOTE:** Version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
 
-- Internal improvements to reduce memory usage.
-  May improve speed in some cases, not always.
+With acknowledgements to John Bytheway:
 
-- Previews in 3D for Interpolate, Delete, Lift & Shift and Simplify.
+- When _Bend problems_ or _Gradient problems_ tabs are open, the corresponding track points are
+highlighted in yellow on the First, Third and Plan views.
 
-- Undo & Redo available for Graph, Strava segment paste.
+- Under _Looped Track maker_ there are buttons to make out and back routes.
+These also add a loop back to thet start; delete if not required. I recommend doing some
+basic smoothing _before_ you do this, as doing it later raises the risk of getting height
+variations.
 
-- New Charts view shows Altitude and Gradient.
+- The text and the tabs have some colour variation to reduce the "sea of green" effect.
+Where possible, these should correlate with previews on the view. There's no particular
+theme, and it's subject to change.
 
-I expect some teething problems, this is a significant change.
+When you encounter problems, **please** try to send me instructions to recreate them.
+I spend ages putting all these bugs in, and I need your help to isolate and fix them!
 
 ## Nice, Pete. I'd buy you a coffee, but I live in """
         ++ (Maybe.map .city ipInfo |> Maybe.withDefault "a far-away land.")

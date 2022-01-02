@@ -1396,8 +1396,6 @@ routeStepRenderer offset prev current next =
                 firstPointOnEdge =
                     List.head outgoing
 
-                _ = Debug.log "firstPointOnEdge" firstPointOnEdge
-
                 shifted =
                     Maybe.map (applyOffsetToFirstPoint offset node) firstPointOnEdge
                         |> Maybe.withDefault node
