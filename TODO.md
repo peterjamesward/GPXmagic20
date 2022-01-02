@@ -1,9 +1,6 @@
 
 # BUGS
 
-Apply Curve Former at start of Athens => Something amiss!
-> There's no preview so nothing should happen, yet it tries.
-
 ---
 
 # Backlog

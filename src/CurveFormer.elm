@@ -403,12 +403,19 @@ view imperial model wrapper track =
                     { label = text "Reset"
                     , onPress = Just <| wrapper DraggerReset
                     }
-                , case ( List.length model.newTrackPoints >= 3, model.pointsAreContiguous ) of
-                    ( _, True ) ->
+                , case ( List.length model.newTrackPoints > 0, model.pointsAreContiguous ) of
+                    ( True, True ) ->
                         Input.button
                             prettyButtonStyles
                             { label = text "Apply"
                             , onPress = Just <| wrapper DraggerApply
+                            }
+
+                    ( False, _ ) ->
+                        Input.button
+                            disabledButtonStyles
+                            { label = paragraph [ width fill ] <| [ text "No curve found" ]
+                            , onPress = Nothing
                             }
 
                     ( _, False ) ->

@@ -725,20 +725,22 @@ update msg (Model model) =
                 action
 
         CurveFormerMsg curveMsg ->
-            let
-                ( newOptions, action ) =
-                    Maybe.map
-                        (CurveFormer.update
-                            curveMsg
-                            model.curveFormer
-                            CurveFormerMsg
-                        )
-                        model.track
-                        |> Maybe.withDefault ( model.curveFormer, ActionNoOp )
-            in
-            processPostUpdateAction
-                { model | curveFormer = newOptions }
-                action
+            case model.track of
+                Just theTrack ->
+                    let
+                        ( newOptions, action ) =
+                            CurveFormer.update
+                                curveMsg
+                                model.curveFormer
+                                CurveFormerMsg
+                                theTrack
+                    in
+                    processPostUpdateAction
+                        { model | curveFormer = newOptions }
+                        action
+
+                Nothing ->
+                    ( Model model, Cmd.none )
 
 
 draggedOnMap : Encode.Value -> Track -> Maybe UndoEntry
@@ -952,7 +954,24 @@ processPostUpdateAction model action =
             )
 
         ( Just track, ActionPreview ) ->
-            processPostUpdateAction model ActionRerender
+            --processPostUpdateAction model ActionRerender
+            let
+                polishedModel =
+                    model
+                        |> refreshAccordion
+                        |> composeScene
+            in
+            case model.track of
+                Just aTrack ->
+                    ( Model polishedModel
+                    , Cmd.batch
+                        [ ViewPane.makeMapCommands aTrack polishedModel.viewPanes (getMapPreviews polishedModel)
+                        , Delay.after 10 RepaintMap
+                        ]
+                    )
+
+                Nothing ->
+                    ( Model model, Cmd.none )
 
         ( _, ActionCommand a ) ->
             ( Model model, a )
