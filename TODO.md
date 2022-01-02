@@ -6,7 +6,7 @@
 ## John Bytheway 2.9
 
 -. Highlight "problems" on view when tab is open.
-2. Encapsulate Graph to allow easy creation of "out and back" tracks (loops).
+-. Encapsulate Graph to allow easy creation of "out and back" tracks (loops).
 -. Try varying colours in the Accordion (perhaps rainbow). 
 
 ---

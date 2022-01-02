@@ -482,41 +482,11 @@ applyOutAndBack ( originalLength, offset, current ) track =
     -- 3. Convert back with offset
     -- 4. Prune the second outward leg (or dont add it somehow)
     let
-        graph0 : Graph
-        graph0 =
-            Graph.deriveTrackPointGraph track.trackPoints
-
-        gWithOffset =
-            { graph0 | centreLineOffset = offset }
-
-        currentFromGraph g =
-            g.edges
-                |> Dict.values
-                |> List.head
-                |> Maybe.andThen List.head
-                |> Maybe.withDefault current
-
-        ( gWithReturnLeg, _ ) =
-            Graph.addTraversalFromCurrent gWithOffset (currentFromGraph gWithOffset)
-
-        ( gWithAnotherLeg, _ ) =
-            case gWithReturnLeg of
-                Just graph1 ->
-                    Graph.addTraversalFromCurrent graph1 (currentFromGraph graph1)
-
-                Nothing ->
-                    ( Just gWithOffset, Graph.GraphNoAction )
-
-        threelegs =
-            case gWithAnotherLeg of
-                Just graph2 ->
-                    Graph.publishUserRoute graph2
-
-                Nothing ->
-                    track.trackPoints
+        loopedTrack =
+            Graph.makeOutAndBack offset track.trackPoints
 
         prunedOutAndBack =
-            threelegs |> List.take (1 + List.length threelegs - originalLength)
+            loopedTrack |> List.take (1 + List.length loopedTrack - originalLength)
     in
     { before = []
     , edited = prunedOutAndBack

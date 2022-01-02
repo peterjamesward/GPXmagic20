@@ -1396,6 +1396,8 @@ routeStepRenderer offset prev current next =
                 firstPointOnEdge =
                     List.head outgoing
 
+                _ = Debug.log "firstPointOnEdge" firstPointOnEdge
+
                 shifted =
                     Maybe.map (applyOffsetToFirstPoint offset node) firstPointOnEdge
                         |> Maybe.withDefault node
@@ -1637,7 +1639,7 @@ generateArc entry middle exit =
     case Arc3d.throughPoints entry.xyz middle.xyz exit.xyz of
         Just arc ->
             arc
-                |> Arc3d.segments 6
+                |> Arc3d.segments 10
                 |> Polyline3d.segments
                 |> List.map LineSegment3d.startPoint
                 |> List.drop 1
@@ -1654,7 +1656,7 @@ generateSmoothedTurn entry middle exit =
     case arc3dFromThreePoints entry middle exit of
         Just arc ->
             Arc3d.startPoint arc
-                :: (Arc3d.segments 5 arc
+                :: (Arc3d.segments 8 arc
                         |> Polyline3d.segments
                         |> List.map LineSegment3d.endPoint
                    )
@@ -1667,15 +1669,11 @@ generateSmoothedTurn entry middle exit =
 applyOffsetToFirstPoint : Float -> TrackPoint -> TrackPoint -> TrackPoint
 applyOffsetToFirstPoint offset pointToOffset nextPoint =
     let
-        offsetDirection =
+        offsetVector =
             Vector3d.from pointToOffset.xyz nextPoint.xyz
                 |> Vector3d.projectOnto Plane3d.xy
-                |> Vector3d.direction
-                |> Maybe.withDefault Direction3d.x
-                |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
-
-        offsetVector =
-            Vector3d.withLength (meters offset) offsetDirection
+                |> Vector3d.rotateAround Axis3d.z (Angle.degrees -90)
+                |> Vector3d.scaleTo (meters offset)
 
         newXYZ =
             Point3d.translateBy offsetVector pointToOffset.xyz
@@ -1686,20 +1684,54 @@ applyOffsetToFirstPoint offset pointToOffset nextPoint =
 applyOffsetToSecondPoint : Float -> TrackPoint -> TrackPoint -> TrackPoint
 applyOffsetToSecondPoint offset prevPoint pointToOffset =
     let
-        offsetDirection =
+        offsetVector =
             Vector3d.from prevPoint.xyz pointToOffset.xyz
                 |> Vector3d.projectOnto Plane3d.xy
-                |> Vector3d.direction
-                |> Maybe.withDefault Direction3d.x
-                |> Direction3d.rotateAround Axis3d.z (Angle.degrees -90)
-
-        offsetVector =
-            Vector3d.withLength (meters offset) offsetDirection
+                |> Vector3d.rotateAround Axis3d.z (Angle.degrees -90)
+                |> Vector3d.scaleTo (meters offset)
 
         newXYZ =
             Point3d.translateBy offsetVector pointToOffset.xyz
     in
     { pointToOffset | xyz = newXYZ }
+
+
+
+-- Special case for simple out and back courses.
+
+
+makeOutAndBack : Length.Length -> List TrackPoint -> List TrackPoint
+makeOutAndBack offset points =
+    case ( List.head points, List.last points, List.getAt 1 points ) of
+        ( Just first, Just last, Just via ) ->
+            let
+                edgeKey =
+                    ( trackPointComparable first
+                    , trackPointComparable last
+                    , trackPointComparable via
+                    )
+
+                edgePoints =
+                    points |> List.take (List.length points - 1) |> List.drop 1
+
+                graph =
+                    { nodes = addPointsFromList points Dict.empty
+                    , edges = Dict.empty |> Dict.insert edgeKey edgePoints
+                    , userRoute =
+                        [ Traversal edgeKey Forwards
+                        , Traversal edgeKey Backwards
+                        , Traversal edgeKey Forwards
+                        ]
+                    , canonicalRoute = [ Traversal edgeKey Forwards ]
+                    , centreLineOffset = offset
+                    , trackPointToCanonical = Dict.empty
+                    , selectedTraversal = Nothing
+                    }
+            in
+            publishUserRoute graph
+
+        _ ->
+            points
 
 
 
