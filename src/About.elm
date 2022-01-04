@@ -12,27 +12,11 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.9.1 update 2022-01-02
+## 2.9.2 update 2022-01-04
 
 **NOTE:** Version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
 
-With acknowledgements to John Bytheway:
-
-- When _Bend problems_ or _Gradient problems_ tabs are open, the corresponding track points are
-highlighted in yellow on the First, Third and Plan views.
-
-- Under _Looped Track maker_ there are buttons to make out and back routes.
-These also add a loop back to thet start; delete if not required. I recommend doing some
-basic smoothing _before_ you do this, as doing it later raises the risk of getting height
-variations.
-
-- The text and the tabs have some colour variation to reduce the "sea of green" effect.
-Where possible, these should correlate with previews on the view. There's no particular
-theme, and it's subject to change.
-
-- (2.9.1): fix bug where Curve Former button incorrectly enabled, leading to failure.
-
-- (2.9.1): fix bug where One Click Quick Fix fails when Purple marker is visible.
+- Fix bug where Orange and Purple marker disappear in Profile view.
 
 When you encounter problems, **please** try to send me instructions to recreate them.
 I spend ages putting all these bugs in, and I need your help to isolate and fix them!

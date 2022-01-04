@@ -1,6 +1,16 @@
 
 # BUGS
 
+Scrolling profile view, seems to "skip" over some points and loses the Orange marker.
+(See Profile Bug.gpx)
+Actually the marker is there but hidden.
+Also, "sea level" is not working in Profile.
+Also, looks like x scale is not distanceFromStart!
+
+Bezier leaving pointer in a not good place (Chris Ames).
+
+Single click in 3rd is centering view?
+
 ---
 
 # Backlog

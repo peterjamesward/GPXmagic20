@@ -39,6 +39,7 @@ type alias DownSelected a =
     , countSelected : Int
     }
 
+
 defaultDownSelected =
     { selected = []
     , countInView = 0
@@ -48,17 +49,22 @@ defaultDownSelected =
 
 lollipop pt colour =
     let
+        offset =
+            if Point3d.zCoordinate pt |> Quantity.lessThan Quantity.zero then
+                Vector3d.meters 0 0 -2
+
+            else
+                Vector3d.meters 0 0 2
+
         lollipopAt =
-            Point3d.translateBy
-                (Vector3d.meters 0.0 0.0 1.0)
-                pt
+            Point3d.translateBy offset pt
     in
-    [ Scene3d.point { radius = Pixels.pixels 10 }
+    [ Scene3d.point { radius = Pixels.pixels 12 }
         (Material.color colour)
-        lollipopAt
-    , Scene3d.lineSegment
-        (Material.color colour)
-        (LineSegment3d.from pt lollipopAt)
+        pt
+    --, Scene3d.lineSegment
+    --    (Material.color colour)
+    --    (LineSegment3d.from pt lollipopAt)
     ]
 
 

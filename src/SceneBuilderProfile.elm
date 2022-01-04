@@ -1,5 +1,6 @@
 module SceneBuilderProfile exposing (..)
 
+import BoundingBox3d
 import Color exposing (Color, black, brown)
 import Cone3d
 import Direction3d exposing (negativeZ, positiveZ)
@@ -10,7 +11,7 @@ import LineSegment3d
 import List.Extra
 import LocalCoords exposing (LocalCoords)
 import Pixels
-import Plane3d
+import Plane3d exposing (Plane3d)
 import Point3d exposing (Point3d)
 import Quantity exposing (Quantity)
 import Scene3d exposing (Entity, cone)
@@ -60,11 +61,28 @@ renderTrack options track =
 
                 PastelCurtain ->
                     gradientColourPastel
+
+        curtainHem : Plane3d Meters LocalCoords
+        curtainHem =
+            if options.seaLevel then
+                Plane3d.xy
+
+            else
+                Plane3d.xy |> Plane3d.offsetBy (BoundingBox3d.minZ track.box)
     in
     List.concat
-        [ mapOverPairs (paintCurtainBetween options.verticalExaggeration gradientFunction)
+        [ mapOverPairs
+            (paintCurtainBetween
+                options.verticalExaggeration
+                gradientFunction
+                curtainHem
+            )
         , if options.roadPillars then
-            mapOverPoints (roadSupportPillar options.verticalExaggeration)
+            mapOverPoints
+                (roadSupportPillar
+                    options.verticalExaggeration
+                    curtainHem
+                )
 
           else
             []
@@ -76,8 +94,14 @@ renderTrack options track =
         ]
 
 
-paintCurtainBetween : Float -> (Float -> Color) -> TrackPoint -> TrackPoint -> Entity LocalCoords
-paintCurtainBetween scale colouring pt1 pt2 =
+paintCurtainBetween :
+    Float
+    -> (Float -> Color)
+    -> Plane3d Meters LocalCoords
+    -> TrackPoint
+    -> TrackPoint
+    -> Entity LocalCoords
+paintCurtainBetween scale colouring hemPlane pt1 pt2 =
     let
         gradient =
             gradientFromPoint pt1
@@ -85,8 +109,8 @@ paintCurtainBetween scale colouring pt1 pt2 =
     Scene3d.quad (Material.color <| colouring gradient)
         (scaledXZ scale pt1)
         (scaledXZ scale pt2)
-        (Point3d.projectOnto Plane3d.xy pt2.profileXZ)
-        (Point3d.projectOnto Plane3d.xy pt1.profileXZ)
+        (Point3d.projectOnto hemPlane pt2.profileXZ)
+        (Point3d.projectOnto hemPlane pt1.profileXZ)
 
 
 scaledXZ : Float -> TrackPoint -> Point3d Meters LocalCoords
@@ -104,8 +128,8 @@ renderMarkers options track =
         currentPositionDisc point =
             let
                 lollipopAt =
-                    Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 1.0)
+                    --Point3d.translateBy
+                    --    (Vector3d.meters 0.0 0.0 1.0)
                         (scaledXZ options.verticalExaggeration point)
             in
             Utils.lollipop lollipopAt Color.lightOrange
@@ -113,8 +137,8 @@ renderMarkers options track =
         markedNode point =
             let
                 lollipopAt =
-                    Point3d.translateBy
-                        (Vector3d.meters 0.0 0.0 1.0)
+                    --Point3d.translateBy
+                    --    (Vector3d.meters 0.0 0.0 1.0)
                         (scaledXZ options.verticalExaggeration point)
             in
             Utils.lollipop lollipopAt Color.purple
@@ -221,13 +245,17 @@ showGraphNodes graph =
     graph |> Graph.nodePointList |> List.map makeNode
 
 
-roadSupportPillar : Float -> TrackPoint -> Entity LocalCoords
-roadSupportPillar scale pt =
+roadSupportPillar :
+    Float
+    -> Plane3d Length.Meters LocalCoords
+    -> TrackPoint
+    -> Entity LocalCoords
+roadSupportPillar scale groundPlane pt =
     let
         centre =
             LineSegment3d.from
                 (scaledXZ scale pt)
-                (scaledXZ scale pt |> Point3d.projectOnto Plane3d.xy)
+                (pt.profileXZ |> Point3d.projectOnto groundPlane)
     in
     Scene3d.lineSegment (Material.color brown) centre
 

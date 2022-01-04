@@ -1409,8 +1409,8 @@ composeScene model =
                         ]
                 , completeProfile =
                     combineLists
-                        [ renderVaryingProfileSceneElements model trackWithOptionalReduction
-                        , renderTrackProfileSceneElements model effectiveTrack
+                        [ renderTrackProfileSceneElements model track
+                        , renderVaryingProfileSceneElements model track
                         ]
                 , track = Just trackWithOptionalReduction
                 , viewPanes =
