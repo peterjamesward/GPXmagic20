@@ -836,7 +836,7 @@ processPostUpdateAction model action =
                     { model | track = Just newTrack }
                         |> addToUndoStack undoEntry
             in
-            processPostUpdateAction newModel ActionRerender
+            processPostUpdateAction newModel ActionPreview
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
@@ -899,7 +899,7 @@ processPostUpdateAction model action =
                     }
 
                 ( finalModel, cmd ) =
-                    processPostUpdateAction newModel ActionRerender
+                    processPostUpdateAction newModel ActionPreview
 
                 refocusMapCmd =
                     if ViewPane.mapPaneIsLinked model.viewPanes then
@@ -920,7 +920,7 @@ processPostUpdateAction model action =
                 newModel =
                     { model | track = Just updatedTrack }
             in
-            processPostUpdateAction newModel ActionRerender
+            processPostUpdateAction newModel ActionPreview
 
         ( Just track, ActionRepaintMap ) ->
             ( Model model
@@ -1428,7 +1428,7 @@ composeScene model =
                 , track = Just trackWithOptionalReduction
                 , viewPanes =
                     -- Hack allows Charts to redraw.
-                    ViewPane.mapOverPanes
+                    ViewPane.mapOverChartPanes
                         (updatePointerInLinkedPanes trackWithOptionalReduction)
                         model.viewPanes
             }

@@ -142,6 +142,20 @@ mapOverPanes f panes =
     List.map f panes
 
 
+mapOverChartPanes : (ViewPane -> ViewPane) -> List ViewPane -> List ViewPane
+mapOverChartPanes f panes =
+    let
+        onlyIfChartVisible : ViewPane -> ViewPane
+        onlyIfChartVisible pane =
+            if pane.activeContext == ViewProfileCharts then
+                f pane
+
+            else
+                pane
+    in
+    List.map onlyIfChartVisible panes
+
+
 isViewingModeVisible : ViewingMode -> List ViewPane -> Bool
 isViewingModeVisible mode panes =
     -- This will allow us to make Scene evaluation lazy.
