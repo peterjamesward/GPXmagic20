@@ -12,11 +12,13 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.9.2 update 2022-01-04
+## 2.9.3 update 2022-01-05
 
 **NOTE:** Version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
 
-- Fix bug where Orange and Purple marker disappear in Profile view.
+- Improves Orange and Purple marker positioning after edits.
+
+- Stops single click from centering views (use double-click to centre).
 
 When you encounter problems, **please** try to send me instructions to recreate them.
 I spend ages putting all these bugs in, and I need your help to isolate and fix them!
