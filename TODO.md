@@ -1,20 +1,10 @@
 
 # BUGS
 
-
-Bezier leaving pointer(s) in a not good place (Chris Ames).
-> May need to pre-compute to know length change (silly but easy).
-> No, just use the "from end" concept. 
-> This applies to all marker-bounded operations!
-> Fix this up in `processPostUpdateAction`.
-> This leaves a problem (only) for Beziers with no Purple -- Perhaps use nearest by `distanceFromStart`.
-> Yet, `distanceFromStart` and `distanceFromEnd` should cover all bases with one approach.
-
-
-Single click in 3rd, 1st, Plan, Profile is _centering view_. 
-(Should require double-click.)
-This because of re-rendering for selective render.
-
+Is 1CQF making a uniform gradient? 
+Bezier approximation is!!
+No, it's just painting wrong.
+Needs a fix.
 
 ---
 

@@ -836,7 +836,7 @@ processPostUpdateAction model action =
                     { model | track = Just newTrack }
                         |> addToUndoStack undoEntry
             in
-            processPostUpdateAction newModel ActionPreview
+            processPostUpdateAction newModel ActionRerender
 
         ( Just track, ActionRerender ) ->
             -- Use this after Undo/Redo to avoid pushing change onto stack.
