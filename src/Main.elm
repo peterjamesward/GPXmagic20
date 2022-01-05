@@ -813,11 +813,6 @@ draggedOnMap json track =
 processPostUpdateAction : ModelRecord -> PostUpdateAction Track (Cmd Msg) -> ( Model, Cmd Msg )
 processPostUpdateAction model action =
     -- This should be the one place from where actions are orchestrated.
-    let
-        fromModel (Model m) =
-            -- I dislike stuff like this.
-            m
-    in
     case ( model.track, action ) of
         ( Just track, ActionTrackChanged editType undoEntry ) ->
             let
@@ -833,17 +828,6 @@ processPostUpdateAction model action =
                 newTrack =
                     { track
                         | trackPoints = newPoints
-                        , currentNode =
-                            newPoints
-                                |> List.Extra.getAt undoEntry.newOrange
-                                |> Maybe.withDefault track.currentNode
-                        , markedNode =
-                            case undoEntry.newPurple of
-                                Just p ->
-                                    newPoints |> List.Extra.getAt p
-
-                                Nothing ->
-                                    Nothing
                         , earthReferenceCoordinates = results.earthReferenceCoordinates
                         , graph = results.graph
                     }
@@ -1278,29 +1262,6 @@ reflectNewTrackViaGraph newTrack editType model =
                     , max orange.index purple.index
                     )
 
-                changeInLength =
-                    List.length newTrack.trackPoints - List.length oldTrack.trackPoints
-
-                newOrange =
-                    Maybe.withDefault orange <|
-                        if orange.index <= purple.index then
-                            List.Extra.getAt orange.index newTrack.trackPoints
-
-                        else
-                            List.Extra.getAt (orange.index + changeInLength) newTrack.trackPoints
-
-                newPurple =
-                    case oldTrack.markedNode of
-                        Just mark ->
-                            if mark.index <= orange.index then
-                                List.Extra.getAt mark.index newTrack.trackPoints
-
-                            else
-                                List.Extra.getAt (mark.index + changeInLength) newTrack.trackPoints
-
-                        Nothing ->
-                            Nothing
-
                 newGraph =
                     Graph.updateWithNewTrack
                         newTrack.graph
@@ -1315,6 +1276,58 @@ reflectNewTrackViaGraph newTrack editType model =
                 newPointsFromGraph =
                     Maybe.map Graph.walkTheRoute newGraph
                         |> Maybe.withDefault newTrack.trackPoints
+
+                -- We must here restore the marker(s).
+                ( newOrange, newPurple ) =
+                    case oldTrack.markedNode of
+                        Just oldPurple ->
+                            -- Both markers.
+                            -- The one nearest the start remains at that count from start.
+                            -- The one nearest the end remains at that count from the end.
+                            if orange.index <= oldPurple.index then
+                                ( newPointsFromGraph
+                                    |> List.Extra.getAt orange.index
+                                    |> Maybe.withDefault orange
+                                , newPointsFromGraph
+                                    |> List.Extra.getAt
+                                        (List.length newPointsFromGraph
+                                            - (List.length oldTrack.trackPoints - oldPurple.index)
+                                        )
+                                )
+
+                            else
+                                ( newPointsFromGraph
+                                    |> List.Extra.getAt
+                                        (orange.index
+                                            + List.length newPointsFromGraph
+                                            - List.length oldTrack.trackPoints
+                                        )
+                                    |> Maybe.withDefault orange
+                                , newPointsFromGraph |> List.Extra.getAt oldPurple.index
+                                )
+
+                        Nothing ->
+                            -- Only Orange.
+                            -- If track length unchanged, use same index.
+                            -- If track length changed, use nearest `distanceFromStart`.
+                            if List.length oldTrack.trackPoints == List.length newPointsFromGraph then
+                                ( newPointsFromGraph
+                                    |> List.Extra.getAt orange.index
+                                    |> Maybe.withDefault orange
+                                , Nothing
+                                )
+
+                            else
+                                ( newPointsFromGraph
+                                    |> List.Extra.dropWhile
+                                        (\p ->
+                                            p.distanceFromStart
+                                                |> Quantity.lessThan orange.distanceFromStart
+                                        )
+                                    |> List.head
+                                    |> Maybe.withDefault orange
+                                , Nothing
+                                )
 
                 trackWithNewRoute =
                     case newTrack.graph of

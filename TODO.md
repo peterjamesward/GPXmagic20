@@ -1,15 +1,20 @@
 
 # BUGS
 
-Scrolling profile view, seems to "skip" over some points and loses the Orange marker.
-(See Profile Bug.gpx)
-Actually the marker is there but hidden.
-Also, "sea level" is not working in Profile.
-Also, looks like x scale is not distanceFromStart!
 
-Bezier leaving pointer in a not good place (Chris Ames).
+Bezier leaving pointer(s) in a not good place (Chris Ames).
+> May need to pre-compute to know length change (silly but easy).
+> No, just use the "from end" concept. 
+> This applies to all marker-bounded operations!
+> Fix this up in `processPostUpdateAction`.
+> This leaves a problem (only) for Beziers with no Purple -- Perhaps use nearest by `distanceFromStart`.
+> Yet, `distanceFromStart` and `distanceFromEnd` should cover all bases with one approach.
 
-Single click in 3rd is centering view?
+
+Single click in 3rd, 1st, Plan, Profile is _centering view_. 
+(Should require double-click.)
+This because of re-rendering for selective render.
+
 
 ---
 
@@ -35,6 +40,8 @@ as those are the ones that I would adjust for smooth riding in RGT? Thanks in ad
 
 ## TECH DEBT
 
+: All covered by V3.
+
 At least three similar forms of new Track creation.
 
 Don't copy information into ViewContext that doesn't belong there. 
@@ -48,42 +55,12 @@ Switch currentPoint to : Int, avoid stale state worries.
 
 # v3 candidates
 
-## Racket native app!
-
-## (OR) Haskell native app!
-> https://www.hgamer3d.org/Entities.html
-> https://speakerdeck.com/mchakravarty/playing-with-graphics-and-animations-in-haskell
-
 ## Rationalise tools (again)
 E.g. separate info tabs from edit tabs. Find some themes, or contexts.
 
 ## Info popups on 3D views (V3)
 Seems easy now we have spatial index, SVG charts, OnHover.
 > https://package.elm-lang.org/packages/ianmackenzie/elm-3d-camera/latest/
-
-## **Stratified** data structures instead of heavy-weight TrackPoint.
-1. Track points as read from GPX;
-2. Track points converted to XYZ;
-3. Road segments derived from adjacent track points;
-4. Inflection points (shall we call them?) derived from adjacent road segments;
-5. Profile;
-6. "Problems";
-7. Spatial index (of roads, of inflection points);
-8. Elided points for rendering;
-9. Terrain;
-10. Graph (erks me that this is so different, but it is).
-
-> Aim/hope is to reduce updating and hence reduce memory churn.
-> How to manage minimal updating? Version numbers? Will it just fall out?
-> We edit in the '2' level, and only fall back to 1 for output (apart from Map actions)
-> Anything in '3', '4', '5' is for info, and derived after each edit.
-> N.B. minor optimisation is to only re-derive from start edit forwards.
-
-Allow Tools to place a control on the view pane. When selected, drag messages are
-forwarded to the Tool. Would, for example, allow direct dragging on the view.
-
-In similar vein, we could put the Tool submodels into a dict keyed by Msg subtype
-then Main.update becomes nice dispatch system. (Unlikely.)
 
 ## **Terrain** on empty squares; make it related to context of neighbours.
 
@@ -97,10 +74,6 @@ Need a "buildPreview" method on tools so they can construct their data once only
 # Not doing
 
 ## Satellite map option (only if possible in v3, which may use Open Streetmap, so no.)
-
-**Lane separation** on out and back sections (?)
-> Without need for Graph. This could just be simple +/- offset withing marked region.
-> Just use Nudge or Move & Stretch.
 
 Change Track.spatialIndex to be road-based, so we can re-use for Terrain?
 > It may remove any "misses" in click detection btw.
