@@ -1,10 +1,8 @@
 
 # BUGS
 
-
 Interpolate tab colour bad choice.
 
-Add Problem markers to Map.
 
 ---
 

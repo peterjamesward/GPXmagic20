@@ -431,7 +431,7 @@ function addOptionals(msg) {
 
 function addPreview(preview) {
 
-    //console.log(preview);
+    console.log(preview);
 
     if (map.getLayer(preview.name)) map.removeLayer(preview.name);
     if (map.getSource(preview.name)) map.removeSource(preview.name);
@@ -441,19 +441,30 @@ function addPreview(preview) {
         'data': preview.points
         });
 
+//    map.addLayer({
+//        'id': preview.name,
+//        'type': 'line',
+//        'source': preview.name,
+//        'layout': {
+//        'line-join': 'round',
+//        'line-cap': 'round'
+//        },
+//        'paint': {
+//            'line-color': preview.colour,
+//            'line-width': 4
+//        }
+//    });//
+
     map.addLayer({
         'id': preview.name,
-        'type': 'line',
+        'type': 'circle',
         'source': preview.name,
-        'layout': {
-        'line-join': 'round',
-        'line-cap': 'round'
-        },
         'paint': {
-            'line-color': preview.colour,
-            'line-width': 4
+            'circle-radius': 12,
+            'circle-color': preview.colour
         }
     });
+
 
 };
 

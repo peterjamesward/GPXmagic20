@@ -4,6 +4,7 @@ import Angle exposing (Angle)
 import BendSmoother
 import Element exposing (..)
 import Element.Input as Input exposing (button)
+import Json.Encode as E
 import Length exposing (Meters, inMeters, meters)
 import LineSegment2d
 import List.Extra
@@ -465,3 +466,36 @@ bearingChangeThresholdSlider options wrap =
         , value = Angle.inDegrees options.directionChangeThreshold
         , thumb = Input.defaultThumb
         }
+
+
+getBendProblemsForMap : TrackObservations -> Track -> E.Value
+getBendProblemsForMap  observations track =
+    {-
+       To return JSON:
+       { "name" : "nudge"
+       , "colour" : "#FFFFFF"
+       , "points" : <trackPointsToJSON ...>
+       }
+    -}
+    let
+        fakeTrack =
+            -- Just for the JSON
+            { track | trackPoints = observations.abruptBearingChanges }
+
+        emptyTrack =
+            { track | trackPoints = [] }
+    in
+    -- Hack day.
+    if List.length track.trackPoints > 1 then
+        E.object
+            [ ( "name", E.string "KINKS" )
+            , ( "colour", E.string "#F368E0" )
+            , ( "points", Track.trackToJSON fakeTrack )
+            ]
+    else
+        -- null will be filtered out, not sent to MapBox. Ugh.
+        E.object
+            [ ( "name", E.string "KINKS" )
+            , ( "colour", E.string "#F368E0" )
+            , ( "points", Track.trackToJSON emptyTrack )
+            ]

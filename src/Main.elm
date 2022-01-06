@@ -22,6 +22,7 @@ import File.Download as Download
 import File.Select as Select
 import Filters
 import FlatColors.BritishPalette
+import FlatColors.CanadianPalette
 import FlatColors.ChinesePalette exposing (white)
 import FlatColors.FlatUIPalette
 import FlatColors.TurkishPalette
@@ -989,29 +990,27 @@ getMapPreviews model =
 
                 previews =
                     model.toolsAccordion
-                        |> Accordion.openTabs
                         |> List.map
                             (\tab ->
-                                case tab.previewMap of
-                                    Just fn ->
+                                case (tab.state, tab.previewMap) of
+                                    (Expanded _, Just fn) ->
                                         Just (fn track)
 
-                                    Nothing ->
+                                    _ ->
                                         Nothing
                             )
                         |> List.filterMap identity
 
                 noPreviews =
-                    -- !!
+                    -- Smarter to do this once only.
                     model.toolsAccordion
-                        |> Accordion.closedTabs
                         |> List.map
                             (\tab ->
-                                case tab.previewMap of
-                                    Just fn ->
+                                case (tab.state, tab.previewMap) of
+                                    (Contracted, Just fn) ->
                                         Just (fn emptyTrack)
 
-                                    Nothing ->
+                                    _ ->
                                         Nothing
                             )
                         |> List.filterMap identity
@@ -1966,7 +1965,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (Interpolate.getPreview3D model.insertOptions)
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = FlatColors.ChinesePalette.antiFlashWhite
+      , colour = FlatColors.CanadianPalette.jigglypuff
       }
     , { label = DeletePoints.toolLabel
       , state = Contracted
@@ -2127,7 +2126,7 @@ toolsAccordion (Model model) =
                     SceneBuilder.highlightPoints Color.lightYellow
                         model.observations.abruptBearingChanges
       , previewProfile = Nothing
-      , previewMap = Nothing
+      , previewMap = Just (TrackObservations.getBendProblemsForMap model.observations )
       , colour = FlatColors.TurkishPalette.dornYellow
       }
     , { label = "Intersections"
