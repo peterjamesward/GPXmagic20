@@ -1,9 +1,6 @@
 
 # BUGS
 
-Interpolate tab colour bad choice.
-
-
 ---
 
 # Backlog

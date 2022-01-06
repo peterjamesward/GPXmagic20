@@ -12,15 +12,17 @@ aboutText : Maybe IpInfo -> String
 aboutText ipInfo =
     """## GPXmagic is freely provided without warranty.
 
-## 2.9.4 update 2022-01-05
+## 2.9.5 update 2022-01-07
 
 **NOTE:** Version 2.7.13 [available here](https://s3.eu-west-1.amazonaws.com/stepwiserefinement.co.uk/GPXmagic_2_7_13/index.html).
 
-- (2.9.4) Redraws properly after edits.
+- Interpolate tab is now a more visible pink ("jigglypuff").
 
-- (2.9.3) Improves Orange and Purple marker positioning after edits.
+- Map previews show only track points, not line segments. This is temporary.
 
-- (2.9.3) Stops single click from centering views (use double-click to centre).
+- Points listed in the "Bend problems" tab (when open) are highlighted on the Map in "Lian Hong Lotus Pink".
+
+- Clicking on Map should no longer re-centre map on some previously clicked point.
 
 When you encounter problems, **please** try to send me instructions to recreate them.
 I spend ages putting all these bugs in, and I need your help to isolate and fix them!
