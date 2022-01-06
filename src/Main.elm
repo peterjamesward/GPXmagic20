@@ -902,8 +902,9 @@ processPostUpdateAction model action =
                     processPostUpdateAction newModel ActionPreview
 
                 refocusMapCmd =
+                    --TODO: Not if this came from the Map!
                     if ViewPane.mapPaneIsLinked model.viewPanes then
-                        PortController.centreMapOnCurrent track
+                        PortController.centreMapOnCurrent updatedTrack
 
                     else
                         Cmd.none
@@ -2459,7 +2460,8 @@ processPortMessage model json =
                                             | lastMapClick = ( lon1, lat1 )
                                             , mapClickDebounce = True
                                         }
-                                        (PostUpdateActions.ActionFocusMove point)
+                                        --(PostUpdateActions.ActionFocusMove point)
+                                        (PostUpdateActions.ActionPointerMove point)
                             in
                             ( outcome
                             , Cmd.batch [ cmds, after 100 ClearMapClickDebounce ]

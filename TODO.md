@@ -1,10 +1,10 @@
 
 # BUGS
 
-Is 1CQF making a uniform gradient? 
-Bezier approximation is!!
-No, it's just painting wrong.
-Needs a fix.
+
+Interpolate tab colour bad choice.
+
+Add Problem markers to Map.
 
 ---
 
