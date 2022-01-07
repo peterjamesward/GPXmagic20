@@ -21,6 +21,8 @@ import File exposing (File)
 import File.Download as Download
 import File.Select as Select
 import Filters
+import FlatColors.AmericanPalette
+import FlatColors.AussiePalette
 import FlatColors.BritishPalette
 import FlatColors.CanadianPalette
 import FlatColors.ChinesePalette exposing (white)
@@ -1797,7 +1799,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = Accordion.defaultTabColour
+      , colour = FlatColors.AussiePalette.greenlandGreen
       }
     , { label = LoopedTrack.toolLabel
       , state = Contracted
@@ -1944,7 +1946,7 @@ toolsAccordion (Model model) =
       , preview3D = Just (Straightener.getPreview3D model.straightenOptions)
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = FlatColors.TurkishPalette.lightRed
+      , colour = FlatColors.AussiePalette.spicedNectarine
       }
     , { label = Interpolate.toolLabel
       , state = Contracted
@@ -1994,7 +1996,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = Accordion.defaultTabColour
+      , colour = FlatColors.AmericanPalette.shyMoment
       }
     , { label = Filters.toolLabel
       , state = Contracted
@@ -2085,7 +2087,7 @@ toolsAccordion (Model model) =
       , preview3D = Nothing
       , previewProfile = Nothing
       , previewMap = Nothing
-      , colour = Accordion.defaultTabColour
+      , colour = FlatColors.AussiePalette.quinceJelly
       }
     , { label = "Gradient problems"
       , state = Contracted
@@ -2126,7 +2128,7 @@ toolsAccordion (Model model) =
                     SceneBuilder.highlightPoints Color.lightYellow
                         model.observations.abruptBearingChanges
       , previewProfile = Nothing
-      , previewMap = Just (TrackObservations.getBendProblemsForMap model.observations )
+      , previewMap = Nothing
       , colour = FlatColors.TurkishPalette.dornYellow
       }
     , { label = "Intersections"

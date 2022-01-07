@@ -1,6 +1,9 @@
 
 # BUGS
 
+Restore line previews.
+Find some other kind of marker for bend problems.
+
 ---
 
 # Backlog
